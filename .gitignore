@@ -13,6 +13,8 @@ backend/.env.*
 
 *.log
 logs/
+!/src/app/components/lists/logs/
+!/src/app/components/lists/logs/**
 backups/
 tmp/
 .local-runtime/
@@ -25,3 +27,4 @@ backend/data/system-tools/
 uploads/
 
 .github/.DS_Store
+.vite/
