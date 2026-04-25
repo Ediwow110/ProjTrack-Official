@@ -1,0 +1,11 @@
+export const MAIL_QUEUE_DEFAULTS = {
+  TX_PER_MIN: 60,
+  BULK_PER_MIN: 20,
+  POLL_MS: 15_000,
+  STALE_LOCK_MS: 10 * 60 * 1000,
+} as const;
+
+export const MAIL_QUEUE_ENV_KEYS = {
+  TX_PER_MIN: ['MAILRELAY_TX_PER_MIN', 'MAIL_TX_PER_MIN'],
+  BULK_PER_MIN: ['MAILRELAY_BULK_PER_MIN', 'MAIL_BULK_PER_MIN'],
+} as const;

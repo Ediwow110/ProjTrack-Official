@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": [
+    "src/app/lib/api/contracts.ts",
+    "src/app/lib/api/mockServer.ts",
+    "src/app/lib/api/services.ts",
+    "src/app/lib/api/http.ts",
+    "src/app/lib/api/runtime.ts",
+    "src/app/lib/mockAuth.ts",
+    "src/vite-env.d.ts"
+  ]
+}

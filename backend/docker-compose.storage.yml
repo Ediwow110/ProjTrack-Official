@@ -1,0 +1,30 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: projtrack-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: projtrackminio
+      MINIO_ROOT_PASSWORD: projtrackminiosecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - projtrack_minio_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: projtrack-minio-init
+    depends_on:
+      - minio
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set projtrack http://minio:9000 projtrackminio projtrackminiosecret; do sleep 1; done;
+      /usr/bin/mc mb --ignore-existing projtrack/projtrack-files;
+      /usr/bin/mc anonymous set none projtrack/projtrack-files;
+      "
+
+volumes:
+  projtrack_minio_data:

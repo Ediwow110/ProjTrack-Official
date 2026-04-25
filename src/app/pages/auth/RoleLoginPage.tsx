@@ -1,0 +1,191 @@
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { BookOpen, Eye, EyeOff, GraduationCap, Hash, Lock, Mail, ShieldCheck } from "lucide-react";
+
+import { AuthField, AuthLayout } from "../../components/auth/AuthLayout";
+import { Button } from "../../components/ui/button";
+import { BodyText } from "../../components/ui/typography";
+import { type AppRole } from "../../lib/mockAuth";
+import { authService } from "../../lib/api/services";
+
+const cfgMap: Record<AppRole, {
+  title: string;
+  subtitle: string;
+  icon: typeof GraduationCap;
+  badge: string;
+  fieldLabel: string;
+  fieldPlaceholder: string;
+  hint: string;
+  stats: Array<{ value: string; label: string }>;
+}> = {
+  student: {
+    title: "Student Login",
+    subtitle: "Access your subjects, calendar, submissions, and group work.",
+    icon: GraduationCap,
+    badge: "Student Portal",
+    fieldLabel: "Student ID or Email",
+    fieldPlaceholder: "STU-2024-00142 or student@school.edu.ph",
+    hint: "Use your student number or school email to enter the student portal.",
+    stats: [
+      { value: "24/7", label: "Submission access" },
+      { value: "8", label: "Active subjects" },
+      { value: "3", label: "Unread alerts" },
+    ],
+  },
+  teacher: {
+    title: "Teacher Login",
+    subtitle: "Review records, manage subject rules, and monitor submissions.",
+    icon: BookOpen,
+    badge: "Teacher Portal",
+    fieldLabel: "Employee ID or School Email",
+    fieldPlaceholder: "EMP-001 or teacher@school.edu.ph",
+    hint: "Use your employee ID or school email to enter the teacher portal.",
+    stats: [
+      { value: "57", label: "Pending reviews" },
+      { value: "6", label: "Assigned subjects" },
+      { value: "99%", label: "On-time review rate" },
+    ],
+  },
+  admin: {
+    title: "Admin Login",
+    subtitle: "Manage users, reports, announcements, and system operations.",
+    icon: ShieldCheck,
+    badge: "Admin Portal",
+    fieldLabel: "Admin Email",
+    fieldPlaceholder: "admin@school.edu.ph",
+    hint: "Admin portal access is limited to authorized staff.",
+    stats: [
+      { value: "2,419", label: "Managed accounts" },
+      { value: "5,831", label: "Submission records" },
+      { value: "99.9%", label: "System uptime" },
+    ],
+  },
+};
+
+export default function RoleLoginPage({ role }: { role: AppRole }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const cfg = cfgMap[role];
+  const Icon = cfg.icon;
+  const identifierInputId = `${role}-identifier`;
+  const passwordInputId = `${role}-password`;
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const FieldIcon = role === "student" ? Hash : Mail;
+  const requestedTarget = typeof location.state === "object" && location.state && "from" in location.state
+    ? String((location.state as { from?: string }).from || "")
+    : "";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await authService.signIn({ role, identifier, password });
+      navigate(requestedTarget || response.redirectTo, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AuthLayout
+      role={role}
+      title={cfg.title}
+      subtitle={cfg.subtitle}
+      hint={cfg.hint}
+      icon={Icon}
+      badge={cfg.badge}
+      metrics={cfg.stats}
+      footer={(
+        <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+          <span>
+            {requestedTarget
+              ? "You will return to the page you originally requested after sign-in."
+              : "Authorized access only."}
+          </span>
+          <span className="auth-role-link font-semibold">Protected role-based access</span>
+        </div>
+      )}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField label={cfg.fieldLabel} htmlFor={identifierInputId} icon={FieldIcon}>
+          <input
+            id={identifierInputId}
+            name="username"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder={cfg.fieldPlaceholder}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="username"
+            spellCheck={false}
+            required
+            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+          />
+        </AuthField>
+
+        <AuthField
+          label="Password"
+          htmlFor={passwordInputId}
+          icon={Lock}
+          trailing={(
+            <button
+              type="button"
+              onClick={() => setShowPass((value) => !value)}
+              className="rounded-full p-1 text-slate-400 transition-colors hover:text-slate-700"
+              aria-label={showPass ? "Hide password" : "Show password"}
+            >
+              {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          )}
+        >
+          <input
+            id={passwordInputId}
+            name="password"
+            type={showPass ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter password"
+            autoComplete="current-password"
+            required
+            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+          />
+        </AuthField>
+
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <BodyText tone="muted" className="auth-support-text">
+            Secure sign-in for your portal.
+          </BodyText>
+          <Link
+            to={`/auth/forgot-password?role=${encodeURIComponent(role)}`}
+            className="auth-role-link text-sm font-semibold underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
+        {error ? (
+          <div className="rounded-[var(--radius-control)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-[var(--shadow-soft)]">
+            {error}
+          </div>
+        ) : null}
+
+        <Button
+          type="submit"
+          size="lg"
+          disabled={loading}
+          className="auth-role-button h-12 w-full rounded-[var(--radius-control)] px-5 text-sm font-semibold shadow-[var(--shadow-soft)]"
+        >
+          {loading ? "Signing in..." : `Continue to ${cfg.title}`}
+        </Button>
+      </form>
+    </AuthLayout>
+  );
+}

@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run check:click-targets
+      - run: npm run typecheck
+      - run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      APP_URL: http://localhost:5173
+      MAIL_PROVIDER: stub
+      MAIL_FROM: noreply@projtrack.local
+      FILE_STORAGE_MODE: local
+      OBJECT_STORAGE_MODE: local
+      ALLOW_DEMO_SEED: "true"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run seed
+      - run: npm run build
+      - run: npm run smoke
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      APP_URL: http://127.0.0.1:4173
+      FRONTEND_URL: http://127.0.0.1:4173
+      MAIL_PROVIDER: stub
+      MAIL_FROM: noreply@projtrack.local
+      FILE_STORAGE_MODE: local
+      OBJECT_STORAGE_MODE: local
+      ALLOW_DEMO_SEED: "true"
+      VITE_USE_BACKEND: "true"
+      VITE_API_BASE_URL: http://127.0.0.1:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+      - run: npm --prefix backend ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm --prefix backend run prisma:generate
+      - run: npm --prefix backend run prisma:migrate:deploy
+      - run: npm --prefix backend run seed
+      - run: npm run e2e:smoke

@@ -1,0 +1,501 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum UserStatus {
+  PENDING_SETUP
+  PENDING_ACTIVATION
+  PENDING_PASSWORD_SETUP
+  ACTIVE
+  INACTIVE
+  RESTRICTED
+  DISABLED
+  ARCHIVED
+  GRADUATED
+}
+
+enum AcademicYearStatus {
+  ACTIVE
+  ARCHIVED
+  UPCOMING
+}
+
+enum SubmissionMode {
+  INDIVIDUAL
+  GROUP
+}
+
+enum EmailJobType {
+  TRANSACTIONAL @map("transactional")
+  BULK          @map("bulk")
+}
+
+enum EmailJobStatus {
+  QUEUED     @map("queued")
+  PROCESSING @map("processing")
+  SENT       @map("sent")
+  FAILED     @map("failed")
+  DEAD       @map("dead")
+  CANCELLED  @map("cancelled")
+  PAUSED_LIMIT_REACHED @map("paused_limit_reached")
+}
+
+enum AccountActionTokenType {
+  PASSWORD_RESET
+  ACCOUNT_ACTIVATION
+}
+
+model User {
+  id                   String      @id @default(cuid())
+  email                String      @unique
+  passwordHash         String?
+  role                 Role
+  status               UserStatus  @default(PENDING_ACTIVATION)
+  firstName            String
+  lastName             String
+  phone                String?
+  office               String?
+  avatarRelativePath   String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  studentProfile       StudentProfile?
+  teacherProfile       TeacherProfile?
+  notifications        Notification[]
+  auditEvents          AuditLog[]   @relation("actorAuditEvents")
+  studentSubmissions   Submission[] @relation("studentSubmissionOwner")
+  submittedSubmissions Submission[] @relation("submissionActor")
+  reviewedSubmissions  Submission[] @relation("submissionReviewer")
+  groupMemberships     GroupMember[]
+  authSessions         AuthSession[]
+  accountActionTokens  AccountActionToken[]
+}
+
+model StudentProfile {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  studentNumber       String             @unique
+  middleInitial       String?
+  sectionId           String?
+  academicYearId      String?
+  academicYearLevelId String?
+  course              String?
+  yearLevel           Int?
+  yearLevelName       String?
+  user                User               @relation(fields: [userId], references: [id])
+  academicYear        AcademicYear?      @relation(fields: [academicYearId], references: [id])
+  academicYearLevel   AcademicYearLevel? @relation(fields: [academicYearLevelId], references: [id])
+  section             Section?           @relation(fields: [sectionId], references: [id])
+  enrollments         Enrollment[]
+}
+
+model TeacherProfile {
+  id            String   @id @default(cuid())
+  userId         String   @unique
+  employeeId     String?  @unique
+  department     String?
+  user           User     @relation(fields: [userId], references: [id])
+  subjects       Subject[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Section {
+  id                  String             @id @default(cuid())
+  name                String
+  academicYearId      String?
+  academicYearLevelId String?
+  course              String?
+  yearLevel           Int?
+  yearLevelName       String?
+  adviserName         String?
+  description         String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  academicYear        AcademicYear?      @relation(fields: [academicYearId], references: [id])
+  academicYearLevel   AcademicYearLevel? @relation(fields: [academicYearLevelId], references: [id])
+  students            StudentProfile[]
+  enrollments         Enrollment[]
+  groups              Group[]
+
+  @@unique([academicYearId, name])
+  @@index([academicYearId, course, yearLevel])
+}
+
+model AcademicYear {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  status      AcademicYearStatus @default(UPCOMING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  levels      AcademicYearLevel[]
+  sections    Section[]
+  students    StudentProfile[]
+}
+
+model AcademicYearLevel {
+  id             String          @id @default(cuid())
+  academicYearId String
+  name           String
+  sortOrder      Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id])
+  sections       Section[]
+  students       StudentProfile[]
+
+  @@unique([academicYearId, name])
+  @@index([academicYearId, sortOrder])
+}
+
+model Subject {
+  id                  String          @id @default(cuid())
+  code                String          @unique
+  name                String
+  teacherId           String?
+  status              String          @default("ACTIVE")
+  isOpen              Boolean         @default(true)
+  allowLateSubmission Boolean         @default(false)
+  groupEnabled        Boolean         @default(false)
+  minGroupSize        Int             @default(1)
+  maxGroupSize        Int             @default(1)
+  teacher             TeacherProfile? @relation(fields: [teacherId], references: [id])
+  tasks               SubmissionTask[]
+  enrollments         Enrollment[]
+  groups              Group[]
+  submissions         Submission[]
+}
+
+model Enrollment {
+  id            String         @id @default(cuid())
+  studentId      String
+  subjectId      String
+  sectionId      String?
+  student        StudentProfile @relation(fields: [studentId], references: [id])
+  subject        Subject        @relation(fields: [subjectId], references: [id])
+  section        Section?       @relation(fields: [sectionId], references: [id])
+
+  @@unique([studentId, subjectId])
+}
+
+model SubmissionTask {
+  id                  String         @id @default(cuid())
+  subjectId           String
+  title               String         @unique
+  description         String?
+  submissionMode      SubmissionMode @default(INDIVIDUAL)
+  isOpen              Boolean        @default(true)
+  allowLateSubmission Boolean        @default(false)
+  deadline            DateTime?
+  openAt              DateTime?
+  dueAt               DateTime?
+  closeAt             DateTime?
+  acceptedFileTypes   Json?
+  maxFileSizeMb       Int            @default(10)
+  externalLinksAllowed Boolean       @default(true)
+  notifyByEmail       Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  subject             Subject        @relation(fields: [subjectId], references: [id])
+  submissions         Submission[]
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  subjectId   String
+  sectionId   String?
+  name        String
+  inviteCode  String        @unique
+  leaderId    String?
+  status      String        @default("ACTIVE")
+  createdAt   DateTime      @default(now())
+  subject     Subject       @relation(fields: [subjectId], references: [id])
+  section     Section?      @relation(fields: [sectionId], references: [id])
+  members     GroupMember[]
+  submissions Submission[]
+}
+
+model GroupMember {
+  id              String         @id @default(cuid())
+  groupId         String
+  studentId       String
+  role            String?
+  status          String?        @default("ACTIVE")
+  group           Group          @relation(fields: [groupId], references: [id])
+  student         User           @relation(fields: [studentId], references: [id])
+
+  @@unique([groupId, studentId])
+}
+
+model Submission {
+  id            String          @id @default(cuid())
+  taskId         String
+  subjectId      String
+  studentId      String?
+  groupId        String?
+  submittedById  String?
+  reviewerId     String?
+  title         String
+  status        String
+  submittedAt   DateTime?
+  grade         Int?
+  feedback      String?
+  description   String?
+  notes         String?
+  externalLinks Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  task          SubmissionTask  @relation(fields: [taskId], references: [id])
+  subject       Subject         @relation(fields: [subjectId], references: [id])
+  student       User?           @relation("studentSubmissionOwner", fields: [studentId], references: [id])
+  group         Group?          @relation(fields: [groupId], references: [id])
+  submittedBy   User?           @relation("submissionActor", fields: [submittedById], references: [id])
+  reviewer      User?           @relation("submissionReviewer", fields: [reviewerId], references: [id])
+  files         SubmissionFile[]
+}
+
+model Notification {
+  id              String    @id @default(cuid())
+  userId          String
+  title           String
+  body            String
+  type            String
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model EmailJob {
+  id                String         @id @default(cuid())
+  type              EmailJobType   @default(TRANSACTIONAL)
+  status            EmailJobStatus @default(QUEUED)
+  userEmail         String
+  recipientName     String?
+  subject           String?
+  templateKey       String
+  payload           Json
+  attempts          Int            @default(0)
+  maxAttempts       Int            @default(5)
+  lastAttemptAt     DateTime?
+  lastError         String?
+  failureReason     String?
+  providerMessageId String?
+  deliveredAt       DateTime?
+  idempotencyKey    String?        @unique
+  idempotencyUntil  DateTime?
+  scheduledAt       DateTime?      @map("nextAttemptAt")
+  sentAt            DateTime?
+  lockedAt          DateTime?
+  lockedBy          String?
+  campaignId        String?
+  batchKey          String?
+  provider          String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([status, scheduledAt, type])
+  @@index([userEmail])
+  @@index([campaignId])
+  @@index([idempotencyUntil])
+  @@index([providerMessageId])
+  @@index([failureReason])
+}
+
+model EmailProviderEvent {
+  id                String   @id @default(cuid())
+  provider          String
+  providerEventId   String
+  eventType         String
+  providerMessageId String?
+  email             String?
+  payload           Json
+  receivedAt        DateTime @default(now())
+  processedAt       DateTime?
+
+  @@unique([provider, providerEventId])
+  @@index([providerMessageId])
+  @@index([email])
+  @@index([eventType])
+}
+
+model EmailSuppression {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  reason       String?
+  source       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  suppressedAt DateTime @default(now())
+}
+
+model EmailUnsubscribe {
+  id             String   @id @default(cuid())
+  email          String
+  token          String   @unique
+  campaignId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  unsubscribedAt DateTime?
+
+  @@index([email])
+  @@index([campaignId])
+}
+
+model AuditLog {
+  id              String    @id @default(cuid())
+  actorUserId     String?
+  actorRole       String
+  action          String
+  module          String
+  target          String
+  entityId        String?
+  result          String
+  details         String?
+  ipAddress       String?
+  sessionId       String?
+  beforeValue     String?
+  afterValue      String?
+  createdAt       DateTime  @default(now())
+  actor           User?     @relation("actorAuditEvents", fields: [actorUserId], references: [id])
+}
+
+model AuthSession {
+  id                 String   @id
+  userId             String
+  tokenHash          String
+  expiresAt          DateTime
+  revokedAt          DateTime?
+  lastUsedAt         DateTime?
+  replacedBySessionId String?
+  userAgent          String?
+  ipAddress          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model AccountActionToken {
+  id             String                 @id @default(cuid())
+  type           AccountActionTokenType
+  userId         String
+  publicRef      String                 @unique
+  tokenHash      String
+  encryptedToken String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
+  @@index([type, publicRef])
+  @@index([usedAt])
+}
+
+model AuthRateLimit {
+  id             String   @id @default(cuid())
+  action         String
+  key            String
+  attempts       Int      @default(0)
+  firstAttemptAt DateTime @default(now())
+  lastAttemptAt  DateTime @default(now())
+  blockedUntil   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([action, key])
+  @@index([blockedUntil])
+}
+
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  audience    String
+  status      String
+  publishAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model Request {
+  id          String   @id @default(cuid())
+  requester   String
+  role        String
+  type        String
+  subject     String
+  dateLabel   String
+  status      String
+  details     String
+  createdAt   DateTime @default(now())
+}
+
+model AcademicSetting {
+  id                String   @id @default(cuid())
+  schoolYear        String
+  semester          String
+  submissionStart   String
+  submissionEnd     String
+  latePolicy        String
+  lateDeduction     String
+  updatedAt         DateTime @updatedAt
+}
+
+model SystemSetting {
+  id                       String   @id @default(cuid())
+  schoolName               String
+  email                    String
+  notifEmail               String
+  minPassLen               String
+  maxFailedLogins          String
+  sessionTimeout           String
+  allowRegistration        Boolean
+  requireEmailVerification Boolean
+  twoFactorAdmin           Boolean
+  backupFrequency          String
+  accountAccessEmailsEnabled             Boolean  @default(true)
+  classroomActivityEmailsEnabled         Boolean  @default(false)
+  classroomActivitySystemNotificationsEnabled Boolean @default(true)
+  updatedAt                DateTime @updatedAt
+}
+
+model SystemTool {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  desc        String
+  status      String
+  lastRunAt   DateTime?
+  updatedAt   DateTime @updatedAt
+}
+
+
+model SubmissionFile {
+  id            String      @id @default(cuid())
+  submissionId  String
+  fileName      String
+  fileSize      Int
+  relativePath  String?
+  createdAt     DateTime    @default(now())
+  submission    Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
