@@ -13,6 +13,8 @@ backend/.env.*
 
 *.log
 logs/
+!/src/app/components/lists/logs/
+!/src/app/components/lists/logs/**
 backups/
 tmp/
 .local-runtime/
