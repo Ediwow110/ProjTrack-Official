@@ -25,3 +25,4 @@ backend/data/system-tools/
 uploads/
 
 .github/.DS_Store
+.vite/
