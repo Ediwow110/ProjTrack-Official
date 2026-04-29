@@ -2,10 +2,10 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 
 import ProtectedPortal from "./components/ProtectedPortal";
+import { getAuthSession } from "./lib/mockAuth";
 
 import { PortalLayout } from "./layouts/PortalLayout";
 
-const LoginSelector = lazy(() => import("./pages/auth/LoginSelector"));
 const StudentLogin = lazy(() => import("./pages/auth/StudentLogin"));
 const TeacherLogin = lazy(() => import("./pages/auth/TeacherLogin"));
 const AdminLogin = lazy(() => import("./pages/auth/AdminLogin"));
@@ -33,6 +33,7 @@ const TeacherNotifications = lazy(() => import("./pages/teacher/Notifications"))
 const TeacherProfile = lazy(() => import("./pages/teacher/Profile"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/Users"));
 const AdminStudents = lazy(() => import("./pages/admin/Students"));
 const AdminStudentView = lazy(() => import("./pages/admin/StudentView"));
 const AdminTeachers = lazy(() => import("./pages/admin/Teachers"));
@@ -45,7 +46,6 @@ const AdminSubmissions = lazy(() => import("./pages/admin/Submissions"));
 const AdminSubmissionView = lazy(() => import("./pages/admin/SubmissionView"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminAcademicSettings = lazy(() => import("./pages/admin/AcademicSettings"));
-const AdminRequests = lazy(() => import("./pages/admin/Requests"));
 const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
 const AdminAuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
@@ -55,6 +55,7 @@ const AdminGroups = lazy(() => import("./pages/admin/Groups"));
 const AdminAnnouncements = lazy(() => import("./pages/admin/Announcements"));
 const AdminCalendar = lazy(() => import("./pages/admin/Calendar"));
 const AdminMailJobs = lazy(() => import("./pages/admin/MailJobs"));
+const AdminBackups = lazy(() => import("./pages/admin/Backups"));
 const AdminFileInventory = lazy(() => import("./pages/admin/FileInventory"));
 const AdminSystemHealth = lazy(() => import("./pages/admin/SystemHealth"));
 const AdminReleaseStatus = lazy(() => import("./pages/admin/ReleaseStatus"));
@@ -75,10 +76,18 @@ function page(element: React.ReactNode) {
   );
 }
 
+function SmartEntryRedirect() {
+  const session = getAuthSession();
+  if (session?.role) {
+    return <Navigate to={`/${session.role}/dashboard`} replace />;
+  }
+  return <Navigate to="/student/login" replace />;
+}
+
 export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/student/login" replace /> },
-  { path: "/login", element: <Navigate to="/student/login" replace /> },
-  { path: "/portals", element: page(<LoginSelector />) },
+  { path: "/", element: <SmartEntryRedirect /> },
+  { path: "/login", element: <SmartEntryRedirect /> },
+  { path: "/portals", element: <Navigate to="/student/login" replace /> },
   { path: "/student/login", element: page(<StudentLogin />) },
   { path: "/teacher/login", element: page(<TeacherLogin />) },
   { path: "/admin/login", element: page(<AdminLogin />) },
@@ -126,6 +135,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       { path: "dashboard", element: page(<AdminDashboard />) },
+      { path: "users", element: page(<AdminUsers />) },
       { path: "students", element: page(<AdminStudents />) },
       { path: "students/:id", element: page(<AdminStudentView />) },
       { path: "teachers", element: page(<AdminTeachers />) },
@@ -138,7 +148,7 @@ export const router = createBrowserRouter([
       { path: "submissions/:id", element: page(<AdminSubmissionView />) },
       { path: "reports", element: page(<AdminReports />) },
       { path: "academic-settings", element: page(<AdminAcademicSettings />) },
-      { path: "requests", element: page(<AdminRequests />) },
+      { path: "requests", element: <Navigate to="/admin/notifications" replace /> },
       { path: "notifications", element: page(<AdminNotifications />) },
       { path: "audit-logs", element: page(<AdminAuditLogs />) },
       { path: "settings", element: page(<AdminSettings />) },
@@ -147,6 +157,7 @@ export const router = createBrowserRouter([
       { path: "announcements", element: page(<AdminAnnouncements />) },
       { path: "calendar", element: page(<AdminCalendar />) },
       { path: "mail-jobs", element: page(<AdminMailJobs />) },
+      { path: "backups", element: page(<AdminBackups />) },
       { path: "file-inventory", element: page(<AdminFileInventory />) },
       { path: "system-health", element: page(<AdminSystemHealth />) },
       { path: "release-status", element: page(<AdminReleaseStatus />) },

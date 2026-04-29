@@ -8,6 +8,7 @@ import {
   Search,
 } from "lucide-react";
 import { StatusChip } from "../../components/ui/StatusChip";
+import { GradeChip } from "../../components/ui/GradeChip";
 import {
   PortalEmptyState,
   PortalHero,
@@ -154,7 +155,7 @@ export default function TeacherSubmissions() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-teal-800 shadow-lg shadow-slate-950/10 transition hover:bg-teal-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-teal-800 dark:text-teal-200 shadow-lg shadow-slate-950/10 transition hover:bg-teal-50"
             >
               <RefreshCcw size={16} />
               Refresh
@@ -171,7 +172,7 @@ export default function TeacherSubmissions() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
@@ -182,18 +183,18 @@ export default function TeacherSubmissions() {
       >
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="flex min-w-[240px] flex-1 items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
-              <Search size={16} className="shrink-0 text-slate-400" />
+            <label className="flex min-w-[240px] flex-1 items-center gap-3 rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
+              <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-300" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by title, student, subject..."
-                className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400"
                 aria-label="Search teacher submissions"
               />
             </label>
 
-            <div className="inline-flex items-center gap-2 rounded-[20px] border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+            <div className="inline-flex items-center gap-2 rounded-[20px] border border-amber-100 bg-amber-50 dark:bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-800">
               <AlertCircle size={14} />
               {activeReviewCount} active review items
             </div>
@@ -203,7 +204,7 @@ export default function TeacherSubmissions() {
             <select
               value={sectionF}
               onChange={(event) => setSectionF(event.target.value)}
-              className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none"
               aria-label="Filter submissions by section"
             >
               {sections.map((section) => (
@@ -218,7 +219,7 @@ export default function TeacherSubmissions() {
                 setSubjectF(next);
                 if (next === "All Subjects") setSubjectIdF("");
               }}
-              className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none"
               aria-label="Filter submissions by subject"
             >
               {subjects.map((subject) => (
@@ -229,7 +230,7 @@ export default function TeacherSubmissions() {
             <select
               value={typeF}
               onChange={(event) => setTypeF(event.target.value)}
-              className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none"
               aria-label="Filter submissions by type"
             >
               {types.map((type) => (
@@ -246,7 +247,7 @@ export default function TeacherSubmissions() {
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   statusF === status
                     ? "bg-teal-700 text-white shadow-[0_16px_35px_-24px_rgba(13,148,136,0.55)]"
-                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                 }`}
               >
                 {status}
@@ -259,13 +260,13 @@ export default function TeacherSubmissions() {
               {activeFilters.map((entry) => (
                 <span
                   key={entry}
-                  className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                  className="rounded-full bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                 >
                   {entry}
                 </span>
               ))}
               {downloadNote ? (
-                <span className="text-xs font-semibold text-emerald-700">{downloadNote}</span>
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{downloadNote}</span>
               ) : null}
             </div>
           ) : null}
@@ -278,7 +279,7 @@ export default function TeacherSubmissions() {
         contentClassName="px-0 py-0"
       >
         {loading ? (
-          <div className="px-6 py-12 text-center text-sm text-slate-500">
+          <div className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
             Loading teacher submissions...
           </div>
         ) : filtered.length === 0 ? (
@@ -287,7 +288,7 @@ export default function TeacherSubmissions() {
               title="No submissions matched"
               description="Adjust the current filters to broaden the review queue and bring more records back into view."
               icon={Filter}
-              className="border-slate-200 bg-slate-50/80"
+              className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
             />
           </div>
         ) : (
@@ -295,7 +296,7 @@ export default function TeacherSubmissions() {
             <div className="overflow-x-auto">
             <table className="w-full min-w-[1180px] text-sm">
               <thead>
-                <tr className="border-b border-slate-200/70 bg-slate-50/80">
+                <tr className="border-b border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/70">
                   {[
                     "Title",
                     "Student / Group",
@@ -310,19 +311,19 @@ export default function TeacherSubmissions() {
                   ].map((header) => (
                     <th
                       key={header}
-                      className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+                      className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300"
                     >
                       {header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
                 {visibleSubmissions.map((submission) => (
                   <tr
                     key={submission.id}
                     className={`cursor-pointer transition hover:bg-teal-50/35 ${
-                      submission.status === "Late" ? "bg-rose-50/25" : "bg-white/70"
+                      submission.status === "Late" ? "bg-rose-50/25 dark:bg-rose-500/10" : "bg-white/70 dark:bg-slate-900/70"
                     }`}
                     onClick={() => openReview(submission.id)}
                     onKeyDown={(event) => {
@@ -336,62 +337,60 @@ export default function TeacherSubmissions() {
                     aria-label={`Open submission ${submission.title}`}
                   >
                     <td className="px-4 py-4">
-                      <p className="text-xs font-semibold text-slate-800">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
                         {submission.title}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-400">
+                      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-300">
                         {submission.activity}
                       </p>
                     </td>
                     <td className="px-4 py-4">
-                      <p className="text-xs font-medium text-slate-700">{submission.owner}</p>
+                      <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{submission.owner}</p>
                       {submission.type === "Individual" && submission.studentId ? (
-                        <p className="mt-1 font-mono text-[11px] text-slate-400">
+                        <p className="mt-1 font-mono text-[11px] text-slate-400 dark:text-slate-300">
                           {submission.studentId}
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-4 text-xs text-slate-500">
+                    <td className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
                           setSubjectF(submission.subject);
                           setSubjectIdF(submission.subjectId || "");
                         }}
-                        className="font-semibold text-teal-700 hover:underline"
+                        className="font-semibold text-teal-700 dark:text-teal-300 hover:underline"
                       >
                         {submission.subject}
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-xs text-slate-600">
+                    <td className="px-4 py-4 text-xs text-slate-600 dark:text-slate-300">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
                           setSectionF(submission.section);
                         }}
-                        className="font-semibold text-teal-700 hover:underline"
+                        className="font-semibold text-teal-700 dark:text-teal-300 hover:underline"
                       >
                         {submission.section}
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{submission.type}</td>
-                    <td className="px-4 py-4 text-xs text-slate-500">{submission.due}</td>
-                    <td className="px-4 py-4 text-xs text-slate-400">
+                    <td className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400">{submission.type}</td>
+                    <td className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400">{submission.due}</td>
+                    <td className="px-4 py-4 text-xs text-slate-400 dark:text-slate-300">
                       {submission.submitted}
                     </td>
                     <td className="px-4 py-4">
                       <StatusChip status={submission.status} size="xs" />
                     </td>
-                    <td className="px-4 py-4 text-xs font-semibold text-emerald-700">
-                      {submission.grade !== "—" ? `${submission.grade}/100` : "—"}
-                    </td>
+                    <td className="px-4 py-4"><GradeChip grade={submission.grade} status={submission.status} size="xs" /></td>
                     <td className="px-4 py-4">
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
                           openReview(submission.id);
                         }}
-                        className="text-xs font-semibold text-teal-700 hover:underline"
+                        className="text-xs font-semibold text-teal-700 dark:text-teal-300 hover:underline"
                       >
                         Open
                       </button>
@@ -402,8 +401,8 @@ export default function TeacherSubmissions() {
             </table>
           </div>
             {totalPages > 1 ? (
-            <div className="flex items-center justify-between border-t border-slate-200/70 px-4 py-4">
-              <p className="text-xs font-medium text-slate-400">
+            <div className="flex items-center justify-between border-t border-slate-200/70 dark:border-slate-700/60 px-4 py-4">
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-300">
                 Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}
               </p>
               <div className="flex items-center gap-2">
@@ -411,18 +410,18 @@ export default function TeacherSubmissions() {
                   type="button"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
                 >
                   Previous
                 </button>
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Page {currentPage} of {totalPages}
                 </span>
                 <button
                   type="button"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
                 >
                   Next
                 </button>

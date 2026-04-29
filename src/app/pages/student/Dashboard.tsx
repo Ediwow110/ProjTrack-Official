@@ -9,6 +9,7 @@ import {
   Upload,
 } from "lucide-react";
 import { StatusChip } from "../../components/ui/StatusChip";
+import { GradeChip } from "../../components/ui/GradeChip";
 import {
   PortalEmptyState,
   PortalHero,
@@ -99,7 +100,7 @@ export default function StudentDashboard() {
           <>
             <button
               onClick={() => navigate("/student/submit?back=%2Fstudent%2Fdashboard")}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
             >
               <Upload size={16} />
               Submit Project
@@ -116,7 +117,7 @@ export default function StudentDashboard() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
@@ -128,7 +129,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/calendar")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 View calendar
                 <ChevronRight size={14} />
@@ -141,7 +142,7 @@ export default function StudentDashboard() {
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div
                     key={index}
-                    className="h-20 animate-pulse rounded-[24px] bg-slate-100 dark:bg-slate-800/70"
+                    className="h-20 animate-pulse rounded-[24px] bg-slate-100 dark:bg-slate-800/80 dark:bg-slate-800/70"
                   />
                 ))}
               </div>
@@ -154,9 +155,9 @@ export default function StudentDashboard() {
                     onClick={() => navigate(buildDeadlineTarget(deadline))}
                     className={`flex w-full items-start justify-between rounded-[24px] border px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-34px_rgba(37,99,235,0.45)] ${
                       deadline.overdue
-                        ? "border-rose-200 bg-rose-50/85 dark:border-rose-400/25 dark:bg-rose-500/15"
+                        ? "border-rose-200 dark:border-rose-500/30 bg-rose-50/85 dark:border-rose-400/25 dark:bg-rose-500/15"
                         : deadline.daysLeft <= 3
-                          ? "border-amber-200 bg-amber-50/85 dark:border-amber-400/25 dark:bg-amber-500/15"
+                          ? "border-amber-200 dark:border-amber-500/30 bg-amber-50/85 dark:border-amber-400/25 dark:bg-amber-500/15"
                           : "border-slate-200 bg-slate-50/90 dark:border-slate-700/60 dark:bg-slate-800/80"
                     }`}
                   >
@@ -174,13 +175,13 @@ export default function StudentDashboard() {
                           deadline.overdue
                             ? "text-rose-600"
                             : deadline.daysLeft <= 3
-                              ? "text-amber-700"
+                              ? "text-amber-700 dark:text-amber-300"
                               : "text-slate-600 dark:text-slate-300"
                         }`}
                       >
                         {deadline.overdue ? "Overdue" : deadline.due}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                         {deadline.overdue
                           ? `${Math.abs(deadline.daysLeft)}d late`
                           : `${deadline.daysLeft}d left`}
@@ -195,7 +196,7 @@ export default function StudentDashboard() {
                   title="No deadlines waiting right now"
                   description="You are caught up at the moment. New activities and reopening windows will appear here."
                   icon={Clock}
-                  className="border-slate-200 bg-slate-50/80"
+                  className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
                 />
               </div>
             )}
@@ -207,7 +208,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/submissions")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 View all
                 <ChevronRight size={14} />
@@ -224,7 +225,7 @@ export default function StudentDashboard() {
                       (header) => (
                         <th
                           key={header}
-                          className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500"
+                          className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500"
                         >
                           {header}
                         </th>
@@ -232,7 +233,7 @@ export default function StudentDashboard() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
                   {visibleRecentSubmissions.map((row) => (
                     <tr
                       key={row.id}
@@ -260,15 +261,13 @@ export default function StudentDashboard() {
                       <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
                         {row.subject}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500">
+                      <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
                         {row.date}
                       </td>
                       <td className="px-6 py-4">
                         <StatusChip status={row.status} size="xs" />
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-emerald-700">
-                        {row.grade !== "—" ? `${row.grade}/100` : "—"}
-                      </td>
+                      <td className="px-6 py-4"><GradeChip grade={row.grade} status={row.status} size="xs" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -276,7 +275,7 @@ export default function StudentDashboard() {
               </div>
               {submissionTotalPages > 1 ? (
                 <div className="flex items-center justify-between border-t border-slate-200/70 px-5 pt-1 dark:border-slate-700/60 sm:px-6">
-                  <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                  <p className="text-xs font-medium text-slate-400 dark:text-slate-300 dark:text-slate-500">
                     Showing {(submissionPage - 1) * submissionPageSize + 1}-{Math.min(submissionPage * submissionPageSize, recentSubmissions.length)} of {recentSubmissions.length}
                   </p>
                   <div className="flex items-center gap-2">
@@ -284,7 +283,7 @@ export default function StudentDashboard() {
                       type="button"
                       disabled={submissionPage === 1}
                       onClick={() => setSubmissionPage((page) => Math.max(1, page - 1))}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-800"
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       Previous
                     </button>
@@ -295,7 +294,7 @@ export default function StudentDashboard() {
                       type="button"
                       disabled={submissionPage === submissionTotalPages}
                       onClick={() => setSubmissionPage((page) => Math.min(submissionTotalPages, page + 1))}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-800"
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       Next
                     </button>
@@ -341,14 +340,14 @@ export default function StudentDashboard() {
                     className={`flex w-full items-start gap-3 rounded-[22px] border px-4 py-4 text-left transition ${
                       action.primary
                         ? "border-blue-700 bg-blue-700 text-white shadow-[0_22px_55px_-34px_rgba(29,78,216,0.55)] hover:bg-blue-800"
-                        : "border-slate-200 bg-slate-50/90 text-slate-800 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/15"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 text-slate-800 dark:text-slate-100 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/15"
                     }`}
                   >
                     <div
                       className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
                         action.primary
                           ? "bg-white/16"
-                          : "bg-white dark:bg-slate-900/70 dark:text-slate-100"
+                          : "bg-white dark:bg-slate-900/85 dark:bg-slate-900/70 dark:text-slate-100"
                       }`}
                     >
                       <Icon size={17} />
@@ -377,7 +376,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/notifications")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 Open inbox
                 <ChevronRight size={14} />
@@ -388,17 +387,17 @@ export default function StudentDashboard() {
               {(data?.notifications ?? []).map((notification) => (
                 <div
                   key={notification.id}
-                  className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
+                  className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/80 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200">
                       <Bell size={16} />
                     </div>
                     <div>
                       <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-200">
                         {notification.text}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                      <p className="mt-1 text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
                         {notification.time}
                       </p>
                     </div>

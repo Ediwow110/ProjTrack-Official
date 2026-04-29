@@ -79,8 +79,10 @@ export default function StudentProfile() {
         objectUrl = url;
         setAvatarSrc(url);
       })
-      .catch(() => {
-        if (active) setAvatarSrc("");
+      .catch((avatarError) => {
+        if (!active) return;
+        setAvatarSrc("");
+        setError(avatarError instanceof Error ? `Unable to load avatar preview: ${avatarError.message}` : "Unable to load avatar preview.");
       });
 
     return () => {
@@ -158,7 +160,7 @@ export default function StudentProfile() {
   if (loading) {
     return (
       <PortalPage>
-        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85" />
+        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85 dark:bg-slate-900/85" />
       </PortalPage>
     );
   }
@@ -196,14 +198,14 @@ export default function StudentProfile() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
       {saved ? (
-        <div className="flex items-center gap-2.5 rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-[24px] border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3">
           <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-          <p className="text-sm font-semibold text-emerald-700">
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
             Profile updated successfully.
           </p>
         </div>
@@ -227,7 +229,7 @@ export default function StudentProfile() {
                   {profile.initials}
                 </div>
               )}
-              <label className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow transition hover:bg-slate-50">
+              <label className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 shadow transition hover:bg-slate-50 dark:hover:bg-slate-800/70">
                 <Camera size={14} />
                 <input
                   hidden
@@ -243,7 +245,7 @@ export default function StudentProfile() {
                 type="button"
                 disabled={saving}
                 onClick={handleRemoveAvatar}
-                className="mx-auto inline-flex items-center gap-1 text-xs text-slate-500 transition hover:text-rose-600 disabled:opacity-50"
+                className="mx-auto inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 transition hover:text-rose-600 disabled:opacity-50"
               >
                 <Trash2 size={12} />
                 Remove avatar
@@ -251,20 +253,20 @@ export default function StudentProfile() {
             ) : null}
 
             <div>
-              <p className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900">
+              <p className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
                 {profile.fullName}
               </p>
-              <p className="mt-1 text-sm text-slate-500">{profile.roleLabel}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{profile.roleLabel}</p>
             </div>
 
             <div className="space-y-3">
               {profile.summary.map((field) => (
                 <div
                   key={field.label}
-                  className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50/85 px-4 py-3 text-left"
+                  className="flex items-center justify-between rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-3 text-left"
                 >
-                  <span className="text-xs text-slate-400">{field.label}</span>
-                  <span className={`text-sm font-semibold ${field.tone ?? "text-slate-700"}`}>
+                  <span className="text-xs text-slate-400 dark:text-slate-300">{field.label}</span>
+                  <span className={`text-sm font-semibold ${field.tone ?? "text-slate-700 dark:text-slate-200"}`}>
                     {field.value}
                   </span>
                 </div>
@@ -287,7 +289,7 @@ export default function StudentProfile() {
                   { key: "phone", label: "Phone Number", type: "tel" },
                 ].map((field) => (
                   <div key={field.key}>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       {field.label}
                     </label>
                     <input
@@ -296,13 +298,13 @@ export default function StudentProfile() {
                       onChange={(event) =>
                         setForm({ ...form, [field.key]: event.target.value })
                       }
-                      className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-300"
+                      className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-[22px] border border-amber-100 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-800">
+              <div className="rounded-[22px] border border-amber-100 bg-amber-50 dark:bg-amber-500/15 px-4 py-4 text-sm leading-6 text-amber-800">
                 Some fields like Student ID, Section, and Program can only be changed by your school administrator.
               </div>
 
@@ -323,14 +325,14 @@ export default function StudentProfile() {
             description="Strengthen your account security by rotating your password when needed."
           >
             {passwordMessage ? (
-              <div className="mb-4 rounded-[20px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              <div className="mb-4 rounded-[20px] border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
                 {passwordMessage}
               </div>
             ) : null}
 
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   Current Password
                 </label>
                 <div className="relative">
@@ -339,12 +341,12 @@ export default function StudentProfile() {
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     type={showOld ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm text-slate-700 outline-none transition focus:border-blue-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowOld(!showOld)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300"
                   >
                     {showOld ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -352,7 +354,7 @@ export default function StudentProfile() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   New Password
                 </label>
                 <div className="relative">
@@ -361,25 +363,25 @@ export default function StudentProfile() {
                     onChange={(event) => setNewPassword(event.target.value)}
                     type={showNew ? "text" : "password"}
                     placeholder="At least 8 characters"
-                    className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm text-slate-700 outline-none transition focus:border-blue-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNew(!showNew)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300"
                   >
                     {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p className="mt-2 text-xs leading-6 text-slate-500">
+                <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
                   Min 8 characters, include uppercase, number, and symbol.
                 </p>
               </div>
 
-              <div className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4">
+              <div className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-4">
                 <div className="flex items-start gap-3">
-                  <ShieldCheck size={18} className="mt-0.5 text-blue-700" />
-                  <p className="text-sm leading-6 text-slate-600">
+                  <ShieldCheck size={18} className="mt-0.5 text-blue-700 dark:text-blue-300" />
+                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     Changing your password updates the credentials you use to enter the student portal on future sign-ins.
                   </p>
                 </div>
@@ -390,7 +392,7 @@ export default function StudentProfile() {
                   disabled={passwordSaving || !currentPassword || !newPassword}
                   type="button"
                   onClick={handlePasswordChange}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
                 >
                   <Lock size={15} />
                   {passwordSaving ? "Updating..." : "Update Password"}

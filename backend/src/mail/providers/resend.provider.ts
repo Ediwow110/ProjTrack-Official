@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Resend } from 'resend';
 import { MAIL_PROVIDER_NAMES } from '../../common/constants/mail.constants';
+import { VERIFIED_PRODUCTION_SENDERS } from '../mail-sender-config';
 import { classifyProviderError } from './provider-error-classification';
 import type { MailProvider, MailSendInput } from './mail-provider.interface';
 
@@ -16,10 +17,12 @@ function resolveFromIdentity(input?: MailSendInput) {
   const defaultFromName = envValue('MAIL_FROM_NAME') || 'ProjTrack';
   const defaultFromEmail =
     envValue('MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM', 'MAIL_FROM_ADMIN') ||
-    'noreply@projtrack.local';
+    VERIFIED_PRODUCTION_SENDERS.support;
   return {
     fromName: String(input?.fromName ?? defaultFromName).trim() || 'ProjTrack',
-    fromEmail: String(input?.fromEmail ?? defaultFromEmail).trim().toLowerCase() || 'noreply@projtrack.local',
+    fromEmail:
+      String(input?.fromEmail ?? defaultFromEmail).trim().toLowerCase() ||
+      VERIFIED_PRODUCTION_SENDERS.support,
   };
 }
 

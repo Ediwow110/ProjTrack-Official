@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ImportStudentsDto } from './dto/import-students.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -8,12 +8,13 @@ import { UserRepository } from '../repositories/user.repository';
 import { ImportFileService } from './import-file.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccountActionTokenService } from '../auth/account-action-token.service';
-import { buildResetPasswordLink } from '../common/utils/frontend-links';
+import { buildActivationLink, buildResetPasswordLink } from '../common/utils/frontend-links';
 import {
   canSendPasswordRecoveryInstructions,
   isPendingSetupStatus,
 } from '../common/utils/account-setup-status';
 import { userDisplayName } from '../common/utils/user-display-name';
+import { PrismaService } from '../prisma/prisma.service';
 
 function normalizeAcademicYearValue(value?: string | null) {
   return String(value ?? '')
@@ -47,7 +48,7 @@ function normalizeYearLevelValue(value?: string | null) {
 
 @Injectable()
 export class AdminStudentsService {
-  private readonly importBatches = new Map<string, { id: string; fileName?: string; preview: Array<{ index: number; row: any; valid: boolean; issues: string[] }>; createdAt: string }>();
+  private readonly logger = new Logger(AdminStudentsService.name);
 
   constructor(
     private readonly auditLogs: AuditLogsService,
@@ -57,6 +58,7 @@ export class AdminStudentsService {
     private readonly userRepository: UserRepository,
     private readonly importFileService: ImportFileService,
     private readonly accountActionTokens: AccountActionTokenService,
+    private readonly prisma: PrismaService,
   ) {}
 
   template() {
@@ -210,12 +212,18 @@ async importPreview(body: ImportStudentsDto) {
       };
     });
 
-    const batchId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    this.importBatches.set(batchId, {
-      id: batchId,
-      fileName: body.fileName,
-      preview,
-      createdAt: new Date().toISOString(),
+    await this.prisma.importBatch.deleteMany({
+      where: { type: 'student', expiresAt: { lt: new Date() } },
+    });
+
+    const batch = await this.prisma.importBatch.create({
+      data: {
+        type: 'student',
+        status: 'preview',
+        fileName: body.fileName,
+        payload: { preview },
+        expiresAt: new Date(Date.now() + Number(process.env.STUDENT_IMPORT_BATCH_TTL_MS || 24 * 60 * 60 * 1000)),
+      },
     });
 
     await this.auditLogs.record({
@@ -223,13 +231,13 @@ async importPreview(body: ImportStudentsDto) {
       action: 'IMPORT_PREVIEW',
       module: 'Students',
       target: body.fileName,
-      entityId: batchId,
+      entityId: batch.id,
       result: 'Success',
       details: `Previewed ${sourceRows.length} row(s); ${preview.filter((r) => r.valid).length} valid.`,
     });
 
     return {
-      batchId,
+      batchId: batch.id,
       fileName: body.fileName,
       totalRows: sourceRows.length,
       validRows: preview.filter((r) => r.valid).length,
@@ -239,13 +247,15 @@ async importPreview(body: ImportStudentsDto) {
   }
 
   async confirmImport(body: ConfirmImportDto) {
-    const batch = this.importBatches.get(body.batchId);
-    if (!batch) {
+    const batch = await this.prisma.importBatch.findUnique({ where: { id: body.batchId } });
+    if (!batch || batch.type !== 'student' || batch.status !== 'preview' || batch.expiresAt < new Date()) {
       throw new NotFoundException('Import batch not found.');
     }
 
+    const payload = (batch.payload || {}) as any;
+    const preview = Array.isArray(payload.preview) ? payload.preview : [];
     const acceptedSet = new Set(body.acceptedRowIndexes);
-    const rowsToImport = batch.preview.filter((row) => row.valid && acceptedSet.has(row.index));
+    const rowsToImport = preview.filter((row: any) => row.valid && acceptedSet.has(row.index));
     if (!rowsToImport.length) {
       throw new BadRequestException('No valid rows selected for import.');
     }
@@ -282,10 +292,14 @@ async importPreview(body: ImportStudentsDto) {
         });
       }),
     );
-    const invalidRows = batch.preview.filter((row) => !row.valid).length;
-    const updatedOrSkipped = batch.preview.filter(
-      (row) => row.valid && !acceptedSet.has(row.index),
+    const invalidRows = preview.filter((row: any) => !row.valid).length;
+    const updatedOrSkipped = preview.filter(
+      (row: any) => row.valid && !acceptedSet.has(row.index),
     ).length;
+    await this.prisma.importBatch.update({
+      where: { id: batch.id },
+      data: { status: 'consumed', consumedAt: new Date() },
+    });
 
     await this.auditLogs.record({
       actorRole: 'ADMIN',
@@ -316,75 +330,187 @@ async importPreview(body: ImportStudentsDto) {
     };
   }
 
-  async activateStudent(id: string) {
+  async activateStudent(id: string, actorUserId?: string) {
     const user = await this.findStudent(id);
-    return this.queueStudentSetupLink(user, 'ACTIVATE_STUDENT');
+    return this.queueStudentSetupInvite(user, 'ACTIVATE_STUDENT', actorUserId);
   }
 
-  async sendResetLink(id: string) {
+  async sendSetupInvite(id: string, actorUserId?: string) {
     const user = await this.findStudent(id);
-    return this.queueStudentSetupLink(user, 'SEND_RESET_LINK');
+    return this.queueStudentSetupInvite(user, 'SEND_SETUP_INVITE', actorUserId);
   }
 
-  private async queueStudentSetupLink(user: any, action: 'ACTIVATE_STUDENT' | 'SEND_RESET_LINK') {
-    if (!canSendPasswordRecoveryInstructions(user.status)) {
-      throw new BadRequestException(
-        'Setup or reset links can only be sent to active or pending-setup students.',
-      );
+  async sendResetLink(id: string, actorUserId?: string) {
+    const user = await this.findStudent(id);
+    if (isPendingSetupStatus(user.status)) {
+      return this.queueStudentSetupInvite(user, 'SEND_SETUP_INVITE', actorUserId);
+    }
+    return this.queueStudentResetLink(user, actorUserId);
+  }
+
+  private async queueStudentSetupInvite(
+    user: any,
+    action: 'ACTIVATE_STUDENT' | 'SEND_SETUP_INVITE',
+    actorUserId?: string,
+  ) {
+    const email = this.normalizeEmail(user.email);
+    const diagnostics: Record<string, unknown> = {
+      event: 'admin.student_setup_invite',
+      adminUserId: actorUserId ?? null,
+      studentId: user.id,
+      studentEmail: maskEmail(email),
+      actionRequested: action,
+      userStatus: user.status,
+      tokenCreated: false,
+      tokenReused: false,
+      mailJobCreated: false,
+      mailJobId: null,
+      skippedReason: null,
+    };
+
+    if (!isPendingSetupStatus(user.status)) {
+      diagnostics.skippedReason = 'not_pending_setup';
+      this.logStudentMailDiagnostics(diagnostics);
+      throw new BadRequestException('Setup invitations can only be sent to pending-setup students.');
     }
 
-    const firstTimeSetup = isPendingSetupStatus(user.status);
+    if (!email) {
+      diagnostics.skippedReason = 'missing_email';
+      this.logStudentMailDiagnostics(diagnostics);
+      throw new BadRequestException('Student does not have an email address.');
+    }
+
+    const session = await this.accountActionTokens.issueActivation(user.id);
+    diagnostics.tokenCreated = !session.reused;
+    diagnostics.tokenReused = session.reused;
+    const activationLink = buildActivationLink({
+      token: session.token,
+      ref: session.publicRef,
+      role: 'student',
+    });
+
+    const mailJob = await this.mailService.queueStudentSetupInvitation({
+      to: email,
+      recipientName: userDisplayName(user),
+      firstName: user.firstName,
+      activationLink,
+      publicRef: session.publicRef,
+    });
+    diagnostics.mailJobCreated = true;
+    diagnostics.mailJobId = mailJob.id;
+
+    await this.userRepository.updateAuthFields(user.id, {
+      status: 'PENDING_SETUP',
+      updatedAt: new Date().toISOString(),
+    });
+
+    await this.notificationsService.createInAppNotification(
+      user.id,
+      'Account setup email queued',
+      'A first-time account setup email has been queued for delivery.',
+    );
+
+    await this.auditLogs.record({
+      actorUserId,
+      actorRole: 'ADMIN',
+      action,
+      module: 'Students',
+      target: maskEmail(email),
+      entityId: user.id,
+      result: 'Queued',
+      details: JSON.stringify(diagnostics),
+      afterValue: 'PENDING_SETUP',
+    });
+    this.logStudentMailDiagnostics(diagnostics);
+
+    return {
+      success: true,
+      queued: true,
+      status: 'PENDING_SETUP',
+      firstTimeSetup: true,
+      mailJobId: mailJob.id,
+      template: mailJob.emailType ?? mailJob.templateKey,
+      provider: mailJob.provider,
+      fromEmail: mailJob.fromEmail,
+    };
+  }
+
+  private async queueStudentResetLink(user: any, actorUserId?: string) {
+    const email = this.normalizeEmail(user.email);
+    const diagnostics: Record<string, unknown> = {
+      event: 'admin.student_password_reset',
+      adminUserId: actorUserId ?? null,
+      studentId: user.id,
+      studentEmail: maskEmail(email),
+      actionRequested: 'SEND_RESET_LINK',
+      userStatus: user.status,
+      tokenCreated: false,
+      tokenReused: false,
+      mailJobCreated: false,
+      mailJobId: null,
+      skippedReason: null,
+    };
+
+    if (!canSendPasswordRecoveryInstructions(user.status) || isPendingSetupStatus(user.status)) {
+      diagnostics.skippedReason = 'not_reset_eligible';
+      this.logStudentMailDiagnostics(diagnostics);
+      throw new BadRequestException('Password reset emails can only be sent to active students.');
+    }
+
+    if (!email) {
+      diagnostics.skippedReason = 'missing_email';
+      this.logStudentMailDiagnostics(diagnostics);
+      throw new BadRequestException('Student does not have an email address.');
+    }
+
     const session = await this.accountActionTokens.issuePasswordReset(user.id);
+    diagnostics.tokenCreated = !session.reused;
+    diagnostics.tokenReused = session.reused;
     const resetLink = buildResetPasswordLink({
       token: session.token,
       ref: session.publicRef,
       role: 'student',
-      mode: firstTimeSetup ? 'setup' : undefined,
     });
 
-    await this.mailService.queuePasswordReset({
-      to: user.email,
+    const mailJob = await this.mailService.queuePasswordReset({
+      to: email,
       recipientName: userDisplayName(user),
       firstName: user.firstName,
       resetLink,
       expiresAt: session.expiresAt,
       publicRef: session.publicRef,
-      firstTimeSetup,
+      firstTimeSetup: false,
     });
-
-    if (firstTimeSetup) {
-      await this.userRepository.updateAuthFields(user.id, {
-        status: 'PENDING_SETUP',
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    diagnostics.mailJobCreated = true;
+    diagnostics.mailJobId = mailJob.id;
 
     await this.notificationsService.createInAppNotification(
       user.id,
-      firstTimeSetup ? 'Account setup ready' : 'Password reset ready',
-      firstTimeSetup
-        ? 'A first-time password setup link has been queued for email delivery.'
-        : 'A password reset link has been queued for email delivery.',
+      'Password reset email queued',
+      'A password reset email has been queued for delivery.',
     );
 
     await this.auditLogs.record({
+      actorUserId,
       actorRole: 'ADMIN',
-      action,
+      action: 'SEND_RESET_LINK',
       module: 'Students',
-      target: user.email,
+      target: maskEmail(email),
       entityId: user.id,
       result: 'Queued',
-      details: firstTimeSetup
-        ? 'Queued first-time password setup email for student account.'
-        : 'Queued password reset email for student account.',
-      afterValue: firstTimeSetup ? 'PENDING_SETUP' : undefined,
+      details: JSON.stringify(diagnostics),
     });
+    this.logStudentMailDiagnostics(diagnostics);
 
     return {
       success: true,
-      resetLink,
-      status: firstTimeSetup ? 'PENDING_SETUP' : user.status,
-      firstTimeSetup,
+      queued: true,
+      status: user.status,
+      firstTimeSetup: false,
+      mailJobId: mailJob.id,
+      template: mailJob.emailType ?? mailJob.templateKey,
+      provider: mailJob.provider,
+      fromEmail: mailJob.fromEmail,
     };
   }
 
@@ -393,6 +519,25 @@ async importPreview(body: ImportStudentsDto) {
     if (!user) {
       throw new NotFoundException('Student not found.');
     }
+    if (user.role !== 'STUDENT') {
+      throw new NotFoundException('Student not found.');
+    }
     return user;
   }
+
+  private normalizeEmail(value?: string | null) {
+    return String(value ?? '').trim().toLowerCase();
+  }
+
+  private logStudentMailDiagnostics(diagnostics: Record<string, unknown>) {
+    this.logger.log(JSON.stringify(diagnostics));
+  }
+}
+
+function maskEmail(value?: string | null) {
+  const email = String(value ?? '').trim().toLowerCase();
+  const [local = '', domain = ''] = email.split('@');
+  if (!local || !domain) return email ? '[invalid-email]' : '';
+  const visible = local.length <= 2 ? `${local[0] ?? ''}*` : `${local.slice(0, 2)}***`;
+  return `${visible}@${domain}`;
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Prisma, UserStatus } from '@prisma/client';
+import type { UserStatus } from '@prisma/client';
 
 type UserPatch = {
   password?: string | null;
@@ -46,7 +46,7 @@ export class UserRepository {
     const normalized = identifier.trim().toLowerCase();
     if (!normalized) return null;
 
-    const where: Prisma.UserWhereInput = { role };
+    const where: any = { role };
     if (role === 'STUDENT') {
       where.OR = [
         { email: normalized },

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
-  AlertTriangle,
-  CheckCircle2,
   Download,
   FileSpreadsheet,
   Mail,
@@ -10,7 +8,6 @@ import {
   RefreshCcw,
   Upload,
   Users,
-  XCircle,
 } from "lucide-react";
 
 import { RoleListShell } from "../shared/RoleListShell";
@@ -24,6 +21,7 @@ import { PortalNotice } from "../../portal/PortalListPage";
 import { Button } from "../../ui/button";
 import { StatusChip } from "../../ui/StatusChip";
 import { AppModal } from "../../ui/app-modal";
+import { BootstrapIcon } from "../../ui/bootstrap-icon";
 import { adminCatalogService, adminService } from "../../../lib/api/services";
 import { useAsyncData } from "../../../lib/hooks/useAsyncData";
 import type {
@@ -138,6 +136,7 @@ export default function StudentsPage() {
     busy: boolean;
     error: string | null;
   }>({ busy: false, error: null });
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   const { data, loading, error, setData, reload } = useAsyncData(
     () => adminService.getStudents({ search, status: statusFilter }),
@@ -282,8 +281,16 @@ export default function StudentsPage() {
         if (!active) return;
         setSectionOptions(rows);
         setAcademicYears(years);
+        setCatalogError(null);
       })
-      .catch(() => undefined);
+      .catch((catalogLoadError) => {
+        if (!active) return;
+        setCatalogError(
+          catalogLoadError instanceof Error
+            ? catalogLoadError.message
+            : "Unable to load sections and academic years for student forms.",
+        );
+      });
     return () => {
       active = false;
     };
@@ -386,11 +393,18 @@ export default function StudentsPage() {
   }
 
   async function sendSetupLink(student: AdminStudentRecord) {
-    await adminService.sendStudentResetLink(student.id);
+    const response =
+      student.status === "Pending Setup"
+        ? await adminService.sendStudentSetupInvite(student.id)
+        : await adminService.sendStudentResetLink(student.id);
+    if (!response.mailJobId) {
+      throw new Error("The backend did not confirm a queued mail job.");
+    }
     updateStudentPatch(student.id, {
       status: student.status === "Pending Setup" ? "Pending Setup" : student.status,
-      lastActive: student.status === "Pending Setup" ? "Setup link sent" : "Reset link sent",
+      lastActive: student.status === "Pending Setup" ? "Setup email queued" : "Reset email queued",
     });
+    return response;
   }
 
   async function handleSendSetupLink(studentId: string) {
@@ -401,14 +415,14 @@ export default function StudentsPage() {
       if (!student) {
         throw new Error("Unable to find the selected student.");
       }
-      await sendSetupLink(student);
+      const response = await sendSetupLink(student);
       await reload();
       setActionState({ busy: false, error: null });
       showFeedback(
         "success",
         `${
-          student.status === "Pending Setup" ? "Setup" : "Reset"
-        } link sent for ${student.name}.`,
+          student.status === "Pending Setup" ? "Setup invite" : "Password reset"
+        } mail job queued for ${student.name}${response.mailJobId ? ` (${response.mailJobId})` : ""}. Open Mail Jobs to watch delivery.`,
       );
     } catch (setupError) {
       const message =
@@ -424,6 +438,8 @@ export default function StudentsPage() {
     if (actionState.busy || selectedStudents.length === 0) return;
     setActionState({ busy: true, error: null });
     try {
+      let processed = 0;
+      let skipped = 0;
       for (const student of selectedStudents) {
         if (
           student.status === "Inactive" ||
@@ -432,16 +448,21 @@ export default function StudentsPage() {
           student.status === "Archived" ||
           student.status === "Graduated"
         ) {
+          skipped += 1;
           continue;
         }
         await sendSetupLink(student);
+        processed += 1;
       }
       await reload();
       setSelected([]);
       setActionState({ busy: false, error: null });
+      const skippedMessage = skipped ? ` Skipped ${skipped} inactive/restricted account${skipped > 1 ? "s" : ""}.` : "";
       showFeedback(
-        "success",
-        `${selectedStudents.length} student account${selectedStudents.length > 1 ? "s" : ""} processed for setup or reset delivery.`,
+        processed > 0 ? "success" : "warning",
+        processed > 0
+          ? `${processed} student setup/reset MailJob${processed > 1 ? "s" : ""} queued.${skippedMessage} Open Mail Jobs to watch delivery.`
+          : `No student setup/reset emails were queued.${skippedMessage}`,
       );
     } catch (bulkError) {
       const message =
@@ -572,12 +593,12 @@ export default function StudentsPage() {
   const notices = (
     <div className="space-y-3">
       {error ? (
-        <PortalNotice tone="danger" icon={<XCircle size={16} />}>
+        <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
           {error}
         </PortalNotice>
       ) : null}
       {actionState.error ? (
-        <PortalNotice tone="danger" icon={<XCircle size={16} />}>
+        <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
           {actionState.error}
         </PortalNotice>
       ) : null}
@@ -592,15 +613,20 @@ export default function StudentsPage() {
           }
           icon={
             feedback.tone === "success" ? (
-              <CheckCircle2 size={16} />
+              <BootstrapIcon name="check-circle-fill" tone="success" />
             ) : feedback.tone === "warning" ? (
-              <AlertTriangle size={16} />
+              <BootstrapIcon name="exclamation-triangle-fill" tone="warning" />
             ) : (
-              <XCircle size={16} />
+              <BootstrapIcon name="x-circle-fill" tone="danger" />
             )
           }
         >
           {feedback.message}
+        </PortalNotice>
+      ) : null}
+      {catalogError ? (
+        <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
+          {catalogError}
         </PortalNotice>
       ) : null}
       {activeSection ? (
@@ -881,7 +907,7 @@ export default function StudentsPage() {
             onChange={(value) => setCreateForm((current) => ({ ...current, course: value }))}
           />
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Year Level
             </label>
             <select
@@ -900,7 +926,7 @@ export default function StudentsPage() {
                   };
                 })
               }
-              className="w-full rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
               <option value="">Select year level</option>
               {yearLevelOptions.map((option) => (
@@ -911,7 +937,7 @@ export default function StudentsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Section
             </label>
             <select
@@ -939,7 +965,7 @@ export default function StudentsPage() {
                 })
               }
               disabled={sectionSelectionDisabled}
-              className="w-full rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
               <option value="">
                 {createForm.yearLevelId ? "Select section" : "Select year level first"}
@@ -960,11 +986,11 @@ export default function StudentsPage() {
               </p>
             ) : null}
           </div>
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 md:col-span-2 dark:border-blue-500/30 dark:bg-blue-500/12 dark:text-blue-100">
+          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-800 md:col-span-2 dark:border-blue-500/30 dark:bg-blue-500/12 dark:text-blue-100">
             Academic Year: <span className="font-semibold">{activeAcademicYearLabel}</span>. New students are added to the current active academic year by default.
           </div>
           {createState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 md:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
               {createState.error}
             </div>
           ) : null}
@@ -979,9 +1005,9 @@ export default function StudentsPage() {
         size="wide"
         footer={(
           <>
-            <p className="mr-auto text-xs text-slate-400 dark:text-slate-500">
+            <p className="mr-auto text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
               Imported rows will be added with{" "}
-              <span className="font-semibold text-slate-500 dark:text-slate-300">
+              <span className="font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
                 Pending Setup
               </span>{" "}
               status. No emails are sent automatically after import.
@@ -1001,17 +1027,17 @@ export default function StudentsPage() {
         )}
       >
         <div className="space-y-5">
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-5 dark:border-slate-700 dark:bg-slate-900/70">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/12">
-                  <FileSpreadsheet size={18} className="text-blue-700 dark:text-blue-200" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15 dark:bg-blue-500/12">
+                  <FileSpreadsheet size={18} className="text-blue-700 dark:text-blue-300 dark:text-blue-200" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     Upload Student Import File
                   </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                  <p className="text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
                     Supported: .xlsx, .xls, .csv, .tsv · Required: student_id, last_name, first_name, year_level, section, course, academic_year, email
                   </p>
                 </div>
@@ -1041,7 +1067,7 @@ export default function StudentsPage() {
           </div>
 
           {importState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
               {importState.error}
             </div>
           ) : null}
@@ -1056,9 +1082,9 @@ export default function StudentsPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/75"
+                    className="rounded-xl border border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-900/85 p-4 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/75"
                   >
-                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                    <p className="text-xs font-medium text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       {item.label}
                     </p>
                     <p
@@ -1075,15 +1101,15 @@ export default function StudentsPage() {
                   </div>
                 ))}
               </div>
-              <div className="overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700/60">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700/70 dark:border-slate-700/60">
+                <table className="w-full min-w-[1100px] text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900/85">
+                    <tr className="border-b border-slate-100 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-900/85">
                       {["Student ID", "Last Name", "First Name", "M.I.", "Year Level", "Section", "Course", "Academic Year", "Email", "Status", "Validation"].map(
                         (header) => (
                           <th
                             key={header}
-                            className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                            className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-300 dark:text-slate-500"
                           >
                             {header}
                           </th>
@@ -1091,37 +1117,37 @@ export default function StudentsPage() {
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-700/60 dark:divide-slate-800">
                     {previewRows.map((row) => (
                       <tr
                         key={`${row.student_id}-${row.email}`}
-                        className="bg-white dark:bg-slate-950/35"
+                        className="bg-white dark:bg-slate-900/85 dark:bg-slate-950/35"
                       >
-                        <td className="px-4 py-3 text-xs font-semibold text-slate-700 dark:text-slate-100">
+                        <td className="px-4 py-3 text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-100">
                           {row.student_id || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.last_name || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.first_name || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.middle_initial || ""}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.year_level || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.section || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.course || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.academic_year || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-300">
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                           {row.email || "—"}
                         </td>
                         <td className="px-4 py-3">
@@ -1137,7 +1163,7 @@ export default function StudentsPage() {
                               {row.validationErrors.map((issue) => (
                                 <span
                                   key={issue}
-                                  className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-500/12 dark:text-rose-200"
+                                  className="rounded-full bg-rose-50 dark:bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-500/12 dark:text-rose-200"
                                 >
                                   {issue}
                                 </span>
@@ -1186,13 +1212,13 @@ function FilterSelect({
 }) {
   return (
     <label className="flex min-w-[180px] flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-[var(--radius-control)] border border-slate-200/80 bg-white px-3 text-sm text-slate-700 shadow-[var(--shadow-soft)] outline-none focus:border-[var(--role-accent)] dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-100"
+        className="h-11 rounded-[var(--radius-control)] border border-slate-200/80 bg-white dark:bg-slate-900/85 px-3 text-sm text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] outline-none focus:border-[var(--role-accent)] dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-100"
       >
         {options.map((option) => (
           <option key={`${label}-${option.value || "all"}`} value={option.value}>
@@ -1217,14 +1243,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
         {label}
       </label>
       <input
         value={value}
         type={type}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
       />
     </div>
   );

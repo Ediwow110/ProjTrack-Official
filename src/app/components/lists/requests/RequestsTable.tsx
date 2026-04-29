@@ -1,4 +1,4 @@
-import { Check2Circle, Eye, Inbox, XCircle } from "react-bootstrap-icons";
+import { CheckCircle2, Eye, Inbox, XCircle } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
@@ -39,7 +39,7 @@ export function RequestsTable({
     <DataTableCard
       title="Request queue"
       description="Review request context quickly, then approve or reject through standardized confirmation steps."
-      action={loading ? <span className="text-xs font-medium text-slate-400">Loading queue...</span> : null}
+      action={loading ? <span className="text-xs font-medium text-slate-400 dark:text-slate-300">Loading queue...</span> : null}
       columns={[
         {
           key: "type",
@@ -48,7 +48,7 @@ export function RequestsTable({
           renderCell: (request) => (
             <div>
               <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{request.type}</p>
-              <p className="mt-1 text-[10px] text-slate-400">{request.subject}</p>
+              <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-300">{request.subject}</p>
             </div>
           ),
         },
@@ -58,8 +58,8 @@ export function RequestsTable({
           sortable: true,
           renderCell: (request) => (
             <div>
-              <p className="text-xs font-medium text-slate-700 dark:text-slate-100">{request.requester}</p>
-              <p className="mt-1 text-[10px] text-slate-400">{request.role}</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-200 dark:text-slate-100">{request.requester}</p>
+              <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-300">{request.role}</p>
             </div>
           ),
         },
@@ -68,7 +68,7 @@ export function RequestsTable({
           header: "Submitted",
           sortable: true,
           renderCell: (request) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{request.date}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{request.date}</span>
           ),
         },
         {
@@ -98,7 +98,7 @@ export function RequestsTable({
         {
           key: "approve",
           label: "Approve",
-          icon: <Check2Circle size={15} />,
+          icon: <CheckCircle2 size={15} />,
           ariaLabel: `Approve ${request.type} request from ${request.requester}`,
           onClick: () => onApprove(request),
           hidden: () => request.status !== "Pending",

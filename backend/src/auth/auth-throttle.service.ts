@@ -73,41 +73,40 @@ export class AuthThrottleService {
 
     const config = this.getConfig(action);
     const now = new Date();
-    const existing = await this.prisma.authRateLimit.findUnique({
+    const windowStart = new Date(now.getTime() - config.windowMs);
+
+    await this.prisma.authRateLimit.deleteMany({
       where: {
-        action_key: { action, key },
+        action,
+        key,
+        firstAttemptAt: { lte: windowStart },
       },
     });
 
-    if (!existing || existing.firstAttemptAt.getTime() + config.windowMs <= now.getTime()) {
-      await this.prisma.authRateLimit.upsert({
+    const updated = await this.prisma.authRateLimit.upsert({
+      where: { action_key: { action, key } },
+      update: {
+        attempts: { increment: 1 },
+        lastAttemptAt: now,
+      },
+      create: {
+        action,
+        key,
+        attempts: 1,
+        firstAttemptAt: now,
+        lastAttemptAt: now,
+      },
+    });
+
+    if (updated.attempts >= config.limit) {
+      await this.prisma.authRateLimit.update({
         where: { action_key: { action, key } },
-        update: {
-          attempts: 1,
-          firstAttemptAt: now,
-          lastAttemptAt: now,
-          blockedUntil: null,
-        },
-        create: {
-          action,
-          key,
-          attempts: 1,
-          firstAttemptAt: now,
+        data: {
+          blockedUntil: new Date(now.getTime() + config.blockMs),
           lastAttemptAt: now,
         },
       });
-      return;
     }
-
-    const attempts = existing.attempts + 1;
-    await this.prisma.authRateLimit.update({
-      where: { action_key: { action, key } },
-      data: {
-        attempts,
-        lastAttemptAt: now,
-        blockedUntil: attempts >= config.limit ? new Date(now.getTime() + config.blockMs) : null,
-      },
-    });
   }
 
   async reset(action: ThrottleAction, key: string) {

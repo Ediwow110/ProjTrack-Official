@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MAIL_PROVIDER_NAMES } from '../../common/constants/mail.constants';
+import {
+  resolveMailSenderConfig,
+  VERIFIED_PRODUCTION_SENDERS,
+} from '../mail-sender-config';
 import { classifyProviderError } from './provider-error-classification';
 import type { MailHealthResult, MailProvider, MailSendInput } from './mail-provider.interface';
 
@@ -21,14 +25,37 @@ function sendEmailsUrl(value: string) {
   return normalized.endsWith('/send_emails') ? normalized : `${normalized}/send_emails`;
 }
 
+function mailrelayTimeoutMs() {
+  const parsed = Number(process.env.MAILRELAY_TIMEOUT_MS || process.env.MAIL_HTTP_TIMEOUT_MS || 10_000);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 10_000;
+}
+
+function validateMailrelayApiUrl(value: string) {
+  const sendUrl = sendEmailsUrl(value);
+  if (!sendUrl) return { sendUrl: '', error: 'MAILRELAY_API_URL is missing or invalid.' };
+  try {
+    const parsed = new URL(sendUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return { sendUrl: '', error: 'MAILRELAY_API_URL must use http:// or https://.' };
+    }
+    return { sendUrl: parsed.toString(), error: '' };
+  } catch {
+    return { sendUrl: '', error: 'MAILRELAY_API_URL is missing or invalid.' };
+  }
+}
+
 function resolveFromIdentity(input?: MailSendInput) {
-  const defaultFromName = envValue('MAIL_FROM_NAME') || 'ProjTrack';
+  const senderConfig = resolveMailSenderConfig();
+  const defaultFromName = senderConfig.fromName || 'ProjTrack';
   const defaultFromEmail =
-    envValue('MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM', 'MAIL_FROM_ADMIN') ||
-    'noreply@projtrack.local';
+    senderConfig.support.email ||
+    senderConfig.admin.email ||
+    VERIFIED_PRODUCTION_SENDERS.support;
   return {
     fromName: String(input?.fromName ?? defaultFromName).trim() || 'ProjTrack',
-    fromEmail: String(input?.fromEmail ?? defaultFromEmail).trim().toLowerCase() || 'noreply@projtrack.local',
+    fromEmail:
+      String(input?.fromEmail ?? defaultFromEmail).trim().toLowerCase() ||
+      VERIFIED_PRODUCTION_SENDERS.support,
   };
 }
 
@@ -44,6 +71,24 @@ function safeJsonParse(value: string) {
   } catch {
     return null;
   }
+}
+
+function redactProviderDetail(value: string) {
+  return String(value || '')
+    .replace(/(api(?:[_-]?|\s+)key["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]')
+    .replace(/(token["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]')
+    .replace(/(x-auth-token["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]');
+}
+
+function providerResponseDetail(parsedBody: any, rawBody: string) {
+  const detail = String(
+    parsedBody?.message ??
+      parsedBody?.error ??
+      parsedBody?.detail ??
+      rawBody ??
+      'Mailrelay API returned an error response.',
+  );
+  return truncate(redactProviderDetail(detail)) || 'Mailrelay API returned an error response.';
 }
 
 function extractMessageId(payload: any) {
@@ -104,7 +149,7 @@ export class MailrelayMailProvider implements MailProvider {
     const timestamp = new Date().toISOString();
     const apiKey = envValue('MAILRELAY_API_KEY');
     const apiUrl = envValue('MAILRELAY_API_URL');
-    const sendUrl = sendEmailsUrl(apiUrl);
+    const { sendUrl, error } = validateMailrelayApiUrl(apiUrl);
     const verified = Boolean(apiKey && sendUrl);
 
     return {
@@ -116,19 +161,19 @@ export class MailrelayMailProvider implements MailProvider {
         ? `Mailrelay provider is configured for ${sendUrl}.`
         : !apiKey
           ? 'MAILRELAY_API_KEY is missing.'
-          : 'MAILRELAY_API_URL is missing or invalid.',
+          : error,
       timestamp,
     };
   }
 
   async send(input: MailSendInput) {
     const apiKey = envValue('MAILRELAY_API_KEY');
-    const apiUrl = sendEmailsUrl(envValue('MAILRELAY_API_URL'));
+    const { sendUrl: apiUrl, error: apiUrlError } = validateMailrelayApiUrl(envValue('MAILRELAY_API_URL'));
     if (!apiKey) {
       throw new MailrelayApiError('MAILRELAY_API_KEY is required when MAIL_PROVIDER=mailrelay.');
     }
     if (!apiUrl) {
-      throw new MailrelayApiError('MAILRELAY_API_URL is required when MAIL_PROVIDER=mailrelay.');
+      throw new MailrelayApiError(apiUrlError || 'MAILRELAY_API_URL is required when MAIL_PROVIDER=mailrelay.');
     }
 
     const fetchImpl = (globalThis as any).fetch;
@@ -156,22 +201,36 @@ export class MailrelayMailProvider implements MailProvider {
       payload.text_part = input.text;
     }
 
-    const response = await fetchImpl(apiUrl, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-AUTH-TOKEN': apiKey,
-      },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), mailrelayTimeoutMs());
+    let response: any;
+    try {
+      response = await fetchImpl(apiUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-AUTH-TOKEN': apiKey,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        throw new MailrelayApiError('Mailrelay API request timed out.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const rawBody = await response.text();
     const parsedBody = safeJsonParse(rawBody);
 
     if (!response.ok) {
+      const detail = providerResponseDetail(parsedBody, rawBody);
       throw new MailrelayApiError(
-        `Mailrelay API failed with status ${response.status}: ${truncate(rawBody || response.statusText)}`,
+        `Mailrelay API failed with status ${response.status}: ${detail}`,
         response.status,
       );
     }
@@ -179,16 +238,7 @@ export class MailrelayMailProvider implements MailProvider {
     // Mailrelay's public transactional example documents the request shape but not a canonical
     // response payload shape, so message-id extraction stays defensive here.
     if (!responseLooksSuccessful(parsedBody)) {
-      const detail =
-        truncate(
-          String(
-            parsedBody?.message ??
-              parsedBody?.error ??
-              parsedBody?.detail ??
-              rawBody ??
-              'Mailrelay API returned a non-success payload.',
-          ),
-        ) || 'Mailrelay API returned a non-success payload.';
+      const detail = providerResponseDetail(parsedBody, rawBody);
       throw new MailrelayApiError(detail, response.status || 400);
     }
 

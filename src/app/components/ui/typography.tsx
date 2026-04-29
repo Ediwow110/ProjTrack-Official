@@ -29,7 +29,7 @@ export function Eyebrow<T extends PrimitiveAs = "p">({
     Comp,
     {
       className: cn(
-        "text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500",
+        "text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-300 dark:text-slate-500",
         className,
       ),
       ...props,
@@ -103,7 +103,7 @@ export function BodyText<T extends PrimitiveAs = "p">({
         "text-sm leading-7",
         tone === "default" && "text-slate-600 dark:text-slate-300",
         tone === "muted" && "text-slate-500 dark:text-slate-400",
-        tone === "soft" && "text-slate-400 dark:text-slate-500",
+        tone === "soft" && "text-slate-400 dark:text-slate-300 dark:text-slate-500",
         tone === "inverse" && "text-white/78",
         className,
       ),

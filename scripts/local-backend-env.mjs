@@ -1,0 +1,35 @@
+export const localBackendEnv = {
+  NODE_ENV: 'development',
+  APP_ENV: 'development',
+  PORT: '3001',
+  DATABASE_URL: 'postgresql://projtrack:projtrack@127.0.0.1:5432/projtrack?schema=public',
+  APP_URL: 'http://127.0.0.1:5173',
+  CORS_ORIGINS: 'http://localhost:5173,http://127.0.0.1:5173',
+  JWT_ACCESS_SECRET: 'local-dev-access-secret-change-before-production-1234567890',
+  JWT_REFRESH_SECRET: 'local-dev-refresh-secret-change-before-production-1234567890',
+  MAIL_PROVIDER: 'stub',
+  MAIL_WORKER_ENABLED: 'false',
+  TESTMAIL_ENABLED: 'false',
+  MAIL_FROM_NAME: 'ProjTrack',
+  MAIL_FROM_ADMIN: 'admin@projtrack.codes',
+  MAIL_FROM_NOREPLY: 'support@projtrack.codes',
+  MAIL_FROM_INVITE: 'support@projtrack.codes',
+  MAIL_FROM_NOTIFY: 'notification@projtrack.codes',
+  MAIL_FROM_SUPPORT: 'support@projtrack.codes',
+  OBJECT_STORAGE_MODE: 'local',
+  FILE_STORAGE_MODE: 'local',
+  S3_BUCKET: '',
+  S3_REGION: '',
+  S3_ENDPOINT: '',
+  S3_ACCESS_KEY_ID: '',
+  S3_SECRET_ACCESS_KEY: '',
+  BACKUP_WORKER_ENABLED: 'false',
+  BACKUP_LOCAL_DIR: 'data/system-tools/backups',
+  ALLOW_DEMO_SEED: 'true',
+  ALLOW_SEED_DATA_CLEANUP: 'false',
+  ALLOW_PRODUCTION_ADMIN_TOOL_RUNS: 'false',
+};
+
+export function withLocalBackendEnv(overrides = {}) {
+  return { ...localBackendEnv, ...overrides };
+}

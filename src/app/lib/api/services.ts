@@ -10,10 +10,13 @@ import { normalizeDateLabel, normalizeDateTimeLabel, normalizeId, normalizeNotif
 import { formatSubmissionStatus, getReviewActionState, normalizeSubmissionStatus } from "../submissionRules";
 import type {
   AdminAnnouncementRecord,
+  AdminCreateUserInput,
   AdminDepartmentCreateInput,
   AdminDepartmentRecord,
+  AdminDepartmentUpdateInput,
   AdminDashboardResponse,
   AdminSubmissionRecord,
+  AdminSubmissionUpsertInput,
   AdminCalendarEvent,
   AdminAcademicYearRecord,
   AdminGroupRecord,
@@ -28,6 +31,7 @@ import type {
   AdminSubjectUpsertInput,
   AdminTeacherRecord,
   AdminTeacherUpsertInput,
+  AdminUserRecord,
   AuditLogRecord,
   CalendarEventItem,
   SignInPayload,
@@ -61,8 +65,13 @@ import type {
   TeacherSubmissionRow,
   MailJobRecord,
   SystemHealthRecord,
+  BackupDetailResponse,
+  BackupHistoryResponse,
+  BackupRunRecord,
+  BackupSettingsResponse,
   ReleaseStatusItem,
   BootstrapStepItem,
+  MailRuntimeStatus,
 } from "./contracts";
 
 const delay = (ms = 320) => {
@@ -373,15 +382,39 @@ function toAdminNotificationType(type: unknown): AdminNotificationRecord['type']
 }
 
 function toStudentNotificationType(type: unknown): StudentPortalNotification['type'] {
-  return type === 'submission'
-    ? 'deadline'
-    : normalizeNotificationType(type, ['grade', 'overdue', 'account', 'feedback', 'info'] as const, 'info');
+  const normalized = String(type || '').trim().toLowerCase();
+
+  if (normalized === 'review' || normalized === 'submission' || normalized === 'submit') {
+    return 'feedback';
+  }
+
+  if (normalized === 'announcement' || normalized === 'system' || normalized === 'notification') {
+    return 'info';
+  }
+
+  if (normalized === 'new-activity' || normalized === 'activity' || normalized === 'activity-created') {
+    return 'info';
+  }
+
+  return normalizeNotificationType(
+    normalized,
+    ['grade', 'overdue', 'deadline', 'account', 'feedback', 'info'] as const,
+    'info',
+  );
 }
 
 function toTeacherNotificationType(type: unknown): TeacherPortalNotification['type'] {
-  return type === 'review'
-    ? 'submit'
-    : normalizeNotificationType(type, ['deadline', 'grade', 'info'] as const, 'info');
+  const normalized = String(type || '').trim().toLowerCase();
+
+  if (normalized === 'review' || normalized === 'submission' || normalized === 'submit') {
+    return 'submit';
+  }
+
+  if (normalized === 'announcement' || normalized === 'system' || normalized === 'notification') {
+    return 'info';
+  }
+
+  return normalizeNotificationType(normalized, ['deadline', 'grade', 'info'] as const, 'info');
 }
 
 
@@ -499,7 +532,14 @@ export interface AdminTeacherFilters { search?: string; status?: string }
 export interface AdminSectionFilters { search?: string; academicYearId?: string }
 export interface AdminAcademicYearFilters { search?: string }
 export interface AdminRequestFilters { status?: string }
-export interface AdminSubmissionFilters { search?: string; status?: string }
+export interface AdminSubmissionFilters {
+  search?: string;
+  status?: string;
+  section?: string;
+  subjectId?: string;
+  studentId?: string;
+}
+export interface AdminUserFilters { search?: string; role?: string; status?: string }
 export interface TeacherStudentFilters { search?: string; section?: string }
 export interface StudentSubjectCardFilters { search?: string }
 export interface StudentNotificationFilters { type?: string }
@@ -654,8 +694,8 @@ export const authService = {
   async activate(ref: string, token: string, password: string, confirmPassword: string) {
     return http.post<{ success: boolean; message: string }>("/auth/activate", { ref, token, password, confirmPassword });
   },
-  async forgotPassword(email: string) {
-    return http.post<{ success: boolean; message: string }>("/auth/forgot-password", { email });
+  async forgotPassword(email: string, role?: AppRole | string) {
+    return http.post<{ success: boolean; message: string }>("/auth/forgot-password", { email, role });
   },
   async resetPassword(ref: string, token: string, password: string, confirmPassword: string) {
     return http.post<{ success: boolean; message: string }>("/auth/reset-password", { ref, token, password, confirmPassword });
@@ -672,6 +712,9 @@ export const authService = {
     }>("/auth/me");
     syncAuthSessionFromCurrentUser(currentUser);
     return currentUser;
+  },
+  async logout() {
+    await http.logout();
   },
 };
 
@@ -1068,6 +1111,103 @@ async reviewSubmission(id: string, payload: { status?: string; grade?: number; f
 };
 
 export const adminService = {
+  async getUsers(filters: AdminUserFilters = {}): Promise<AdminUserRecord[]> {
+    if (apiRuntime.useBackend) {
+      const rows = await http.get<Array<any>>("/admin/users", {
+        search: filters.search || undefined,
+        role: !filters.role || filters.role === "All" ? undefined : filters.role,
+        status: !filters.status || filters.status === "All" ? undefined : filters.status,
+      });
+      return rows.map((row: any) => ({
+        id: String(row.id),
+        displayIdentifier: String(row.displayIdentifier || row.studentNumber || row.employeeId || row.profileLabel || "—"),
+        identifierLabel: String(row.identifierLabel || "Student/Employee ID"),
+        profileId: row.profileId ? String(row.profileId) : null,
+        email: String(row.email || ""),
+        role: String(row.role || ""),
+        status: String(row.status || "Unknown"),
+        statusKey: String(row.statusKey || row.status || ""),
+        firstName: String(row.firstName || ""),
+        lastName: String(row.lastName || ""),
+        phone: String(row.phone || ""),
+        office: String(row.office || ""),
+        createdAt: String(row.createdAt || ""),
+        updatedAt: String(row.updatedAt || ""),
+        profileLabel: String(row.profileLabel || "—"),
+        studentNumber: row.studentNumber ? String(row.studentNumber) : null,
+        employeeId: row.employeeId ? String(row.employeeId) : null,
+        isSeedCandidate: Boolean(row.isSeedCandidate),
+      }));
+    }
+    await delay();
+    const q = (filters.search ?? "").toLowerCase();
+    return [] as AdminUserRecord[];
+  },
+  async createAdmin(payload: AdminCreateUserInput) {
+    if (apiRuntime.useBackend) {
+      return http.post<{
+        success: boolean;
+        id: string;
+        email: string;
+        role: string;
+        status: string;
+        activationQueued: boolean;
+        mailJobId?: string;
+      }>("/admin/users/admins", payload);
+    }
+    requireBackendApi();
+    await delay(180);
+    return {
+      success: true,
+      id: `admin_${Date.now()}`,
+      email: payload.email,
+      role: "ADMIN",
+      status: "Pending Activation",
+      activationQueued: payload.sendActivationEmail !== false,
+    };
+  },
+  async activateUser(id: string) {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; queued?: boolean; status: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/users/${id}/activate`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, status: "Pending Password Setup" };
+  },
+  async deactivateUser(id: string) {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; status: string }>(`/admin/users/${id}/deactivate`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, status: "INACTIVE" };
+  },
+  async sendUserResetLink(id: string) {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; queued?: boolean; status?: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/users/${id}/send-reset-link`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true };
+  },
+  async resendUserActivation(id: string) {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; queued?: boolean; status?: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/users/${id}/resend-activation`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, status: "Pending Password Setup" };
+  },
+  async deleteUser(id: string, confirmation: string) {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; deleted: boolean }>(`/admin/users/${id}`, {
+        confirmation,
+      });
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, deleted: true };
+  },
   async getDashboard(): Promise<AdminDashboardResponse> {
     if (apiRuntime.useBackend) {
       const [summary, activity, academicSettings, live, ready, storage, mail, database] = await Promise.all([
@@ -1161,24 +1301,37 @@ export const adminService = {
   },
   async getSubmissions(filters: AdminSubmissionFilters = {}): Promise<AdminSubmissionRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/reports/current-view");
-      const q = (filters.search ?? '').toLowerCase();
-      return rows.map((row: any) => ({
-        id: normalizeId(row.id) || '',
-        title: row.title,
-        student: row.owner,
-        teacher: '—',
-        subject: row.subject,
-        section: row.section,
-        due: '—',
-        submitted: normalizeDateLabel(row.submittedAt),
-        status: formatSubmissionStatus(row.status),
-        grade: row.grade == null ? '—' : String(row.grade),
-      })).filter((s: AdminSubmissionRecord) => {
-        const matchSearch = !q || s.title.toLowerCase().includes(q) || s.student.toLowerCase().includes(q) || s.subject.toLowerCase().includes(q);
-        const matchStatus = !filters.status || filters.status === 'All' || s.status === filters.status;
-        return matchSearch && matchStatus;
+      const rows = await http.get<Array<any>>("/admin/submissions", {
+        search: filters.search || undefined,
+        status: !filters.status || filters.status === "All" ? undefined : filters.status.replace(/\s+/g, "_").toUpperCase(),
+        subjectId: filters.subjectId || undefined,
+        studentId: filters.studentId || undefined,
+        section: !filters.section || filters.section === "All" ? undefined : filters.section,
       });
+      return rows.map((row: any) => ({
+        id: normalizeId(row.id) || "",
+        title: String(row.title || ""),
+        student: String(row.student || row.ownerLabel || "—"),
+        teacher: String(row.teacher || "—"),
+        subject: String(row.subject || "—"),
+        section: String(row.section || "—"),
+        due: normalizeDateTimeLabel(row.due) || "—",
+        submitted: normalizeDateTimeLabel(row.submitted) || "—",
+        status: formatSubmissionStatus(row.status || ""),
+        grade: row.grade == null ? "—" : String(row.grade),
+        statusKey: String(row.statusKey || row.status || ""),
+        subjectCode: String(row.subjectCode || ""),
+        taskId: normalizeId(row.taskId),
+        taskTitle: String(row.taskTitle || row.title || ""),
+        subjectId: normalizeId(row.subjectId),
+        studentId: row.studentId ? String(row.studentId) : null,
+        studentNumber: row.studentNumber ? String(row.studentNumber) : null,
+        groupId: row.groupId ? String(row.groupId) : null,
+        ownerLabel: String(row.ownerLabel || row.student || "—"),
+        feedback: String(row.feedback || ""),
+        notes: String(row.notes || ""),
+        externalLinks: Array.isArray(row.externalLinks) ? row.externalLinks.map((item: unknown) => String(item)) : [],
+      }));
     }
     await delay();
     const q = (filters.search ?? "").toLowerCase();
@@ -1196,16 +1349,44 @@ export const adminService = {
       records.map((s) => [s.title, s.student, s.teacher, s.subject, s.section, s.due, s.submitted, s.status, s.grade])
     );
   },
+  async createSubmission(payload: AdminSubmissionUpsertInput) {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; id: string; status: string }>("/admin/submissions", payload);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, id: `submission_${Date.now()}`, status: payload.status };
+  },
+  async updateSubmission(id: string, payload: Partial<AdminSubmissionUpsertInput>) {
+    if (apiRuntime.useBackend) {
+      return http.patch<{ success: boolean; id: string; status: string }>(`/admin/submissions/${id}`, payload);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, id, status: String(payload.status || "UPDATED") };
+  },
+  async deleteSubmission(id: string, confirmation: string) {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; deleted: boolean }>(`/admin/submissions/${id}`, {
+        confirmation,
+      });
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true, deleted: true };
+  },
 
 async getAuditLogDetail(id: string): Promise<AuditLogRecord> {
   if (apiRuntime.useBackend) {
     const row = await http.get<any>(`/admin/audit-logs/${id}`);
-    return {
-      id: String(row.id),
-      action: row.action,
-      module: row.module,
-      user: row.actorName || row.actorUserId || 'System',
-      target: row.target || '—',
+      return {
+        id: String(row.id),
+        action: row.action,
+        module: row.module,
+        user: row.actorName || row.actorUserId || 'System',
+        actorUserId: row.actorUserId ? String(row.actorUserId) : null,
+        actorEmail: row.actor?.email ? String(row.actor.email) : null,
+        target: row.target || '—',
       time: new Date(row.timestamp || row.createdAt || Date.now()).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
       role: toAuditRole(row.actorRole),
       ip: row.ipAddress || '127.0.0.1',
@@ -1228,12 +1409,14 @@ async getAuditLogDetail(id: string): Promise<AuditLogRecord> {
         module: !filters.module || filters.module === 'All' ? undefined : filters.module,
       });
       const q = (filters.search ?? '').toLowerCase();
-      return rows.map((l: any, index: number): AuditLogRecord => ({
-        id: String(l.id ?? index + 1),
-        action: String(l.action ?? ''),
-        module: String(l.module ?? ''),
-        user: String(l.actorRole ?? 'System'),
-        target: String(l.target ?? '—'),
+        return rows.map((l: any, index: number): AuditLogRecord => ({
+          id: String(l.id ?? index + 1),
+          action: String(l.action ?? ''),
+          module: String(l.module ?? ''),
+          user: String(l.actor?.email || l.actorUserId || l.actorRole || 'System'),
+          actorUserId: l.actorUserId ? String(l.actorUserId) : null,
+          actorEmail: l.actor?.email ? String(l.actor.email) : null,
+          target: String(l.target ?? '—'),
         time: new Date(l.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
         role: toAuditRole(l.actorRole),
         ip: String(l.ipAddress || '127.0.0.1'),
@@ -1322,14 +1505,92 @@ async deleteInventoryFile(relativePath: string) {
   return http.delete<{ ok: boolean }>(toStoredFileDeletePath(relativePath));
 },
 
+async getBackupHistory(): Promise<BackupHistoryResponse> {
+  if (apiRuntime.useBackend) {
+    return http.get<BackupHistoryResponse>("/admin/backups");
+  }
+  requireBackendApi();
+  throw new Error("Backend API access is required.");
+  await delay();
+  return {
+    latestSuccessful: null,
+    oldestAvailable: null,
+    totalBackups: 0,
+    failedBackups: 0,
+    storageUsedBytes: 0,
+    nextAutomaticBackup: null,
+    rows: [],
+  };
+},
+
+async getBackupSettings(): Promise<BackupSettingsResponse> {
+  if (apiRuntime.useBackend) {
+    return http.get<BackupSettingsResponse>("/admin/backups/settings");
+  }
+  requireBackendApi();
+  throw new Error("Backend API access is required.");
+},
+
+async updateBackupSettings(payload: Partial<BackupSettingsResponse>): Promise<BackupSettingsResponse> {
+  if (apiRuntime.useBackend) {
+    return http.patch<BackupSettingsResponse>("/admin/backups/settings", payload);
+  }
+  requireBackendApi();
+  throw new Error("Backend API access is required.");
+},
+
+async runBackupNow(): Promise<BackupRunRecord> {
+  if (apiRuntime.useBackend) {
+    return http.post<BackupRunRecord>("/admin/backups/run", { backupType: "full" });
+  }
+  requireBackendApi();
+  await delay();
+  throw new Error("Backend API access is required.");
+},
+
+async getBackupDetail(id: string): Promise<BackupDetailResponse> {
+  return http.get<BackupDetailResponse>(`/admin/backups/${id}`);
+},
+
+async protectBackup(id: string, protectedValue: boolean, confirmation?: string): Promise<BackupRunRecord> {
+  return http.post<BackupRunRecord>(
+    `/admin/backups/${id}/${protectedValue ? "protect" : "unprotect"}`,
+    {},
+    protectedValue ? undefined : { confirmation },
+  );
+},
+
+async deleteBackup(id: string, confirmation: string): Promise<BackupRunRecord> {
+  return http.delete<BackupRunRecord>(`/admin/backups/${id}`, { confirmation });
+},
+
+async restoreBackup(id: string, confirmation: string) {
+  return http.post<{ success?: boolean; message?: string }>(`/admin/backups/${id}/restore`, { confirmation });
+},
+
+async validateBackup(id: string) {
+  return http.post<{ success: boolean; expectedSha256: string; actualSha256: string }>(`/admin/backups/${id}/validate`, {});
+},
+
+async getBackupManifest(id: string) {
+  return http.get<Record<string, unknown>>(`/admin/backups/${id}/manifest`);
+},
+
+async downloadBackup(id: string, fileName?: string) {
+  const response = await http.getBlob(`/admin/backups/${id}/download`);
+  downloadBlobFile(response.blob, response.fileName || fileName || "projtrack-backup.json");
+},
+
 async getSystemHealth(): Promise<SystemHealthRecord[]> {
   if (apiRuntime.useBackend) {
-    const [live, ready, storage, mail, database] = await Promise.all([
+    const [live, ready, storage, mail, database, backups, configuration] = await Promise.all([
       http.get<any>("/health/live"),
       http.get<any>("/health/ready"),
       http.get<any>("/health/storage"),
       http.get<any>("/health/mail"),
       http.get<any>("/health/database"),
+      http.get<any>("/health/backups"),
+      http.get<any>("/health/configuration"),
     ]);
     const failingReadinessChecks = Object.entries(ready?.checks || {})
       .filter(([, ok]) => !ok)
@@ -1349,7 +1610,7 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
       },
       {
         key: "storage",
-        label: "File Storage",
+        label: "Object Storage",
         ok: Boolean(storage?.ok),
         detail: storage?.detail || (storage?.uploadsPath || "uploads"),
         checkedAt: storage?.timestamp || new Date().toISOString(),
@@ -1367,6 +1628,34 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
         ok: Boolean(database?.ok),
         detail: database?.detail || `${database?.persistenceMode || "prisma"} mode`,
         checkedAt: database?.timestamp || new Date().toISOString(),
+      },
+      {
+        key: "environment",
+        label: "Environment Config",
+        ok: Boolean(configuration?.ok),
+        detail: configuration?.detail || (configuration?.ok ? "Runtime configuration passed." : "Runtime configuration needs attention."),
+        checkedAt: new Date().toISOString(),
+      },
+      {
+        key: "backups",
+        label: "Latest Backup",
+        ok: Boolean(backups?.ok),
+        detail: backups?.detail || "Backup status unavailable.",
+        checkedAt: backups?.timestamp || new Date().toISOString(),
+      },
+      {
+        key: "backup-worker",
+        label: "Backup Worker",
+        ok: Boolean(backups?.worker?.enabled ? backups?.worker?.running : true),
+        detail: backups?.worker?.enabled ? "Backup worker is enabled." : "Backup worker disabled for this process.",
+        checkedAt: backups?.timestamp || new Date().toISOString(),
+      },
+      {
+        key: "mail-worker",
+        label: "Mail Worker",
+        ok: Boolean(mail?.worker?.enabled ? mail?.worker?.running : true),
+        detail: mail?.worker?.enabled ? "Mail worker is enabled." : "Mail worker disabled for this process.",
+        checkedAt: mail?.timestamp || new Date().toISOString(),
       },
     ];
   }
@@ -1497,35 +1786,181 @@ async getBootstrapGuide(): Promise<BootstrapStepItem[]> {
 },
 
 
-async retryMailJob(id: string) {
+async getMailRuntimeStatus(): Promise<MailRuntimeStatus> {
   if (apiRuntime.useBackend) {
-    return http.post(`/admin/mail-jobs/${id}/retry`, {});
+    const status = await http.get<any>("/health/mail");
+    const worker = status?.worker || {};
+    const latestProcessed = status?.latestProcessedJob || null;
+    const senderConfig = status?.senderConfig || {};
+    return {
+      provider: String(status?.providerName ?? status?.provider ?? "unknown"),
+      deliveryMode: status?.deliveryMode ? String(status.deliveryMode) : null,
+      realDeliveryActive: Boolean(status?.realDeliveryActive),
+      localStub: Boolean(status?.localStub),
+      workerHealthy: typeof status?.workerHealthy === "boolean" ? status.workerHealthy : undefined,
+      dedicatedWorkerHealthy:
+        typeof status?.dedicatedWorkerHealthy === "boolean"
+          ? status.dedicatedWorkerHealthy
+          : typeof status?.workerHealthy === "boolean"
+            ? status.workerHealthy
+            : undefined,
+      dedicatedWorkerProvider: status?.dedicatedWorkerProvider ? String(status.dedicatedWorkerProvider) : worker.provider ?? null,
+      heartbeatFresh: typeof status?.heartbeatFresh === "boolean" ? status.heartbeatFresh : undefined,
+      heartbeatProviderMatches:
+        typeof status?.heartbeatProviderMatches === "boolean" ? status.heartbeatProviderMatches : undefined,
+      workerHeartbeatAgeSeconds:
+        typeof status?.workerHeartbeatAgeSeconds === "number"
+          ? status.workerHeartbeatAgeSeconds
+          : null,
+      workerEnabled: typeof worker.enabled === "boolean" ? worker.enabled : null,
+      workerRunning: typeof worker.running === "boolean" ? worker.running : null,
+      apiProcessWorkerEnabled:
+        typeof status?.apiProcessWorkerEnabled === "boolean"
+          ? status.apiProcessWorkerEnabled
+          : typeof worker.enabled === "boolean"
+            ? worker.enabled
+            : null,
+      apiProcessWorkerRunning:
+        typeof status?.apiProcessWorkerRunning === "boolean"
+          ? status.apiProcessWorkerRunning
+          : typeof worker.running === "boolean"
+            ? worker.running
+            : null,
+      workerId: worker.workerId ?? null,
+      workerPollMs: typeof worker.pollMs === "number" ? worker.pollMs : null,
+      workerLastHeartbeatAt: worker.lastHeartbeatAt ?? null,
+      workerLastProcessedAt: worker.lastProcessedJobAt ?? null,
+      queueDepth: Number(status?.queueDepth ?? status?.queued ?? 0),
+      queuedCount: Number(status?.queued ?? 0),
+      processingCount: Number(status?.processing ?? 0),
+      queuedTooLongCount: Number(status?.queuedTooLongCount ?? 0),
+      processingTooLongCount: Number(status?.processingTooLongCount ?? 0),
+      failedCount: Number(status?.failed ?? 0),
+      deadCount: Number(status?.dead ?? 0),
+      archivedCount: Number(status?.archived ?? 0),
+      recentDeadCount: Number(status?.recentDeadCount ?? 0),
+      pausedLimitReached: Number(status?.pausedLimitReached ?? 0),
+      sent24h: Number(status?.sent24h ?? 0),
+      latestSentAt: status?.latestSentAt ?? null,
+      latestProcessedAt: latestProcessed?.lastAttemptAt ?? latestProcessed?.updatedAt ?? null,
+      latestFailureReason: status?.latestFailureReason ?? null,
+      latestSafeProviderError: status?.latestSafeProviderError ?? status?.recentFailure?.message ?? null,
+      recentFailureReason: status?.recentFailureReason ?? status?.recentFailure?.failureReason ?? null,
+      recentFailureSafeMessage: status?.recentFailureSafeMessage ?? status?.recentFailure?.message ?? null,
+      senderConfig: {
+        fromName: senderConfig.fromName ?? null,
+        admin: senderConfig.admin ?? null,
+        noreply: senderConfig.noreply ?? null,
+        invite: senderConfig.invite ?? null,
+        notification: senderConfig.notification ?? null,
+        support: senderConfig.support ?? null,
+      },
+      senderConfigIssues: Array.isArray(status?.senderConfigIssues)
+        ? status.senderConfigIssues.map((item: unknown) => String(item))
+        : [],
+      alerts: Array.isArray(status?.alerts)
+        ? status.alerts.map((item: any) => ({
+            code: String(item?.code ?? "MAIL_ALERT"),
+            severity:
+              item?.severity === "error" || item?.severity === "warning" || item?.severity === "info"
+                ? item.severity
+                : "info",
+            message: String(item?.message ?? ""),
+          }))
+        : [],
+      detail: status?.detail ? String(status.detail) : undefined,
+    };
+  }
+  requireBackendApi();
+  throw new Error("Backend API access is required.");
+},
+
+async retryMailJob(id: string, force = false) {
+  if (apiRuntime.useBackend) {
+    return http.post(`/admin/mail-jobs/${id}/retry`, { force });
   }
   await delay(120);
   return { success: true, id };
 },
 
-  async getMailJobs(): Promise<MailJobRecord[]> {
+async retryMailJobs(ids: string[], force = false) {
+  if (apiRuntime.useBackend) {
+    return http.post(`/admin/mail-jobs/retry`, { ids, force });
+  }
+  await delay(120);
+  return { success: true, retriedCount: ids.length, blockedCount: 0, missingCount: 0, retriedIds: ids, blocked: [], missingIds: [] };
+},
+
+async cancelMailJob(id: string) {
+  if (apiRuntime.useBackend) {
+    return http.post(`/admin/mail-jobs/${id}/cancel`, {});
+  }
+  await delay(120);
+  return { success: true, id };
+},
+
+async archiveMailJob(id: string) {
+  if (apiRuntime.useBackend) {
+    return http.post(`/admin/mail-jobs/${id}/archive`, {});
+  }
+  await delay(120);
+  return { success: true, id };
+},
+
+async archiveOldMailJobs(olderThanDays = 30) {
+  if (apiRuntime.useBackend) {
+    return http.post(`/admin/mail-jobs/archive-old`, { olderThanDays });
+  }
+  await delay(120);
+  return { success: true, archivedCount: 0, olderThanDays };
+},
+
+async sendTestMail(to: string) {
+  if (apiRuntime.useBackend) {
+    const result = await http.post<{ success: boolean; queued: boolean; provider: string; status: string; jobId?: string | null; providerMessageId?: string | null; detail?: string }>("/admin/mail/test", { to });
+    if (!result?.jobId) {
+      throw new Error("Mail queue did not return a confirmed MailJob ID. No success message was shown.");
+    }
+    return { ...result, jobId: result.jobId };
+  }
+  requireBackendApi();
+  throw new Error("Backend API access is required.");
+},
+
+  async getMailJobs(includeArchived = false): Promise<MailJobRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/mail-jobs");
-      return rows.map((row: any) => ({
-        id: String(row.id),
-        to: row.userEmail,
-        deliveryRecipient: row.deliveryRecipient ? String(row.deliveryRecipient) : undefined,
+      const rows = await http.get<Array<any>>("/admin/mail-jobs", includeArchived ? { includeArchived: "true" } : undefined);
+        return rows.map((row: any) => ({
+          id: String(row.id),
+          to: String(row.userEmail ?? row.originalRecipient ?? row.recipient?.email ?? ""),
+          recipient: {
+            email: String(row.recipient?.email ?? row.userEmail ?? row.originalRecipient ?? ""),
+            userId: row.recipient?.userId ? String(row.recipient.userId) : undefined,
+            role: row.recipient?.role ? String(row.recipient.role) : undefined,
+            fullName: row.recipient?.fullName ? String(row.recipient.fullName) : undefined,
+            studentId: row.recipient?.studentId ? String(row.recipient.studentId) : undefined,
+            teacherId: row.recipient?.teacherId ? String(row.recipient.teacherId) : undefined,
+            employeeId: row.recipient?.employeeId ? String(row.recipient.employeeId) : undefined,
+            isExternal: Boolean(row.recipient?.isExternal ?? !row.recipient?.userId),
+          },
+          deliveryRecipient: row.deliveryRecipient ? String(row.deliveryRecipient) : undefined,
         routedToTestmail: Boolean(row.routedToTestmail),
         fromEmail: row.fromEmail ? String(row.fromEmail) : undefined,
-        template: row.templateKey,
+        template: String(row.templateKey ?? row.emailType ?? ""),
         status: (() => {
           const normalized = String(row.status || "queued").toLowerCase();
+          if (normalized === "paused_limit_reached") return "failed" as MailJobRecord["status"];
           return ["queued", "processing", "sent", "failed", "dead", "cancelled"].includes(normalized)
             ? (normalized as MailJobRecord["status"])
             : "queued";
         })(),
         createdAt: new Date(row.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
         sentAt: row.sentAt ? new Date(row.sentAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : undefined,
+        archivedAt: row.archivedAt ? new Date(row.archivedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : undefined,
         provider: row.provider,
         attempts: typeof row.attempts === "number" ? row.attempts : undefined,
         maxAttempts: typeof row.maxAttempts === "number" ? row.maxAttempts : undefined,
+        retryableFailure: typeof row.retryableFailure === "boolean" ? row.retryableFailure : undefined,
         lastAttemptAt: row.lastAttemptAt ? new Date(row.lastAttemptAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : undefined,
         nextAttemptAt: (row.scheduledAt || row.nextAttemptAt)
           ? new Date(row.scheduledAt || row.nextAttemptAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
@@ -1536,11 +1971,8 @@ async retryMailJob(id: string) {
         providerMessageId: row.providerMessageId ? String(row.providerMessageId) : undefined,
       }));
     }
-  await delay(120);
-  return [
-    { id: "mail_job_1", to: "student@projtrack.local", template: "account-activation", status: "queued", createdAt: "Local queue", attempts: 1, maxAttempts: 5, nextAttemptAt: "Soon", provider: "stub" },
-    { id: "mail_job_2", to: "teacher@projtrack.local", template: "broadcast", status: "sent", createdAt: "Local queue", sentAt: "Just now", attempts: 1, maxAttempts: 5, provider: "stub", providerMessageId: "stub:mail_job_2" },
-  ];
+  requireBackendApi();
+  return [];
 },
 
 
@@ -1584,9 +2016,11 @@ async deleteNotifications(ids: string[]) {
       const rows = await http.get<Array<any>>("/admin/notifications", {
         type: !filters.type || filters.type === "All" ? undefined : filters.type.toLowerCase(),
       });
-      return rows.map((n: any) => ({
-        id: String(n.id),
-        date: new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        return rows.map((n: any) => ({
+          id: String(n.id),
+          userId: n.userId ? String(n.userId) : null,
+          dedupeKey: n.dedupeKey ? String(n.dedupeKey) : null,
+          date: new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         type: toAdminNotificationType(n.type),
         read: !!(n.isRead ?? n.read),
         title: n.title,
@@ -1860,13 +2294,19 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
     };
   },
   async activateStudent(id: string) {
-    if (apiRuntime.useBackend) return http.post<{ success: boolean; status: string }>(`/admin/students/${id}/activate`);
+    if (apiRuntime.useBackend) return http.post<{ success: boolean; status: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/students/${id}/activate`);
     requireBackendApi();
     await delay(180);
     return { success: true, status: "PENDING_PASSWORD_SETUP" };
   },
+  async sendStudentSetupInvite(id: string) {
+    if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/students/${id}/send-setup-invite`);
+    requireBackendApi();
+    await delay(180);
+    return { success: true, queued: true, status: "PENDING_SETUP" };
+  },
   async sendStudentResetLink(id: string) {
-    if (apiRuntime.useBackend) return http.post<{ success: boolean }>(`/admin/students/${id}/send-reset-link`);
+    if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status?: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/students/${id}/send-reset-link`);
     requireBackendApi();
     await delay(180);
     return { success: true };
@@ -1879,13 +2319,13 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
   },
 
 async activateTeacher(id: string) {
-  if (apiRuntime.useBackend) return http.post<{ success: boolean; status: string }>(`/admin/teachers/${id}/activate`);
+  if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/teachers/${id}/activate`);
   requireBackendApi();
   await delay(180);
   return { success: true, status: "PENDING_PASSWORD_SETUP" };
 },
 async sendTeacherResetLink(id: string) {
-  if (apiRuntime.useBackend) return http.post<{ success: boolean }>(`/admin/teachers/${id}/send-reset-link`);
+  if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status?: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/teachers/${id}/send-reset-link`);
   requireBackendApi();
   await delay(180);
   return { success: true };
@@ -2247,7 +2687,7 @@ export const teacherSubjectService = {
   },
 
   async createActivity(subjectId: string, payload: { title: string; instructions?: string; deadline: string; submissionMode: 'INDIVIDUAL' | 'GROUP'; allowLateSubmission?: boolean; openAt?: string; closeAt?: string; acceptedFileTypes?: string[]; maxFileSizeMb?: number; externalLinksAllowed?: boolean; notifyByEmail?: boolean }) {
-    return http.post(`/teacher/subjects/${subjectId}/submissions`, payload);
+    return http.post<{ id?: string; success?: boolean; notified?: number; inAppNotificationsCreated?: number; emailJobsQueued?: number; emailQueueWarnings?: string[] }>(`/teacher/subjects/${subjectId}/submissions`, payload);
   },
 
   async updateActivity(subjectId: string, activityId: string, payload: { title: string; instructions?: string; deadline: string; submissionMode: 'INDIVIDUAL' | 'GROUP'; allowLateSubmission?: boolean; openAt?: string; closeAt?: string; acceptedFileTypes?: string[]; maxFileSizeMb?: number; externalLinksAllowed?: boolean; notifyByEmail?: boolean }) {
@@ -2255,7 +2695,7 @@ export const teacherSubjectService = {
   },
 
   async reopenActivity(subjectId: string, activityId: string) {
-    return http.patch(`/teacher/subjects/${subjectId}/submissions/${activityId}/reopen`, {});
+    return http.patch<{ success: boolean; notified?: number; inAppNotificationsCreated?: number; emailJobsQueued?: number; emailQueueWarnings?: string[] }>(`/teacher/subjects/${subjectId}/submissions/${activityId}/reopen`, {});
   },
 
   async approveGroup(subjectId: string, groupId: string) {
@@ -2279,11 +2719,11 @@ export const teacherSubjectService = {
   },
 
   async notifyStudents(subjectId: string, payload: { title: string; message: string; type?: string }) {
-    return http.post(`/teacher/subjects/${subjectId}/notify`, payload);
+    return http.post<{ success: boolean; notified?: number; inAppNotificationsCreated?: number; emailJobsQueued?: number; emailQueueWarnings?: string[] }>(`/teacher/subjects/${subjectId}/notify`, payload);
   },
 
   async reopenSubject(subjectId: string) {
-    return http.patch(`/teacher/subjects/${subjectId}/reopen`, {});
+    return http.patch<{ success: boolean; notified?: number; inAppNotificationsCreated?: number; emailJobsQueued?: number; emailQueueWarnings?: string[] }>(`/teacher/subjects/${subjectId}/reopen`, {});
   },
 };
 
@@ -2591,6 +3031,7 @@ export const adminCatalogService = {
         name: t.name,
         email: t.email,
         dept: t.dept || t.department || "Unassigned Department",
+        employeeId: t.employeeId ? String(t.employeeId) : null,
         subjects: t.subjects ?? 0,
         students: t.students ?? 0,
         status: t.status,
@@ -2616,6 +3057,8 @@ export const adminCatalogService = {
         description: String(department.description || ""),
         teachers: Number(department.teachers ?? 0),
         subjects: Number(department.subjects ?? 0),
+        isLegacy: Boolean(department.isLegacy),
+        canDelete: Boolean(department.canDelete),
       }));
     }
     await delay();
@@ -2626,18 +3069,87 @@ export const adminCatalogService = {
       String(department.description || "").toLowerCase().includes(q)
     );
   },
-  async createDepartment(payload: AdminDepartmentCreateInput): Promise<{ success: boolean; id: string; name: string; description?: string }> {
+  async getDepartment(id: string): Promise<AdminDepartmentRecord> {
     if (apiRuntime.useBackend) {
-      return http.post<{ success: boolean; id: string; name: string; description?: string }>("/admin/departments", payload);
+      const department = await http.get<any>(`/admin/departments/${encodeURIComponent(id)}`);
+      return {
+        id: String(department.id),
+        name: String(department.name || ""),
+        description: String(department.description || ""),
+        teachers: Number(department.teachers ?? 0),
+        subjects: Number(department.subjects ?? 0),
+        isLegacy: Boolean(department.isLegacy),
+        canDelete: Boolean(department.canDelete),
+      };
+    }
+    await delay();
+    const match = adminDepartmentsData.find((department: AdminDepartmentRecord) => department.id === id);
+    if (!match) throw new Error("Department not found.");
+    return JSON.parse(JSON.stringify(match));
+  },
+  async createDepartment(payload: AdminDepartmentCreateInput): Promise<AdminDepartmentRecord> {
+    if (apiRuntime.useBackend) {
+      const department = await http.post<any>("/admin/departments", payload);
+      return {
+        id: String(department.id),
+        name: String(department.name || ""),
+        description: String(department.description || ""),
+        teachers: Number(department.teachers ?? 0),
+        subjects: Number(department.subjects ?? 0),
+        isLegacy: Boolean(department.isLegacy),
+        canDelete: Boolean(department.canDelete),
+      };
     }
     requireBackendApi();
     await delay(180);
-    return {
-      success: true,
+    const created = {
       id: `department_${Date.now()}`,
       name: payload.name,
       description: payload.description || "",
+      teachers: 0,
+      subjects: 0,
+      isLegacy: false,
+      canDelete: true,
     };
+    adminDepartmentsData.unshift(created);
+    return created;
+  },
+  async updateDepartment(id: string, payload: AdminDepartmentUpdateInput): Promise<AdminDepartmentRecord> {
+    if (apiRuntime.useBackend) {
+      const department = await http.patch<any>(`/admin/departments/${encodeURIComponent(id)}`, payload);
+      return {
+        id: String(department.id),
+        name: String(department.name || ""),
+        description: String(department.description || ""),
+        teachers: Number(department.teachers ?? 0),
+        subjects: Number(department.subjects ?? 0),
+        isLegacy: Boolean(department.isLegacy),
+        canDelete: Boolean(department.canDelete),
+      };
+    }
+    requireBackendApi();
+    await delay(180);
+    const index = adminDepartmentsData.findIndex((department: AdminDepartmentRecord) => department.id === id);
+    if (index < 0) throw new Error("Department not found.");
+    adminDepartmentsData[index] = {
+      ...adminDepartmentsData[index],
+      ...payload,
+    };
+    return JSON.parse(JSON.stringify(adminDepartmentsData[index]));
+  },
+  async deleteDepartment(id: string, confirmation: string): Promise<{ success: boolean; deleted: boolean; id: string; name: string }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; deleted: boolean; id: string; name: string }>(
+        `/admin/departments/${encodeURIComponent(id)}`,
+        { confirmation },
+      );
+    }
+    requireBackendApi();
+    await delay(180);
+    const index = adminDepartmentsData.findIndex((department: AdminDepartmentRecord) => department.id === id);
+    if (index < 0) throw new Error("Department not found.");
+    const [removed] = adminDepartmentsData.splice(index, 1);
+    return { success: true, deleted: true, id, name: removed.name };
   },
   async getSections(filters: AdminSectionFilters = {}): Promise<AdminSectionRecord[]> {
     if (apiRuntime.useBackend) {
@@ -2968,14 +3480,16 @@ export const teacherNotificationService = {
 };
 
 export const adminDetailService = {
-  async getStudentView(id = "usr_student_1"): Promise<AdminStudentViewResponse> {
+  async getStudentView(id: string): Promise<AdminStudentViewResponse> {
+    if (!id) throw new Error("Student id is required.");
     if (apiRuntime.useBackend) {
       return http.get<AdminStudentViewResponse>(`/admin/students/${id}/detail`);
     }
     await delay();
     return JSON.parse(JSON.stringify(adminStudentViewData));
   },
-  async getTeacherView(id = "usr_teacher_1"): Promise<AdminTeacherViewResponse> {
+  async getTeacherView(id: string): Promise<AdminTeacherViewResponse> {
+    if (!id) throw new Error("Teacher id is required.");
     if (apiRuntime.useBackend) {
       return http.get<AdminTeacherViewResponse>(`/admin/teachers/${id}/detail`);
     }
@@ -3066,9 +3580,12 @@ export const adminOpsService = {
     await delay();
     return JSON.parse(JSON.stringify(systemToolsStore));
   },
-  async runSystemTool(toolId: string): Promise<SystemToolRunResponse> {
+  async runSystemTool(
+    toolId: string,
+    payload: Record<string, unknown> = {},
+  ): Promise<SystemToolRunResponse> {
     if (apiRuntime.useBackend) {
-      return http.post<SystemToolRunResponse>(`/admin/system-tools/${toolId}/run`, {});
+      return http.post<SystemToolRunResponse>(`/admin/system-tools/${toolId}/run`, payload);
     }
     requireBackendApi();
     await delay(200);
@@ -3091,6 +3608,7 @@ export const adminOpsService = {
           'Execution summary was returned from the local data store.',
         ],
         ranAt: new Date().toISOString(),
+        preview: undefined,
       },
     };
   },
@@ -3129,4 +3647,3 @@ export const adminOpsService = {
     return JSON.parse(JSON.stringify(bulkMoveStore));
   },
 };
-

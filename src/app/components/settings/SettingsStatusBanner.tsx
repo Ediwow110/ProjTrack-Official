@@ -1,25 +1,24 @@
-import { AlertTriangle, CheckCircle2, CircleAlert, Info } from "lucide-react";
-
 import { BodyText, SectionTitle } from "../ui/typography";
 import { cn } from "../ui/utils";
+import { BootstrapIcon, type BootstrapIconName, type BootstrapIconTone } from "../ui/bootstrap-icon";
 
 const toneStyles = {
   info: {
-    wrap: "border-blue-200 bg-blue-50/90 text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100",
-    icon: "text-blue-600 dark:text-blue-200",
+    wrap: "border-blue-200 dark:border-blue-500/30 bg-blue-50/90 text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100",
+    icon: "text-blue-600 dark:text-blue-300 dark:text-blue-200",
   },
   success: {
     wrap:
-      "border-emerald-200 bg-emerald-50/90 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100",
+      "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/90 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100",
     icon: "text-emerald-600 dark:text-emerald-200",
   },
   warning: {
     wrap:
-      "border-amber-200 bg-amber-50/90 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100",
+      "border-amber-200 dark:border-amber-500/30 bg-amber-50/90 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100",
     icon: "text-amber-600 dark:text-amber-200",
   },
   error: {
-    wrap: "border-rose-200 bg-rose-50/90 text-rose-900 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100",
+    wrap: "border-rose-200 dark:border-rose-500/30 bg-rose-50/90 text-rose-900 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100",
     icon: "text-rose-600 dark:text-rose-200",
   },
 } as const;
@@ -35,14 +34,15 @@ export function SettingsStatusBanner({
   description?: string;
   className?: string;
 }) {
-  const Icon =
+  const iconName: BootstrapIconName =
     tone === "success"
-      ? CheckCircle2
+      ? "check-circle-fill"
       : tone === "warning"
-        ? AlertTriangle
+        ? "exclamation-triangle-fill"
         : tone === "error"
-          ? CircleAlert
-          : Info;
+          ? "x-circle-fill"
+          : "info-circle-fill";
+  const iconTone: BootstrapIconTone = tone === "error" ? "danger" : tone;
 
   return (
     <div
@@ -52,7 +52,7 @@ export function SettingsStatusBanner({
         className,
       )}
     >
-      <Icon size={18} className={cn("mt-0.5 shrink-0", toneStyles[tone].icon)} />
+      <BootstrapIcon name={iconName} tone={iconTone} size={18} className={cn("mt-0.5 shrink-0", toneStyles[tone].icon)} />
       <div className="min-w-0">
         <SectionTitle className="text-base">{title}</SectionTitle>
         {description ? (

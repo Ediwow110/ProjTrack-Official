@@ -50,6 +50,14 @@ export class AccountActionTokenService {
     return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token);
   }
 
+  async consumePasswordResetTx(tx: any, ref: string, token: string) {
+    return this.consume(AccountActionTokenType.PASSWORD_RESET, ref, token, tx);
+  }
+
+  async consumeActivationTx(tx: any, ref: string, token: string) {
+    return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token, tx);
+  }
+
   private async issue(input: IssueInput) {
     const active = await this.prisma.accountActionToken.findFirst({
       where: {
@@ -96,14 +104,15 @@ export class AccountActionTokenService {
     return { token, publicRef, expiresAt, reused: false };
   }
 
-  private async consume(type: AccountActionTokenType, ref: string, token: string) {
+  private async consume(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+    const client = tx ?? this.prisma;
     const publicRef = String(ref || '').trim();
     const rawToken = String(token || '').trim();
     if (!publicRef || !rawToken) {
       throw new BadRequestException('Token reference and token are required.');
     }
 
-    const record = await this.prisma.accountActionToken.findUnique({
+    const record = await client.accountActionToken.findUnique({
       where: { publicRef },
       include: { user: { include: { studentProfile: true, teacherProfile: true } } },
     });
@@ -114,7 +123,8 @@ export class AccountActionTokenService {
     if (record.usedAt || record.revokedAt) {
       throw new BadRequestException('Account action token has already been used.');
     }
-    if (record.expiresAt.getTime() < Date.now()) {
+    const now = new Date();
+    if (record.expiresAt.getTime() < now.getTime()) {
       throw new BadRequestException('Account action token has expired.');
     }
 
@@ -123,10 +133,31 @@ export class AccountActionTokenService {
       throw new NotFoundException('Account action token not found.');
     }
 
-    await this.prisma.accountActionToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
+    const consumed = await client.accountActionToken.updateMany({
+      where: {
+        id: record.id,
+        usedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { usedAt: now },
     });
+    if (consumed.count !== 1) {
+      const current = await client.accountActionToken.findUnique({
+        where: { id: record.id },
+        select: { usedAt: true, revokedAt: true, expiresAt: true },
+      });
+      if (!current || current.revokedAt) {
+        throw new BadRequestException('Account action token has already been used.');
+      }
+      if (current.usedAt) {
+        throw new BadRequestException('Account action token has already been used.');
+      }
+      if (current.expiresAt.getTime() <= now.getTime()) {
+        throw new BadRequestException('Account action token has expired.');
+      }
+      throw new BadRequestException('Account action token has already been used.');
+    }
 
     return record.user;
   }

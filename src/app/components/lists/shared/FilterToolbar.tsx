@@ -39,7 +39,7 @@ export function FilterToolbar({
     >
       <div className="min-w-0 flex-1 space-y-3">
         <div className="portal-search-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-slate-200/75 bg-white/88 px-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-[var(--surface-soft)]">
-          <Search size={16} className="shrink-0 text-slate-400" />
+          <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-300" />
           <Input
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}

@@ -52,13 +52,14 @@ Successful sends count against limits using `EmailJob.status='sent'` plus the st
 
 ## Sender Routing
 
-The transport now resolves sender addresses by message category:
+The transport resolves sender addresses by message category using only verified
+`@projtrack.codes` sender identities:
 
-- `MAIL_FROM_NOREPLY` for activation, password reset, and verification-style messages
-- `MAIL_FROM_INVITE` for bulk invitations
-- `MAIL_FROM_NOTIFY` for classroom/activity notifications
-- `MAIL_FROM_SUPPORT` for support-style messages
-- `MAIL_FROM_ADMIN` for admin broadcasts and system messages
+- `MAIL_FROM_SUPPORT=support@projtrack.codes` for activation, password reset, account recovery, support, and account lifecycle messages
+- `MAIL_FROM_INVITE=support@projtrack.codes` for teacher and student invitations
+- `MAIL_FROM_NOREPLY=support@projtrack.codes` as the legacy auth sender env value; `noreply@projtrack.codes` is not used unless it is explicitly created and verified later
+- `MAIL_FROM_NOTIFY=notification@projtrack.codes` for announcements, activity reminders, submission reminders, classroom updates, and academic alerts
+- `MAIL_FROM_ADMIN=admin@projtrack.codes` for admin/system tests, health alerts, production readiness alerts, critical platform notices, and other operational messages
 
 ## testmail.app Routing
 
@@ -102,18 +103,19 @@ Local development:
 - `MAIL_PROVIDER=mailrelay`
 - `MAIL_FROM_NAME=ProjTrack`
 - `MAIL_FROM_ADMIN=admin@projtrack.codes`
-- `MAIL_FROM_NOREPLY=noreply@projtrack.codes`
-- `MAIL_FROM_INVITE=invite@projtrack.codes`
-- `MAIL_FROM_NOTIFY=notify@projtrack.codes`
+- `MAIL_FROM_NOREPLY=support@projtrack.codes`
+- `MAIL_FROM_INVITE=support@projtrack.codes`
+- `MAIL_FROM_NOTIFY=notification@projtrack.codes`
 - `MAIL_FROM_SUPPORT=support@projtrack.codes`
-- `MAILRELAY_API_KEY=...`
-- `MAILRELAY_API_URL=https://projtrack.ipzmarketing.com/api/v1`
-- `TESTMAIL_NAMESPACE=mzvtd`
-- `TESTMAIL_API_KEY=...`
-- `TEST_EMAIL_ACTIVATION=mzvtd.activation@inbox.testmail.app`
-- `TEST_EMAIL_PASSWORD_RESET=mzvtd.passwordreset@inbox.testmail.app`
-- `TEST_EMAIL_INVITE=mzvtd.invite@inbox.testmail.app`
-- `TEST_EMAIL_NOTIFICATION=mzvtd.notification@inbox.testmail.app`
+- `MAILRELAY_API_KEY=<mailrelay-api-key>`
+- `MAILRELAY_API_URL=<mailrelay-api-url>`
+- `TESTMAIL_ENABLED=false`
+- `TESTMAIL_NAMESPACE=<development-only-namespace>`
+- `TESTMAIL_API_KEY=<development-only-testmail-api-key>`
+- `TEST_EMAIL_ACTIVATION=<development-only-testmail-address>`
+- `TEST_EMAIL_PASSWORD_RESET=<development-only-testmail-address>`
+- `TEST_EMAIL_INVITE=<development-only-testmail-address>`
+- `TEST_EMAIL_NOTIFICATION=<development-only-testmail-address>`
 - `APP_URL=http://localhost:5173`
 - `ALLOW_UNSAFE_DEV_WEBHOOKS=true`
 
@@ -122,14 +124,15 @@ Production or staging:
 - `MAIL_PROVIDER=mailrelay`
 - `MAIL_FROM_NAME=ProjTrack`
 - `MAIL_FROM_ADMIN=admin@projtrack.codes`
-- `MAIL_FROM_NOREPLY=noreply@projtrack.codes`
-- `MAIL_FROM_INVITE=invite@projtrack.codes`
-- `MAIL_FROM_NOTIFY=notify@projtrack.codes`
+- `MAIL_FROM_NOREPLY=support@projtrack.codes`
+- `MAIL_FROM_INVITE=support@projtrack.codes`
+- `MAIL_FROM_NOTIFY=notification@projtrack.codes`
 - `MAIL_FROM_SUPPORT=support@projtrack.codes`
-- `MAILRELAY_API_KEY=...`
-- `MAILRELAY_API_URL=https://projtrack.ipzmarketing.com/api/v1`
-- `ACCOUNT_ACTION_TOKEN_ENC_KEY=...`
-- `APP_URL=https://yourdomain.com`
+- `TESTMAIL_ENABLED=false`
+- `MAILRELAY_API_KEY=<mailrelay-api-key>`
+- `MAILRELAY_API_URL=<mailrelay-api-url>`
+- `ACCOUNT_ACTION_TOKEN_ENC_KEY=<long-random-token-encryption-key>`
+- `APP_URL=https://projtrack.codes`
 
 Rate limits remain environment-specific:
 

@@ -1,20 +1,21 @@
 import { Copy, ExternalLink } from "lucide-react";
 
 import { DetailDrawer } from "../shared/DetailDrawer";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import { Button } from "../../ui/button";
 import { BodyText, Eyebrow, SectionTitle } from "../../ui/typography";
 import type { AuditLogRecord } from "../../../lib/api/contracts";
 
 const actionColor: Record<string, string> = {
-  CREATE: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
-  UPDATE: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
-  DELETE: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
-  APPROVE: "bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-200",
-  RESET: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
-  LOGIN: "bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-200",
-  IMPORT: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200",
+  CREATE: "bg-emerald-50 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-200",
+  UPDATE: "bg-blue-50 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200",
+  DELETE: "bg-rose-50 text-rose-700 dark:text-rose-300 dark:bg-rose-500/15 dark:text-rose-200",
+  APPROVE: "bg-teal-50 text-teal-700 dark:text-teal-300 dark:bg-teal-500/15 dark:text-teal-200",
+  RESET: "bg-amber-50 text-amber-700 dark:text-amber-300 dark:bg-amber-500/15 dark:text-amber-200",
+  LOGIN: "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 dark:bg-slate-700/70 dark:text-slate-200",
+  IMPORT: "bg-violet-50 text-violet-700 dark:text-violet-300 dark:bg-violet-500/15 dark:text-violet-200",
   ACTIVATE: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
-  EMAIL: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200",
+  EMAIL: "bg-indigo-50 text-indigo-700 dark:text-indigo-300 dark:bg-indigo-500/15 dark:text-indigo-200",
 };
 
 type AuditEventDrawerProps = {
@@ -64,7 +65,7 @@ export function AuditEventDrawer({
                   Review actor, target, result, and before/after metadata without leaving the log table.
                 </BodyText>
               </div>
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${actionColor[event.action] ?? "bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-200"}`}>
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${actionColor[event.action] ?? "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 dark:bg-slate-700/70 dark:text-slate-200"}`}>
                 {event.action}
               </span>
             </div>
@@ -73,12 +74,16 @@ export function AuditEventDrawer({
           <div className="grid gap-3 sm:grid-cols-2">
             <MetadataCard label="Module" value={event.module} />
             <MetadataCard label="Actor" value={event.user} />
+            {event.actorUserId ? (
+              <MetadataChipCard label="Actor User ID" value={event.actorUserId} copyLabel="Copy Actor User ID" />
+            ) : null}
             <MetadataCard label="Role" value={event.role} />
             <MetadataCard label="Timestamp" value={event.time} />
             <MetadataCard label="IP address" value={event.ip} />
             <MetadataCard label="Result" value={event.result} />
             <MetadataCard label="Session" value={event.session} />
-            <MetadataCard label="Entity ID" value={event.entityId} />
+            <MetadataChipCard label="Audit Log ID" value={event.id} copyLabel="Copy Audit Log ID" />
+            <MetadataChipCard label="Entity ID" value={event.entityId} copyLabel="Copy Entity ID" />
           </div>
 
           <ContentCard title="Details" value={event.details} />
@@ -103,6 +108,25 @@ function MetadataCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
       <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{value}</p>
+    </div>
+  );
+}
+
+function MetadataChipCard({
+  label,
+  value,
+  copyLabel,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+}) {
+  return (
+    <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
+      <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
+      <div className="mt-2">
+        <CopyableIdChip value={value} label={copyLabel} />
+      </div>
     </div>
   );
 }

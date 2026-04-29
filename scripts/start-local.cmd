@@ -25,14 +25,14 @@ echo   Student: student@projtrack.local or STU-2024-00142 / Student123!ChangeMe
 if defined BACKEND_RUNNING (
   echo [start-local] Reusing backend on port 3001.
 ) else (
-  start "PROJTRACK Backend" cmd /k "cd /d %ROOT%\backend && node -r ts-node/register src/main.ts"
+  start "PROJTRACK Backend" cmd /k "\"%ROOT%\scripts\run-backend-local.cmd\""
   timeout /t 5 /nobreak >nul
 )
 
 if defined FRONTEND_RUNNING (
   echo [start-local] Reusing frontend on port 5173.
 ) else (
-  start "PROJTRACK Frontend" cmd /k "cd /d %ROOT% && set VITE_USE_BACKEND=true && set VITE_API_BASE_URL=http://127.0.0.1:3001 && node .\node_modules\vite\bin\vite.js --host 127.0.0.1 --port 5173"
+  start "PROJTRACK Frontend" cmd /k "\"%ROOT%\scripts\run-frontend-local.cmd\""
 )
 
 echo [start-local] Backend and frontend were launched in separate windows.

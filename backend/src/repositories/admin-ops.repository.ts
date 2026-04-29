@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } f
 import { basename, join, resolve } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { getStorageSummary } from '../files/storage.config';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
 const TOOL_META: Record<string, { btn: string; tone: string; danger: boolean }> = {
   backup: { btn: 'Run Backup', tone: 'blue', danger: false },
@@ -42,6 +43,111 @@ type ToolResult = {
 @Injectable()
 export class AdminOpsRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async buildDepartmentCatalog() {
+    const [departments, teacherProfiles, subjects] = await Promise.all([
+      this.prisma.department.findMany({
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.teacherProfile.findMany({
+        select: {
+          department: true,
+        },
+      }),
+      this.prisma.subject.findMany({
+        include: {
+          teacher: {
+            select: {
+              department: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const catalog = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        description: string;
+        teachers: number;
+        subjects: number;
+        isLegacy: boolean;
+      }
+    >();
+
+    for (const department of departments) {
+      const name = this.normalizeDepartmentName(department.name);
+      const key = this.departmentKey(name);
+      if (!key) continue;
+
+      catalog.set(key, {
+        id: department.id,
+        name,
+        description: String(department.description ?? '').trim(),
+        teachers: 0,
+        subjects: 0,
+        isLegacy: false,
+      });
+    }
+
+    for (const teacherProfile of teacherProfiles) {
+      const name = this.normalizeDepartmentName(teacherProfile.department);
+      const key = this.departmentKey(name);
+      if (!key) continue;
+
+      const current =
+        catalog.get(key) ??
+        {
+          id: this.buildLegacyDepartmentId(name),
+          name,
+          description: '',
+          teachers: 0,
+          subjects: 0,
+          isLegacy: true,
+        };
+
+      current.teachers += 1;
+      catalog.set(key, current);
+    }
+
+    for (const subject of subjects) {
+      const name = this.normalizeDepartmentName(subject.teacher?.department);
+      const key = this.departmentKey(name);
+      if (!key) continue;
+
+      const current =
+        catalog.get(key) ??
+        {
+          id: this.buildLegacyDepartmentId(name),
+          name,
+          description: '',
+          teachers: 0,
+          subjects: 0,
+          isLegacy: true,
+        };
+
+      current.subjects += 1;
+      catalog.set(key, current);
+    }
+
+    return Array.from(catalog.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  private async resolveDepartmentCatalogRecord(id: string) {
+    const normalizedId = String(id ?? '').trim();
+    if (!normalizedId) {
+      throw new NotFoundException('Department not found.');
+    }
+
+    const catalog = await this.buildDepartmentCatalog();
+    const match = catalog.find((department) => department.id === normalizedId);
+    if (!match) {
+      throw new NotFoundException('Department not found.');
+    }
+    return match;
+  }
 
   private normalizeSearch(search?: string) {
     return String(search ?? '').trim().toLowerCase();
@@ -844,7 +950,7 @@ export class AdminOpsRepository {
 
     const subjects = await this.prisma.subject.findMany({
       include: {
-        teacher: { include: { user: true } },
+        teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         enrollments: { include: { section: true } },
       },
     });
@@ -972,91 +1078,27 @@ export class AdminOpsRepository {
 
   async listDepartments(search?: string) {
     const q = this.normalizeSearch(search);
-    const [departments, teacherProfiles, subjects] = await Promise.all([
-      this.prisma.department.findMany({
-        orderBy: { name: 'asc' },
-      }),
-      this.prisma.teacherProfile.findMany({
-        select: {
-          department: true,
-        },
-      }),
-      this.prisma.subject.findMany({
-        include: {
-          teacher: {
-            select: {
-              department: true,
-            },
-          },
-        },
-      }),
-    ]);
+    const catalog = await this.buildDepartmentCatalog();
 
-    const catalog = new Map<
-      string,
-      { id: string; name: string; description: string; teachers: number; subjects: number }
-    >();
-
-    for (const department of departments) {
-      const name = this.normalizeDepartmentName(department.name);
-      const key = this.departmentKey(name);
-      if (!key) continue;
-
-      catalog.set(key, {
-        id: department.id,
-        name,
-        description: String(department.description ?? '').trim(),
-        teachers: 0,
-        subjects: 0,
-      });
-    }
-
-    for (const teacherProfile of teacherProfiles) {
-      const name = this.normalizeDepartmentName(teacherProfile.department);
-      const key = this.departmentKey(name);
-      if (!key) continue;
-
-      const current =
-        catalog.get(key) ??
-        {
-          id: this.buildLegacyDepartmentId(name),
-          name,
-          description: '',
-          teachers: 0,
-          subjects: 0,
-        };
-
-      current.teachers += 1;
-      catalog.set(key, current);
-    }
-
-    for (const subject of subjects) {
-      const name = this.normalizeDepartmentName(subject.teacher?.department);
-      const key = this.departmentKey(name);
-      if (!key) continue;
-
-      const current =
-        catalog.get(key) ??
-        {
-          id: this.buildLegacyDepartmentId(name),
-          name,
-          description: '',
-          teachers: 0,
-          subjects: 0,
-        };
-
-      current.subjects += 1;
-      catalog.set(key, current);
-    }
-
-    return Array.from(catalog.values())
+    return catalog
       .filter((department) => {
         if (!q) return true;
         return [department.name, department.description].some((value) =>
           String(value || '').toLowerCase().includes(q),
         );
       })
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .map((department) => ({
+        ...department,
+        canDelete: !department.isLegacy && department.teachers === 0 && department.subjects === 0,
+      }));
+  }
+
+  async getDepartment(id: string) {
+    const department = await this.resolveDepartmentCatalogRecord(id);
+    return {
+      ...department,
+      canDelete: !department.isLegacy && department.teachers === 0 && department.subjects === 0,
+    };
   }
 
   async createDepartment(payload: { name?: string; description?: string }) {
@@ -1088,11 +1130,90 @@ export class AdminOpsRepository {
       },
     });
 
+    return this.getDepartment(created.id);
+  }
+
+  async updateDepartment(id: string, payload: { name?: string; description?: string }) {
+    const existingRecord = await this.resolveDepartmentCatalogRecord(id);
+    const requestedName = this.normalizeDepartmentName(payload.name ?? existingRecord.name);
+    const description = String(payload.description ?? existingRecord.description ?? '').trim() || null;
+
+    if (!requestedName) {
+      throw new BadRequestException('Department name is required.');
+    }
+
+    const conflicting = await this.prisma.department.findFirst({
+      where: {
+        name: {
+          equals: requestedName,
+          mode: 'insensitive',
+        },
+      },
+    });
+    if (conflicting && conflicting.id !== existingRecord.id) {
+      throw new ConflictException('That department name is already in use.');
+    }
+
+    const updatedDepartment = await this.prisma.$transaction(async (tx) => {
+      const departmentRow = existingRecord.isLegacy
+        ? await tx.department.create({
+            data: {
+              name: requestedName,
+              description,
+            },
+          })
+        : await tx.department.update({
+            where: { id: existingRecord.id },
+            data: {
+              name: requestedName,
+              description,
+            },
+          });
+
+      if (existingRecord.name !== requestedName) {
+        await tx.teacherProfile.updateMany({
+          where: {
+            department: {
+              equals: existingRecord.name,
+              mode: 'insensitive',
+            },
+          },
+          data: {
+            department: requestedName,
+          },
+        });
+      }
+
+      return departmentRow;
+    });
+
+    return this.getDepartment(updatedDepartment.id);
+  }
+
+  async deleteDepartment(id: string) {
+    const existingRecord = await this.resolveDepartmentCatalogRecord(id);
+
+    if (existingRecord.teachers > 0 || existingRecord.subjects > 0) {
+      throw new ConflictException(
+        `Department ${existingRecord.name} is still in use by ${existingRecord.teachers} teacher(s) and ${existingRecord.subjects} subject(s). Reassign those records before deleting the department.`,
+      );
+    }
+
+    if (existingRecord.isLegacy) {
+      throw new ConflictException(
+        `Department ${existingRecord.name} only exists as a live teacher mapping. Reassign or rename the linked records before deleting it.`,
+      );
+    }
+
+    await this.prisma.department.delete({
+      where: { id: existingRecord.id },
+    });
+
     return {
       success: true,
-      id: created.id,
-      name: created.name,
-      description: created.description ?? '',
+      deleted: true,
+      id: existingRecord.id,
+      name: existingRecord.name,
     };
   }
 
@@ -1344,7 +1465,7 @@ export class AdminOpsRepository {
         academicYearLevel: true,
         students: {
           include: {
-            user: true,
+            user: { select: SAFE_USER_SELECT },
           },
         },
       },
@@ -1550,7 +1671,7 @@ export class AdminOpsRepository {
         include: {
           academicYear: true,
           academicYearLevel: true,
-          students: { include: { user: true } },
+          students: { include: { user: { select: SAFE_USER_SELECT } } },
         },
       }),
     ]);
@@ -1630,7 +1751,7 @@ export class AdminOpsRepository {
         userId: { in: ids },
         sectionId: sourceSection.id,
       },
-      include: { user: true },
+      include: { user: { select: SAFE_USER_SELECT } },
     });
 
     const movingProfileIds = moving.map((student) => student.id);

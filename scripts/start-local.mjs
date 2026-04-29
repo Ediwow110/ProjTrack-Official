@@ -14,7 +14,7 @@ import {
   waitForHttp,
   waitForPort,
 } from "./local-stack-utils.mjs";
-
+import { withLocalBackendEnv } from "./local-backend-env.mjs";
 const args = new Set(process.argv.slice(2));
 const prepareOnly = args.has("--prepare-only");
 const allowDemoSeed = args.has("--no-demo-seed")
@@ -83,19 +83,21 @@ async function prepareDatabase() {
   console.log("[start-local] Generating Prisma client...");
   await runCommand("prisma generate", npmCommand, ["run", "prisma:generate"], {
     cwd: backendDir,
+    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
   });
 
   console.log("[start-local] Applying Prisma migrations...");
   await runCommand("prisma migrate deploy", npmCommand, ["run", "prisma:migrate:deploy"], {
     cwd: backendDir,
+    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
   });
 
   console.log("[start-local] Seeding local data...");
   await runCommand("seed", npmCommand, ["run", "seed"], {
     cwd: backendDir,
-    env: {
+    env: withLocalBackendEnv({
       ALLOW_DEMO_SEED: allowDemoSeed,
-    },
+    }),
   });
 }
 
@@ -103,6 +105,7 @@ async function ensureBackend() {
   console.log("[start-local] Starting backend...");
   const backend = startCommand("backend", nodeCommand, ["-r", "ts-node/register", "src/main.ts"], {
     cwd: backendDir,
+    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
   });
   registerChild("backend", backend);
   await waitForHttp(`${backendUrl}/health/live`, 120_000);

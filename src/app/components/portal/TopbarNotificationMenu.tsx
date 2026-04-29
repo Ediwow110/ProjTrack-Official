@@ -43,7 +43,7 @@ type NotificationTone = {
 const notificationToneMap: Record<string, NotificationTone> = {
   account: {
     icon: UserPlus,
-    badgeClass: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-200",
+    badgeClass: "bg-blue-50 text-blue-600 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200",
   },
   deadline: {
     icon: Clock3,
@@ -59,7 +59,7 @@ const notificationToneMap: Record<string, NotificationTone> = {
   },
   info: {
     icon: Info,
-    badgeClass: "bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-200",
+    badgeClass: "bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 dark:bg-slate-700/60 dark:text-slate-200",
   },
   overdue: {
     icon: AlertCircle,
@@ -75,7 +75,7 @@ const notificationToneMap: Record<string, NotificationTone> = {
   },
   system: {
     icon: Bell,
-    badgeClass: "bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-200",
+    badgeClass: "bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 dark:bg-slate-700/60 dark:text-slate-200",
   },
 };
 
@@ -92,32 +92,32 @@ const accentClassMap: Record<
   student: {
     activeTrigger:
       "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-100",
-    subtleText: "text-blue-700 dark:text-blue-200",
+    subtleText: "text-blue-700 dark:text-blue-300 dark:text-blue-200",
     unreadDot: "bg-blue-600 dark:bg-blue-300",
     actionButton:
       "bg-blue-700 text-white hover:bg-blue-800 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400",
     markReadButton:
-      "text-blue-700 hover:text-blue-800 dark:text-blue-200 dark:hover:text-blue-100",
+      "text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:text-blue-200 dark:hover:text-blue-100",
   },
   teacher: {
     activeTrigger:
-      "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-400/30 dark:bg-teal-500/15 dark:text-teal-100",
-    subtleText: "text-teal-700 dark:text-teal-200",
+      "border-teal-200 bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 dark:border-teal-400/30 dark:bg-teal-500/15 dark:text-teal-100",
+    subtleText: "text-teal-700 dark:text-teal-300 dark:text-teal-200",
     unreadDot: "bg-teal-600 dark:bg-teal-300",
     actionButton:
       "bg-teal-700 text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400",
     markReadButton:
-      "text-teal-700 hover:text-teal-800 dark:text-teal-200 dark:hover:text-teal-100",
+      "text-teal-700 dark:text-teal-300 hover:text-teal-800 dark:text-teal-200 dark:hover:text-teal-100",
   },
   admin: {
     activeTrigger:
-      "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-500/40 dark:bg-slate-700/40 dark:text-slate-100",
+      "border-slate-300 bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 dark:border-slate-500/40 dark:bg-slate-700/40 dark:text-slate-100",
     subtleText: "text-slate-700 dark:text-slate-200",
     unreadDot: "bg-slate-700 dark:bg-slate-300",
     actionButton:
       "bg-slate-900 text-white hover:bg-slate-950 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
     markReadButton:
-      "text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white",
+      "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white",
   },
 };
 
@@ -279,7 +279,7 @@ export function TopbarNotificationMenu({
         className={`relative flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors ${
           isActive
             ? accent.activeTrigger
-            : "border-slate-200/70 bg-white/70 text-slate-500 hover:bg-white dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800"
+            : "border-slate-200/70 bg-white/70 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800"
         }`}
       >
         <Bell size={17} />
@@ -293,7 +293,7 @@ export function TopbarNotificationMenu({
       <PopoverContent
         align="end"
         sideOffset={10}
-        className="w-[23rem] rounded-[26px] border border-slate-200/85 bg-white/96 p-0 shadow-[0_24px_80px_-42px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/96"
+        className="w-[min(calc(100vw-2rem),23rem)] rounded-[26px] border border-slate-200/85 bg-white/96 p-0 shadow-[0_24px_80px_-42px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/96"
       >
         <div className="border-b border-slate-200/75 px-5 py-4 dark:border-slate-700/60">
           <div className="flex items-start justify-between gap-3">
@@ -313,7 +313,7 @@ export function TopbarNotificationMenu({
                 onClick={() => void loadNotifications()}
                 disabled={loading || actionBusy}
                 aria-label="Refresh notifications"
-                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200/75 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700/60 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200/75 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-60 dark:border-slate-700/60 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <RefreshCcw size={15} className={loading ? "animate-spin" : undefined} />
               </button>
@@ -332,7 +332,7 @@ export function TopbarNotificationMenu({
 
         <div className="max-h-[26rem] overflow-y-auto px-3 py-3">
           {error ? (
-            <div className="mx-2 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <div className="mx-2 rounded-[20px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
               {error}
             </div>
           ) : null}
@@ -347,8 +347,8 @@ export function TopbarNotificationMenu({
               ))}
             </div>
           ) : previewNotifications.length === 0 ? (
-            <div className="mx-2 rounded-[22px] border border-dashed border-slate-200 bg-slate-50/80 px-5 py-8 text-center dark:border-slate-700/60 dark:bg-slate-800/45">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+            <div className="mx-2 rounded-[22px] border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/80 px-5 py-8 text-center dark:border-slate-700/60 dark:bg-slate-800/45">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 shadow-sm dark:bg-slate-900 dark:text-slate-300">
                 <Bell size={18} />
               </div>
               <p className="mt-4 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -370,7 +370,7 @@ export function TopbarNotificationMenu({
                     className={`rounded-[22px] border px-4 py-3 transition-colors ${
                       notification.read
                         ? "border-slate-200/80 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/65"
-                        : "border-slate-200 bg-slate-50/90 shadow-[0_16px_32px_-32px_rgba(15,23,42,0.45)] dark:border-slate-600/70 dark:bg-slate-800/85"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 shadow-[0_16px_32px_-32px_rgba(15,23,42,0.45)] dark:border-slate-600/70 dark:bg-slate-800/85"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -412,7 +412,7 @@ export function TopbarNotificationMenu({
                           ) : null}
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-3">
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          <p className="text-[11px] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                             {notification.date} · {notification.time}
                           </p>
                           <button
@@ -437,7 +437,7 @@ export function TopbarNotificationMenu({
           <button
             type="button"
             onClick={handleViewAll}
-            className="flex w-full items-center justify-center gap-2 rounded-[20px] border border-slate-200/80 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            className="flex w-full items-center justify-center gap-2 rounded-[20px] border border-slate-200/80 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             View all notifications
             <ChevronRight size={15} />

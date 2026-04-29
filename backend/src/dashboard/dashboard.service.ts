@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { SubjectRepository } from '../repositories/subject.repository';
 import { SubmissionRepository } from '../repositories/submission.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { isPendingReviewStatus } from '../access/policies/submission-access.policy';
 
 @Injectable()
 export class DashboardService {
@@ -13,23 +14,33 @@ export class DashboardService {
     private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
-  async studentSummary(userId = 'usr_student_1') {
-    const mine: any[] = await this.submissionRepository.listStudentSubmissions(userId);
+  private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
+    const normalized = String(userId || '').trim();
+    if (!normalized) {
+      throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
+    }
+    return normalized;
+  }
+
+  async studentSummary(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const mine: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
     return {
-      pending: mine.filter((submission) => ['NOT_STARTED', 'DRAFT', 'PENDING_REVIEW', 'NEEDS_REVISION'].includes(submission.status)).length,
-      submitted: mine.filter((submission) => ['SUBMITTED', 'PENDING_REVIEW', 'GRADED'].includes(submission.status)).length,
+      pending: mine.filter((submission) => ['NOT_STARTED', 'DRAFT', 'NEEDS_REVISION'].includes(submission.status) || isPendingReviewStatus(submission.status)).length,
+      submitted: mine.filter((submission) => ['GRADED'].includes(submission.status) || isPendingReviewStatus(submission.status)).length,
       graded: mine.filter((submission) => submission.status === 'GRADED').length,
       overdue: mine.filter((submission) => submission.status === 'LATE').length,
     };
   }
 
-  async studentCharts(userId = 'usr_student_1') {
-    const mine: any[] = await this.submissionRepository.listStudentSubmissions(userId);
-    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(userId);
+  async studentCharts(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const mine: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
+    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
     return {
       statusBreakdown: {
         draft: mine.filter((submission) => submission.status === 'DRAFT').length,
-        pendingReview: mine.filter((submission) => submission.status === 'PENDING_REVIEW').length,
+        pendingReview: mine.filter((submission) => isPendingReviewStatus(submission.status)).length,
         needsRevision: mine.filter((submission) => submission.status === 'NEEDS_REVISION').length,
         graded: mine.filter((submission) => submission.status === 'GRADED').length,
       },
@@ -38,14 +49,15 @@ export class DashboardService {
         return {
           subject: subject.name,
           totalActivities: activities.length,
-          completed: mine.filter((submission) => submission.subjectId === subject.id && ['PENDING_REVIEW', 'GRADED', 'SUBMITTED'].includes(submission.status)).length,
+          completed: mine.filter((submission) => submission.subjectId === subject.id && (['GRADED'].includes(submission.status) || isPendingReviewStatus(submission.status))).length,
         };
       })),
     };
   }
 
-  async upcomingDeadlines(userId = 'usr_student_1') {
-    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(userId);
+  async upcomingDeadlines(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
     const allActivities = (await Promise.all(subjects.map((subject: any) => this.subjectRepository.listActivitiesBySubject(subject.id)))).flat();
     return allActivities.map((activity: any) => ({
       id: activity.id,
@@ -56,12 +68,13 @@ export class DashboardService {
     }));
   }
 
-  async teacherSummary(teacherId = 'usr_teacher_1') {
-    const subjects: any[] = await this.subjectRepository.listSubjectsForTeacher(teacherId);
-    const relevant: any[] = await this.submissionRepository.listTeacherSubmissions({ teacherId });
+  async teacherSummary(teacherId?: string) {
+    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForTeacher(teacherUserId);
+    const relevant: any[] = await this.submissionRepository.listTeacherSubmissions({ teacherId: teacherUserId });
     return {
       subjects: subjects.length,
-      pendingReviews: relevant.filter((submission) => submission.status === 'PENDING_REVIEW').length,
+      pendingReviews: relevant.filter((submission) => isPendingReviewStatus(submission.status)).length,
       graded: relevant.filter((submission) => submission.status === 'GRADED').length,
       needsRevision: relevant.filter((submission) => submission.status === 'NEEDS_REVISION').length,
     };
@@ -77,7 +90,7 @@ export class DashboardService {
       totalTeachers: teachers.length,
       totalSubjects: subjects.length,
       totalSubmissions: submissions.length,
-      pendingReviews: submissions.filter((submission) => submission.status === 'PENDING_REVIEW').length,
+      pendingReviews: submissions.filter((submission) => isPendingReviewStatus(submission.status)).length,
     };
   }
 

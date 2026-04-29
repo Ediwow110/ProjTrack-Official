@@ -1,8 +1,9 @@
-import { BoxArrowUpRight, Envelope, Eye, Mortarboard, PersonX } from "react-bootstrap-icons";
+import { ArrowUpRight, Eye, GraduationCap, Mail, UserX } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
 import { DataTableCard } from "../shared/DataTableCard";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminTeacherRecord } from "../../../lib/api/contracts";
 
 type TeacherSortKey = "name" | "dept" | "status" | "subjects" | "students";
@@ -49,7 +50,7 @@ export function TeachersTable({
     <DataTableCard
       title="Faculty directory"
       description="Preview teacher workload, resend setup links, or move into the full teacher profile."
-      action={loading ? <span className="text-xs font-medium text-slate-400">Loading directory...</span> : null}
+      action={loading ? <span className="text-xs font-medium text-slate-400 dark:text-slate-300">Loading directory...</span> : null}
       columns={[
         {
           key: "name",
@@ -57,7 +58,7 @@ export function TeachersTable({
           sortable: true,
           renderCell: (teacher) => (
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-xs font-bold text-teal-700 dark:bg-teal-500/12 dark:text-teal-200">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-500/15 text-xs font-bold text-teal-700 dark:text-teal-300 dark:bg-teal-500/12 dark:text-teal-200">
                 {teacher.name
                   .split(" ")
                   .map((part) => part[0])
@@ -66,7 +67,10 @@ export function TeachersTable({
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{teacher.name}</p>
-                <p className="mt-1 text-[10px] text-slate-400">{teacher.id}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-300">{teacher.employeeId || "No employee ID"}</p>
+                  <CopyableIdChip value={teacher.id} label="Copy User ID" className="bg-transparent px-0" />
+                </div>
               </div>
             </div>
           ),
@@ -75,7 +79,7 @@ export function TeachersTable({
           key: "email",
           header: "Email",
           renderCell: (teacher) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{teacher.email}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{teacher.email}</span>
           ),
         },
         {
@@ -83,7 +87,7 @@ export function TeachersTable({
           header: "Department",
           sortable: true,
           renderCell: (teacher) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{teacher.dept}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{teacher.dept}</span>
           ),
         },
         {
@@ -91,7 +95,7 @@ export function TeachersTable({
           header: "Subjects",
           sortable: true,
           renderCell: (teacher) => (
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">{teacher.subjects}</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-100">{teacher.subjects}</span>
           ),
         },
         {
@@ -99,7 +103,7 @@ export function TeachersTable({
           header: "Students",
           sortable: true,
           renderCell: (teacher) => (
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">{teacher.students}</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-100">{teacher.students}</span>
           ),
         },
         {
@@ -133,7 +137,7 @@ export function TeachersTable({
         {
           key: "view",
           label: "View",
-          icon: <BoxArrowUpRight size={15} />,
+          icon: <ArrowUpRight size={15} />,
           ariaLabel: `Open full record for ${teacher.name}`,
           onClick: () => onView(teacher.id),
           disabled: () => actionBusy,
@@ -141,7 +145,7 @@ export function TeachersTable({
         {
           key: "setup",
           label: teacher.status === "Pending Activation" ? "Activate" : "Send Reset Link",
-          icon: <Envelope size={15} />,
+          icon: <Mail size={15} />,
           ariaLabel:
             teacher.status === "Pending Activation"
               ? `Send activation link to ${teacher.name}`
@@ -155,7 +159,7 @@ export function TeachersTable({
         {
           key: "deactivate",
           label: "Deactivate",
-          icon: <PersonX size={15} />,
+          icon: <UserX size={15} />,
           ariaLabel: `Deactivate ${teacher.name}`,
           onClick: () => onDeactivate(teacher),
           tone: "danger",
@@ -165,7 +169,7 @@ export function TeachersTable({
       ]}
       emptyState={(
         <PortalEmptyState
-          icon={Mortarboard}
+          icon={GraduationCap}
           title="No teachers match this view"
           description="Try clearing the search, widening the filters, or creating a new faculty account."
         />

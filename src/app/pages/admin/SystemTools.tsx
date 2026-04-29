@@ -1,9 +1,20 @@
-import { useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Database, Download, HardDrive, RefreshCw, Activity, Trash2, RefreshCcw, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Activity,
+  Database,
+  Download,
+  FileText,
+  HardDrive,
+  RefreshCcw,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
+
 import { AppModal } from "../../components/ui/app-modal";
 import { adminOpsService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
-import type { SystemToolRecord, SystemToolRunResult } from "../../lib/api/contracts";
+import type { SeedCleanupPreview, SystemToolRecord, SystemToolRunResult } from "../../lib/api/contracts";
+import { BootstrapIcon } from "../../components/ui/bootstrap-icon";
 
 const iconMap: Record<string, typeof Database> = {
   backup: Database,
@@ -12,36 +23,129 @@ const iconMap: Record<string, typeof Database> = {
   purge: Trash2,
   diag: Activity,
   export: Download,
+  "seed-cleanup": Trash2,
 };
 
 const toneMap: Record<string, string> = {
-  blue: "bg-blue-50 text-blue-700 border-blue-100",
-  teal: "bg-teal-50 text-teal-700 border-teal-100",
-  amber: "bg-amber-50 text-amber-700 border-amber-100",
-  rose: "bg-rose-50 text-rose-700 border-rose-100",
-  indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
-  slate: "bg-slate-100 text-slate-700 border-slate-200",
+  blue: "border-blue-200/70 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:border-blue-500/25 dark:bg-blue-500/12 dark:text-blue-200",
+  teal: "border-teal-200/70 bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 dark:border-teal-500/25 dark:bg-teal-500/12 dark:text-teal-200",
+  amber: "border-amber-200/70 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:border-amber-500/25 dark:bg-amber-500/12 dark:text-amber-200",
+  rose: "border-rose-200/70 bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 dark:border-rose-500/25 dark:bg-rose-500/12 dark:text-rose-200",
+  indigo: "border-indigo-200/70 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 dark:border-indigo-500/25 dark:bg-indigo-500/12 dark:text-indigo-200",
+  slate: "border-slate-200/70 bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 dark:border-slate-600/40 dark:bg-slate-800/70 dark:text-slate-200",
 };
+
+const secondaryButtonClassName =
+  "portal-action-secondary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50";
+
+function isSeedPreviewResult(result: SystemToolRunResult | null) {
+  return result?.toolId === "seed-cleanup" && result?.executed !== true;
+}
+
+function isSeedExecutionResult(result: SystemToolRunResult | null) {
+  return result?.toolId === "seed-cleanup" && result?.executed === true;
+}
+
+function resultCardClassName(result: SystemToolRunResult) {
+  if (isSeedExecutionResult(result)) {
+    return "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-100";
+  }
+
+  if (isSeedPreviewResult(result)) {
+    return result.preview?.safeToExecute
+      ? "portal-warning-card"
+      : "portal-danger-card";
+  }
+
+  if (/failed|blocked|restricted/i.test(result.status)) {
+    return "portal-danger-card";
+  }
+
+  return "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-100";
+}
+
+function blockedReasons(preview: SeedCleanupPreview | null) {
+  if (!preview) return [];
+  return [
+    ...(preview.blockedReasons ?? []),
+    ...(preview.envWarnings ?? []),
+    ...(preview.totalRecords === 0 ? ["No safely identifiable seed/demo records were found."] : []),
+  ];
+}
 
 export default function AdminSystemTools() {
   const { data, loading, error, setData, reload } = useAsyncData(() => adminOpsService.getSystemTools(), []);
   const tools = data ?? [];
   const [confirmTool, setConfirmTool] = useState<SystemToolRecord | null>(null);
   const [lastResult, setLastResult] = useState<SystemToolRunResult | null>(null);
+  const [resultModalOpen, setResultModalOpen] = useState(false);
   const [runState, setRunState] = useState<{ running: boolean; error: string | null }>({ running: false, error: null });
   const [importState, setImportState] = useState<{ importing: boolean; error: string | null }>({ importing: false, error: null });
   const [artifactBusy, setArtifactBusy] = useState(false);
+  const [seedCleanupPreview, setSeedCleanupPreview] = useState<SeedCleanupPreview | null>(null);
+  const [seedCleanupConfirmation, setSeedCleanupConfirmation] = useState("");
+  const [seedCleanupBackupConfirmed, setSeedCleanupBackupConfirmed] = useState(false);
   const backupImportInputRef = useRef<HTMLInputElement | null>(null);
+  const isSeedCleanupTool = confirmTool?.id === "seed-cleanup";
+  const seedBlockedReasons = blockedReasons(seedCleanupPreview);
+  const seedCleanupCanExecute = Boolean(seedCleanupPreview?.safeToExecute);
+  const seedCleanupConfirmationValid =
+    seedCleanupConfirmation.trim().toUpperCase() === seedCleanupPreview?.confirmationWord;
+  const seedCleanupExecuteDisabledReason = !seedCleanupPreview
+    ? null
+    : !seedCleanupPreview.safeToExecute
+      ? "Execution is blocked. No records can be deleted until all blockers are resolved."
+      : !seedCleanupBackupConfirmed
+        ? "Confirm that a fresh backup has been created and verified before executing cleanup."
+        : !seedCleanupConfirmationValid
+          ? `Type ${seedCleanupPreview.confirmationWord} to unlock the destructive action.`
+          : null;
+
+  useEffect(() => {
+    if (!isSeedCleanupTool) {
+      setSeedCleanupPreview(null);
+      setSeedCleanupConfirmation("");
+      setSeedCleanupBackupConfirmed(false);
+    }
+  }, [isSeedCleanupTool]);
+
+  const closeConfirmModal = () => {
+    setConfirmTool(null);
+    setSeedCleanupPreview(null);
+    setSeedCleanupConfirmation("");
+    setSeedCleanupBackupConfirmed(false);
+  };
 
   const handleRun = async () => {
     if (!confirmTool || runState.running) return;
     setLastResult(null);
+    setResultModalOpen(false);
     setRunState({ running: true, error: null });
     try {
-      const response = await adminOpsService.runSystemTool(confirmTool.id);
+      const response = await adminOpsService.runSystemTool(
+        confirmTool.id,
+        isSeedCleanupTool
+          ? seedCleanupPreview
+            ? {
+                mode: "execute",
+                confirmation: seedCleanupConfirmation,
+                backupConfirmed: seedCleanupBackupConfirmed,
+              }
+            : { mode: "preview" }
+          : {},
+      );
       setData(response.tools);
       setLastResult(response.result);
-      setConfirmTool(null);
+      if (confirmTool.id === "seed-cleanup") {
+        setSeedCleanupPreview(response.result.preview ?? null);
+        if (response.result.executed === true || response.result.status === "Completed") {
+          setResultModalOpen(true);
+          closeConfirmModal();
+        }
+      } else {
+        setResultModalOpen(true);
+        closeConfirmModal();
+      }
       setRunState({ running: false, error: null });
       await reload();
     } catch (err) {
@@ -70,6 +174,7 @@ export default function AdminSystemTools() {
     try {
       const result = await adminOpsService.importBackupPackage(file);
       setLastResult(result);
+      setResultModalOpen(true);
       await reload();
       setImportState({ importing: false, error: null });
     } catch (err) {
@@ -83,20 +188,20 @@ export default function AdminSystemTools() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mx-auto max-w-6xl space-y-6 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className={`text-slate-900 font-bold ${loading || runState.running ? "opacity-80" : ""}`} style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>
+          <h1 className={`font-bold text-[var(--text-strong)] ${loading || runState.running ? "opacity-80" : ""}`} style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>
             System Tools
           </h1>
-          <p className={`text-slate-400 text-sm mt-0.5 ${loading || runState.running ? "opacity-80" : ""}`}>
+          <p className={`mt-0.5 text-sm text-[var(--text-muted)] ${loading || runState.running ? "opacity-80" : ""}`}>
             Operational tools for backup, maintenance, diagnostics, and exports.
           </p>
-          <p className={`text-slate-400 text-xs mt-1 ${loading || runState.running ? "opacity-80" : ""}`}>
-            {loading ? "Refreshing system tool status…" : `${tools.length} tool${tools.length === 1 ? "" : "s"} available` }
+          <p className={`mt-1 text-xs text-[var(--text-subtle)] ${loading || runState.running ? "opacity-80" : ""}`}>
+            {loading ? "Refreshing system tool status…" : `${tools.length} tool${tools.length === 1 ? "" : "s"} available`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={backupImportInputRef}
             hidden
@@ -107,36 +212,47 @@ export default function AdminSystemTools() {
           <button
             disabled={loading || runState.running || importState.importing}
             onClick={() => backupImportInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className={secondaryButtonClassName}
           >
             <FileText size={14} /> {importState.importing ? "Importing…" : "Import Backup"}
           </button>
           <button
             disabled={loading || runState.running || importState.importing}
             onClick={reload}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className={secondaryButtonClassName}
           >
             <RefreshCcw size={14} /> Refresh
           </button>
         </div>
       </div>
 
-      {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</div>}
-      {runState.error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{runState.error}</div>}
-      {importState.error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{importState.error}</div>}
+      {error && <div className="portal-danger-card rounded-xl border px-4 py-3 text-sm font-medium">{error}</div>}
+      {runState.error && <div className="portal-danger-card rounded-xl border px-4 py-3 text-sm font-medium">{runState.error}</div>}
+      {importState.error && <div className="portal-danger-card rounded-xl border px-4 py-3 text-sm font-medium">{importState.error}</div>}
 
       {lastResult && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 space-y-3">
+        <div className={`space-y-3 rounded-2xl border p-5 ${resultCardClassName(lastResult)}`}>
           <div className="flex items-start gap-3">
-            <CheckCircle2 size={18} className="text-emerald-600 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-emerald-800 text-sm font-bold">{lastResult.title}</p>
-              <p className="text-emerald-700 text-sm mt-1">{lastResult.summary}</p>
-              <p className="text-emerald-700/80 text-xs mt-1">Run at {new Date(lastResult.ranAt).toLocaleString()}</p>
+            {isSeedPreviewResult(lastResult) && !lastResult.preview?.safeToExecute ? (
+              <BootstrapIcon name="exclamation-triangle-fill" tone="danger" size={18} className="mt-0.5 shrink-0" />
+            ) : (
+              <BootstrapIcon name="check-circle-fill" tone="success" size={18} className="mt-0.5 shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">{lastResult.title}</p>
+              <p className="mt-1 text-sm">{lastResult.summary}</p>
+              <p className="mt-1 text-xs opacity-80">
+                {isSeedPreviewResult(lastResult) ? "Last scan" : "Run at"} {new Date(lastResult.ranAt).toLocaleString()}
+              </p>
             </div>
           </div>
+
+          {lastResult.toolId === "seed-cleanup" ? (
+            <SeedCleanupResultSummary result={lastResult} />
+          ) : null}
+
           {lastResult.details.length > 0 && (
-            <ul className="space-y-1 text-sm text-emerald-800 pl-6 list-disc">
+            <ul className="space-y-1 pl-6 text-sm list-disc">
               {lastResult.details.map((detail) => (
                 <li key={detail}>{detail}</li>
               ))}
@@ -144,14 +260,14 @@ export default function AdminSystemTools() {
           )}
           {lastResult.artifactPath && (
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-medium text-emerald-800">
-                <FileText size={14} /> Artifact: {lastResult.artifactPath}
+              <div className="portal-action-secondary inline-flex max-w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium">
+                <FileText size={14} /> <span className="break-all">Artifact: {lastResult.artifactPath}</span>
               </div>
               <button
                 type="button"
                 disabled={artifactBusy}
                 onClick={() => handleDownloadArtifact(lastResult.artifactPath)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+                className="portal-action-secondary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
               >
                 <Download size={14} /> {artifactBusy ? "Downloading…" : "Download Artifact"}
               </button>
@@ -160,51 +276,53 @@ export default function AdminSystemTools() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-bold text-slate-900">Backup and restore flow</h2>
-        <div className="mt-2 space-y-1 text-sm text-slate-500">
+      <div className="portal-card rounded-2xl border p-5">
+        <h2 className="text-sm font-bold text-[var(--text-strong)]">Backup and restore flow</h2>
+        <div className="mt-2 space-y-1 text-sm text-[var(--text-muted)]">
           <p>Run Backup to generate a JSON snapshot package and download it for safekeeping.</p>
           <p>Use Import Backup to place a downloaded package back into the server backup library.</p>
-          <p>Restore Backup always targets the newest package stored in <span className="font-semibold text-slate-700">backend/data/system-tools/backups</span>.</p>
+          <p>
+            Restore Backup always targets the newest package stored in{" "}
+            <span className="font-semibold text-[var(--text-strong)]">backend/data/system-tools/backups</span>.
+          </p>
         </div>
       </div>
 
-      {runState.running && <div className="text-xs text-slate-400">Running selected action…</div>}
-      {loading && tools.length > 0 && <div className="text-xs text-slate-400">Refreshing tool status…</div>}
+      {runState.running && <div className="text-xs text-[var(--text-subtle)]">Running selected action…</div>}
+      {loading && tools.length > 0 && <div className="text-xs text-[var(--text-subtle)]">Refreshing tool status…</div>}
 
       {loading && tools.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 text-sm text-slate-400">Loading system tools…</div>
+        <div className="portal-card rounded-xl border p-6 text-sm text-[var(--text-subtle)] shadow-[var(--shadow-soft)]">Loading system tools…</div>
       ) : tools.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-400">No system tools are configured right now.</div>
+        <div className="portal-card rounded-xl border border-dashed p-6 text-sm text-[var(--text-subtle)]">No system tools are configured right now.</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {tools.map((tool) => {
             const Icon = iconMap[tool.id] ?? Database;
             const tone = toneMap[tool.tone] ?? toneMap.slate;
-            const borderClass = tone.split(" ").find((cls) => cls.startsWith("border-")) ?? "border-slate-200";
             return (
-              <div key={tool.id} className={`rounded-2xl border bg-white shadow-sm p-5 ${borderClass}`}>
+              <div key={tool.id} className="portal-card rounded-2xl border p-5 shadow-[var(--shadow-soft)]">
                 <div className="flex items-start gap-4">
-                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${tone}`}>
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${tone}`}>
                     <Icon size={18} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-slate-900 text-sm font-bold">{tool.title}</h2>
-                        <p className="text-slate-500 text-sm mt-1">{tool.desc}</p>
+                        <h2 className="text-sm font-bold text-[var(--text-strong)]">{tool.title}</h2>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">{tool.desc}</p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tool.danger ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"}`}>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${tool.danger ? "border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:border-rose-500/25 dark:bg-rose-500/12 dark:text-rose-200" : "border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 dark:border-slate-600/40 dark:bg-slate-800/70 dark:text-slate-200"}`}>
                         {tool.status}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mt-4 gap-3">
-                      <p className="text-[11px] text-slate-400">Last run: {tool.lastRun}</p>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <p className="text-[11px] text-[var(--text-subtle)]">Last run: {tool.lastRun}</p>
                       <button
                         onClick={() => setConfirmTool(tool)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold ${tool.danger ? "bg-rose-600 text-white hover:bg-rose-700" : "bg-blue-800 text-white hover:bg-blue-900"}`}
+                        className={`rounded-xl px-3.5 py-2 text-xs font-bold text-white transition ${tool.danger ? "bg-rose-600 hover:bg-rose-700" : "bg-blue-800 hover:bg-blue-900"}`}
                       >
-                        {tool.btn}
+                        {tool.id === "seed-cleanup" ? "Preview Seed Cleanup" : tool.btn}
                       </button>
                     </div>
                   </div>
@@ -219,48 +337,293 @@ export default function AdminSystemTools() {
         open={Boolean(confirmTool)}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
-            setConfirmTool(null);
+            closeConfirmModal();
           }
         }}
-        title="Confirm Action"
-        description="Make sure the selected maintenance action is intentional before continuing."
-        size="md"
+        title={isSeedCleanupTool ? "Seed Data Cleanup" : "Confirm Action"}
+        description={isSeedCleanupTool ? "Preview first. Destructive execution stays locked until blockers are clear, a backup is verified, and the confirmation phrase is typed." : "Make sure the selected maintenance action is intentional before continuing."}
+        size={isSeedCleanupTool ? "xl" : "md"}
+        bodyClassName="space-y-4"
+        footerClassName="items-stretch sm:items-center sm:justify-between"
         footer={
           <>
-            <button
-              onClick={() => setConfirmTool(null)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleRun}
-              disabled={runState.running}
-              className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${confirmTool?.danger ? "bg-rose-600 hover:bg-rose-700" : "bg-blue-800 hover:bg-blue-900"}`}
-            >
-              {runState.running ? "Running…" : "Confirm"}
-            </button>
+            <div className="min-h-5 text-xs text-[var(--text-muted)]">
+              {isSeedCleanupTool && seedCleanupExecuteDisabledReason ? seedCleanupExecuteDisabledReason : null}
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={closeConfirmModal}
+                className="portal-action-secondary rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRun}
+                disabled={
+                  runState.running ||
+                  (isSeedCleanupTool &&
+                    Boolean(seedCleanupPreview) &&
+                    (!seedCleanupCanExecute ||
+                      !seedCleanupBackupConfirmed ||
+                      !seedCleanupConfirmationValid))
+                }
+                className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${confirmTool?.danger ? "bg-rose-600 hover:bg-rose-700" : "bg-blue-800 hover:bg-blue-900"}`}
+              >
+                {runState.running
+                  ? "Running…"
+                  : isSeedCleanupTool
+                    ? seedCleanupPreview
+                      ? seedCleanupCanExecute
+                        ? "Execute Seed Cleanup"
+                        : "Execution Blocked"
+                      : "Preview Seed Cleanup"
+                    : "Confirm"}
+              </button>
+            </div>
           </>
         }
       >
         {confirmTool ? (
           <div className="flex items-start gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${confirmTool.danger ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" : "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"}`}>
-              <AlertTriangle size={18} />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${confirmTool.danger ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" : "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"}`}>
+              <BootstrapIcon name="exclamation-triangle-fill" tone={confirmTool.danger ? "danger" : "primary"} size={18} />
             </div>
-            <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Run <span className="font-semibold text-slate-700 dark:text-slate-100">{confirmTool.title}</span> now?
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-[var(--text-muted)]">
+                {isSeedCleanupTool ? "Seed cleanup is a guarded two-step operation." : "Run"}{" "}
+                <span className="font-semibold text-[var(--text-strong)]">{confirmTool.title}</span>
+                {!isSeedCleanupTool ? " now?" : null}
               </p>
-              <p className="mt-2 text-xs leading-5 text-slate-400 dark:text-slate-500">
-                {confirmTool.danger
-                  ? "This tool can change or remove stored data. Confirm only if you intend to perform the operation immediately."
-                  : "This tool will run immediately and update the latest system state when it completes."}
+              <p className="mt-2 text-xs leading-5 text-[var(--text-subtle)]">
+                {isSeedCleanupTool
+                  ? "Preview Seed Cleanup only scans candidate seed/demo records. Execute Seed Cleanup is disabled until the preview is safe, a fresh backup is confirmed, and the exact phrase is typed."
+                  : confirmTool.danger
+                    ? "This tool can change or remove stored data. Confirm only if you intend to perform the operation immediately."
+                    : "This tool will run immediately and update the latest system state when it completes."}
               </p>
+
+              {isSeedCleanupTool && seedCleanupPreview ? (
+                <div className={`mt-4 space-y-4 rounded-2xl border p-4 text-xs ${seedCleanupPreview.safeToExecute ? "portal-warning-card" : "portal-danger-card"}`}>
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold">Seed Data Cleanup Preview</p>
+                    <p className="font-semibold">
+                      Status: {seedCleanupPreview.safeToExecute ? "Preview ready — no records deleted" : "Blocked — no records deleted"}
+                    </p>
+                    <p>
+                      Cleanup has not been executed. The system only scanned candidate seed/demo data{seedCleanupPreview.safeToExecute ? "." : " and found blockers."}
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <PreviewLine label="Last scan" value={new Date().toLocaleString()} />
+                      <PreviewLine label="Cleanup executed" value="No" />
+                      <PreviewLine label="Records deleted" value="0" />
+                      <PreviewLine label="Backup required" value={seedCleanupPreview.backupRequired ? "Yes" : "No"} />
+                    </div>
+                  </div>
+
+                  {seedBlockedReasons.length > 0 ? (
+                    <div className="rounded-xl border border-current/20 bg-white/55 p-3 dark:bg-slate-950/25">
+                      <p className="font-semibold">Blocked reason{seedBlockedReasons.length === 1 ? "" : "s"}</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {seedBlockedReasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <PreviewStat label="Users" value={seedCleanupPreview.counts.users} />
+                    <PreviewStat label="Student Profiles" value={seedCleanupPreview.counts.studentProfiles} />
+                    <PreviewStat label="Teacher Profiles" value={seedCleanupPreview.counts.teacherProfiles} />
+                    <PreviewStat label="Subjects" value={seedCleanupPreview.counts.subjects} />
+                    <PreviewStat label="Activities" value={seedCleanupPreview.counts.activities} />
+                    <PreviewStat label="Groups" value={seedCleanupPreview.counts.groups} />
+                    <PreviewStat label="Submissions" value={seedCleanupPreview.counts.submissions} />
+                    <PreviewStat label="Notifications" value={seedCleanupPreview.counts.notifications} />
+                    <PreviewStat label="Mail Jobs" value={seedCleanupPreview.counts.mailJobs} />
+                  </div>
+
+                  <PreviewList
+                    label="User IDs"
+                    values={seedCleanupPreview.users.map((user) =>
+                      user.studentNumber
+                        ? `${user.id} · ${user.studentNumber}`
+                        : user.employeeId
+                          ? `${user.id} · ${user.employeeId}`
+                          : user.id,
+                    )}
+                  />
+                  <PreviewList
+                    label="Subject IDs"
+                    values={seedCleanupPreview.subjects.map((subject) => `${subject.id} · ${subject.code}`)}
+                  />
+                  <PreviewList
+                    label="Group IDs"
+                    values={seedCleanupPreview.groups.map((group) => `${group.id} · ${group.name}`)}
+                  />
+                  <PreviewList
+                    label="Submission IDs"
+                    values={seedCleanupPreview.submissions.map((submission) => submission.id)}
+                  />
+                  <PreviewList
+                    label="Notification IDs"
+                    values={seedCleanupPreview.notifications.map((notification) => notification.id)}
+                  />
+                  <PreviewList
+                    label="Mail Job IDs"
+                    values={seedCleanupPreview.mailJobs.map((job) => job.id)}
+                  />
+
+                  <label className="flex items-start gap-3 rounded-xl border border-current/20 bg-white/55 px-3 py-3 text-xs dark:bg-slate-950/25">
+                    <input
+                      type="checkbox"
+                      checked={seedCleanupBackupConfirmed}
+                      disabled={!seedCleanupPreview.safeToExecute}
+                      onChange={(event) => setSeedCleanupBackupConfirmed(event.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      I created and verified a fresh backup before running this destructive cleanup.
+                    </span>
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="font-semibold">
+                      Type {seedCleanupPreview.confirmationWord} to confirm
+                    </span>
+                    <input
+                      value={seedCleanupConfirmation}
+                      disabled={!seedCleanupPreview.safeToExecute}
+                      onChange={(event) => setSeedCleanupConfirmation(event.target.value)}
+                      className="portal-input h-10 w-full rounded-xl px-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </label>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
       </AppModal>
+
+      <AppModal
+        open={Boolean(lastResult) && resultModalOpen}
+        onOpenChange={(open) => setResultModalOpen(open)}
+        title={lastResult?.title || "System Tool Result"}
+        description={lastResult?.summary || "The selected system tool completed."}
+        size="lg"
+        footer={(
+          <>
+            {lastResult?.toolId === "backup" ? (
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() => {
+                  window.location.href = "/admin/backups";
+                }}
+              >
+                <Database size={14} /> View Backup History
+              </button>
+            ) : null}
+            {lastResult?.artifactPath ? (
+              <button
+                type="button"
+                disabled={artifactBusy}
+                className={secondaryButtonClassName}
+                onClick={() => handleDownloadArtifact(lastResult.artifactPath)}
+              >
+                <Download size={14} /> {artifactBusy ? "Downloading..." : "Download"}
+              </button>
+            ) : null}
+            <button type="button" className={secondaryButtonClassName} onClick={() => setResultModalOpen(false)}>
+              Close
+            </button>
+          </>
+        )}
+      >
+        {lastResult ? (
+          <div className={`max-h-[65vh] overflow-auto rounded-xl border p-4 text-sm ${resultCardClassName(lastResult)}`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">Status</p>
+                <p className="mt-1 text-base font-bold">{lastResult.status}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">Completed</p>
+                <p className="mt-1 font-semibold">{new Date(lastResult.ranAt).toLocaleString()}</p>
+              </div>
+            </div>
+            <p className="mt-4 font-semibold">{lastResult.summary}</p>
+            {lastResult.details.length ? (
+              <ul className="mt-3 list-disc space-y-1 pl-5">
+                {lastResult.details.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {lastResult.artifactPath ? (
+              <p className="mt-4 break-all font-mono text-xs opacity-80">{lastResult.artifactPath}</p>
+            ) : null}
+          </div>
+        ) : null}
+      </AppModal>
+    </div>
+  );
+}
+
+function SeedCleanupResultSummary({ result }: { result: SystemToolRunResult }) {
+  const preview = result.preview;
+  if (!preview) return null;
+  const reasons = blockedReasons(preview);
+
+  return (
+    <div className="grid gap-2 rounded-xl border border-current/20 bg-white/45 p-3 text-xs dark:bg-slate-950/20 sm:grid-cols-2">
+      <PreviewLine label="Last scan" value={new Date(result.ranAt).toLocaleString()} />
+      <PreviewLine label="Cleanup executed" value={result.executed ? "Yes" : "No"} />
+      <PreviewLine label="Records deleted" value={String(result.recordsDeleted ?? 0)} />
+      {result.executedAt ? <PreviewLine label="Executed at" value={new Date(result.executedAt).toLocaleString()} /> : null}
+      {result.executedBy ? <PreviewLine label="Executed by" value={result.executedBy} /> : null}
+      {!result.executed && reasons.length > 0 ? (
+        <div className="sm:col-span-2">
+          <span className="font-semibold">Blocked reason:</span> {reasons.join(" | ")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PreviewLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-current/15 bg-white/45 px-3 py-2 dark:bg-slate-950/20">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-70">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold">{value}</p>
+    </div>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-current/15 bg-white/45 px-3 py-2 dark:bg-slate-950/20">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-70">{label}</p>
+      <p className="mt-1 text-sm font-bold">{value}</p>
+    </div>
+  );
+}
+
+function PreviewList({ label, values }: { label: string; values: string[] }) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="font-semibold">{label}</p>
+      <div className="max-h-32 overflow-auto rounded-xl border border-current/15 bg-white/55 px-3 py-2 font-mono text-[11px] dark:bg-slate-950/25">
+        {values.slice(0, 30).map((value) => (
+          <div key={value} className="break-all leading-5">
+            {value}
+          </div>
+        ))}
+        {values.length > 30 ? <div className="break-all leading-5">...and {values.length - 30} more</div> : null}
+      </div>
     </div>
   );
 }

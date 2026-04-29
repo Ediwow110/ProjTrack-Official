@@ -44,27 +44,38 @@ export function AppModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "max-h-[calc(100vh-2rem)] overflow-hidden rounded-[30px] border border-white/70 bg-[var(--surface-panel-strong)] p-0 shadow-[var(--shadow-shell)] backdrop-blur-xl sm:grid-rows-[auto,minmax(0,1fr),auto] dark:border-slate-700/60",
+          "portal-modal flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-[30px] border p-0 shadow-[var(--shadow-shell)]",
+          "sm:max-h-[calc(100dvh-2rem)]",
           sizeMap[size],
           className,
         )}
       >
-        <DialogHeader className="gap-1 border-b border-slate-200/70 px-6 py-5 text-left dark:border-slate-700/60">
-          <DialogTitle className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
+        <DialogHeader className="portal-border shrink-0 gap-1 border-b px-6 py-5 pr-16 text-left">
+          <DialogTitle className="font-display text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
             {title}
           </DialogTitle>
           {description ? (
-            <DialogDescription className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <DialogDescription className="text-sm leading-6 text-[var(--text-muted)]">
               {description}
             </DialogDescription>
           ) : null}
         </DialogHeader>
-        <div className={cn("overflow-y-auto px-6 py-6", bodyClassName)}>{children}</div>
+        <div
+          data-modal-body="true"
+          tabIndex={0}
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-6 py-6 outline-none focus-visible:ring-2 focus-visible:ring-[var(--role-accent)]/35",
+            bodyClassName,
+          )}
+        >
+          {children}
+        </div>
 
         {footer ? (
           <DialogFooter
             className={cn(
-              "border-t border-slate-200/70 bg-slate-50/90 px-6 py-5 dark:border-slate-700/60 dark:bg-slate-900/70",
+              "portal-border portal-table-header sticky bottom-0 z-10 shrink-0 border-t px-6 py-5",
+              "max-h-[35dvh] overflow-y-auto sm:max-h-none sm:overflow-visible",
               footerClassName,
             )}
           >

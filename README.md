@@ -8,8 +8,9 @@ PROJTRACK uses a React frontend and a NestJS + Prisma backend backed by PostgreS
 1. Install frontend dependencies with `npm ci`
 2. Install backend dependencies with `npm --prefix backend ci`
 3. Copy and review the env files:
-   - frontend: `.env.example`
-   - backend: `backend/.env.example`
+   - frontend local template: `.env.example`
+   - backend local template: `backend/.env.local.example`
+   - backend production template: `backend/.env.production.example`
 4. Run `npm start`
 
 Frontend only: `npm run dev`
@@ -51,9 +52,10 @@ Local demo sign-in accounts:
 - Frontend API URL building now trims malformed whitespace and normalizes the final backend URL before each request.
 - Backend startup requires `DATABASE_URL`.
 - Backend startup now fails fast in production if weak/default secrets, stub mail, or local file storage are still configured.
-- Health endpoints now distinguish liveness from readiness:
+- Public health endpoints:
   - `/health/live`
   - `/health/ready`
+- Admin-only diagnostic health endpoints:
   - `/health/database`
   - `/health/storage`
   - `/health/mail`
@@ -64,4 +66,33 @@ Local demo sign-in accounts:
   - Student: student number or email
   - Teacher: employee ID or email
   - Admin: email
+
+## Production safety notes
+
+- Never commit or share `backend/.env`.
+- Rotate the Mailrelay API key immediately if it was ever exposed.
+- Rotate the Sender.net API key immediately if it was ever exposed.
+- Rotate `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` immediately if they were ever exposed.
+- Rotate S3 or object storage access keys immediately if they were ever exposed.
+- Production should use:
+  - `NODE_ENV=production`
+  - `APP_ENV=production`
+  - `APP_URL=https://projtrack.codes`
+  - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
+  - `VITE_API_BASE_URL=https://api.projtrack.codes`
+- Full deployment and cutover steps are documented in [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
   
+
+## Backend local startup troubleshooting
+
+The backend was previously easy to start with the wrong environment: copied production-like values could leave it pointing at `localhost:5432` without a running database, or could enable the mail worker inside the HTTP process. That usually showed up as repeated Prisma errors such as `Can't reach database server at localhost:5432` or a Windows process exit like `3221225477`.
+
+Use this local sequence instead:
+
+1. Start Docker Desktop.
+2. Run `npm install` and `npm --prefix backend install` if dependencies are missing.
+3. Run `npm run prepare:local` to start PostgreSQL/MinIO, generate Prisma, migrate, and seed.
+4. Run `npm run backend:local` for the backend only, or `npm start` for backend + frontend.
+5. Run `npm run backend:doctor` when startup still fails.
+
+The local launch scripts now inject safe development defaults: local PostgreSQL, stub mail, local file storage, disabled mail worker, and non-production JWT secrets. This avoids accidentally using production-style env values during development. Production deploys must still use real secrets and the production checklist.

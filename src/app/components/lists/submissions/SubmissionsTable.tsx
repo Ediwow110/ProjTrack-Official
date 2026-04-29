@@ -1,8 +1,10 @@
-import { BoxArrowUpRight, Eye, FileEarmarkText } from "react-bootstrap-icons";
+import { FileText } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
+import { GradeChip } from "../../ui/GradeChip";
 import { DataTableCard } from "../shared/DataTableCard";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminSubmissionRecord } from "../../../lib/api/contracts";
 
 type SubmissionSortKey = "title" | "student" | "subject" | "status" | "submitted";
@@ -12,8 +14,11 @@ type SubmissionsTableProps = {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  actionBusy?: boolean;
   onPreview: (id: string) => void;
   onView: (id: string) => void;
+  onEdit: (submission: AdminSubmissionRecord) => void;
+  onDelete: (submission: AdminSubmissionRecord) => void;
   sortState?: {
     columnKey: SubmissionSortKey;
     direction: "asc" | "desc";
@@ -26,8 +31,11 @@ export function SubmissionsTable({
   loading = false,
   error = null,
   onRetry,
+  actionBusy = false,
   onPreview,
   onView,
+  onEdit,
+  onDelete,
   sortState,
   onSortChange,
 }: SubmissionsTableProps) {
@@ -35,14 +43,28 @@ export function SubmissionsTable({
     <DataTableCard
       title="Submission records"
       description="Track submission status, student ownership, and grading state through a shared operational table."
-      action={loading ? <span className="text-xs font-medium text-slate-400">Loading submissions...</span> : null}
+      action={loading ? <span className="text-xs font-medium text-slate-400 dark:text-slate-300">Loading submissions...</span> : null}
       columns={[
+        {
+          key: "id",
+          header: "Submission ID",
+          renderCell: (submission) => (
+            <CopyableIdChip value={submission.id} label="Copy Submission ID" />
+          ),
+        },
         {
           key: "title",
           header: "Title",
           sortable: true,
           renderCell: (submission) => (
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">{submission.title}</span>
+            <div>
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">{submission.title}</span>
+              {submission.taskId ? (
+                <div className="mt-1">
+                  <CopyableIdChip value={submission.taskId} label="Copy Task ID" className="bg-transparent px-0" />
+                </div>
+              ) : null}
+            </div>
           ),
         },
         {
@@ -50,7 +72,14 @@ export function SubmissionsTable({
           header: "Student",
           sortable: true,
           renderCell: (submission) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{submission.student}</span>
+            <div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{submission.student}</span>
+              {submission.groupId ? (
+                <div className="mt-1">
+                  <CopyableIdChip value={submission.groupId} label="Copy Group ID" className="bg-transparent px-0" />
+                </div>
+              ) : null}
+            </div>
           ),
         },
         {
@@ -59,8 +88,15 @@ export function SubmissionsTable({
           sortable: true,
           renderCell: (submission) => (
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-300">{submission.subject}</p>
-              <p className="mt-1 text-[10px] text-slate-400">{submission.section}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
+                {submission.subjectCode ? `${submission.subjectCode} · ${submission.subject}` : submission.subject}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-[10px] text-slate-400 dark:text-slate-300">{submission.section}</p>
+                {submission.subjectId ? (
+                  <CopyableIdChip value={submission.subjectId} label="Copy Subject ID" className="bg-transparent px-0" />
+                ) : null}
+              </div>
             </div>
           ),
         },
@@ -69,7 +105,7 @@ export function SubmissionsTable({
           header: "Submitted",
           sortable: true,
           renderCell: (submission) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{submission.submitted}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{submission.submitted}</span>
           ),
         },
         {
@@ -81,11 +117,7 @@ export function SubmissionsTable({
         {
           key: "grade",
           header: "Grade",
-          renderCell: (submission) => (
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
-              {submission.grade !== "—" ? `${submission.grade}/100` : "—"}
-            </span>
-          ),
+          renderCell: (submission) => <GradeChip grade={submission.grade} status={submission.status} size="xs" />,
         },
       ]}
       rows={rows}
@@ -100,21 +132,39 @@ export function SubmissionsTable({
         {
           key: "preview",
           label: "Preview",
-          icon: <Eye size={15} />,
+          icon: true,
           ariaLabel: (submission) => `Preview ${submission.title}`,
           onClick: (submission) => onPreview(submission.id),
         },
         {
           key: "view",
           label: "View",
-          icon: <BoxArrowUpRight size={15} />,
+          icon: true,
           ariaLabel: (submission) => `Open full record for ${submission.title}`,
           onClick: (submission) => onView(submission.id),
+          disabled: () => actionBusy,
+        },
+        {
+          key: "edit",
+          label: "Edit",
+          icon: true,
+          ariaLabel: (submission) => `Edit ${submission.title}`,
+          onClick: (submission) => onEdit(submission),
+          disabled: () => actionBusy,
+        },
+        {
+          key: "delete",
+          label: "Delete",
+          icon: true,
+          ariaLabel: (submission) => `Delete ${submission.title}`,
+          onClick: (submission) => onDelete(submission),
+          tone: "danger",
+          disabled: () => actionBusy,
         },
       ]}
       emptyState={(
         <PortalEmptyState
-          icon={FileEarmarkText}
+          icon={FileText}
           title="No submissions match this view"
           description="Try clearing the search or status filter to widen the current result set."
         />

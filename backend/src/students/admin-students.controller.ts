@@ -1,6 +1,6 @@
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
-import { UseGuards, Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { UseGuards, Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { AdminStudentsService } from './admin-students.service';
 import { ImportStudentsDto } from './dto/import-students.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
@@ -27,12 +27,17 @@ export class AdminStudentsController {
   }
 
   @Post(':id/activate')
-  activate(@Param('id') id: string) {
-    return this.studentsService.activateStudent(id);
+  activate(@Param('id') id: string, @Req() req: any) {
+    return this.studentsService.activateStudent(id, req.user?.sub);
+  }
+
+  @Post(':id/send-setup-invite')
+  sendSetupInvite(@Param('id') id: string, @Req() req: any) {
+    return this.studentsService.sendSetupInvite(id, req.user?.sub);
   }
 
   @Post(':id/send-reset-link')
-  sendResetLink(@Param('id') id: string) {
-    return this.studentsService.sendResetLink(id);
+  sendResetLink(@Param('id') id: string, @Req() req: any) {
+    return this.studentsService.sendResetLink(id, req.user?.sub);
   }
 }

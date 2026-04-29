@@ -127,7 +127,7 @@ export function PortalSearchField({
         className,
       )}
     >
-      <Search size={16} className="shrink-0 text-slate-400" />
+      <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-300" />
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -168,7 +168,7 @@ export function PortalFilterChip({
         "rounded-full border px-3.5 text-xs font-semibold shadow-none",
         active
           ? "border-[var(--role-accent)] bg-[var(--role-accent)] text-white hover:bg-[var(--role-accent-strong)] hover:text-white"
-          : "border-slate-200/80 bg-white/85 text-slate-600 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-300",
+          : "border-slate-200/80 bg-white/85 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-300",
       )}
     >
       {children}

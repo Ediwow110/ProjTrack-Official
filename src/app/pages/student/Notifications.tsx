@@ -31,12 +31,12 @@ const typeIcon: Record<string, LucideIcon> = {
 };
 
 const typeColor: Record<string, string> = {
-  feedback: "bg-teal-50 text-teal-600",
-  grade: "bg-emerald-50 text-emerald-600",
-  overdue: "bg-rose-50 text-rose-600",
-  deadline: "bg-amber-50 text-amber-600",
-  account: "bg-blue-50 text-blue-600",
-  info: "bg-slate-100 text-slate-500",
+  feedback: "bg-teal-50 dark:bg-teal-500/15 text-teal-600",
+  grade: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600",
+  overdue: "bg-rose-50 dark:bg-rose-500/15 text-rose-600",
+  deadline: "bg-amber-50 dark:bg-amber-500/15 text-amber-600",
+  account: "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300",
+  info: "bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400",
 };
 
 export default function StudentNotifications() {
@@ -154,7 +154,7 @@ export default function StudentNotifications() {
               <button
                 disabled={loading || actionState.busy}
                 onClick={markAllRead}
-                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50 disabled:opacity-60"
               >
                 <CheckCheck size={16} />
                 Mark all as read
@@ -184,11 +184,11 @@ export default function StudentNotifications() {
               className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                 filter === type
                   ? "bg-blue-700 text-white shadow-[0_16px_35px_-24px_rgba(29,78,216,0.55)]"
-                  : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                  : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70"
               }`}
             >
               {type}
-              <span className={`ml-1.5 ${filter === type ? "text-white/80" : "text-slate-400"}`}>
+              <span className={`ml-1.5 ${filter === type ? "text-white/80" : "text-slate-400 dark:text-slate-300"}`}>
                 {countsByType[type] ?? 0}
               </span>
             </button>
@@ -197,12 +197,12 @@ export default function StudentNotifications() {
       </PortalPanel>
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
       {actionState.error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {actionState.error}
         </div>
       ) : null}
@@ -211,7 +211,7 @@ export default function StudentNotifications() {
         <PortalPanel title="Loading notifications" description="Refreshing your student inbox.">
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-24 animate-pulse rounded-[24px] bg-slate-100" />
+              <div key={index} className="h-24 animate-pulse rounded-[24px] bg-slate-100 dark:bg-slate-800/80" />
             ))}
           </div>
         </PortalPanel>
@@ -239,8 +239,8 @@ export default function StudentNotifications() {
                       onClick={() => markOneRead(notification.id)}
                       className={`w-full rounded-[24px] border p-4 text-left transition ${
                         notification.read
-                          ? "border-slate-200 bg-slate-50/80"
-                          : "border-blue-200 bg-blue-50/65 shadow-[0_18px_45px_-34px_rgba(29,78,216,0.28)]"
+                          ? "border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
+                          : "border-blue-200 dark:border-blue-500/30 bg-blue-50/65 shadow-[0_18px_45px_-34px_rgba(29,78,216,0.28)]"
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -252,10 +252,10 @@ export default function StudentNotifications() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                 {notification.title}
                               </p>
-                              <p className="mt-1 text-sm leading-7 text-slate-500">
+                              <p className="mt-1 text-sm leading-7 text-slate-500 dark:text-slate-400">
                                 {notification.body}
                               </p>
                             </div>
@@ -263,7 +263,7 @@ export default function StudentNotifications() {
                               <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
                             ) : null}
                           </div>
-                          <p className="mt-3 text-[11px] text-slate-400">
+                          <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-300">
                             {notification.time}
                           </p>
                         </div>

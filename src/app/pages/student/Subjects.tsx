@@ -88,13 +88,13 @@ export default function StudentSubjects() {
       />
 
       <div className="flex justify-end">
-        <label className="flex min-w-[240px] items-center gap-3 rounded-[24px] border border-white/70 bg-white/82 px-4 py-3 text-slate-500 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
+        <label className="flex min-w-[240px] items-center gap-3 rounded-[24px] border border-white/70 bg-white/82 px-4 py-3 text-slate-500 dark:text-slate-400 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
           <Filter size={16} />
-          <span className="text-sm font-semibold text-slate-700">Term</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Term</span>
           <select
             value={termFilter}
             onChange={(event) => setTermFilter(event.target.value)}
-            className="ml-auto bg-transparent text-sm font-medium text-slate-700 outline-none"
+            className="ml-auto bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 outline-none"
             aria-label="Filter subjects by term"
           >
             {terms.map((term) => (
@@ -111,7 +111,7 @@ export default function StudentSubjects() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-[270px] animate-pulse rounded-[28px] border border-white/70 bg-white/85"
+              className="h-[270px] animate-pulse rounded-[28px] border border-white/70 bg-white/85 dark:bg-slate-900/85"
             />
           ))}
         </div>
@@ -136,69 +136,69 @@ export default function StudentSubjects() {
               role="link"
               tabIndex={0}
               aria-label={`Open subject ${subject.code}`}
-              className="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/88 p-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.42)] transition duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_30px_75px_-40px_rgba(37,99,235,0.45)]"
+              className="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/88 dark:bg-slate-900/85 p-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.42)] transition duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_30px_75px_-40px_rgba(37,99,235,0.45)]"
             >
               <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_65%)]" />
               <div className="relative">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-blue-100 text-blue-700 shadow-inner shadow-white">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-blue-100 text-blue-700 dark:text-blue-300 shadow-inner shadow-white">
                       <BookOpen size={22} strokeWidth={1.8} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
+                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
                           {subject.code}
                         </span>
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                           {subject.status}
                         </span>
                       </div>
-                      <p className="mt-3 font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900">
+                      <p className="mt-3 font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
                         {subject.name}
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">{subject.term}</p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subject.term}</p>
                     </div>
                   </div>
-                  <div className="mt-1 rounded-2xl bg-slate-100 p-2 text-slate-400 transition group-hover:bg-blue-100 group-hover:text-blue-700">
+                  <div className="mt-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2 text-slate-400 dark:text-slate-300 transition group-hover:bg-blue-100 group-hover:text-blue-700">
                     <ChevronRight size={16} />
                   </div>
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/85 px-4 py-4">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-4">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                       <GraduationCap size={14} />
                       Teacher
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-slate-800">
+                    <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {subject.teacher}
                     </p>
                   </div>
 
-                  <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/85 px-4 py-4">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-4">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                       <Layers3 size={14} />
                       Section
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-slate-800">
+                    <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {subject.section}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between rounded-[22px] border border-blue-100 bg-blue-50/75 px-4 py-4">
+                <div className="mt-5 flex items-center justify-between rounded-[22px] border border-blue-100 dark:border-blue-500/30 bg-blue-50/75 px-4 py-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-500">
                       Activity load
                     </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-900">
+                    <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
                       {subject.activities}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-blue-700">Open workspace</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">Open workspace</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       View overview, tasks, and your group.
                     </p>
                   </div>
@@ -209,11 +209,11 @@ export default function StudentSubjects() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-500 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.45)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-500 dark:text-slate-400 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.45)]">
         <span>
           Showing {filtered.length} enrolled subject{filtered.length === 1 ? "" : "s"}.
         </span>
-        <span className="font-medium text-slate-700">
+        <span className="font-medium text-slate-700 dark:text-slate-200">
           {termFilter === ALL_TERMS ? "All terms" : termFilter}
         </span>
       </div>

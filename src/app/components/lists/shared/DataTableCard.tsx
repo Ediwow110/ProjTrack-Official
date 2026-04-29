@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
-
 import { PortalTablePanel } from "../../portal/PortalListPage";
 import { Button } from "../../ui/button";
+import { BootstrapIcon, BootstrapIconTooltip, type BootstrapIconName, type BootstrapIconTone } from "../../ui/bootstrap-icon";
 import {
   Pagination,
   PaginationContent,
@@ -71,14 +70,34 @@ export type DataTableCardProps<T> = {
 
 function renderSortIcon(direction?: "asc" | "desc") {
   if (direction === "asc") {
-    return <ChevronUp size={14} className="text-slate-400" />;
+    return <BootstrapIcon name="chevron-up" tone="muted" size={14} />;
   }
 
   if (direction === "desc") {
-    return <ChevronDown size={14} className="text-slate-400" />;
+    return <BootstrapIcon name="chevron-down" tone="muted" size={14} />;
   }
 
-  return <ArrowUpDown size={14} className="text-slate-400" />;
+  return <BootstrapIcon name="arrow-down-up" tone="muted" size={14} />;
+}
+
+function actionBootstrapIcon(actionKey: string, label: string): BootstrapIconName | null {
+  const normalized = `${actionKey} ${label}`.toLowerCase();
+  if (/delete|remove|trash/.test(normalized)) return "trash-fill";
+  if (/edit|update|pencil/.test(normalized)) return "pencil-square";
+  if (/preview|details|detail|view|show/.test(normalized)) return "eye-fill";
+  if (/open|launch|external|full record/.test(normalized)) return "box-arrow-up-right";
+  if (/retry|refresh|reload/.test(normalized)) return "arrow-clockwise";
+  if (/archive/.test(normalized)) return "archive-fill";
+  if (/cancel|close/.test(normalized)) return "x-circle-fill";
+  return null;
+}
+
+function actionTone(actionKey: string, label: string, isDangerAction: boolean): BootstrapIconTone {
+  if (isDangerAction) return "danger";
+  const normalized = `${actionKey} ${label}`.toLowerCase();
+  if (/retry|refresh|open|view|preview|details|edit/.test(normalized)) return "info";
+  if (/archive|cancel|close/.test(normalized)) return "muted";
+  return "primary";
 }
 
 function buildPaginationItems(currentPage: number, totalPages: number) {
@@ -160,14 +179,14 @@ export function DataTableCard<T>({
             {Array.from({ length: safePageSize }).map((_, index) => (
               <div
                 key={index}
-                className="h-12 animate-pulse rounded-[var(--radius-control)] bg-slate-100 dark:bg-slate-800/70"
+                className="h-12 animate-pulse rounded-[var(--radius-control)] bg-slate-100 dark:bg-slate-800/80 dark:bg-slate-800/70"
               />
             ))}
           </div>
         </div>
       ) : error ? (
         <div className="flex flex-col gap-4 p-5 sm:p-6">
-          <div className="rounded-[var(--radius-control)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+          <div className="rounded-[var(--radius-control)] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
             {error}
           </div>
           {onRetry ? (
@@ -183,7 +202,7 @@ export function DataTableCard<T>({
       ) : (
         <>
           <Table className={cn("min-w-[1040px]", tableClassName)}>
-            <TableHeader className="bg-slate-50/85 dark:bg-slate-800/60">
+            <TableHeader className="portal-table-header">
               <TableRow className="hover:bg-transparent">
                 {selectable ? (
                   <TableHead className="w-12 px-5 py-3">
@@ -200,7 +219,7 @@ export function DataTableCard<T>({
                   <TableHead
                     key={column.key}
                     className={cn(
-                      "px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400",
+                      "px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300",
                       column.align === "center" && "text-center",
                       column.align === "right" && "text-right",
                       column.widthClassName,
@@ -227,7 +246,7 @@ export function DataTableCard<T>({
                   </TableHead>
                 ))}
                 {rowActions ? (
-                  <TableHead className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <TableHead className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                     Actions
                   </TableHead>
                 ) : null}
@@ -244,8 +263,8 @@ export function DataTableCard<T>({
                   <TableRow
                     key={key}
                     className={cn(
-                      onRowClick &&
-                        "cursor-pointer hover:bg-slate-50/85 dark:hover:bg-slate-800/55",
+                      "portal-table-row",
+                      onRowClick && "cursor-pointer",
                     )}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onKeyDown={
@@ -298,32 +317,44 @@ export function DataTableCard<T>({
                                 : (item.ariaLabel ?? label);
                             const isDangerAction = item.tone === "danger";
 
+                            const inferredIcon = actionBootstrapIcon(item.key, label);
+                            const iconTone = actionTone(item.key, label, isDangerAction);
+                            const hasIcon = Boolean(item.icon || inferredIcon);
+                            const disabled = item.disabled?.(row);
+                            const actionButton = (
+                              <span className="inline-flex" tabIndex={disabled ? 0 : undefined}>
+                                <Button
+                                  key={item.key}
+                                  type="button"
+                                  variant={hasIcon ? "ghost" : "link"}
+                                  size={hasIcon ? "icon" : "sm"}
+                                  title={label}
+                                  aria-label={hasIcon ? ariaLabel : undefined}
+                                  disabled={disabled}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    item.onClick(row);
+                                  }}
+                                  className={cn(
+                                    hasIcon
+                                      ? isDangerAction
+                                        ? "h-8 w-8 rounded-xl border border-rose-200/80 bg-rose-50/80 p-0 text-rose-700 shadow-none transition-colors hover:border-rose-300 hover:bg-rose-100 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/20"
+                                        : "portal-input h-8 w-8 rounded-xl border p-0 text-blue-700 shadow-none transition-colors hover:border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/12"
+                                      : "h-auto px-0",
+                                    isDangerAction
+                                      ? "text-rose-700 hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200"
+                                      : "text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200",
+                                  )}
+                                >
+                                  {inferredIcon ? <BootstrapIcon name={inferredIcon} tone={iconTone} size={15} /> : item.icon ? item.icon : label}
+                                </Button>
+                              </span>
+                            );
+
                             return (
-                              <Button
-                                key={item.key}
-                                type="button"
-                                variant={item.icon ? "ghost" : "link"}
-                                size={item.icon ? "icon" : "sm"}
-                                title={label}
-                                aria-label={item.icon ? label : ariaLabel}
-                                disabled={item.disabled?.(row)}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  item.onClick(row);
-                                }}
-                                className={cn(
-                                  item.icon
-                                    ? isDangerAction
-                                      ? "h-8 w-8 rounded-xl border border-rose-200/80 bg-rose-50/80 p-0 text-rose-700 shadow-none transition-colors hover:border-rose-300 hover:bg-rose-100 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/20"
-                                      : "h-8 w-8 rounded-xl border border-slate-200/80 bg-white/90 p-0 text-blue-700 shadow-none transition-colors hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-blue-300 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/12"
-                                    : "h-auto px-0",
-                                  isDangerAction
-                                    ? "text-rose-700 hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200"
-                                    : "text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200",
-                                )}
-                              >
-                                {item.icon ? item.icon : label}
-                              </Button>
+                              <BootstrapIconTooltip key={item.key} label={label}>
+                                {actionButton}
+                              </BootstrapIconTooltip>
                             );
                           })}
                         </div>
@@ -336,21 +367,20 @@ export function DataTableCard<T>({
           </Table>
 
           {totalPages > 1 ? (
-            <div className="flex flex-col gap-3 border-t border-slate-200/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/70">
-              <p className="text-xs font-medium text-slate-400">
+            <div className="portal-border flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-300">
                 Showing {showingFrom}-{showingTo} of {rows.length}
               </p>
               <Pagination className="mx-0 w-auto justify-start sm:justify-end">
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      href="#"
+                      disabled={currentPage === 1}
                       aria-disabled={currentPage === 1}
                       className={cn(
-                        currentPage === 1 && "pointer-events-none opacity-50",
+                        currentPage === 1 && "opacity-50",
                       )}
                       onClick={(event) => {
-                        event.preventDefault();
                         if (currentPage > 1) {
                           setCurrentPage((page) => page - 1);
                         }
@@ -362,10 +392,8 @@ export function DataTableCard<T>({
                     typeof item === "number" ? (
                       <PaginationItem key={item}>
                         <PaginationLink
-                          href="#"
                           isActive={item === currentPage}
                           onClick={(event) => {
-                            event.preventDefault();
                             setCurrentPage(item);
                           }}
                         >
@@ -381,13 +409,12 @@ export function DataTableCard<T>({
 
                   <PaginationItem>
                     <PaginationNext
-                      href="#"
+                      disabled={currentPage === totalPages}
                       aria-disabled={currentPage === totalPages}
                       className={cn(
-                        currentPage === totalPages && "pointer-events-none opacity-50",
+                        currentPage === totalPages && "opacity-50",
                       )}
                       onClick={(event) => {
-                        event.preventDefault();
                         if (currentPage < totalPages) {
                           setCurrentPage((page) => page + 1);
                         }

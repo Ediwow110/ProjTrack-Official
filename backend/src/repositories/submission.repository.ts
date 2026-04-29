@@ -1,9 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
 @Injectable()
 export class SubmissionRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isUniqueConstraintError(error: unknown) {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+  }
 
   private async resolveTeacherProfileId(teacherId?: string) {
     if (!teacherId) return undefined;
@@ -18,9 +24,9 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        reviewer: true,
-        student: true,
-        group: { include: { members: true } },
+        reviewer: { select: SAFE_USER_SELECT },
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -32,9 +38,10 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        reviewer: true,
-        student: true,
-        group: { include: { members: true } },
+        reviewer: { select: SAFE_USER_SELECT },
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+        events: { orderBy: { createdAt: 'asc' } },
       },
     });
   }
@@ -48,8 +55,8 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        student: true,
-        group: { include: { members: { include: { student: true } } } },
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -61,9 +68,9 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        reviewer: true,
-        student: true,
-        group: { include: { members: true } },
+        reviewer: { select: SAFE_USER_SELECT },
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
     });
   }
@@ -110,16 +117,14 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        reviewer: true,
-        student: { include: { studentProfile: { include: { section: true } } } },
+        reviewer: { select: SAFE_USER_SELECT },
+        student: { select: { ...SAFE_USER_SELECT, studentProfile: { include: { section: true } } } },
         group: {
           include: {
             members: {
               include: {
                 student: {
-                  include: {
-                    studentProfile: { include: { section: true } },
-                  },
+                  select: { ...SAFE_USER_SELECT, studentProfile: { include: { section: true } } },
                 },
               },
             },
@@ -139,6 +144,7 @@ export class SubmissionRepository {
     notes?: string;
     externalLinks?: string[];
     files?: { name: string; sizeKb: number; relativePath?: string }[];
+    status?: string;
   }) {
     const task = await this.prisma.submissionTask.findUnique({ where: { id: body.activityId } });
     if (!task) return null;
@@ -149,7 +155,7 @@ export class SubmissionRepository {
       return this.prisma.submission.update({
         where: { id: existing.id },
         data: {
-          status: 'SUBMITTED',
+          status: body.status || 'SUBMITTED',
           submittedAt: new Date(),
           submittedById: body.userId,
           title: body.title || task.title,
@@ -168,41 +174,52 @@ export class SubmissionRepository {
         include: {
           task: true,
           files: true,
-          student: true,
-          group: { include: { members: true } },
+          student: { select: SAFE_USER_SELECT },
+          group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
         },
       });
     }
 
-    return this.prisma.submission.create({
-      data: {
-        taskId: body.activityId,
-        subjectId: task.subjectId,
-        studentId: body.groupId ? null : body.userId,
-        groupId: body.groupId,
-        submittedById: body.userId,
-        title: body.title || task.title,
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
-        feedback: 'Submission received.',
-        description: body.description,
-        notes: body.notes,
-        externalLinks: body.externalLinks || [],
-        files: {
-          create: (body.files || []).map((file) => ({
-            fileName: file.name,
-            fileSize: file.sizeKb,
-            relativePath: file.relativePath,
-          })),
+    try {
+      return await this.prisma.submission.create({
+        data: {
+          taskId: body.activityId,
+          subjectId: task.subjectId,
+          studentId: body.groupId ? null : body.userId,
+          groupId: body.groupId,
+          submittedById: body.userId,
+          title: body.title || task.title,
+          status: body.status || 'SUBMITTED',
+          submittedAt: new Date(),
+          feedback: 'Submission received.',
+          description: body.description,
+          notes: body.notes,
+          externalLinks: body.externalLinks || [],
+          files: {
+            create: (body.files || []).map((file) => ({
+              fileName: file.name,
+              fileSize: file.sizeKb,
+              relativePath: file.relativePath,
+            })),
+          },
         },
-      },
-      include: {
-        task: true,
-        files: true,
-        student: true,
-        group: { include: { members: true } },
-      },
-    });
+        include: {
+          task: true,
+          files: true,
+          student: { select: SAFE_USER_SELECT },
+          group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+        },
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          body.groupId
+            ? 'A group submission already exists for this activity.'
+            : 'A submission already exists for this activity and student.',
+        );
+      }
+      throw error;
+    }
   }
 
   async reviewSubmission(id: string, body: { status?: string; grade?: number; feedback?: string }) {
@@ -216,9 +233,9 @@ export class SubmissionRepository {
       include: {
         task: true,
         files: true,
-        reviewer: true,
-        student: true,
-        group: { include: { members: true } },
+        reviewer: { select: SAFE_USER_SELECT },
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
     });
   }

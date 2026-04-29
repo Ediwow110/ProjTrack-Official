@@ -78,8 +78,10 @@ export default function TeacherProfile() {
         objectUrl = url;
         setAvatarSrc(url);
       })
-      .catch(() => {
-        if (active) setAvatarSrc("");
+      .catch((avatarError) => {
+        if (!active) return;
+        setAvatarSrc("");
+        setError(avatarError instanceof Error ? `Unable to load avatar preview: ${avatarError.message}` : "Unable to load avatar preview.");
       });
 
     return () => {
@@ -177,7 +179,7 @@ export default function TeacherProfile() {
   if (loading) {
     return (
       <PortalPage>
-        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85" />
+        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85 dark:bg-slate-900/85" />
       </PortalPage>
     );
   }
@@ -215,12 +217,12 @@ export default function TeacherProfile() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
       {saved ? (
-        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <div className="rounded-[24px] border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
           Profile changes were saved.
         </div>
       ) : null}
@@ -243,7 +245,7 @@ export default function TeacherProfile() {
                   {profile.initials}
                 </div>
               )}
-              <label className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow transition hover:bg-slate-50">
+              <label className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 shadow transition hover:bg-slate-50 dark:hover:bg-slate-800/70">
                 <Camera size={14} />
                 <input
                   hidden
@@ -259,7 +261,7 @@ export default function TeacherProfile() {
                 type="button"
                 disabled={busy}
                 onClick={handleRemoveAvatar}
-                className="mx-auto inline-flex items-center gap-1 text-xs text-slate-500 transition hover:text-rose-600 disabled:opacity-50"
+                className="mx-auto inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 transition hover:text-rose-600 disabled:opacity-50"
               >
                 <Trash2 size={12} />
                 Remove avatar
@@ -267,20 +269,20 @@ export default function TeacherProfile() {
             ) : null}
 
             <div>
-              <p className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900">
+              <p className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
                 {profile.fullName}
               </p>
-              <p className="mt-1 text-sm text-slate-500">{profile.roleLabel}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{profile.roleLabel}</p>
             </div>
 
             <div className="space-y-3">
               {profile.summary.map((field) => (
                 <div
                   key={field.label}
-                  className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50/85 px-4 py-3 text-left"
+                  className="flex items-center justify-between rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-3 text-left"
                 >
-                  <span className="text-xs text-slate-400">{field.label}</span>
-                  <span className={`text-sm font-semibold ${field.tone ?? "text-slate-700"}`}>
+                  <span className="text-xs text-slate-400 dark:text-slate-300">{field.label}</span>
+                  <span className={`text-sm font-semibold ${field.tone ?? "text-slate-700 dark:text-slate-200"}`}>
                     {field.value}
                   </span>
                 </div>
@@ -304,7 +306,7 @@ export default function TeacherProfile() {
                   { key: "office", label: "Office", type: "text" },
                 ].map((field) => (
                   <div key={field.key}>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       {field.label}
                     </label>
                     <input
@@ -313,7 +315,7 @@ export default function TeacherProfile() {
                       onChange={(event) =>
                         setForm({ ...form, [field.key]: event.target.value })
                       }
-                      className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-300"
+                      className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-teal-300"
                     />
                   </div>
                 ))}
@@ -337,7 +339,7 @@ export default function TeacherProfile() {
           >
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   Current Password
                 </label>
                 <div className="relative">
@@ -345,12 +347,12 @@ export default function TeacherProfile() {
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     type={showOld ? "text" : "password"}
-                    className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm text-slate-700 outline-none transition focus:border-teal-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-teal-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowOld(!showOld)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300"
                   >
                     {showOld ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -358,7 +360,7 @@ export default function TeacherProfile() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   New Password
                 </label>
                 <div className="relative">
@@ -366,22 +368,22 @@ export default function TeacherProfile() {
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                     type={showNew ? "text" : "password"}
-                    className="w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-sm text-slate-700 outline-none transition focus:border-teal-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-teal-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNew(!showNew)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300"
                   >
                     {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4">
+              <div className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-4">
                 <div className="flex items-start gap-3">
-                  <ShieldCheck size={18} className="mt-0.5 text-teal-700" />
-                  <p className="text-sm leading-6 text-slate-600">
+                  <ShieldCheck size={18} className="mt-0.5 text-teal-700 dark:text-teal-300" />
+                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     Use at least 8 characters and choose a password that is different from your current password.
                   </p>
                 </div>
@@ -392,7 +394,7 @@ export default function TeacherProfile() {
                   type="button"
                   onClick={changePassword}
                   disabled={busy || !currentPassword || !newPassword}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
                 >
                   <Lock size={15} />
                   Update Password

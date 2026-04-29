@@ -8,8 +8,8 @@
     "allowSyntheticDefaultImports": true,
     "target": "es2019",
     "sourceMap": true,
+    "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "strict": false,
     "skipLibCheck": true

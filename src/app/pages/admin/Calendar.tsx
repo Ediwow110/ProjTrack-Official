@@ -10,9 +10,9 @@ const weekdayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const monthLabels = ["April 2026", "May 2026", "June 2026", "July 2026"];
 
 const eventToneClasses: Record<string, string> = {
-  blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/10 dark:text-blue-100",
-  amber: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100",
-  violet: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-500/10 dark:text-violet-100",
+  blue: "border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:border-blue-400/25 dark:bg-blue-500/10 dark:text-blue-100",
+  amber: "border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100",
+  violet: "border-violet-200 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 dark:border-violet-400/25 dark:bg-violet-500/10 dark:text-violet-100",
 };
 
 const dayOfEvent = (event: { date?: number; startsAt?: string }) => {
@@ -125,7 +125,7 @@ export default function AdminCalendar() {
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Institution-wide view of deadlines, broadcasts, requests, and academic milestones.
           </p>
-          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
             {loading ? "Loading calendar…" : `${events.length} event${events.length === 1 ? "" : "s"}`}
           </p>
         </div>
@@ -138,11 +138,11 @@ export default function AdminCalendar() {
                 current === 0 ? monthLabels.length - 1 : current - 1,
               )
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/88 text-slate-500 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronLeft size={16} />
           </button>
-          <div className="rounded-xl border border-slate-200 bg-white/88 px-4 py-2 text-sm font-semibold text-slate-900 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-100">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-100">
             {monthLabels[monthLabelIndex]}
           </div>
           <button
@@ -150,7 +150,7 @@ export default function AdminCalendar() {
             onClick={() =>
               setMonthLabelIndex((current) => (current + 1) % monthLabels.length)
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/88 text-slate-500 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronRight size={16} />
           </button>
@@ -160,7 +160,7 @@ export default function AdminCalendar() {
               setSelectedEventId(null);
               reload();
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/88 text-slate-500 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <RefreshCcw size={15} />
           </button>
@@ -168,13 +168,13 @@ export default function AdminCalendar() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/88 px-3 py-2 text-sm text-slate-500 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-400">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-3 py-2 text-sm text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-400">
           <Filter size={14} />
           <select
             disabled={loading || detailLoading}
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="bg-transparent text-sm text-slate-700 outline-none disabled:opacity-50 dark:text-slate-100"
+            className="bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none disabled:opacity-50 dark:text-slate-100"
           >
             {filterOptions.map((option) => (
               <option key={option}>{option}</option>
@@ -184,12 +184,12 @@ export default function AdminCalendar() {
       </div>
 
       {loading ? (
-        <div className="rounded-[24px] border border-slate-200 bg-white/82 p-5 text-sm text-slate-500 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-400">
+        <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white/82 p-5 text-sm text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-400">
           Loading calendar events…
         </div>
       ) : null}
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-4 text-sm text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
           {error}
         </div>
       ) : null}
@@ -200,7 +200,7 @@ export default function AdminCalendar() {
             {weekdayHeaders.map((day) => (
               <div
                 key={day}
-                className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+                className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
               >
                 {day}
               </div>
@@ -222,12 +222,12 @@ export default function AdminCalendar() {
                   }}
                   className={`min-h-[122px] bg-white/92 p-3 text-left align-top transition-colors disabled:opacity-60 dark:bg-slate-950/65 ${
                     active
-                      ? "bg-blue-50 ring-2 ring-blue-300/80 dark:bg-blue-500/10 dark:ring-blue-400/35"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-900/90"
+                      ? "bg-blue-50 dark:bg-blue-500/15 ring-2 ring-blue-300/80 dark:bg-blue-500/10 dark:ring-blue-400/35"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:hover:bg-slate-900/90"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-sm font-semibold ${active ? "text-blue-700 dark:text-blue-100" : "text-slate-700 dark:text-slate-200"}`}>
+                    <span className={`text-sm font-semibold ${active ? "text-blue-700 dark:text-blue-300 dark:text-blue-100" : "text-slate-700 dark:text-slate-200"}`}>
                       {day}
                     </span>
                     {eventsOnDay.length > 0 ? <span className="h-2 w-2 rounded-full bg-blue-400" /> : null}
@@ -245,7 +245,7 @@ export default function AdminCalendar() {
                       </div>
                     ))}
                     {eventsOnDay.length > 2 ? (
-                      <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-500">
+                      <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500">
                         +{eventsOnDay.length - 2} more
                       </p>
                     ) : null}
@@ -259,18 +259,18 @@ export default function AdminCalendar() {
         <div className="space-y-5">
           <PortalPanel className={loading || detailLoading ? "opacity-80" : undefined}>
             <div className="mb-4 flex items-center gap-2">
-              <CalendarDays size={15} className="text-slate-400" />
+              <CalendarDays size={15} className="text-slate-400 dark:text-slate-300" />
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Selected Day</h2>
             </div>
 
             <p className="text-xl font-bold text-slate-900 dark:text-slate-100">April {selectedDay}, 2026</p>
-            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
               {dayEvents.length} scheduled item{dayEvents.length === 1 ? "" : "s"}
             </p>
 
             <div className="mt-4 space-y-3">
               {dayEvents.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-700/60 dark:text-slate-500">
+                <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400 dark:border-slate-700/60 dark:text-slate-500">
                   No events for this date.
                 </div>
               ) : null}
@@ -282,13 +282,13 @@ export default function AdminCalendar() {
                   onClick={() => setSelectedEventId(event.id)}
                   className={`w-full rounded-xl border p-4 text-left transition-colors ${
                     selectedEvent?.id === event.id
-                      ? "border-blue-300 bg-blue-50 dark:border-blue-400/35 dark:bg-blue-500/10"
-                      : "border-slate-200 bg-white/88 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-950/60 dark:hover:bg-slate-900/80"
+                      ? "border-blue-300 bg-blue-50 dark:bg-blue-500/15 dark:border-blue-400/35 dark:bg-blue-500/10"
+                      : "border-slate-200 dark:border-slate-700 bg-white/88 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-950/60 dark:hover:bg-slate-900/80"
                   }`}
                 >
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{event.title}</p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Audience / Section: {event.section}</p>
-                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                     {labelForEventDate(event, event.day)}
                   </p>
                 </button>
@@ -300,15 +300,15 @@ export default function AdminCalendar() {
             <h2 className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">Event Details</h2>
 
             {!selectedEvent ? (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-700/60 dark:text-slate-500">
+              <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400 dark:border-slate-700/60 dark:text-slate-500">
                 Select an event to inspect the full backend detail.
               </div>
             ) : detailError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
+              <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 p-4 text-sm text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
                 {detailError}
               </div>
             ) : detailLoading ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-950/60 dark:text-slate-400">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-4 text-sm text-slate-500 dark:text-slate-400 dark:border-slate-700/60 dark:bg-slate-950/60 dark:text-slate-400">
                 Loading event details…
               </div>
             ) : (
@@ -323,16 +323,16 @@ export default function AdminCalendar() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/85 p-3 dark:border-slate-700/60 dark:bg-slate-950/55">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-3 dark:border-slate-700/60 dark:bg-slate-950/55">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       Type
                     </p>
                     <p className="mt-1 text-slate-900 dark:text-slate-100">
                       {detail?.type ?? selectedEvent.type ?? "Event"}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/85 p-3 dark:border-slate-700/60 dark:bg-slate-950/55">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-3 dark:border-slate-700/60 dark:bg-slate-950/55">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       When
                     </p>
                     <p className="mt-1 text-slate-900 dark:text-slate-100">

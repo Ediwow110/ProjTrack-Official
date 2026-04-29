@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { clearAuthSession, getAuthSession, type AppRole } from "../lib/mockAuth";
 import { authService } from "../lib/api/services";
+import { apiRuntime } from "../lib/api/runtime";
 
 function isAuthorizationFailure(error: unknown) {
   if (!(error instanceof Error)) return false;
@@ -23,6 +24,7 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
     : "anonymous";
   const [checked, setChecked] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -37,6 +39,7 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
       }
 
       try {
+        setVerificationError("");
         const me = await authService.getCurrentUser();
         if (!mounted) return;
         const roleMatches = String(me?.role || "").toLowerCase() === role && session.role === role;
@@ -52,8 +55,12 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
           return;
         }
 
-        // Keep the current role session during transient backend failures so
-        // direct route reloads do not kick users back to login unnecessarily.
+        if (apiRuntime.useBackend) {
+          setVerificationError("Session verification is temporarily unavailable. Please retry when the backend is reachable.");
+          setAllowed(false);
+          return;
+        }
+
         setAllowed(sessionRole === role);
       } finally {
         if (mounted) setChecked(true);
@@ -71,10 +78,19 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
   }
 
   if (!checked) {
-    return <div className="min-h-[40vh] flex items-center justify-center text-sm font-medium text-slate-500">Checking session…</div>;
+    return <div className="min-h-[40vh] flex items-center justify-center text-sm font-medium text-slate-500 dark:text-slate-400">Checking session…</div>;
   }
 
   if (!allowed) {
+    if (verificationError) {
+      return (
+        <div className="min-h-[40vh] flex items-center justify-center px-6">
+          <div role="alert" className="max-w-lg rounded-[var(--radius-control)] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900 shadow-[var(--shadow-soft)] dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100">
+            {verificationError}
+          </div>
+        </div>
+      );
+    }
     return <Navigate to={`/${role}/login`} replace state={{ from: location.pathname + location.search }} />;
   }
 

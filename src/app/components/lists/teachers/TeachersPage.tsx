@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Mail, Plus, RefreshCcw, UserCog, XCircle } from "lucide-react";
+import { Mail, Plus, RefreshCcw, UserCog } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { RoleListShell } from "../shared/RoleListShell";
@@ -9,11 +9,13 @@ import { BulkActionBar } from "../shared/BulkActionBar";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { PortalNotice } from "../../portal/PortalListPage";
 import { Button } from "../../ui/button";
+import { BootstrapIcon } from "../../ui/bootstrap-icon";
 import { AppModal } from "../../ui/app-modal";
 import { TeacherPreviewDrawer } from "./TeacherPreviewDrawer";
 import { TeachersTable } from "./TeachersTable";
 import { adminCatalogService, adminService } from "../../../lib/api/services";
 import { useAsyncData } from "../../../lib/hooks/useAsyncData";
+import { assertConfirmedMailJob } from "../../../lib/mailActionSafety";
 import type {
   AdminDepartmentRecord,
   AdminTeacherRecord,
@@ -152,18 +154,17 @@ export default function TeachersPage() {
   }
 
   async function sendSetupLink(teacher: AdminTeacherRecord) {
-    if (teacher.status === "Pending Activation") {
-      await adminService.activateTeacher(teacher.id);
-      updateTeacherPatch(teacher.id, {
-        status: "Pending Password Setup",
-      });
-      return;
-    }
-
-    await adminService.sendTeacherResetLink(teacher.id);
+    const result = teacher.status === "Pending Activation"
+      ? await adminService.activateTeacher(teacher.id)
+      : await adminService.sendTeacherResetLink(teacher.id);
+    const mailJobId = assertConfirmedMailJob(
+      result,
+      teacher.status === "Pending Activation" ? "teacher activation email" : "teacher password reset email",
+    );
     updateTeacherPatch(teacher.id, {
       status: "Pending Password Setup",
     });
+    return mailJobId;
   }
 
   async function handleActivate(teacherId: string) {
@@ -172,10 +173,10 @@ export default function TeachersPage() {
     try {
       const teacher = allTeachers.find((item) => item.id === teacherId);
       if (!teacher) throw new Error("Unable to find the selected teacher.");
-      await sendSetupLink(teacher);
+      const mailJobId = await sendSetupLink(teacher);
       await reload();
       setActionState({ busy: false, error: null });
-      showFeedback("success", `Setup link sent for ${teacher.name}.`);
+      showFeedback("success", `Setup MailJob queued for ${teacher.name} (${mailJobId}). Open Mail Jobs to watch delivery.`);
     } catch (activateError) {
       const message =
         activateError instanceof Error ? activateError.message : "Unable to send the setup link.";
@@ -190,11 +191,12 @@ export default function TeachersPage() {
     try {
       const teacher = allTeachers.find((item) => item.id === teacherId);
       if (!teacher) throw new Error("Unable to find the selected teacher.");
-      await adminService.sendTeacherResetLink(teacherId);
+      const result = await adminService.sendTeacherResetLink(teacherId);
+      const mailJobId = assertConfirmedMailJob(result, "teacher password reset email");
       updateTeacherPatch(teacherId, { status: "Pending Password Setup" });
       await reload();
       setActionState({ busy: false, error: null });
-      showFeedback("success", `Reset link sent for ${teacher.name}.`);
+      showFeedback("success", `Reset MailJob queued for ${teacher.name} (${mailJobId}). Open Mail Jobs to watch delivery.`);
     } catch (resetError) {
       const message =
         resetError instanceof Error ? resetError.message : "Unable to send the reset link.";
@@ -207,16 +209,25 @@ export default function TeachersPage() {
     if (actionState.busy || selectedTeachers.length === 0) return;
     setActionState({ busy: true, error: null });
     try {
+      let processed = 0;
+      let skipped = 0;
       for (const teacher of selectedTeachers) {
-        if (teacher.status === "Inactive") continue;
+        if (teacher.status === "Inactive") {
+          skipped += 1;
+          continue;
+        }
         await sendSetupLink(teacher);
+        processed += 1;
       }
       await reload();
       setSelected([]);
       setActionState({ busy: false, error: null });
+      const skippedMessage = skipped ? ` Skipped ${skipped} inactive account${skipped > 1 ? "s" : ""}.` : "";
       showFeedback(
-        "success",
-        `${selectedTeachers.length} teacher account${selectedTeachers.length > 1 ? "s" : ""} processed for setup or reset delivery.`,
+        processed > 0 ? "success" : "error",
+        processed > 0
+          ? `${processed} teacher setup/reset MailJob${processed > 1 ? "s" : ""} queued.${skippedMessage} Open Mail Jobs to watch delivery.`
+          : `No teacher setup/reset emails were queued.${skippedMessage}`,
       );
     } catch (bulkError) {
       const message =
@@ -353,25 +364,25 @@ export default function TeachersPage() {
         notices={(
           <div className="space-y-3">
             {error ? (
-              <PortalNotice tone="danger" icon={<XCircle size={16} />}>
+              <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
                 {error}
               </PortalNotice>
             ) : null}
             {actionState.error ? (
-              <PortalNotice tone="danger" icon={<XCircle size={16} />}>
+              <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
                 {actionState.error}
               </PortalNotice>
             ) : null}
             {feedback ? (
               <PortalNotice
                 tone={feedback.tone === "success" ? "success" : "danger"}
-                icon={feedback.tone === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                icon={feedback.tone === "success" ? <BootstrapIcon name="check-circle-fill" tone="success" /> : <BootstrapIcon name="x-circle-fill" tone="danger" />}
               >
                 {feedback.message}
               </PortalNotice>
             ) : null}
             {departmentsError ? (
-              <PortalNotice tone="danger" icon={<XCircle size={16} />}>
+              <PortalNotice tone="danger" icon={<BootstrapIcon name="x-circle-fill" tone="danger" />}>
                 {departmentsError}
               </PortalNotice>
             ) : null}
@@ -503,7 +514,7 @@ export default function TeachersPage() {
             </p>
           </div>
           {submitState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 md:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
               {submitState.error}
             </div>
           ) : null}
@@ -541,13 +552,13 @@ function FilterSelect({
 }) {
   return (
     <label className="flex min-w-[180px] flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-[var(--radius-control)] border border-slate-200/80 bg-white px-3 text-sm text-slate-700 shadow-[var(--shadow-soft)] outline-none focus:border-[var(--role-accent)] dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-100"
+        className="h-11 rounded-[var(--radius-control)] border border-slate-200/80 bg-white dark:bg-slate-900/85 px-3 text-sm text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] outline-none focus:border-[var(--role-accent)] dark:border-slate-700/60 dark:bg-[var(--surface-soft)] dark:text-slate-100"
       >
         {options.map((option) => (
           <option key={`${label}-${option.value || "all"}`} value={option.value}>
@@ -572,12 +583,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">{label}</label>
       <input
         value={value}
         type={type}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
       />
     </div>
   );
@@ -600,12 +611,12 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">{label}</label>
       <select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-700 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

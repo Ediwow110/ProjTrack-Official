@@ -25,37 +25,34 @@ const toneStyles: Record<
   }
 > = {
   blue: {
-    hero:
-      "bg-[linear-gradient(135deg,rgba(22,47,145,0.96)_0%,rgba(17,78,168,0.9)_48%,rgba(74,111,255,0.82)_100%)] text-white",
-    heroBorder: "border-blue-200/45",
-    heroGlow: "bg-blue-300/20",
-    iconWrap: "bg-white/12 ring-1 ring-white/15",
-    iconColor: "text-white",
-    softBadge: "bg-white/12 text-white/88 ring-1 ring-white/15",
-    statCard: "bg-white/10 text-white",
-    statBorder: "border-white/12",
+    hero: "portal-hero portal-hero-blue",
+    heroBorder: "",
+    heroGlow: "portal-hero-glow-primary",
+    iconWrap: "portal-hero-icon",
+    iconColor: "portal-hero-icon-symbol",
+    softBadge: "portal-hero-badge",
+    statCard: "portal-hero-stat",
+    statBorder: "",
   },
   teal: {
-    hero:
-      "bg-[linear-gradient(135deg,rgba(12,74,110,0.98)_0%,rgba(13,148,136,0.9)_50%,rgba(45,212,191,0.8)_100%)] text-white",
-    heroBorder: "border-teal-200/45",
-    heroGlow: "bg-teal-300/20",
-    iconWrap: "bg-white/12 ring-1 ring-white/15",
-    iconColor: "text-white",
-    softBadge: "bg-white/12 text-white/88 ring-1 ring-white/15",
-    statCard: "bg-white/10 text-white",
-    statBorder: "border-white/12",
+    hero: "portal-hero portal-hero-teal",
+    heroBorder: "",
+    heroGlow: "portal-hero-glow-primary",
+    iconWrap: "portal-hero-icon",
+    iconColor: "portal-hero-icon-symbol",
+    softBadge: "portal-hero-badge",
+    statCard: "portal-hero-stat",
+    statBorder: "",
   },
   slate: {
-    hero:
-      "bg-[linear-gradient(135deg,rgba(15,23,42,0.98)_0%,rgba(30,41,59,0.95)_48%,rgba(71,85,105,0.88)_100%)] text-white",
-    heroBorder: "border-slate-200/45",
-    heroGlow: "bg-slate-200/15",
-    iconWrap: "bg-white/10 ring-1 ring-white/10",
-    iconColor: "text-white",
-    softBadge: "bg-white/10 text-white/88 ring-1 ring-white/10",
-    statCard: "bg-white/8 text-white",
-    statBorder: "border-white/10",
+    hero: "portal-hero portal-hero-slate",
+    heroBorder: "",
+    heroGlow: "portal-hero-glow-primary",
+    iconWrap: "portal-hero-icon",
+    iconColor: "portal-hero-icon-symbol",
+    softBadge: "portal-hero-badge",
+    statCard: "portal-hero-stat",
+    statBorder: "",
   },
 };
 
@@ -117,12 +114,12 @@ export function PortalHero({
           toneStyle.heroGlow,
         )}
       />
-      <div className="absolute bottom-0 left-8 h-24 w-40 rounded-full bg-white/10 blur-3xl" />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-white/20" />
+      <div className="portal-hero-glow-secondary absolute bottom-0 left-8 h-24 w-40 rounded-full blur-3xl" />
+      <div className="portal-hero-divider absolute inset-x-0 bottom-0 h-px" />
 
       <div className="relative flex flex-col gap-[var(--section-gap-xl)] xl:flex-row xl:items-end xl:justify-between">
         <Stack gap="md" className="max-w-3xl">
-          {eyebrow ? <Eyebrow className="text-white/70">{eyebrow}</Eyebrow> : null}
+          {eyebrow ? <Eyebrow className="portal-hero-eyebrow">{eyebrow}</Eyebrow> : null}
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             {Icon ? (
@@ -137,11 +134,11 @@ export function PortalHero({
             ) : null}
 
             <Stack gap="sm">
-              <DisplayTitle className="text-white">
+              <DisplayTitle className="portal-hero-title">
                 {title}
               </DisplayTitle>
               {description ? (
-                <BodyText className="max-w-2xl text-base" tone="inverse">
+                <BodyText className="portal-hero-body max-w-2xl text-base" tone="inverse">
                   {description}
                 </BodyText>
               ) : null}
@@ -158,8 +155,8 @@ export function PortalHero({
                     toneStyle.softBadge,
                   )}
                 >
-                  <span className="text-white/60">{item.label}</span>
-                  {item.value ? <span>{item.value}</span> : null}
+                  <span className="portal-hero-badge-label">{item.label}</span>
+                  {item.value ? <span className="portal-hero-badge-value">{item.value}</span> : null}
                 </div>
               ))}
             </div>
@@ -184,12 +181,12 @@ export function PortalHero({
                 toneStyle.statBorder,
               )}
             >
-              <Eyebrow className="text-[0.68rem] text-white/58">{stat.label}</Eyebrow>
+              <Eyebrow className="portal-hero-stat-label text-[0.68rem]">{stat.label}</Eyebrow>
               <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
                 {stat.value}
               </p>
               {stat.hint ? (
-                <BodyText className="mt-1.5 text-xs leading-5 text-white/65" tone="inverse">
+                <BodyText className="portal-hero-stat-hint mt-1.5 text-xs leading-5" tone="inverse">
                   {stat.hint}
                 </BodyText>
               ) : null}
@@ -219,7 +216,7 @@ export function PortalPanel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[var(--radius-panel)] border border-white/65 bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-[var(--surface-panel)]",
+        "portal-card overflow-hidden rounded-[var(--radius-panel)] border shadow-[var(--shadow-panel)]",
         className,
       )}
     >
@@ -262,22 +259,22 @@ export function PortalMetricCard({
       wrap:
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(239,246,255,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]",
       iconWrap: "bg-blue-100 dark:bg-blue-500/15",
-      iconColor: "text-blue-700 dark:text-blue-200",
+      iconColor: "text-blue-700 dark:text-blue-300 dark:text-blue-200",
       hintColor: "text-blue-700/70 dark:text-blue-200/70",
     },
     teal: {
       wrap:
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(240,253,250,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(19,78,74,0.28)_100%)]",
       iconWrap: "bg-teal-100 dark:bg-teal-500/15",
-      iconColor: "text-teal-700 dark:text-teal-200",
+      iconColor: "text-teal-700 dark:text-teal-300 dark:text-teal-200",
       hintColor: "text-teal-700/70 dark:text-teal-200/70",
     },
     slate: {
       wrap:
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(248,250,252,0.94)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]",
       iconWrap: "bg-slate-200 dark:bg-slate-700/70",
-      iconColor: "text-slate-700 dark:text-slate-100",
-      hintColor: "text-slate-500 dark:text-slate-300/75",
+      iconColor: "text-slate-700 dark:text-slate-200 dark:text-slate-100",
+      hintColor: "text-slate-500 dark:text-slate-400 dark:text-slate-300/75",
     },
   };
   const palette = toneMap[tone];
@@ -331,12 +328,12 @@ export function PortalEmptyState({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-panel)] border border-dashed border-slate-300 bg-[var(--surface-panel)] px-6 py-10 text-center shadow-[var(--shadow-panel)] dark:border-slate-700/70 dark:bg-[var(--surface-panel)]",
+        "portal-card rounded-[var(--radius-panel)] border border-dashed px-6 py-10 text-center shadow-[var(--shadow-panel)]",
         className,
       )}
     >
       {Icon ? (
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 dark:bg-slate-800 dark:text-slate-300">
           <Icon size={22} />
         </div>
       ) : null}

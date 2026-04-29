@@ -116,6 +116,8 @@ export interface AuditLogRecord {
   action: string;
   module: string;
   user: string;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
   target: string;
   time: string;
   role: "Admin" | "Teacher" | "Student";
@@ -227,6 +229,32 @@ export interface AdminSubmissionRecord {
   submitted: string;
   status: string;
   grade: string;
+  statusKey?: string;
+  subjectCode?: string;
+  taskId?: string;
+  taskTitle?: string;
+  subjectId?: string;
+  studentId?: string | null;
+  studentNumber?: string | null;
+  groupId?: string | null;
+  ownerLabel?: string;
+  feedback?: string;
+  notes?: string;
+  externalLinks?: string[];
+}
+
+export interface AdminSubmissionUpsertInput {
+  taskId: string;
+  subjectId: string;
+  studentId?: string;
+  groupId?: string;
+  title: string;
+  status: string;
+  grade?: string;
+  feedback?: string;
+  notes?: string;
+  submittedAt?: string;
+  externalLinks?: string[];
 }
 
 export interface StudentSubmitActivitySubmissionContext {
@@ -307,12 +335,44 @@ export interface TeacherSubmissionReviewResponse {
 
 export interface AdminNotificationRecord {
   id: string;
+  userId?: string | null;
+  dedupeKey?: string | null;
   date: string;
   type: "account" | "request" | "system";
   read: boolean;
   title: string;
   body: string;
   time: string;
+}
+
+export interface AdminUserRecord {
+  id: string;
+  displayIdentifier: string;
+  identifierLabel: string;
+  profileId?: string | null;
+  email: string;
+  role: string;
+  status: string;
+  statusKey?: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  office?: string;
+  createdAt: string;
+  updatedAt: string;
+  profileLabel: string;
+  studentNumber?: string | null;
+  employeeId?: string | null;
+  isSeedCandidate?: boolean;
+}
+
+export interface AdminCreateUserInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  office?: string;
+  sendActivationEmail?: boolean;
 }
 
 
@@ -619,9 +679,11 @@ export interface AdminTeacherRecord {
   name: string;
   email: string;
   dept: string;
+  employeeId?: string | null;
   subjects: number;
   students: number;
   status: string;
+  lastActive?: string;
 }
 
 export interface AdminTeacherUpsertInput {
@@ -638,10 +700,17 @@ export interface AdminDepartmentRecord {
   description?: string;
   teachers: number;
   subjects: number;
+  isLegacy?: boolean;
+  canDelete?: boolean;
 }
 
 export interface AdminDepartmentCreateInput {
   name: string;
+  description?: string;
+}
+
+export interface AdminDepartmentUpdateInput {
+  name?: string;
   description?: string;
 }
 
@@ -874,6 +943,90 @@ export interface SystemToolRecord {
   lastRunAt?: string;
 }
 
+export interface SeedCleanupUserPreview {
+  id: string;
+  email: string;
+  role: string;
+  name: string;
+  studentNumber?: string | null;
+  employeeId?: string | null;
+}
+
+export interface SeedCleanupSubjectPreview {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface SeedCleanupTaskPreview {
+  id: string;
+  title: string;
+  subjectId: string;
+}
+
+export interface SeedCleanupGroupPreview {
+  id: string;
+  name: string;
+  inviteCode: string;
+  subjectId: string;
+}
+
+export interface SeedCleanupSubmissionPreview {
+  id: string;
+  title: string;
+  studentId?: string | null;
+  groupId?: string | null;
+  subjectId: string;
+}
+
+export interface SeedCleanupNotificationPreview {
+  id: string;
+  userId: string;
+  title: string;
+}
+
+export interface SeedCleanupMailJobPreview {
+  id: string;
+  email: string;
+  idempotencyKey?: string | null;
+}
+
+export interface SeedCleanupPreview {
+  summary: string;
+  safeToExecute: boolean;
+  totalRecords: number;
+  nonZeroEntityCount: number;
+  confirmationWord: string;
+  backupRequired: boolean;
+  envGuards: {
+    allowSeedDataCleanup: boolean;
+    production: boolean;
+    allowProductionAdminToolRuns: boolean | null;
+  };
+  counts: {
+    users: number;
+    studentProfiles: number;
+    teacherProfiles: number;
+    subjects: number;
+    activities: number;
+    groups: number;
+    submissions: number;
+    notifications: number;
+    mailJobs: number;
+  };
+  details: string[];
+  executionDetails: string[];
+  blockedReasons?: string[];
+  envWarnings?: string[];
+  users: SeedCleanupUserPreview[];
+  subjects: SeedCleanupSubjectPreview[];
+  tasks: SeedCleanupTaskPreview[];
+  groups: SeedCleanupGroupPreview[];
+  submissions: SeedCleanupSubmissionPreview[];
+  notifications: SeedCleanupNotificationPreview[];
+  mailJobs: SeedCleanupMailJobPreview[];
+}
+
 export interface SystemToolRunResult {
   toolId: string;
   title: string;
@@ -882,6 +1035,12 @@ export interface SystemToolRunResult {
   details: string[];
   artifactPath?: string;
   ranAt: string;
+  preview?: SeedCleanupPreview;
+  executed?: boolean;
+  executedAt?: string;
+  executedBy?: string;
+  recordsDeleted?: number;
+  blockedReasons?: string[];
 }
 
 export interface SystemToolRunResponse {
@@ -932,9 +1091,21 @@ export interface TeacherAssignedSectionRecord {
 }
 
 
+export interface MailJobRecipient {
+  email: string;
+  userId?: string;
+  role?: "STUDENT" | "TEACHER" | "ADMIN" | string;
+  fullName?: string;
+  studentId?: string;
+  teacherId?: string;
+  employeeId?: string;
+  isExternal: boolean;
+}
+
 export interface MailJobRecord {
   id: string;
   to: string;
+  recipient?: MailJobRecipient;
   deliveryRecipient?: string;
   routedToTestmail?: boolean;
   fromEmail?: string;
@@ -942,15 +1113,70 @@ export interface MailJobRecord {
   status: "queued" | "processing" | "sent" | "failed" | "dead" | "cancelled";
   createdAt: string;
   sentAt?: string;
+  archivedAt?: string;
   provider?: string;
   attempts?: number;
   maxAttempts?: number;
+  retryableFailure?: boolean;
   lastAttemptAt?: string;
   nextAttemptAt?: string;
   lastError?: string;
   failureHint?: string;
   failureReason?: string;
   providerMessageId?: string;
+}
+
+export interface MailRuntimeStatus {
+  provider: string;
+  deliveryMode?: string | null;
+  realDeliveryActive?: boolean;
+  localStub?: boolean;
+  workerHealthy?: boolean;
+  dedicatedWorkerHealthy?: boolean;
+  dedicatedWorkerProvider?: string | null;
+  heartbeatFresh?: boolean;
+  heartbeatProviderMatches?: boolean;
+  workerHeartbeatAgeSeconds?: number | null;
+  workerEnabled: boolean | null;
+  workerRunning: boolean | null;
+  apiProcessWorkerEnabled?: boolean | null;
+  apiProcessWorkerRunning?: boolean | null;
+  workerId?: string | null;
+  workerPollMs?: number | null;
+  workerLastHeartbeatAt?: string | null;
+  workerLastProcessedAt?: string | null;
+  queueDepth: number;
+  queuedCount?: number;
+  processingCount: number;
+  queuedTooLongCount?: number;
+  processingTooLongCount?: number;
+  failedCount: number;
+  deadCount: number;
+  archivedCount?: number;
+  recentDeadCount?: number;
+  pausedLimitReached: number;
+  sent24h: number;
+  latestSentAt?: string | null;
+  latestProcessedAt?: string | null;
+  latestFailureReason?: string | null;
+  latestSafeProviderError?: string | null;
+  recentFailureReason?: string | null;
+  recentFailureSafeMessage?: string | null;
+  senderConfig?: {
+    fromName?: string | null;
+    admin?: string | null;
+    noreply?: string | null;
+    invite?: string | null;
+    notification?: string | null;
+    support?: string | null;
+  };
+  senderConfigIssues?: string[];
+  alerts?: Array<{
+    code: string;
+    severity: "info" | "warning" | "error";
+    message: string;
+  }>;
+  detail?: string;
 }
 
 
@@ -960,6 +1186,70 @@ export interface SystemHealthRecord {
   ok: boolean;
   detail: string;
   checkedAt: string;
+}
+
+export interface BackupRunRecord {
+  id: string;
+  status: string;
+  trigger: string;
+  backupType: string;
+  fileName?: string | null;
+  artifactPath?: string | null;
+  artifactAvailable?: boolean;
+  sizeBytes?: number | null;
+  sha256?: string | null;
+  storage: string;
+  storageProvider?: string;
+  storageRoot?: string;
+  isProtected: boolean;
+  recordCounts?: Record<string, number> | null;
+  expiresAt?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  deletedAt?: string | null;
+  error?: string | null;
+  warnings?: string[];
+}
+
+export interface BackupDetailResponse extends BackupRunRecord {
+  manifest?: Record<string, unknown> | null;
+  restoreSupported: boolean;
+  restoreUnsupportedReason?: string | null;
+}
+
+export interface BackupSettingsResponse {
+  enabled: boolean;
+  frequency: "daily" | "weekly" | "monthly" | "custom";
+  timeOfDay: string;
+  timezone: string;
+  weeklyDay: number;
+  monthlyDay: number;
+  customIntervalHours: number;
+  retentionDays: number;
+  retentionCount: number;
+  nextScheduledBackup?: string | null;
+  lastAutomaticBackupAt?: string | null;
+  lastAutomaticFailureReason?: string | null;
+  workerEnabledByEnv?: boolean;
+  workerStatus?: string;
+  storageProvider?: string;
+  storageRoot?: string;
+}
+
+export interface BackupHistoryResponse {
+  latestSuccessful: BackupRunRecord | null;
+  oldestAvailable: BackupRunRecord | null;
+  totalBackups: number;
+  failedBackups: number;
+  storageUsedBytes: number;
+  nextAutomaticBackup?: string | null;
+  storageProvider?: string;
+  storageRoot?: string;
+  restoreSupported?: boolean;
+  restoreUnsupportedReason?: string | null;
+  automaticSettings?: BackupSettingsResponse;
+  warnings?: string[];
+  rows: BackupRunRecord[];
 }
 
 

@@ -1,7 +1,7 @@
 import { AUTH_QUERY_KEYS, AUTH_ROUTE_FRAGMENTS } from '../constants/auth.constants';
 
 function frontendBaseUrl() {
-  return String(process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  return String(process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173').replace(/\/+$/, '');
 }
 
 function buildFrontendUrl(path: string, params?: Record<string, string | undefined | null>) {

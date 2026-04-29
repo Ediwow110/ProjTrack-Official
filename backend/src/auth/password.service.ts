@@ -28,14 +28,24 @@ export class PasswordService {
       return false;
     }
 
-    const [, salt, hashed] = stored.split(':');
-    const candidate = scryptSync(password, salt, 64);
-    const target = Buffer.from(hashed, 'hex');
-    return candidate.length === target.length && timingSafeEqual(candidate, target);
+    try {
+      const parts = stored.split(':');
+      if (parts.length !== 3) return false;
+      const [, salt, hashed] = parts;
+      if (!salt || !/^[a-f0-9]{32}$/i.test(salt) || !/^[a-f0-9]{128}$/i.test(hashed)) {
+        return false;
+      }
+      const candidate = scryptSync(password, salt, 64);
+      const target = Buffer.from(hashed, 'hex');
+      return candidate.length === target.length && timingSafeEqual(candidate, target);
+    } catch {
+      return false;
+    }
   }
 
   needsRehash(stored?: string | null) {
-    if (!stored) return true;
-    return !stored.startsWith('scrypt:');
+    if (!stored || !stored.startsWith('scrypt:')) return false;
+    const [, salt, hashed] = stored.split(':');
+    return !salt || !/^[a-f0-9]{32}$/i.test(salt) || !/^[a-f0-9]{128}$/i.test(hashed);
   }
 }

@@ -1,4 +1,4 @@
-import { Download, Eye, FileEarmarkText, Trash } from "react-bootstrap-icons";
+import { Download, Eye, FileText, Trash2 } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
@@ -46,7 +46,7 @@ export function FileInventoryTable({
     <DataTableCard
       title="Stored files"
       description="Review uploaded files, linked submission metadata, and download references from one shared inventory table."
-      action={loading ? <span className="text-xs font-medium text-slate-400">Loading files...</span> : null}
+      action={loading ? <span className="text-xs font-medium text-slate-400 dark:text-slate-300">Loading files...</span> : null}
       columns={[
         {
           key: "fileName",
@@ -54,12 +54,12 @@ export function FileInventoryTable({
           sortable: true,
           renderCell: (file) => (
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800/70">
-                <FileEarmarkText size={16} className="text-slate-600 dark:text-slate-300" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800/80 dark:bg-slate-800/70">
+                <FileText size={16} className="text-slate-600 dark:text-slate-300" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{file.fileName}</p>
-                <p className="mt-1 text-[10px] text-slate-400">{file.storedName}</p>
+                <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-300">{file.storedName}</p>
               </div>
             </div>
           ),
@@ -69,7 +69,7 @@ export function FileInventoryTable({
           header: "Scope",
           sortable: true,
           renderCell: (file) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{file.scope || "—"}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{file.scope || "—"}</span>
           ),
         },
         {
@@ -78,7 +78,7 @@ export function FileInventoryTable({
           sortable: true,
           align: "right",
           renderCell: (file) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
               {formatInventorySize(file.sizeBytes)}
             </span>
           ),
@@ -88,7 +88,7 @@ export function FileInventoryTable({
           header: "Uploaded",
           sortable: true,
           renderCell: (file) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
               {formatInventoryDate(file.uploadedAt)}
             </span>
           ),
@@ -134,7 +134,7 @@ export function FileInventoryTable({
             file.relativePath && deletingPath === file.relativePath
               ? "Deleting..."
               : "Delete",
-          icon: <Trash size={15} />,
+          icon: <Trash2 size={15} />,
           ariaLabel: `Delete ${file.fileName}`,
           onClick: () => onDelete(file),
           tone: "danger",

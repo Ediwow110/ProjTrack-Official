@@ -6,16 +6,21 @@ import {
   scaleInVariants,
   staggerContainer,
 } from "../../lib/motion";
-import { PageContainer, Stack } from "../layout/primitives";
-import { BodyText, DisplayTitle, Eyebrow, SectionTitle } from "../ui/typography";
+import { roleThemeStyle, roleThemes, type PortalRole } from "../../lib/roleTheme";
+import { ProjTrackLogo } from "../brand/ProjTrackLogo";
 import { cn } from "../ui/utils";
 
-type AuthRole = "student" | "teacher" | "admin";
 type AuthIcon = ComponentType<{
   size?: string | number;
   className?: string;
   strokeWidth?: string | number;
 }>;
+
+const roleNames: Record<PortalRole, string> = {
+  student: "Student",
+  teacher: "Teacher",
+  admin: "Admin",
+};
 
 export function AuthLayout({
   role,
@@ -28,7 +33,7 @@ export function AuthLayout({
   children,
   footer,
 }: {
-  role: AuthRole;
+  role: PortalRole;
   title: string;
   subtitle: string;
   hint: string;
@@ -39,89 +44,64 @@ export function AuthLayout({
   footer?: ReactNode;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
+  const theme = roleThemes[role];
 
   return (
     <div
       className={cn(
-        "auth-login-page min-h-screen bg-[var(--surface-canvas)] text-[var(--text-strong)]",
+        "auth-login-page auth-starry-login min-h-screen overflow-hidden text-white",
         `portal-role-${role}`,
       )}
+      style={roleThemeStyle(role)}
+      data-auth-role={role}
     >
-      <div className="auth-role-background min-h-screen">
-        <PageContainer
-          width="wide"
-          className="relative flex min-h-screen items-center py-[clamp(1.5rem,4vw,3rem)]"
-        >
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <motion.div
-              className="auth-ambient-orb auth-ambient-orb-primary left-[-5rem] top-12 h-48 w-48 md:h-64 md:w-64"
-              animate={
-                reducedMotion
-                  ? { opacity: 0.65 }
-                  : { x: [0, 18, 0], y: [0, -12, 0], scale: [1, 1.04, 1] }
-              }
-              transition={
-                reducedMotion
-                  ? { duration: 0 }
-                  : { duration: 12, ease: "easeInOut", repeat: Infinity }
-              }
-            />
-            <motion.div
-              className="auth-ambient-orb auth-ambient-orb-secondary bottom-8 right-[-4rem] h-56 w-56 md:h-72 md:w-72"
-              animate={
-                reducedMotion
-                  ? { opacity: 0.55 }
-                  : { x: [0, -16, 0], y: [0, 14, 0], scale: [1, 1.05, 1] }
-              }
-              transition={
-                reducedMotion
-                  ? { duration: 0 }
-                  : { duration: 14, ease: "easeInOut", repeat: Infinity }
-              }
-            />
-          </div>
+      <div className="auth-starfield" aria-hidden="true" />
+      <div className="auth-dot-grid" aria-hidden="true" />
+      <motion.div
+        className="auth-space-glow auth-space-glow-primary"
+        aria-hidden="true"
+        animate={reducedMotion ? { opacity: 0.72 } : { opacity: [0.62, 0.82, 0.62], scale: [1, 1.035, 1] }}
+        transition={reducedMotion ? { duration: 0 } : { duration: 12, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="auth-space-glow auth-space-glow-secondary"
+        aria-hidden="true"
+        animate={reducedMotion ? { opacity: 0.48 } : { opacity: [0.42, 0.6, 0.42], scale: [1, 1.025, 1] }}
+        transition={reducedMotion ? { duration: 0 } : { duration: 14, repeat: Infinity, ease: "easeInOut" }}
+      />
 
-          <motion.div
-            className="grid w-full overflow-hidden rounded-[calc(var(--radius-hero)+0.25rem)] border border-white/75 bg-[rgba(255,255,255,0.78)] shadow-[var(--shadow-shell)] backdrop-blur-xl lg:grid-cols-[minmax(0,1.05fr)_minmax(26rem,0.95fr)]"
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1240px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid flex-1 items-center gap-8 py-6 md:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(27rem,35rem)] lg:gap-14">
+          <motion.aside
+            className="auth-login-hero"
             initial="hidden"
             animate="visible"
-            variants={scaleInVariants(reducedMotion, { scale: 0.992 })}
+            variants={staggerContainer(reducedMotion, {
+              delayChildren: 0.08,
+              staggerChildren: 0.08,
+            })}
           >
-            <motion.aside
-              className="auth-role-hero relative hidden min-h-[42rem] flex-col justify-between p-8 text-white lg:flex xl:p-10"
-              variants={staggerContainer(reducedMotion, {
-                delayChildren: 0.08,
-                staggerChildren: 0.08,
-              })}
-            >
-              <div className="absolute inset-x-0 bottom-0 h-px bg-white/15" />
-              <Stack gap="lg" className="relative z-10">
-                <motion.div
-                  className="flex items-center justify-between gap-4"
-                  variants={fadeUpVariants(reducedMotion)}
-                >
-                  <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white/72 backdrop-blur-sm">
-                    {badge}
-                  </div>
-                </motion.div>
+            <motion.div variants={fadeUpVariants(reducedMotion)}>
+              <ProjTrackLogo
+                role={role}
+                inverse
+                subtitle={theme.label}
+                showRoleDot
+                className="auth-hero-logo"
+                markClassName="h-[4.25rem] w-[4.25rem] rounded-[1.45rem]"
+                textClassName="auth-hero-logo-text"
+              />
+            </motion.div>
 
-                <motion.div className="max-w-xl" variants={fadeUpVariants(reducedMotion, { delay: 0.04 })}>
-                  <motion.div
-                    className="mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-white/12 ring-1 ring-white/15 backdrop-blur-sm"
-                    variants={scaleInVariants(reducedMotion, { delay: 0.08, scale: 0.94 })}
-                  >
-                    <Icon size={28} className="text-white" />
-                  </motion.div>
-                  <Eyebrow className="text-white/65">ProjTrack Access</Eyebrow>
-                  <DisplayTitle className="mt-4 text-white">{title}</DisplayTitle>
-                  <BodyText className="mt-4 max-w-lg text-base" tone="inverse">
-                    {subtitle}
-                  </BodyText>
-                </motion.div>
-              </Stack>
+            <motion.div className="auth-hero-copy" variants={fadeUpVariants(reducedMotion, { delay: 0.04 })}>
+              <p className="auth-hero-eyebrow">{badge}</p>
+              <h1 className="auth-hero-title">{title}</h1>
+              <p className="auth-hero-subtitle">{subtitle}</p>
+            </motion.div>
 
+            {metrics.length ? (
               <motion.div
-                className="relative z-10 grid grid-cols-3 gap-3"
+                className="auth-login-metrics"
                 variants={staggerContainer(reducedMotion, {
                   delayChildren: 0.18,
                   staggerChildren: 0.06,
@@ -130,59 +110,53 @@ export function AuthLayout({
                 {metrics.map((metric) => (
                   <motion.div
                     key={metric.label}
-                    className="rounded-[var(--radius-card)] border border-white/12 bg-white/8 px-4 py-4 backdrop-blur-sm"
-                    variants={fadeUpVariants(reducedMotion, { distance: 14 })}
+                    className="auth-login-metric"
+                    variants={fadeUpVariants(reducedMotion, { distance: 12 })}
                   >
-                    <p className="text-2xl font-semibold tracking-[-0.04em] text-white">
-                      {metric.value}
-                    </p>
-                    <p className="mt-2 text-[0.72rem] font-medium leading-5 text-white/58">
-                      {metric.label}
-                    </p>
+                    <p>{metric.value}</p>
+                    <span>{metric.label}</span>
                   </motion.div>
                 ))}
               </motion.div>
-            </motion.aside>
+            ) : null}
+          </motion.aside>
 
-            <motion.main
-              className="flex min-h-[42rem] flex-col justify-center bg-[rgba(255,255,255,0.88)] p-6 sm:p-8 lg:p-10"
-              variants={staggerContainer(reducedMotion, {
-                delayChildren: 0.12,
-                staggerChildren: 0.08,
-              })}
+          <motion.main
+            className="auth-login-card"
+            variants={scaleInVariants(reducedMotion, { scale: 0.982 })}
+            initial="hidden"
+            animate="visible"
+            data-testid="login-card"
+          >
+            <motion.div
+              className="auth-card-icon"
+              variants={scaleInVariants(reducedMotion, { delay: 0.08, scale: 0.92 })}
             >
-              <motion.div className="mt-0" variants={fadeUpVariants(reducedMotion)}>
-                <div className="flex items-start gap-4">
-                  <motion.div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-[var(--role-accent)] text-white shadow-[var(--shadow-soft)]"
-                    variants={scaleInVariants(reducedMotion, { delay: 0.04, scale: 0.92 })}
-                  >
-                    <Icon size={20} />
-                  </motion.div>
-                  <div className="min-w-0">
-                    <Eyebrow className="portal-accent-text auth-heading-eyebrow">{badge}</Eyebrow>
-                    <SectionTitle className="auth-heading-title mt-2 text-2xl sm:text-[1.8rem]">
-                      {title}
-                    </SectionTitle>
-                    <BodyText className="auth-heading-body mt-2 max-w-lg" tone="muted">
-                      {hint}
-                    </BodyText>
-                  </div>
-                </div>
-              </motion.div>
+              <Icon size={42} strokeWidth={1.8} />
+            </motion.div>
 
-              <motion.div className="mt-8" variants={fadeUpVariants(reducedMotion, { delay: 0.04 })}>
-                {children}
-              </motion.div>
+            <motion.div variants={fadeUpVariants(reducedMotion, { delay: 0.1 })}>
+              <p className="auth-card-kicker">{theme.label}</p>
+              <h2 className="auth-card-title">Welcome Back!</h2>
+              <p className="auth-card-hint">{hint}</p>
+            </motion.div>
 
-              {footer ? (
-                <motion.div className="mt-6 auth-footer-text" variants={fadeUpVariants(reducedMotion, { delay: 0.08 })}>
-                  {footer}
-                </motion.div>
-              ) : null}
-            </motion.main>
-          </motion.div>
-        </PageContainer>
+            <motion.div className="mt-7" variants={fadeUpVariants(reducedMotion, { delay: 0.14 })}>
+              {children}
+            </motion.div>
+
+            {footer ? (
+              <motion.div
+                className="auth-footer-text mt-6"
+                variants={fadeUpVariants(reducedMotion, { delay: 0.18 })}
+              >
+                {footer}
+              </motion.div>
+            ) : null}
+
+            <span className="sr-only">{`Sign in to the ${roleNames[role]} portal`}</span>
+          </motion.main>
+        </div>
       </div>
     </div>
   );
@@ -203,11 +177,11 @@ export function AuthField({
 }) {
   return (
     <label htmlFor={htmlFor} className="block">
-      <Eyebrow as="span" className="mb-3 block text-slate-500">
+      <span className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-300">
         {label}
-      </Eyebrow>
-      <div className="auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-slate-200 bg-white/92 px-4 py-3 shadow-[var(--shadow-soft)]">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+      </span>
+      <div className="auth-field-control auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.06] px-4 py-3.5 shadow-[0_18px_46px_-38px_rgba(2,6,23,0.95)]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-slate-300">
           <Icon size={16} />
         </div>
         <div className="min-w-0 flex-1">{children}</div>

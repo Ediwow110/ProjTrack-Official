@@ -40,7 +40,7 @@ export class SubjectsController {
 
   @Roles('STUDENT')
   @Post('student/groups/join-by-code')
-  joinByCode(@Body() body: { code: string; userId?: string }, @Req() req: any) {
+  joinByCode(@Body() body: { subjectId?: string; code: string; userId?: string }, @Req() req: any) {
     return this.subjects.joinGroupByCode({ ...body, userId: req.user?.sub });
   }
 

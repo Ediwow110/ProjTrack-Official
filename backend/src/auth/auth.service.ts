@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { RequestResetDto } from './dto/request-reset.dto';
@@ -13,8 +13,10 @@ import { AuthThrottleService } from './auth-throttle.service';
 import { AccountActionTokenService } from './account-action-token.service';
 import { buildResetPasswordLink } from '../common/utils/frontend-links';
 import { FilesService } from '../files/files.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   canSendPasswordRecoveryInstructions,
+  isActiveUserStatus,
   isBlockedPasswordRecoveryStatus,
   isPendingSetupStatus,
 } from '../common/utils/account-setup-status';
@@ -25,6 +27,8 @@ const FORGOT_PASSWORD_GENERIC_MESSAGE = 'If this email exists, we sent instructi
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly auditLogs: AuditLogsService,
     private readonly userRepository: UserRepository,
@@ -35,6 +39,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly files: FilesService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async login(body: LoginDto, requestMeta?: RequestMeta) {
@@ -60,13 +65,6 @@ export class AuthService {
     if (user.status !== 'ACTIVE') {
       await this.authThrottle.recordFailure('login', throttleKey);
       throw new UnauthorizedException(`Account is ${user.status.toLowerCase().replace(/_/g, ' ')}.`);
-    }
-
-    if (this.passwordService.needsRehash((user as any).password ?? (user as any).passwordHash)) {
-      await this.userRepository.updateAuthFields(user.id, {
-        password: this.passwordService.hash(body.password),
-        updatedAt: new Date().toISOString(),
-      });
     }
 
     await this.authThrottle.reset('login', throttleKey);
@@ -129,7 +127,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid access token.');
     }
     const user = await this.userRepository.findById(String(payload.sub));
-    if (!user) {
+    if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('User not found.');
     }
     const avatarRelativePath = await this.resolveAvatarRelativePath(user.avatarRelativePath);
@@ -150,14 +148,22 @@ export class AuthService {
     }
     this.passwordService.assertStrongPassword(body.password);
 
-    const user = await this.accountActionTokens.consumeActivation(body.ref, body.token);
-
-    await this.userRepository.updateAuthFields(user.id, {
-      password: this.passwordService.hash(body.password),
-      status: 'ACTIVE',
-      updatedAt: new Date().toISOString(),
+    let user: any;
+    await this.prisma.$transaction(async (tx) => {
+      user = await this.accountActionTokens.consumeActivationTx(tx, body.ref, body.token);
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: this.passwordService.hash(body.password),
+          status: 'ACTIVE',
+          updatedAt: new Date(),
+        },
+      });
+      await tx.authSession.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date(), lastUsedAt: new Date() },
+      });
     });
-    await this.authSessions.revokeAllForUser(user.id);
 
     await this.auditLogs.record({
       actorUserId: user.id,
@@ -174,67 +180,129 @@ export class AuthService {
   }
 
   async forgotPassword(body: RequestResetDto, requestMeta?: RequestMeta) {
-    const throttleKey = this.authThrottle.buildKey('forgot-password', body.email, requestMeta?.ipAddress);
-    await this.authThrottle.assertNotBlocked('forgot-password', throttleKey);
-    const user = await this.userRepository.findByEmail(body.email);
+    const normalizedEmail = String(body.email ?? '').trim().toLowerCase();
+    const requestedRole = String(body.role ?? '').trim().toUpperCase();
+    const throttleKey = this.authThrottle.buildKey('forgot-password', normalizedEmail, requestMeta?.ipAddress);
+    const diagnostics: Record<string, unknown> = {
+      event: 'auth.forgot_password',
+      normalizedEmail,
+      requestedRole: requestedRole || null,
+      matchedUser: false,
+      roleMatched: false,
+      userStatus: null,
+      throttled: false,
+      tokenCreated: false,
+      tokenReused: false,
+      mailJobCreated: false,
+      mailJobId: null,
+      skippedReason: null,
+    };
+
+    try {
+      await this.authThrottle.assertNotBlocked('forgot-password', throttleKey);
+    } catch (error) {
+      diagnostics.throttled = true;
+      diagnostics.skippedReason = 'throttled';
+      this.logForgotPasswordDiagnostics(diagnostics);
+      throw error;
+    }
+    await this.authThrottle.recordFailure('forgot-password', throttleKey);
+    const user = await this.userRepository.findByEmail(normalizedEmail);
     if (!user) {
-      await this.authThrottle.recordFailure('forgot-password', throttleKey);
+      diagnostics.skippedReason = 'user_not_found';
+      this.logForgotPasswordDiagnostics(diagnostics);
       return { success: true, message: FORGOT_PASSWORD_GENERIC_MESSAGE };
     }
+    diagnostics.matchedUser = true;
+    diagnostics.userStatus = user.status;
 
-    if (!canSendPasswordRecoveryInstructions(user.status)) {
+    const roleMatched = !requestedRole || user.role === requestedRole;
+    diagnostics.roleMatched = roleMatched;
+    if (!roleMatched) {
+      diagnostics.skippedReason = 'role_mismatch';
       await this.auditLogs.record({
         actorUserId: user.id,
         actorRole: user.role,
         action: 'PASSWORD_RECOVERY_SKIPPED',
         module: 'Auth',
-        target: user.email,
+        target: normalizedEmail,
         entityId: user.id,
-        result: isBlockedPasswordRecoveryStatus(user.status) ? 'Denied' : 'Failed',
-        details: `Password recovery instructions were not sent because the account status is ${String(
-          user.status,
-        )
-          .toLowerCase()
-          .replace(/_/g, ' ')}.`,
+        result: 'Denied',
+        details: JSON.stringify(diagnostics),
         ipAddress: requestMeta?.ipAddress,
       });
-      await this.authThrottle.reset('forgot-password', throttleKey);
+      this.logForgotPasswordDiagnostics(diagnostics);
+      return { success: true, message: FORGOT_PASSWORD_GENERIC_MESSAGE };
+    }
+
+    if (isPendingSetupStatus(user.status)) {
+      diagnostics.skippedReason = 'pending_setup_requires_admin_invite';
+      await this.auditLogs.record({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'PASSWORD_RECOVERY_SKIPPED',
+        module: 'Auth',
+        target: normalizedEmail,
+        entityId: user.id,
+        result: 'Denied',
+        details: JSON.stringify(diagnostics),
+        ipAddress: requestMeta?.ipAddress,
+      });
+      this.logForgotPasswordDiagnostics(diagnostics);
+      return { success: true, message: FORGOT_PASSWORD_GENERIC_MESSAGE };
+    }
+
+    if (!isActiveUserStatus(user.status) || !canSendPasswordRecoveryInstructions(user.status)) {
+      diagnostics.skippedReason = isBlockedPasswordRecoveryStatus(user.status)
+        ? 'blocked_status'
+        : 'not_reset_eligible';
+      await this.auditLogs.record({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'PASSWORD_RECOVERY_SKIPPED',
+        module: 'Auth',
+        target: normalizedEmail,
+        entityId: user.id,
+        result: isBlockedPasswordRecoveryStatus(user.status) ? 'Denied' : 'Failed',
+        details: JSON.stringify(diagnostics),
+        ipAddress: requestMeta?.ipAddress,
+      });
+      this.logForgotPasswordDiagnostics(diagnostics);
       return { success: true, message: FORGOT_PASSWORD_GENERIC_MESSAGE };
     }
 
     const session = await this.accountActionTokens.issuePasswordReset(user.id);
-    const firstTimeSetup = isPendingSetupStatus(user.status);
+    diagnostics.tokenCreated = !session.reused;
+    diagnostics.tokenReused = session.reused;
     const resetLink = buildResetPasswordLink({
       token: session.token,
       ref: session.publicRef,
       role: user.role,
-      mode: firstTimeSetup ? 'setup' : undefined,
     });
-    await this.mailService.queuePasswordReset({
+    const mailJob = await this.mailService.queuePasswordReset({
       to: user.email,
       recipientName: userDisplayName(user),
       firstName: user.firstName,
       resetLink,
       expiresAt: session.expiresAt,
       publicRef: session.publicRef,
-      firstTimeSetup,
+      firstTimeSetup: false,
     });
+    diagnostics.mailJobCreated = true;
+    diagnostics.mailJobId = mailJob.id;
 
     await this.auditLogs.record({
       actorUserId: user.id,
       actorRole: user.role,
-      action: firstTimeSetup ? 'PASSWORD_SETUP_REQUESTED' : 'PASSWORD_RESET_REQUESTED',
+      action: 'PASSWORD_RESET_REQUESTED',
       module: 'Auth',
-      target: user.email,
+      target: normalizedEmail,
       entityId: user.id,
       result: 'Queued',
-      details: firstTimeSetup
-        ? 'First-time password setup email queued.'
-        : 'Password reset email queued.',
+      details: JSON.stringify(diagnostics),
       ipAddress: requestMeta?.ipAddress,
     });
-    await this.authThrottle.reset('forgot-password', throttleKey);
-
+    this.logForgotPasswordDiagnostics(diagnostics);
     return { success: true, message: FORGOT_PASSWORD_GENERIC_MESSAGE };
   }
 
@@ -248,20 +316,28 @@ export class AuthService {
     this.passwordService.assertStrongPassword(body.password);
 
     let user: any;
+    let firstTimeSetup = false;
     try {
-      user = await this.accountActionTokens.consumePasswordReset(body.ref, body.token);
+      await this.prisma.$transaction(async (tx) => {
+        user = await this.accountActionTokens.consumePasswordResetTx(tx, body.ref, body.token);
+        firstTimeSetup = isPendingSetupStatus(user.status);
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: this.passwordService.hash(body.password),
+            status: firstTimeSetup ? 'ACTIVE' : undefined,
+            updatedAt: new Date(),
+          },
+        });
+        await tx.authSession.updateMany({
+          where: { userId: user.id, revokedAt: null },
+          data: { revokedAt: new Date(), lastUsedAt: new Date() },
+        });
+      });
     } catch (error) {
       await this.authThrottle.recordFailure('reset-password', throttleKey);
       throw error;
     }
-    const firstTimeSetup = isPendingSetupStatus(user.status);
-
-    await this.userRepository.updateAuthFields(user.id, {
-      password: this.passwordService.hash(body.password),
-      status: firstTimeSetup ? 'ACTIVE' : undefined,
-      updatedAt: new Date().toISOString(),
-    });
-    await this.authSessions.revokeAllForUser(user.id);
 
     await this.auditLogs.record({
       actorUserId: user.id,
@@ -285,5 +361,9 @@ export class AuthService {
     const candidate = String(relativePath || '').trim();
     if (!candidate) return '';
     return (await this.files.hasObject(candidate)) ? candidate : '';
+  }
+
+  private logForgotPasswordDiagnostics(diagnostics: Record<string, unknown>) {
+    this.logger.log(JSON.stringify(diagnostics));
   }
 }

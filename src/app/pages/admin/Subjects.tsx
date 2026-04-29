@@ -7,7 +7,8 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import { BoxArrowUpRight } from "react-bootstrap-icons";
+import { ArrowUpRight } from "lucide-react";
+import { CopyableIdChip } from "../../components/lists/shared/CopyableIdChip";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { AppModal } from "../../components/ui/app-modal";
 import { Button } from "../../components/ui/button";
@@ -42,6 +43,7 @@ export default function AdminSubjects() {
   const [form, setForm] = useState<AdminSubjectUpsertInput>(initialForm);
   const [teachers, setTeachers] = useState<AdminTeacherRecord[]>([]);
   const [sections, setSections] = useState<AdminSectionRecord[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<{
     saving: boolean;
     error: string | null;
@@ -76,8 +78,16 @@ export default function AdminSubjects() {
         if (!active) return;
         setTeachers(teacherRows);
         setSections(sectionRows);
+        setCatalogError(null);
       })
-      .catch(() => undefined);
+      .catch((catalogLoadError) => {
+        if (!active) return;
+        setCatalogError(
+          catalogLoadError instanceof Error
+            ? catalogLoadError.message
+            : "Unable to load teacher and section options.",
+        );
+      });
     return () => {
       active = false;
     };
@@ -148,7 +158,7 @@ export default function AdminSubjects() {
             <button
               disabled={loading}
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-lg shadow-slate-950/10 transition hover:bg-slate-100 disabled:opacity-60"
+              className="portal-input inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 shadow-lg shadow-slate-950/10 transition hover:bg-slate-100 disabled:opacity-60 dark:text-slate-100 dark:hover:bg-slate-800/85"
             >
               <RefreshCcw size={16} />
               Refresh
@@ -166,8 +176,14 @@ export default function AdminSubjects() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
           {error}
+        </div>
+      ) : null}
+
+      {catalogError ? (
+        <div className="portal-warning-card rounded-[24px] border px-4 py-3 text-sm font-medium">
+          Catalog options could not be loaded: {catalogError}
         </div>
       ) : null}
 
@@ -175,15 +191,15 @@ export default function AdminSubjects() {
         title="Search and review subject records"
         description="Open a subject to inspect ownership, sections, activities, and learner counts."
       >
-        <label className="flex max-w-xl items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
-          <Search size={16} className="shrink-0 text-slate-400" />
+        <label className="portal-input flex max-w-xl items-center gap-3 rounded-[24px] border px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
+          <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-300" />
           <input
             disabled={loading}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by code, title, teacher, or section..."
             aria-label="Search subjects"
-            className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-50"
+            className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 disabled:opacity-50 dark:text-slate-100"
           />
         </label>
       </PortalPanel>
@@ -198,7 +214,7 @@ export default function AdminSubjects() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="h-16 animate-pulse rounded-[22px] bg-slate-100"
+                className="h-16 animate-pulse rounded-[22px] bg-slate-100 dark:bg-slate-800/80"
               />
             ))}
           </div>
@@ -208,14 +224,14 @@ export default function AdminSubjects() {
               title="No subjects matched"
               description="Broaden the current search to see the rest of the catalog."
               icon={BookOpen}
-              className="border-slate-200 bg-slate-50/80"
+              className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
             />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-sm">
               <thead>
-                <tr className="border-b border-slate-200/70 bg-slate-50/80">
+                <tr className="portal-border portal-table-header border-b">
                   {[
                     "Code",
                     "Subject Name",
@@ -228,18 +244,18 @@ export default function AdminSubjects() {
                   ].map((header) => (
                     <th
                       key={header}
-                      className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+                      className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300"
                     >
                       {header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800/70">
                 {subjects.map((subject) => (
                   <tr
                     key={subject.code}
-                    className={`${loading ? "opacity-80" : "cursor-pointer bg-white/70 transition hover:bg-slate-50"}`}
+                    className={`${loading ? "opacity-80" : "portal-table-row cursor-pointer bg-white/70 dark:bg-slate-950/35"}`}
                     onClick={() => openSubject(String(subject.id || subject.code))}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -251,26 +267,33 @@ export default function AdminSubjects() {
                     tabIndex={loading ? -1 : 0}
                     aria-label={`Open subject ${subject.code}`}
                   >
-                    <td className="px-5 py-4 text-xs font-bold text-slate-700">
-                      {subject.code}
+                    <td className="px-5 py-4">
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-slate-700 dark:text-slate-200 dark:text-slate-100">
+                          {subject.code}
+                        </div>
+                        {subject.id ? (
+                          <CopyableIdChip value={String(subject.id)} label="Copy Subject ID" className="bg-transparent px-0" />
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-xs font-semibold text-slate-800">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
                         {subject.name}
                       </p>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-600">
+                    <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
                       {subject.teacher}
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-500">
+                    <td className="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
                       {subject.sections.join(", ") || "—"}
                     </td>
-                    <td className="px-5 py-4 text-xs font-semibold text-slate-800">
+                    <td className="px-5 py-4 text-xs font-semibold text-slate-800 dark:text-slate-100">
                       {subject.activities}
                     </td>
-                    <td className="px-5 py-4 text-xs font-semibold text-slate-800">
+                    <td className="px-5 py-4 text-xs font-semibold text-slate-800 dark:text-slate-100">
                       <div className="inline-flex items-center gap-1.5">
-                        <Users size={13} className="text-slate-400" />
+                        <Users size={13} className="text-slate-400 dark:text-slate-300" />
                         {subject.students}
                       </div>
                     </td>
@@ -286,9 +309,9 @@ export default function AdminSubjects() {
                         }}
                         aria-label={`Open ${subject.name}`}
                         title="Open subject"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 text-blue-700 transition hover:bg-slate-100 hover:text-blue-800 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-blue-300 dark:hover:bg-slate-800 dark:hover:text-blue-200"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-white/90 text-blue-700 dark:text-blue-300 transition hover:bg-slate-100 hover:text-blue-800 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-blue-300 dark:hover:bg-slate-800 dark:hover:text-blue-200"
                       >
-                        <BoxArrowUpRight size={15} />
+                        <ArrowUpRight size={15} />
                       </button>
                     </td>
                   </tr>
@@ -322,7 +345,7 @@ export default function AdminSubjects() {
           </>
         )}
       >
-        <div className="rounded-[24px] border border-slate-200/70 bg-slate-50/85 px-4 py-4 text-sm leading-6 text-slate-600 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300">
+        <div className="rounded-[24px] border border-slate-200/70 bg-slate-50/85 px-4 py-4 text-sm leading-6 text-slate-600 dark:text-slate-300 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300">
           Group submissions and late submissions are now enabled automatically for teacher-managed subjects. Teachers can still control those rules inside their subject workspace.
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
@@ -349,7 +372,7 @@ export default function AdminSubjects() {
                   teacherId: event.target.value,
                 }))
               }
-              className="h-12 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="h-12 w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
               <option value="">Unassigned</option>
               {teachers.map((teacher) => (
@@ -369,14 +392,14 @@ export default function AdminSubjects() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, status: event.target.value }))
               }
-              className="h-12 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="h-12 w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
               <option value="Active">Active</option>
               <option value="Closed">Closed</option>
             </select>
           </div>
 
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-5 lg:col-span-2 dark:border-slate-700/60 dark:bg-slate-900/70">
+          <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 lg:col-span-2 dark:border-slate-700/60 dark:bg-slate-900/70">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Section Mapping
             </p>
@@ -388,7 +411,7 @@ export default function AdminSubjects() {
                   sectionCodes: event.target.value ? [event.target.value] : [],
                 }))
               }
-              className="mt-4 h-12 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="mt-4 h-12 w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
               <option value="">Select section</option>
               {sections.map((section) => (
@@ -403,7 +426,7 @@ export default function AdminSubjects() {
           </div>
 
           {submitState.error ? (
-            <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 lg:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+            <div className="rounded-[22px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 lg:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
               {submitState.error}
             </div>
           ) : null}
@@ -430,7 +453,7 @@ function Field({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="h-12 w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
       />
     </div>
   );

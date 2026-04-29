@@ -6,7 +6,7 @@ export type EmailType =
   | string;
 
 const TESTMAIL_DOMAIN = '@inbox.testmail.app';
-const ALLOWED_PRODUCTION_PROVIDERS = new Set(['sender', 'mailrelay']);
+const ALLOWED_PRODUCTION_PROVIDERS = new Set(['mailrelay']);
 const FORBIDDEN_PRODUCTION_VARS = [
   'TESTMAIL_API_KEY',
   'TEST_EMAIL_ACTIVATION',
@@ -73,7 +73,7 @@ export function getProductionEmailConfigErrors(
   }
 
   if (!ALLOWED_PRODUCTION_PROVIDERS.has(provider)) {
-    errors.push('Production MAIL_PROVIDER must be sender or mailrelay');
+    errors.push('Production MAIL_PROVIDER must be mailrelay');
   }
 
   for (const key of FORBIDDEN_PRODUCTION_VARS) {

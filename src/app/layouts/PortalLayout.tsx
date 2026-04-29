@@ -2,33 +2,33 @@ import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import {
-  clearAuthSession,
   getAuthSession,
   subscribeAuthSession,
   type AuthSession,
 } from "../lib/mockAuth";
 import {
   adminService,
+  authService,
   profileService,
   studentCatalogService,
   teacherNotificationService,
 } from "../lib/api/services";
 import { fadeInVariants, slideInVariants, springTransition } from "../lib/motion";
 import { subscribeNotificationBadgeInvalidation } from "../lib/notificationBadges";
+import { roleThemeStyle, roleThemes, type PortalRole } from "../lib/roleTheme";
 import { useTheme } from "../context/ThemeContext";
 import { TopbarNotificationMenu } from "../components/portal/TopbarNotificationMenu";
+import { ProjTrackLogo } from "../components/brand/ProjTrackLogo";
 import { cn } from "../components/ui/utils";
 import {
   LayoutDashboard, BookOpen, FileCheck2, Bell, UserCircle,
   Users, ClipboardList, GraduationCap, Layers, BarChart3,
-  Settings2, Inbox, Settings, Wrench, ShieldCheck,
+  Settings2, Settings, Wrench, ShieldCheck,
   LogOut, Menu, X, Search,
   FileBadge, Grid3X3, CalendarDays, Megaphone, Mail, FolderOpen, ShieldAlert, ClipboardCheck,
-  Moon, Sun, Building2,
+  Moon, Sun, Building2, UserCog, Database,
   type LucideIcon,
 } from "lucide-react";
-
-type PortalRole = "student" | "teacher" | "admin";
 
 interface NavItem {
   to: string;
@@ -58,6 +58,7 @@ const TEACHER_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: "/admin/dashboard",          icon: LayoutDashboard, label: "Dashboard",          section: "main" },
+  { to: "/admin/users",              icon: UserCog,         label: "Users",              section: "main" },
   { to: "/admin/students",           icon: GraduationCap,   label: "Students",           section: "main" },
   { to: "/admin/teachers",           icon: Users,           label: "Teachers",           section: "main" },
   { to: "/admin/departments",        icon: Building2,       label: "Departments",        section: "main" },
@@ -69,11 +70,11 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/admin/announcements",      icon: Megaphone,       label: "Announcements",      section: "operations" },
   { to: "/admin/calendar",           icon: CalendarDays,    label: "Calendar",           section: "operations" },
   { to: "/admin/academic-settings",  icon: Settings2,       label: "Academic Settings",  section: "operations" },
-  { to: "/admin/requests",           icon: Inbox,           label: "Requests",           badge: 4, section: "operations" },
   { to: "/admin/notifications",      icon: Bell,            label: "Notifications",      section: "operations" },
   { to: "/admin/audit-logs",         icon: ClipboardList,   label: "Audit Logs",         section: "system" },
   { to: "/admin/settings",           icon: Settings,        label: "Settings",           section: "system" },
   { to: "/admin/system-tools",       icon: Wrench,          label: "System Tools",       section: "system" },
+  { to: "/admin/backups",            icon: Database,        label: "Backups",            section: "system" },
   { to: "/admin/mail-jobs",          icon: Mail,            label: "Mail Jobs",          section: "system" },
   { to: "/admin/file-inventory",      icon: FolderOpen,      label: "File Inventory",     section: "system" },
   { to: "/admin/system-health",       icon: ShieldAlert,    label: "System Health",      section: "system" },
@@ -89,17 +90,17 @@ const roleConfig: Record<PortalRole, {
 }> = {
   student: {
     nav: STUDENT_NAV,
-    label: "Student Portal",
+    label: roleThemes.student.label,
     user: { name: "Student Account", sub: "Student workspace", initials: "ST" },
   },
   teacher: {
     nav: TEACHER_NAV,
-    label: "Teacher Portal",
+    label: roleThemes.teacher.label,
     user: { name: "Teacher Account", sub: "Teacher workspace", initials: "TC" },
   },
   admin: {
     nav: ADMIN_NAV,
-    label: "Admin Portal",
+    label: roleThemes.admin.label,
     user: { name: "Admin Account", sub: "Administrator workspace", initials: "AD" },
   },
 };
@@ -208,25 +209,18 @@ function SidebarContent({
     <div className="portal-sidebar-shell relative flex h-full flex-col overflow-hidden rounded-[var(--radius-hero)] border border-white/65 shadow-[var(--shadow-shell)] backdrop-blur-xl dark:border-slate-700/60">
       <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_70%)] dark:bg-[radial-gradient(circle_at_top,rgba(51,65,85,0.32),transparent_70%)]" />
       {/* Logo */}
-      <div className={`relative flex min-h-[86px] shrink-0 items-center border-b border-slate-200/70 dark:border-slate-700/60 ${isCollapsed ? "justify-center px-3 py-4" : "justify-between px-4 py-4"}`}>
+      <div
+        className={`relative flex min-h-[86px] shrink-0 items-center border-b border-slate-200/70 dark:border-slate-700/60 ${isCollapsed ? "justify-center px-3 py-4" : "justify-between px-4 py-4"}`}
+        data-testid="portal-sidebar-brand"
+      >
         <div className={`flex min-w-0 items-center overflow-hidden ${isCollapsed ? "justify-center" : "flex-1 gap-3"}`}>
-          <div className="portal-avatar-accent flex h-11 w-11 items-center justify-center rounded-[var(--radius-card)] shrink-0 shadow-lg shadow-slate-900/10">
-            <GraduationCap size={16} className="text-white" />
-          </div>
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }} transition={{ duration: 0.18 }} className="min-w-0 overflow-hidden">
-                <p className="font-display text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100 whitespace-nowrap leading-none">PROJTRACK</p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(74,222,128,0.15)]" />
-                  <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400">
-                    {cfg.label}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <ProjTrackLogo
+            role={role}
+            compact={isCollapsed}
+            showRoleDot={!isCollapsed}
+            subtitle={cfg.label.toUpperCase()}
+            textClassName="overflow-visible"
+          />
         </div>
         {isMobile ? (
           <button onClick={onClose}
@@ -304,7 +298,7 @@ function SidebarContent({
       {/* User footer */}
       <div className="px-3 py-4 border-t border-slate-200/70 dark:border-slate-700/60 shrink-0 space-y-2">
         <NavTooltip label="Logout" show={isCollapsed}>
-          <button onClick={() => { clearAuthSession(); navigate(`/${role}/login`); }}
+          <button onClick={async () => { await authService.logout(); navigate(`/${role}/login`); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-[22px] text-slate-400 hover:text-rose-600
               hover:bg-rose-50 transition-all dark:text-slate-400 dark:hover:bg-rose-500/12 ${isCollapsed ? "justify-center" : ""}`}>
             <LogOut size={18} strokeWidth={1.9} />
@@ -436,7 +430,8 @@ export function PortalLayout({ role }: { role: PortalRole }) {
         objectUrl = url;
         setAvatarSrc(url);
       })
-      .catch(() => {
+      .catch((avatarError) => {
+        console.warn("Unable to load portal avatar preview.", avatarError);
         if (active) setAvatarSrc("");
       });
 
@@ -482,6 +477,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
         "relative flex h-screen w-full overflow-hidden bg-[var(--surface-canvas)] dark:bg-[var(--surface-canvas)]",
         `portal-role-${role}`,
       )}
+      style={roleThemeStyle(role)}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,41,59,0.8),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(15,23,42,0.8),transparent_28%)]" />
       <div className="portal-shell-gradient pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />

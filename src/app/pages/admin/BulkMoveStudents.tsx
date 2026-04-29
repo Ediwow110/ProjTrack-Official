@@ -200,21 +200,21 @@ export default function AdminBulkMoveStudents() {
           <button
             type="button"
             onClick={() => navigate("/admin/sections")}
-            className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-slate-700"
+            className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 dark:text-slate-300 hover:text-slate-700"
           >
             <ArrowLeft size={14} />
             Back
           </button>
           <h1
-            className="font-bold text-slate-900"
+            className="font-bold text-slate-900 dark:text-slate-100"
             style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}
           >
             Bulk Move Students
           </h1>
-          <p className="mt-0.5 text-sm text-slate-400">
+          <p className="mt-0.5 text-sm text-slate-400 dark:text-slate-300">
             Promote or reassign students between academic years, year levels, and sections.
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-300">
             {loading
               ? "Loading academic structure..."
               : `${sourceStudents.length} student${sourceStudents.length === 1 ? "" : "s"} in the selected source section`}
@@ -224,16 +224,16 @@ export default function AdminBulkMoveStudents() {
         <button
           disabled={loading}
           onClick={reload}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
         >
           Refresh
         </button>
       </div>
 
       {doneMessage ? (
-        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3">
           <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-          <p className="text-sm font-semibold text-emerald-700">{doneMessage}</p>
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{doneMessage}</p>
         </div>
       ) : null}
 
@@ -259,7 +259,7 @@ export default function AdminBulkMoveStudents() {
         />
 
         <div className="flex items-center justify-center">
-          <ArrowRight size={20} className="text-slate-400" />
+          <ArrowRight size={20} className="text-slate-400 dark:text-slate-300" />
         </div>
 
         <StructurePicker
@@ -275,33 +275,34 @@ export default function AdminBulkMoveStudents() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-slate-100 bg-white shadow-sm lg:col-span-2">
-          <div className="border-b border-slate-100 p-4">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <Search size={13} className="shrink-0 text-slate-400" />
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-900/85 shadow-sm lg:col-span-2">
+          <div className="border-b border-slate-100 dark:border-slate-700/70 p-4">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2">
+              <Search size={13} className="shrink-0 text-slate-400 dark:text-slate-300" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search selected source section students..."
                 aria-label="Search students in source section"
-                className="flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="flex-1 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400"
                 disabled={!sourceSection || loading}
               />
             </div>
           </div>
 
           {!sourceSection ? (
-            <div className="py-12 text-center text-sm text-slate-400">
+            <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-300">
               Select a source academic year, year level, and section to see students.
             </div>
           ) : sourceStudents.length === 0 ? (
-            <div className="py-12 text-center text-sm text-slate-400">
+            <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-300">
               No students in this section.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
+                <tr className="border-b border-slate-100 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/70">
                   <th className="w-10 px-5 py-3">
                     <input
                       type="checkbox"
@@ -314,7 +315,7 @@ export default function AdminBulkMoveStudents() {
                   {["Student ID", "Name"].map((header) => (
                     <th
                       key={header}
-                      className="px-5 py-3 text-left text-[11px] font-semibold uppercase text-slate-400"
+                      className="px-5 py-3 text-left text-[11px] font-semibold uppercase text-slate-400 dark:text-slate-300"
                     >
                       {header}
                     </th>
@@ -322,11 +323,11 @@ export default function AdminBulkMoveStudents() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-700/60">
                 {sourceStudents.map((student) => (
                   <tr
                     key={student.id}
-                    className={`${selected.includes(student.id) ? "bg-blue-50/50" : ""} cursor-pointer hover:bg-slate-50`}
+                    className={`${selected.includes(student.id) ? "bg-blue-50/50" : ""} cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/70`}
                     onClick={() => toggleStudent(student.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -347,22 +348,23 @@ export default function AdminBulkMoveStudents() {
                         className="rounded border-slate-300 accent-blue-800"
                       />
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-slate-400">
+                    <td className="px-5 py-3 font-mono text-xs text-slate-400 dark:text-slate-300">
                       {student.studentNumber || "—"}
                     </td>
-                    <td className="px-5 py-3 text-xs font-semibold text-slate-800">
+                    <td className="px-5 py-3 text-xs font-semibold text-slate-800 dark:text-slate-100">
                       {student.name}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-sm font-bold text-slate-800">Move Summary</h2>
+          <div className="rounded-xl border border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-900/85 p-5 shadow-sm">
+            <h2 className="mb-3 text-sm font-bold text-slate-800 dark:text-slate-100">Move Summary</h2>
 
             <div className="space-y-2 text-xs">
               <SummaryLine
@@ -386,15 +388,15 @@ export default function AdminBulkMoveStudents() {
 
             {selected.length > 0 ? (
               <div className="mb-4 mt-4">
-                <p className="mb-2 text-xs font-semibold text-slate-500">Selected:</p>
+                <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Selected:</p>
                 <div className="max-h-32 space-y-1 overflow-y-auto">
                   {selectedStudents.map((student) => (
                     <div key={student.id} className="flex items-center justify-between">
-                      <span className="text-xs text-slate-600">{student.name}</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{student.name}</span>
                       <button
                         type="button"
                         onClick={() => toggleStudent(student.id)}
-                        className="rounded p-1 text-slate-400 hover:text-rose-500"
+                        className="rounded p-1 text-slate-400 dark:text-slate-300 hover:text-rose-500"
                         aria-label={`Remove ${student.name} from selected students`}
                       >
                         <X size={11} />
@@ -406,9 +408,9 @@ export default function AdminBulkMoveStudents() {
             ) : null}
 
             {selected.length > 0 ? (
-              <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 p-2.5">
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 dark:bg-amber-500/15 p-2.5">
                 <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-600" />
-                <p className="text-xs text-amber-700">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
                   This updates each selected student&apos;s academic year, year level, section, and course to match the destination section.
                 </p>
               </div>
@@ -435,7 +437,7 @@ export default function AdminBulkMoveStudents() {
           <>
             <button
               onClick={() => setShowModal(false)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 sm:w-auto dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -485,8 +487,8 @@ function StructurePicker({
   onSectionChange: (value: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-sm font-bold text-slate-800">{title} Structure</h2>
+    <div className="rounded-xl border border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-900/85 p-5 shadow-sm">
+      <h2 className="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">{title} Structure</h2>
       <div className="grid gap-3 md:grid-cols-3">
         <LabeledSelect
           label="Academic Year"
@@ -542,14 +544,14 @@ function LabeledSelect({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-11 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -573,8 +575,8 @@ function SummaryLine({
 }) {
   return (
     <div className="flex justify-between gap-3">
-      <span className="text-slate-400">{label}</span>
-      <span className={emphasize ? "font-bold text-blue-700" : "font-semibold text-slate-700"}>
+      <span className="text-slate-400 dark:text-slate-300">{label}</span>
+      <span className={emphasize ? "font-bold text-blue-700 dark:text-blue-300" : "font-semibold text-slate-700 dark:text-slate-200"}>
         {value}
       </span>
     </div>

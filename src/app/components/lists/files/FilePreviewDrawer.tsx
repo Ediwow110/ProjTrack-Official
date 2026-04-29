@@ -148,7 +148,7 @@ function MetadataCard({
 }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
-      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-300 dark:text-slate-500">
         {icon}
         <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       </div>
@@ -159,7 +159,7 @@ function MetadataCard({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0 dark:border-slate-800">
+    <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-slate-700/70 pb-3 last:border-b-0 last:pb-0 dark:border-slate-800">
       <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       <p className="break-all text-sm font-medium text-slate-700 dark:text-slate-200">{value}</p>
     </div>

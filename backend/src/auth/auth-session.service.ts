@@ -44,11 +44,15 @@ export class AuthSessionService {
       throw new UnauthorizedException('Invalid refresh token.');
     }
 
+    const sessionId = String(payload.sid);
+    const userId = String(payload.sub);
+    const tokenHash = this.hashToken(refreshToken);
+    const now = new Date();
     const session = await this.prisma.authSession.findUnique({
-      where: { id: String(payload.sid) },
+      where: { id: sessionId },
     });
 
-    if (!session || session.userId !== String(payload.sub)) {
+    if (!session || session.userId !== userId) {
       throw new UnauthorizedException('Refresh session not found.');
     }
 
@@ -59,18 +63,18 @@ export class AuthSessionService {
       throw new UnauthorizedException('Refresh token has already been rotated or revoked.');
     }
 
-    if (session.expiresAt.getTime() <= Date.now()) {
+    if (session.expiresAt.getTime() <= now.getTime()) {
       await this.prisma.authSession.update({
         where: { id: session.id },
         data: {
-          revokedAt: new Date(),
-          lastUsedAt: new Date(),
+          revokedAt: now,
+          lastUsedAt: now,
         },
       });
       throw new UnauthorizedException('Refresh token has expired.');
     }
 
-    if (session.tokenHash !== this.hashToken(refreshToken)) {
+    if (session.tokenHash !== tokenHash) {
       await this.revokeAllForUser(session.userId);
       throw new UnauthorizedException('Refresh token mismatch detected.');
     }
@@ -81,19 +85,64 @@ export class AuthSessionService {
       throw new UnauthorizedException('User not found or inactive.');
     }
 
-    const next = await this.createRefreshSession({ id: user.id, role: user.role, email: user.email }, meta);
-    await this.prisma.authSession.update({
-      where: { id: session.id },
-      data: {
-        revokedAt: new Date(),
-        lastUsedAt: new Date(),
-        replacedBySessionId: next.sessionId,
-      },
+    const nextSessionId = randomUUID();
+    const nextRefreshToken = this.tokenService.createRefreshToken(
+      { id: user.id, role: user.role, email: user.email },
+      nextSessionId,
+    );
+
+    const rotation = await this.prisma.$transaction(async (tx) => {
+      const consumed = await tx.authSession.updateMany({
+        where: {
+          id: session.id,
+          userId,
+          tokenHash,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: {
+          revokedAt: now,
+          lastUsedAt: now,
+          replacedBySessionId: nextSessionId,
+        },
+      });
+
+      if (consumed.count !== 1) {
+        const current = await tx.authSession.findUnique({
+          where: { id: session.id },
+          select: { userId: true, replacedBySessionId: true },
+        });
+        if (current?.replacedBySessionId) {
+          await tx.authSession.updateMany({
+            where: { userId: current.userId, revokedAt: null },
+            data: { revokedAt: now, lastUsedAt: now },
+          });
+        }
+        return { rotated: false };
+      }
+
+      await tx.authSession.create({
+        data: {
+          id: nextSessionId,
+          userId: user.id,
+          tokenHash: this.hashToken(nextRefreshToken),
+          expiresAt: new Date(now.getTime() + this.tokenService.getRefreshTtlMs()),
+          lastUsedAt: now,
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        },
+      });
+
+      return { rotated: true };
     });
+
+    if (!rotation.rotated) {
+      throw new UnauthorizedException('Refresh token has already been rotated or revoked.');
+    }
 
     return {
       user,
-      refreshToken: next.refreshToken,
+      refreshToken: nextRefreshToken,
       accessToken: this.tokenService.createAccessToken({ id: user.id, role: user.role, email: user.email }),
     };
   }

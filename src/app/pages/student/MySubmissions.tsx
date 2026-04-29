@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { StatusChip } from "../../components/ui/StatusChip";
+import { GradeChip } from "../../components/ui/GradeChip";
 import {
   PortalEmptyState,
   PortalHero,
@@ -84,7 +85,7 @@ export default function StudentMySubmissions() {
       {backTarget ? (
         <button
           onClick={() => navigate(backTarget)}
-          className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.4)] transition hover:bg-white"
+          className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.4)] transition hover:bg-white dark:hover:bg-slate-800"
         >
           <ChevronLeft size={15} />
           {backLabel}
@@ -131,18 +132,18 @@ export default function StudentMySubmissions() {
         description="Find a submission fast, then narrow the workspace by its current status."
       >
         <div className="space-y-4">
-          <label className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
-            <Search size={16} className="shrink-0 text-slate-400" />
+          <label className="flex items-center gap-3 rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
+            <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-300" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search submissions, activities, or subjects..."
               aria-label="Search my submissions"
-              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400"
             />
             {search ? (
               <button type="button" onClick={() => setSearch("")} aria-label="Clear submission search">
-                <X size={14} className="text-slate-400 transition hover:text-slate-600" />
+                <X size={14} className="text-slate-400 dark:text-slate-300 transition hover:text-slate-600" />
               </button>
             ) : null}
           </label>
@@ -155,7 +156,7 @@ export default function StudentMySubmissions() {
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   statusFilter === status
                     ? "bg-blue-700 text-white shadow-[0_16px_35px_-24px_rgba(29,78,216,0.55)]"
-                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                 }`}
               >
                 {status}
@@ -169,12 +170,12 @@ export default function StudentMySubmissions() {
         <PortalPanel title="Loading submissions" description="Pulling your latest submission records.">
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-28 animate-pulse rounded-[24px] bg-slate-100" />
+              <div key={index} className="h-28 animate-pulse rounded-[24px] bg-slate-100 dark:bg-slate-800/80" />
             ))}
           </div>
         </PortalPanel>
       ) : error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : submissions.length === 0 ? (
@@ -196,8 +197,8 @@ export default function StudentMySubmissions() {
                   key={submission.id}
                   className={`overflow-hidden rounded-[28px] border transition ${
                     isExpanded
-                      ? "border-blue-200 bg-blue-50/40 shadow-[0_24px_60px_-38px_rgba(29,78,216,0.4)]"
-                      : "border-slate-200 bg-slate-50/75 hover:border-slate-300"
+                      ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/40 shadow-[0_24px_60px_-38px_rgba(29,78,216,0.4)]"
+                      : "border-slate-200 dark:border-slate-700 bg-slate-50/75 hover:border-slate-300"
                   }`}
                 >
                   <button
@@ -208,79 +209,77 @@ export default function StudentMySubmissions() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusChip status={submission.status} size="xs" />
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                        <span className="rounded-full bg-white dark:bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                           {submission.type}
                         </span>
                       </div>
-                      <h2 className="mt-3 font-display text-xl font-semibold tracking-[-0.03em] text-slate-900">
+                      <h2 className="mt-3 font-display text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">
                         {submission.title}
                       </h2>
-                      <p className="mt-1 text-sm text-slate-500">{submission.subject}</p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{submission.subject}</p>
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                             Due
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-700">{submission.due}</p>
+                          <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">{submission.due}</p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                             Submitted
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-700">
+                          <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">
                             {submission.submitted}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                             Grade
                           </p>
-                          <p className="mt-1 text-sm font-semibold text-emerald-700">
-                            {submission.grade !== "—" ? `${submission.grade}/100` : "—"}
-                          </p>
+                          <div className="mt-1"><GradeChip grade={submission.grade} status={submission.status} size="sm" /></div>
                         </div>
                       </div>
                     </div>
                     <ChevronDown
                       size={18}
-                      className={`mt-1 shrink-0 text-slate-400 transition-transform ${
+                      className={`mt-1 shrink-0 text-slate-400 dark:text-slate-300 transition-transform ${
                         isExpanded ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   {isExpanded ? (
-                    <div className="border-t border-slate-200/70 bg-white/70 px-5 py-5">
+                    <div className="border-t border-slate-200/70 bg-white/70 dark:bg-slate-900/70 px-5 py-5">
                       <div className="grid gap-5 lg:grid-cols-2">
-                        <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                             Teacher Feedback
                           </p>
                           {submission.feedback ? (
-                            <p className="mt-3 text-sm leading-7 text-slate-600">
+                            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
                               {submission.feedback}
                             </p>
                           ) : (
-                            <p className="mt-3 text-sm italic text-slate-400">
+                            <p className="mt-3 text-sm italic text-slate-400 dark:text-slate-300">
                               No feedback yet. Check back after your teacher reviews this submission.
                             </p>
                           )}
 
                           {submission.files && submission.files.length > 0 ? (
                             <div className="mt-4 space-y-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                                 Files
                               </p>
                               {submission.files.map((file) => {
                                 const [label, href] = file.split("|||");
                                 return (
-                                  <div key={file} className="text-sm text-slate-500">
+                                  <div key={file} className="text-sm text-slate-500 dark:text-slate-400">
                                     {href ? (
                                       <a
                                         href={href}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-blue-700 hover:underline"
+                                        className="text-blue-700 dark:text-blue-300 hover:underline"
                                       >
                                         {label}
                                       </a>
@@ -295,16 +294,16 @@ export default function StudentMySubmissions() {
 
                           {submission.externalLinks?.length ? (
                             <div className="mt-4 space-y-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                                 External Links
                               </p>
                               {submission.externalLinks.map((link) => (
-                                <div key={link} className="break-all text-sm text-slate-500">
+                                <div key={link} className="break-all text-sm text-slate-500 dark:text-slate-400">
                                   <a
                                     href={link}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-blue-700 hover:underline"
+                                    className="text-blue-700 dark:text-blue-300 hover:underline"
                                   >
                                     {link}
                                   </a>
@@ -317,23 +316,23 @@ export default function StudentMySubmissions() {
                         <div className="space-y-4">
                           {submission.type === "Group" ? (
                             <div className="rounded-[24px] border border-teal-200 bg-teal-50/75 p-4">
-                              <div className="flex items-center gap-2 text-teal-700">
+                              <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300">
                                 <Users size={15} />
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">
                                   Group Details
                                 </p>
                               </div>
-                              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                              <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
                                 <p>
-                                  <span className="font-semibold text-slate-800">Group:</span>{" "}
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100">Group:</span>{" "}
                                   {submission.groupName}
                                 </p>
                                 <p>
-                                  <span className="font-semibold text-slate-800">Leader:</span>{" "}
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100">Leader:</span>{" "}
                                   {submission.leader}
                                 </p>
                                 <p>
-                                  <span className="font-semibold text-slate-800">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100">
                                     Submitted By:
                                   </span>{" "}
                                   {submission.submittedBy}
@@ -341,14 +340,14 @@ export default function StudentMySubmissions() {
                               </div>
                               {submission.members?.length ? (
                                 <div className="mt-4">
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300">
                                     Members
                                   </p>
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     {submission.members.map((member) => (
                                       <span
                                         key={member}
-                                        className="rounded-full bg-white px-2.5 py-1 text-xs text-slate-600"
+                                        className="rounded-full bg-white dark:bg-slate-900/85 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300"
                                       >
                                         {member}
                                       </span>

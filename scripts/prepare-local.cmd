@@ -4,6 +4,12 @@ setlocal EnableExtensions
 set "ROOT=%~dp0.."
 cd /d "%ROOT%"
 
+call "%ROOT%\scripts\local-backend-env.cmd"
+
+echo [prepare-local] Using local development backend settings.
+echo [prepare-local] DATABASE_URL points to local Docker PostgreSQL on 127.0.0.1:5432.
+echo [prepare-local] Mail provider is stub for local startup; run npm run start:worker only when you intentionally want a worker.
+
 set "BACKEND_RUNNING="
 for /f "tokens=5" %%A in ('netstat -ano ^| findstr ":3001" ^| findstr LISTENING') do set "BACKEND_RUNNING=1"
 if defined BACKEND_RUNNING (

@@ -1,9 +1,35 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
 @Injectable()
 export class SubjectRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isUniqueConstraintError(error: unknown) {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+  }
+
+  private buildInviteCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let token = '';
+    const bytes = randomBytes(10);
+    for (let index = 0; index < 10; index += 1) {
+      token += alphabet[bytes[index] % alphabet.length];
+    }
+    return `PRJ-${token}`;
+  }
+
+  private groupStatusForMemberCount(subject: { minGroupSize?: number | null }, memberCount: number) {
+    const minGroupSize = Math.max(1, Number(subject.minGroupSize || 1));
+    return memberCount >= minGroupSize ? 'ACTIVE' : 'PENDING';
+  }
+
+  private async acquireGroupMembershipLock(tx: any, subjectId: string, groupId?: string) {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`subject-group:${subjectId}`}), hashtext(${groupId || subjectId}))`;
+  }
 
   private async resolveTeacherProfileId(teacherId: string) {
     const direct = await this.prisma.teacherProfile.findUnique({ where: { id: teacherId } });
@@ -22,10 +48,10 @@ export class SubjectRepository {
   async listSubjects() {
     return this.prisma.subject.findMany({
       include: {
-        teacher: { include: { user: true } },
+        teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         tasks: true,
-        enrollments: { include: { student: { include: { user: true, section: true } }, section: true } },
-        groups: { include: { members: { include: { student: true } } } },
+        enrollments: { include: { student: { include: { user: { select: SAFE_USER_SELECT }, section: true } }, section: true } },
+        groups: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
       orderBy: { code: 'asc' },
     });
@@ -35,10 +61,10 @@ export class SubjectRepository {
     return this.prisma.subject.findUnique({
       where: { id },
       include: {
-        teacher: { include: { user: true } },
+        teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         tasks: true,
-        enrollments: { include: { student: { include: { user: true, section: true } }, section: true } },
-        groups: { include: { members: { include: { student: true } } } },
+        enrollments: { include: { student: { include: { user: { select: SAFE_USER_SELECT }, section: true } }, section: true } },
+        groups: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
     });
   }
@@ -63,7 +89,7 @@ export class SubjectRepository {
       where: { subjectId },
       include: {
         members: {
-          include: { student: true },
+          include: { student: { select: SAFE_USER_SELECT } },
         },
         section: true,
         subject: {
@@ -83,7 +109,7 @@ export class SubjectRepository {
       include: {
         subject: {
           include: {
-            teacher: { include: { user: true } },
+            teacher: { include: { user: { select: SAFE_USER_SELECT } } },
             tasks: true,
             enrollments: { include: { section: true } },
           },
@@ -103,9 +129,9 @@ export class SubjectRepository {
     return this.prisma.subject.findMany({
       where: { teacherId: resolvedTeacherId },
       include: {
-        teacher: { include: { user: true } },
+        teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         tasks: true,
-        enrollments: { include: { student: { include: { user: true, section: true } }, section: true } },
+        enrollments: { include: { student: { include: { user: { select: SAFE_USER_SELECT }, section: true } }, section: true } },
         groups: true,
       },
       orderBy: { code: 'asc' },
@@ -118,24 +144,39 @@ export class SubjectRepository {
       throw new BadRequestException('Activity title is required.');
     }
 
-    return this.prisma.submissionTask.create({
-      data: {
-        subjectId,
-        title,
-        description: String(body.instructions ?? '').trim(),
-        deadline: body.deadline ? new Date(body.deadline) : undefined,
-        dueAt: body.deadline ? new Date(body.deadline) : undefined,
-        openAt: body.openAt ? new Date(body.openAt) : undefined,
-        closeAt: body.closeAt ? new Date(body.closeAt) : undefined,
-        submissionMode: body.submissionMode || 'INDIVIDUAL',
-        isOpen: true,
-        allowLateSubmission: !!body.allowLateSubmission,
-        acceptedFileTypes: Array.isArray(body.acceptedFileTypes) ? body.acceptedFileTypes : undefined,
-        maxFileSizeMb: Number(body.maxFileSizeMb || 10),
-        externalLinksAllowed: body.externalLinksAllowed !== false,
-        notifyByEmail: !!body.notifyByEmail,
-      },
+    const duplicate = await this.prisma.submissionTask.findFirst({
+      where: { subjectId, title },
+      select: { id: true },
     });
+    if (duplicate) {
+      throw new ConflictException('An activity with this title already exists in the selected subject.');
+    }
+
+    try {
+      return await this.prisma.submissionTask.create({
+        data: {
+          subjectId,
+          title,
+          description: String(body.instructions ?? '').trim(),
+          deadline: body.deadline ? new Date(body.deadline) : undefined,
+          dueAt: body.deadline ? new Date(body.deadline) : undefined,
+          openAt: body.openAt ? new Date(body.openAt) : undefined,
+          closeAt: body.closeAt ? new Date(body.closeAt) : undefined,
+          submissionMode: body.submissionMode || 'INDIVIDUAL',
+          isOpen: true,
+          allowLateSubmission: !!body.allowLateSubmission,
+          acceptedFileTypes: Array.isArray(body.acceptedFileTypes) ? body.acceptedFileTypes : undefined,
+          maxFileSizeMb: Number(body.maxFileSizeMb || 10),
+          externalLinksAllowed: body.externalLinksAllowed !== false,
+          notifyByEmail: !!body.notifyByEmail,
+        },
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException('An activity with this title already exists in the selected subject.');
+      }
+      throw error;
+    }
   }
 
   async updateActivity(activityId: string, body: any) {
@@ -144,24 +185,51 @@ export class SubjectRepository {
       throw new BadRequestException('Activity title is required.');
     }
 
-    return this.prisma.submissionTask.update({
+    const current = await this.prisma.submissionTask.findUnique({
       where: { id: activityId },
-      data: {
-        title: nextTitle,
-        description: String(body.instructions ?? body.description ?? '').trim(),
-        deadline: body.deadline ? new Date(body.deadline) : undefined,
-        dueAt: body.deadline ? new Date(body.deadline) : undefined,
-        openAt: body.openAt ? new Date(body.openAt) : undefined,
-        closeAt: body.closeAt ? new Date(body.closeAt) : undefined,
-        submissionMode: body.submissionMode || undefined,
-        allowLateSubmission: body.allowLateSubmission ?? undefined,
-        acceptedFileTypes: Array.isArray(body.acceptedFileTypes) ? body.acceptedFileTypes : undefined,
-        maxFileSizeMb: body.maxFileSizeMb ? Number(body.maxFileSizeMb) : undefined,
-        externalLinksAllowed: body.externalLinksAllowed ?? undefined,
-        notifyByEmail: body.notifyByEmail ?? undefined,
-        isOpen: body.isOpen ?? undefined,
-      },
+      select: { id: true, subjectId: true },
     });
+    if (!current) {
+      throw new NotFoundException('Activity not found.');
+    }
+
+    const duplicate = await this.prisma.submissionTask.findFirst({
+      where: {
+        subjectId: current.subjectId,
+        title: nextTitle,
+        NOT: { id: activityId },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException('An activity with this title already exists in the selected subject.');
+    }
+
+    try {
+      return await this.prisma.submissionTask.update({
+        where: { id: activityId },
+        data: {
+          title: nextTitle,
+          description: String(body.instructions ?? body.description ?? '').trim(),
+          deadline: body.deadline ? new Date(body.deadline) : undefined,
+          dueAt: body.deadline ? new Date(body.deadline) : undefined,
+          openAt: body.openAt ? new Date(body.openAt) : undefined,
+          closeAt: body.closeAt ? new Date(body.closeAt) : undefined,
+          submissionMode: body.submissionMode || undefined,
+          allowLateSubmission: body.allowLateSubmission ?? undefined,
+          acceptedFileTypes: Array.isArray(body.acceptedFileTypes) ? body.acceptedFileTypes : undefined,
+          maxFileSizeMb: body.maxFileSizeMb ? Number(body.maxFileSizeMb) : undefined,
+          externalLinksAllowed: body.externalLinksAllowed ?? undefined,
+          notifyByEmail: body.notifyByEmail ?? undefined,
+          isOpen: body.isOpen ?? undefined,
+        },
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException('An activity with this title already exists in the selected subject.');
+      }
+      throw error;
+    }
   }
 
   async reopenActivity(activityId: string) {
@@ -206,7 +274,7 @@ export class SubjectRepository {
     const existingMembership = await this.prisma.groupMember.findFirst({
       where: {
         studentId: body.leaderUserId,
-        group: { subjectId: body.subjectId },
+        subjectId: body.subjectId,
       },
       include: { group: true },
     });
@@ -217,31 +285,78 @@ export class SubjectRepository {
     const leaderProfile = await this.prisma.studentProfile.findUnique({
       where: { userId: body.leaderUserId },
     });
+    if (!leaderProfile) {
+      throw new ForbiddenException('Student profile is required to create a group.');
+    }
 
-    return this.prisma.group.create({
-      data: {
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        studentId: leaderProfile.id,
         subjectId: body.subjectId,
-        sectionId: leaderProfile?.sectionId,
-        name: normalizedName,
-        inviteCode: `PRJ-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-        leaderId: body.leaderUserId,
-        status: 'PENDING',
-        members: {
-          create: [{ studentId: body.leaderUserId, role: 'LEADER', status: 'ACTIVE' }],
-        },
       },
-      include: { members: true },
+      select: { id: true },
     });
+    if (!enrollment) {
+      throw new ForbiddenException('You must be enrolled in this subject to create a group.');
+    }
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          await this.acquireGroupMembershipLock(tx, body.subjectId);
+
+          const membershipInSubject = await tx.groupMember.findUnique({
+            where: {
+              subjectId_studentId: {
+                subjectId: body.subjectId,
+                studentId: body.leaderUserId,
+              },
+            },
+            select: { id: true },
+          });
+          if (membershipInSubject) {
+            throw new ConflictException('You are already assigned to a group for this subject.');
+          }
+
+          return tx.group.create({
+            data: {
+              subjectId: body.subjectId,
+              sectionId: leaderProfile?.sectionId,
+              name: normalizedName,
+              inviteCode: this.buildInviteCode(),
+              leaderId: body.leaderUserId,
+              status: this.groupStatusForMemberCount(subject, 1),
+              members: {
+                create: [{
+                  subjectId: body.subjectId,
+                  studentId: body.leaderUserId,
+                  role: 'LEADER',
+                  status: 'ACTIVE',
+                }],
+              },
+            },
+            include: { members: true },
+          });
+        });
+      } catch (error) {
+        if (this.isUniqueConstraintError(error)) {
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new ConflictException('Unable to allocate a unique group invite code. Please try again.');
   }
 
-  async joinGroupByCode(body: { code: string; userId: string }) {
+  async joinGroupByCode(body: { code: string; subjectId: string; userId: string }) {
     const normalizedCode = String(body.code || '').trim().toUpperCase();
     if (!normalizedCode) {
       throw new BadRequestException('Invite code is required.');
     }
 
     const group = await this.prisma.group.findFirst({
-      where: { inviteCode: normalizedCode },
+      where: { inviteCode: normalizedCode, subjectId: body.subjectId },
       include: { members: true, subject: true },
     });
     if (!group) throw new NotFoundException('Group not found for the provided invite code.');
@@ -256,7 +371,7 @@ export class SubjectRepository {
     const existingMembership = await this.prisma.groupMember.findFirst({
       where: {
         studentId: body.userId,
-        group: { subjectId: group.subjectId },
+        subjectId: group.subjectId,
       },
     });
     if (existingMembership) {
@@ -266,25 +381,89 @@ export class SubjectRepository {
     const joiningProfile = await this.prisma.studentProfile.findUnique({
       where: { userId: body.userId },
     });
+    if (!joiningProfile) {
+      throw new ForbiddenException('Student profile is required to join a group.');
+    }
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        studentId: joiningProfile.id,
+        subjectId: group.subjectId,
+      },
+      select: { id: true },
+    });
+    if (!enrollment) {
+      throw new ForbiddenException('You must be enrolled in this subject to join this group.');
+    }
+
     if (group.sectionId && joiningProfile?.sectionId && group.sectionId !== joiningProfile.sectionId) {
       throw new BadRequestException('This invite code belongs to a different section.');
     }
 
-    await this.prisma.groupMember.create({
-      data: {
-        groupId: group.id,
-        studentId: body.userId,
-        role: 'MEMBER',
-        status: 'ACTIVE',
-      },
-    });
-    if (group.status === 'PENDING') {
-      await this.prisma.group.update({ where: { id: group.id }, data: { status: 'ACTIVE' } });
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.acquireGroupMembershipLock(tx, group.subjectId, group.id);
+
+        const lockedGroup = await tx.group.findUnique({
+          where: { id: group.id },
+          include: { subject: true },
+        });
+        if (!lockedGroup) throw new NotFoundException('Group not found for the provided invite code.');
+        if (!lockedGroup.subject?.groupEnabled) throw new BadRequestException('This subject does not allow group membership.');
+        if (lockedGroup.status === 'LOCKED') throw new BadRequestException('This group is locked and cannot accept new members.');
+
+        const existingInSubject = await tx.groupMember.findUnique({
+          where: {
+            subjectId_studentId: {
+              subjectId: lockedGroup.subjectId,
+              studentId: body.userId,
+            },
+          },
+          select: { id: true },
+        });
+        if (existingInSubject) {
+          throw new ConflictException('You are already assigned to a group for this subject.');
+        }
+
+        const currentMemberCount = await tx.groupMember.count({
+          where: {
+            groupId: lockedGroup.id,
+            status: { not: 'REMOVED' },
+          },
+        });
+        const lockedMaxGroupSize = Math.max(1, Number(lockedGroup.subject?.maxGroupSize || 1));
+        if (currentMemberCount >= lockedMaxGroupSize) {
+          throw new BadRequestException('This group is already full.');
+        }
+
+        await tx.groupMember.create({
+          data: {
+            groupId: lockedGroup.id,
+            subjectId: lockedGroup.subjectId,
+            studentId: body.userId,
+            role: 'MEMBER',
+            status: 'ACTIVE',
+          },
+        });
+
+        const nextStatus = this.groupStatusForMemberCount(lockedGroup.subject, currentMemberCount + 1);
+        if (lockedGroup.status !== nextStatus) {
+          await tx.group.update({
+            where: { id: lockedGroup.id },
+            data: { status: nextStatus },
+          });
+        }
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException('You are already assigned to a group for this subject.');
+      }
+      throw error;
     }
 
     return this.prisma.group.findUnique({
       where: { id: group.id },
-      include: { members: { include: { student: true } } },
+      include: { members: { include: { student: { select: SAFE_USER_SELECT } } } },
     });
   }
 }

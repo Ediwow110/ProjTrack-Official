@@ -147,7 +147,7 @@ export default function AdminAcademicSettings() {
           title="Loading academic settings"
           description="Pulling the current academic term configuration before editing is enabled."
         >
-          <p className="text-sm text-slate-500 dark:text-slate-300">
+          <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-300">
             Please wait while the latest academic settings are prepared.
           </p>
         </SettingsSection>
@@ -185,7 +185,7 @@ export default function AdminAcademicSettings() {
                           className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:opacity-50 ${
                             form.schoolYear === year
                               ? "border-blue-700 bg-blue-700 text-white"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800"
+                              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800"
                           }`}
                         >
                           {year}
@@ -316,7 +316,7 @@ export default function AdminAcademicSettings() {
                   {form.allowedTypes.map((type) => (
                     <span
                       key={type}
-                      className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                      className="rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     >
                       {type}
                     </span>

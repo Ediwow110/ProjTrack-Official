@@ -7,7 +7,7 @@ const accounts = [
     password: process.env.SMOKE_STUDENT_PASSWORD || 'Student123!ChangeMe',
     identifierLabel: /Student ID or Email/i,
     dashboardPath: '/student/dashboard',
-    buttonName: /Continue to Student Login/i,
+    buttonName: /Sign In as Student/i,
     dashboardAssertion: /Submit Project/i,
   },
   {
@@ -16,7 +16,7 @@ const accounts = [
     password: process.env.SMOKE_TEACHER_PASSWORD || 'Teacher123!ChangeMe',
     identifierLabel: /Employee ID or School Email/i,
     dashboardPath: '/teacher/dashboard',
-    buttonName: /Continue to Teacher Login/i,
+    buttonName: /Sign In as Teacher/i,
     dashboardAssertion: /Review Submissions/i,
   },
   {
@@ -25,23 +25,29 @@ const accounts = [
     password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
     identifierLabel: /Admin Email/i,
     dashboardPath: '/admin/dashboard',
-    buttonName: /Continue to Admin Login/i,
+    buttonName: /Sign In as Admin/i,
     dashboardAssertion: /^System Status$/i,
   },
 ] as const;
 
 async function login(page: Page, account: (typeof accounts)[number]) {
   await page.goto(`/${account.role}/login`);
+  await assertNoViteOverlay(page);
   await page.getByLabel(account.identifierLabel).fill(account.identifier);
   await page.getByLabel(/^Password$/i).fill(account.password);
   await page.getByRole('button', { name: account.buttonName }).click();
+}
+
+async function assertNoViteOverlay(page: Page) {
+  await expect(page.getByText(/\[plugin:vite:esbuild\]|The service is no longer running/i)).toHaveCount(0);
 }
 
 test('home route lands directly on the student login portal', async ({ page }) => {
   test.slow();
   await page.goto('/');
   await page.waitForURL(/\/student\/login$/);
-  await expect(page.getByRole('heading', { name: /Student Login/i, level: 2 })).toBeVisible({
+  await assertNoViteOverlay(page);
+  await expect(page.getByRole('heading', { name: /Student Portal Login/i, level: 1 })).toBeVisible({
     timeout: 60_000,
   });
 });
@@ -49,7 +55,8 @@ test('home route lands directly on the student login portal', async ({ page }) =
 test('protected routes redirect unauthenticated users to the matching login page', async ({ page }) => {
   await page.goto('/admin/dashboard');
   await expect(page).toHaveURL(/\/admin\/login$/);
-  await expect(page.getByRole('heading', { name: /Admin Login/i, level: 2 })).toBeVisible();
+  await assertNoViteOverlay(page);
+  await expect(page.getByRole('heading', { name: /Admin Portal Login/i, level: 1 })).toBeVisible();
 });
 
 for (const account of accounts) {

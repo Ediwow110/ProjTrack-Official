@@ -31,6 +31,7 @@ export type MailProviderErrorClassification = {
   retryable: boolean;
   permanent: boolean;
   reason: string;
+  failureReason?: string | null;
   statusCode?: number;
 };
 

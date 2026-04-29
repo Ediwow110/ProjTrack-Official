@@ -29,7 +29,7 @@ function MetadataCard({
 }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
-      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-300 dark:text-slate-500">
         {icon}
         <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       </div>

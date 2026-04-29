@@ -8,12 +8,15 @@ function parseBooleanEnv(value: unknown, fallback: boolean) {
 
 function normalizeBaseUrl(value: unknown) {
   const fallback = "http://127.0.0.1:3001";
-  const candidate = String(value ?? fallback).trim() || fallback;
+  const candidate = String(value ?? "").trim() || fallback;
   const sanitized = candidate.replace(/\/+$/, "");
 
   try {
     return new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
   } catch {
+    if (import.meta.env.PROD) {
+      throw new Error("VITE_API_BASE_URL must be a valid absolute URL for production builds.");
+    }
     return fallback;
   }
 }
@@ -24,7 +27,15 @@ function normalizeApiPath(path: string) {
   return candidate.startsWith("/") ? candidate : `/${candidate}`;
 }
 
-const configuredBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+const rawConfiguredBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
+if (import.meta.env.PROD && !rawConfiguredBaseUrl) {
+  throw new Error("VITE_API_BASE_URL is required for production builds.");
+}
+if (import.meta.env.PROD && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(rawConfiguredBaseUrl)) {
+  throw new Error("VITE_API_BASE_URL cannot point to localhost in production builds.");
+}
+
+const configuredBaseUrl = normalizeBaseUrl(rawConfiguredBaseUrl || undefined);
 
 export const apiRuntime = {
   useBackend: parseBooleanEnv(import.meta.env.VITE_USE_BACKEND, true),

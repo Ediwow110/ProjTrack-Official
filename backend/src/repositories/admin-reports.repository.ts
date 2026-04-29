@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SubjectRepository } from './subject.repository';
 import { SubmissionRepository } from './submission.repository';
 import { UserRepository } from './user.repository';
+import { isPendingReviewStatus } from '../access/policies/submission-access.policy';
 
 @Injectable()
 export class AdminReportsRepository {
@@ -15,7 +16,7 @@ export class AdminReportsRepository {
     const rows = await this.currentView(section, subjectId);
     const total = rows.length;
     const graded = rows.filter((row: any) => row.status === 'GRADED').length;
-    const pending = rows.filter((row: any) => row.status === 'PENDING_REVIEW').length;
+    const pending = rows.filter((row: any) => isPendingReviewStatus(row.status)).length;
     const late = rows.filter((row: any) => row.status === 'LATE').length;
     const bySubjectMap = new Map<string, { subjectId: string; subject: string; submissions: number; graded: number; pendingReview: number }>();
 
@@ -33,7 +34,7 @@ export class AdminReportsRepository {
       const bucket = bySubjectMap.get(key)!;
       bucket.submissions += 1;
       if (row.status === 'GRADED') bucket.graded += 1;
-      if (row.status === 'PENDING_REVIEW') bucket.pendingReview += 1;
+      if (isPendingReviewStatus(row.status)) bucket.pendingReview += 1;
     }
 
     return {
@@ -129,7 +130,7 @@ export class AdminReportsRepository {
       const bucket = monthBuckets.get(month)!;
       bucket.count += 1;
       if (row.status === 'LATE') bucket.late += 1;
-      bucket.days += row.status === 'PENDING_REVIEW' ? 3 : row.status === 'GRADED' ? 2 : 1;
+      bucket.days += row.status === 'GRADED' ? 2 : 1;
     }
 
     const lateData = Array.from(monthBuckets.values()).map((item) => ({
@@ -148,7 +149,7 @@ export class AdminReportsRepository {
       completionRate: `${item.submissions ? Math.round(((item.graded + item.pendingReview) / item.submissions) * 100) : 0}%`,
       pending: item.pendingReview,
       graded: item.graded,
-      avgReview: item.submissions ? `${Math.max(1, Math.round(((item.pendingReview * 3 + item.graded * 2) / item.submissions) * 10) / 10)}d` : '0d',
+      avgReview: 'Event history required',
     }));
 
     return {

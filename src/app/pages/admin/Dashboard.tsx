@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Activity,
-  AlertCircle,
   BarChart3,
-  CheckCircle2,
   RefreshCcw,
 } from "lucide-react";
 import {
@@ -19,6 +17,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { BootstrapIcon } from "../../components/ui/bootstrap-icon";
 import {
   PortalEmptyState,
   PortalHero,
@@ -79,7 +78,7 @@ export default function AdminDashboard() {
             <button
               disabled={loading}
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-lg shadow-slate-950/10 transition hover:bg-slate-100 disabled:opacity-60"
+              className="portal-action-secondary inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-60"
             >
               <RefreshCcw size={16} />
               Refresh Snapshot
@@ -163,7 +162,7 @@ export default function AdminDashboard() {
                 {visibleRecentActivity.map((activity, index) => (
                   <div
                     key={`${activity.action}-${activity.target}-${index}`}
-                    className="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4"
+                    className="flex items-center gap-3 rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface-panel-muted)] px-4 py-4"
                   >
                     <div
                       className={`h-2.5 w-2.5 shrink-0 rounded-full ${
@@ -177,17 +176,17 @@ export default function AdminDashboard() {
                       }`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-slate-700">
+                      <p className="text-sm text-[var(--text-body)]">
                         <span className="font-semibold">{activity.action}</span> ·{" "}
                         {activity.target}
                       </p>
                     </div>
-                    <span className="text-[11px] text-slate-400">{activity.time}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{activity.time}</span>
                   </div>
                 ))}
                 {activityTotalPages > 1 ? (
-                  <div className="flex items-center justify-between border-t border-slate-200/70 pt-4">
-                    <p className="text-xs font-medium text-slate-400">
+                  <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+                    <p className="text-xs font-medium text-[var(--text-muted)]">
                       Showing {(activityPage - 1) * activityPageSize + 1}-{Math.min(activityPage * activityPageSize, recentActivity.length)} of {recentActivity.length}
                     </p>
                     <div className="flex items-center gap-2">
@@ -195,18 +194,18 @@ export default function AdminDashboard() {
                         type="button"
                         disabled={activityPage === 1}
                         onClick={() => setActivityPage((page) => Math.max(1, page - 1))}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        className="portal-action-secondary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
                       >
                         Previous
                       </button>
-                      <span className="text-xs font-semibold text-slate-500">
+                      <span className="text-xs font-semibold text-[var(--text-muted)]">
                         Page {activityPage} of {activityTotalPages}
                       </span>
                       <button
                         type="button"
                         disabled={activityPage === activityTotalPages}
                         onClick={() => setActivityPage((page) => Math.min(activityTotalPages, page + 1))}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                        className="portal-action-secondary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
                       >
                         Next
                       </button>
@@ -219,7 +218,7 @@ export default function AdminDashboard() {
                 title="No activity to show"
                 description="Recent actions and system events will appear here once they are recorded."
                 icon={Activity}
-                className="border-slate-200 bg-slate-50/80"
+                className="border-[var(--border-subtle)] bg-[var(--surface-panel-muted)]"
               />
             )}
           </PortalPanel>
@@ -245,8 +244,8 @@ export default function AdminDashboard() {
                   onClick={() => navigate(action.to)}
                   className={`w-full rounded-[22px] px-4 py-3 text-left text-sm font-semibold transition ${
                     action.primary
-                      ? "bg-slate-900 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)] hover:bg-slate-950"
-                      : "border border-slate-200 bg-slate-50/90 text-slate-700 hover:bg-slate-100"
+                      ? "bg-slate-900 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)] hover:bg-slate-950 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                      : "border border-[var(--border-subtle)] bg-[var(--surface-panel-muted)] text-[var(--text-body)] hover:bg-[var(--surface-panel-strong)]"
                   }`}
                 >
                   {action.label}
@@ -263,18 +262,18 @@ export default function AdminDashboard() {
               {(data?.systemStatus ?? []).map((status) => (
                 <div
                   key={status.label}
-                  className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50/85 px-4 py-3"
+                  className="flex items-center justify-between rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-panel-muted)] px-4 py-3"
                 >
-                  <span className="text-sm text-slate-600">{status.label}</span>
+                  <span className="text-sm text-[var(--text-muted)]">{status.label}</span>
                   <div className="flex items-center gap-2">
                     {status.good ? (
-                      <CheckCircle2 size={14} className="text-emerald-500" />
+                      <BootstrapIcon name="check-circle-fill" tone="success" size={14} />
                     ) : (
-                      <AlertCircle size={14} className="text-amber-500" />
+                      <BootstrapIcon name="exclamation-triangle-fill" tone="warning" size={14} />
                     )}
                     <span
                       className={`text-xs font-semibold ${
-                        status.good ? "text-emerald-700" : "text-amber-700"
+                        status.good ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
                       }`}
                     >
                       {status.status}
@@ -294,7 +293,7 @@ export default function AdminDashboard() {
                 {term.schoolYear}
               </p>
               <p className="text-sm text-slate-300">{term.semester}</p>
-              <p className="pt-2 text-sm leading-6 text-slate-400">{term.detail}</p>
+              <p className="pt-2 text-sm leading-6 text-slate-400 dark:text-slate-300">{term.detail}</p>
             </div>
           </PortalPanel>
         </div>

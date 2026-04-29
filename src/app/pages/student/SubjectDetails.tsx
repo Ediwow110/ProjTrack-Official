@@ -61,12 +61,12 @@ function hasDisplayValue(value?: string | null) {
 function statusBadgeClass(status?: string) {
   const normalized = String(status || "").trim().toUpperCase();
   if (normalized === "ACTIVE") {
-    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/25";
+    return "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/25";
   }
   if (normalized === "INACTIVE") {
-    return "bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/25";
+    return "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 ring-1 ring-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/25";
   }
-  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900/70 dark:text-slate-200 dark:ring-slate-700/70";
+  return "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:bg-slate-900/70 dark:text-slate-200 dark:ring-slate-700/70";
 }
 
 function describeStudentProgress(activityStatus?: string, matchedSubmission?: any) {
@@ -226,7 +226,7 @@ export default function StudentSubjectDetails() {
     () =>
       id
         ? studentSubjectService.getSubject(id)
-        : Promise.reject(new Error("Subject id is required.")),
+        : Promise.reject(new Error("Subject is required.")),
     [id],
   );
   const { data: submissionRowsData } = useAsyncData(
@@ -350,7 +350,7 @@ export default function StudentSubjectDetails() {
   if (!data && loading) {
     return (
       <PortalPage>
-        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85" />
+        <div className="h-[420px] animate-pulse rounded-[32px] border border-white/70 bg-white/85 dark:bg-slate-900/85" />
       </PortalPage>
     );
   }
@@ -361,7 +361,7 @@ export default function StudentSubjectDetails() {
     <PortalPage className="space-y-6">
       <button
         onClick={() => navigate(returnTarget)}
-        className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.4)] transition hover:bg-white dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
+        className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.4)] transition hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <ChevronLeft size={15} />
         Back to Subjects
@@ -406,7 +406,7 @@ export default function StudentSubjectDetails() {
         actions={
           <button
             onClick={() => handleTabChange("Activities")}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
           >
             <Clock size={16} />
             Open Activities
@@ -423,7 +423,7 @@ export default function StudentSubjectDetails() {
               className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                 tab === entry
                   ? "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)]"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
               {entry}
@@ -472,9 +472,9 @@ export default function StudentSubjectDetails() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
+                    className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                   >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       {item.label}
                     </p>
                     <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -494,7 +494,7 @@ export default function StudentSubjectDetails() {
                   {data.recentActivity.map((entry) => (
                     <div
                       key={entry}
-                      className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 text-sm text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300"
+                      className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 text-sm text-slate-600 dark:text-slate-300 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300"
                     >
                       {entry}
                     </div>
@@ -505,7 +505,7 @@ export default function StudentSubjectDetails() {
                   title="No recent updates"
                   description="This subject has not recorded any recent activity yet."
                   icon={Clock}
-                  className="border-slate-200 bg-slate-50/80"
+                  className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
                 />
               )}
             </PortalPanel>
@@ -523,7 +523,7 @@ export default function StudentSubjectDetails() {
               {activityRows.map((activity: any) => (
                 <div
                   key={activity.id}
-                  className="rounded-[26px] border border-slate-200 bg-slate-50/80 p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.32)] dark:border-slate-700/60 dark:bg-slate-800/75"
+                  className="rounded-[26px] border border-slate-200 dark:border-slate-700 bg-slate-50/80 p-5 shadow-[0_18px_45px_-38px_rgba(15,23,42,0.32)] dark:border-slate-700/60 dark:bg-slate-800/75"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
@@ -531,8 +531,8 @@ export default function StudentSubjectDetails() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
                             activity.type === "Group"
-                              ? "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200"
-                              : "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
+                              ? "bg-violet-100 text-violet-700 dark:text-violet-300 dark:bg-violet-500/15 dark:text-violet-200"
+                              : "bg-blue-100 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200"
                           }`}
                         >
                           {activity.type === "Group" ? (
@@ -552,24 +552,24 @@ export default function StudentSubjectDetails() {
                         Your progress: {activity.progressDetail}
                       </p>
                       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-[20px] border border-white/70 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        <div className="rounded-[20px] border border-white/70 bg-white dark:bg-slate-900/85 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                             Due Date
                           </p>
                           <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
                             {activity.due}
                           </p>
                         </div>
-                        <div className="rounded-[20px] border border-white/70 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        <div className="rounded-[20px] border border-white/70 bg-white dark:bg-slate-900/85 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                             File Types
                           </p>
                           <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
                             {activity.fileTypes}
                           </p>
                         </div>
-                        <div className="rounded-[20px] border border-white/70 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        <div className="rounded-[20px] border border-white/70 bg-white dark:bg-slate-900/85 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                             Your Status
                           </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -579,8 +579,8 @@ export default function StudentSubjectDetails() {
                             </span>
                           </div>
                         </div>
-                        <div className="rounded-[20px] border border-white/70 bg-white px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        <div className="rounded-[20px] border border-white/70 bg-white dark:bg-slate-900/85 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/70">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                             Timeline
                           </p>
                           <p
@@ -588,7 +588,7 @@ export default function StudentSubjectDetails() {
                               activity.daysLeft < 0
                                 ? "text-rose-600"
                                 : activity.daysLeft <= 5
-                                  ? "text-amber-700"
+                                  ? "text-amber-700 dark:text-amber-300"
                                   : "text-slate-800 dark:text-slate-100"
                             }`}
                           >
@@ -610,7 +610,7 @@ export default function StudentSubjectDetails() {
                         disabled={activity.disabled}
                         className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                           activity.disabled
-                            ? "cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-700 dark:text-slate-400"
+                            ? "cursor-not-allowed bg-slate-200 text-slate-400 dark:text-slate-300 dark:bg-slate-700 dark:text-slate-400"
                             : "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] hover:bg-blue-800"
                         }`}
                       >
@@ -640,19 +640,19 @@ export default function StudentSubjectDetails() {
                 description="This subject supports collaborative work. Start a new group or join an existing one with an invite code."
               >
                 {groupActionState.error ? (
-                  <div className="mb-4 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/25 dark:bg-rose-500/15 dark:text-rose-200">
+                  <div className="mb-4 rounded-[20px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 dark:border-rose-400/25 dark:bg-rose-500/15 dark:text-rose-200">
                     {groupActionState.error}
                   </div>
                 ) : null}
                 {groupActionState.success ? (
-                  <div className="mb-4 rounded-[20px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/15 dark:text-emerald-200">
+                  <div className="mb-4 rounded-[20px] border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 dark:border-emerald-400/25 dark:bg-emerald-500/15 dark:text-emerald-200">
                     {groupActionState.success}
                   </div>
                 ) : null}
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
+                  <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
                     <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                      <Plus size={16} className="text-blue-700" />
+                      <Plus size={16} className="text-blue-700 dark:text-blue-300" />
                       <p className="font-display text-lg font-semibold tracking-[-0.03em]">
                         Create a Group
                       </p>
@@ -664,7 +664,7 @@ export default function StudentSubjectDetails() {
                       value={groupName}
                       onChange={(event) => setGroupName(event.target.value)}
                       placeholder="Enter your group name"
-                      className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-300 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-blue-400/40"
+                      className="mt-4 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-300 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-blue-400/40"
                     />
                     <button
                       onClick={handleCreateGroup}
@@ -675,9 +675,9 @@ export default function StudentSubjectDetails() {
                     </button>
                   </div>
 
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
+                  <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
                     <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                      <UserPlus size={16} className="text-teal-700" />
+                      <UserPlus size={16} className="text-teal-700 dark:text-teal-300" />
                       <p className="font-display text-lg font-semibold tracking-[-0.03em]">
                         Join by Invite Code
                       </p>
@@ -689,7 +689,7 @@ export default function StudentSubjectDetails() {
                       value={joinCode}
                       onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
                       placeholder="Paste the invite code"
-                      className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm uppercase tracking-[0.2em] text-slate-700 outline-none focus:border-teal-300 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-teal-400/40"
+                      className="mt-4 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 outline-none focus:border-teal-300 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-teal-400/40"
                     />
                     <button
                       onClick={handleJoinGroup}
@@ -707,19 +707,19 @@ export default function StudentSubjectDetails() {
                 description="Your active collaboration space for this subject."
               >
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
+                  <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                           Invite Code
                         </p>
-                        <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm uppercase tracking-[0.28em] text-slate-700 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100">
+                        <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 font-mono text-sm uppercase tracking-[0.28em] text-slate-700 dark:text-slate-200 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100">
                           {data.group.code}
                         </div>
                       </div>
                       <button
                         onClick={copyCode}
-                        className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800"
+                        className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
                         <Copy size={13} />
                         {copied ? "Copied" : "Copy"}
@@ -730,7 +730,7 @@ export default function StudentSubjectDetails() {
                     </p>
                   </div>
 
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
+                  <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
                     <div className="flex items-center gap-2">
                       {String(data.group.status || "").toLowerCase() === "locked" ? (
                         <Lock size={16} className="text-amber-600" />
@@ -769,7 +769,7 @@ export default function StudentSubjectDetails() {
                   {data.members.map((member) => (
                     <div
                       key={`${member.name}-${member.role}`}
-                      className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
+                      className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                     >
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{member.name}</p>
                       <div className="mt-2 flex items-center justify-between gap-3">
@@ -786,7 +786,7 @@ export default function StudentSubjectDetails() {
                   title="No member roster available"
                   description="Member details will show up here once they are available for this subject."
                   icon={Users}
-                  className="border-slate-200 bg-slate-50/80"
+                  className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
                 />
               )}
             </PortalPanel>
@@ -801,7 +801,7 @@ export default function StudentSubjectDetails() {
               {data.recentActivity.map((entry) => (
                 <div
                   key={entry}
-                  className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 text-sm text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300"
+                  className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 text-sm text-slate-600 dark:text-slate-300 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300"
                 >
                   {entry}
                 </div>
@@ -812,7 +812,7 @@ export default function StudentSubjectDetails() {
                 title="No group activity yet"
                 description="Group updates, invitations, and submission events will appear here."
                 icon={Clock}
-                className="border-slate-200 bg-slate-50/80"
+                className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
               />
             )}
           </PortalPanel>

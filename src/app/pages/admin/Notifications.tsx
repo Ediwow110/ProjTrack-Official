@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, UserPlus, FileText, RefreshCcw, Trash2, type LucideIcon } from "lucide-react";
+import { CopyableIdChip } from "../../components/lists/shared/CopyableIdChip";
 import { Checkbox } from "../../components/ui/checkbox";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
@@ -13,9 +14,9 @@ const typeIcon: Record<string, LucideIcon> = {
 };
 
 const typeColor: Record<string, string> = {
-  account: "bg-blue-50 text-blue-600",
-  request: "bg-amber-50 text-amber-600",
-  system: "bg-slate-100 text-slate-500",
+  account: "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300",
+  request: "bg-amber-50 dark:bg-amber-500/15 text-amber-600",
+  system: "bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400",
 };
 
 export default function AdminNotifications() {
@@ -110,24 +111,24 @@ export default function AdminNotifications() {
   };
 
   return (
-    <div className="p-6 max-w-[88rem] mx-auto space-y-6">
+    <div className="portal-surface p-6 max-w-[88rem] mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-slate-900 font-bold" style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>Notifications</h1>
-          <p className="text-slate-400 text-sm mt-0.5">{loading ? "Loading notifications…" : unread > 0 ? `${unread} unread system alerts` : "All caught up."}</p>
+          <h1 className="text-slate-900 dark:text-slate-100 font-bold" style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>Notifications</h1>
+          <p className="text-slate-400 dark:text-slate-300 text-sm mt-0.5">{loading ? "Loading notifications…" : unread > 0 ? `${unread} unread system alerts` : "All caught up."}</p>
         </div>
         <div className="flex items-center gap-3">
           {selectedCount > 0 && (
-            <button disabled={loading || actionState.busy} onClick={() => void deleteNotifications(selectedIds)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+            <button disabled={loading || actionState.busy} onClick={() => void deleteNotifications(selectedIds)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 disabled:opacity-50">
               <Trash2 size={14} /> Delete Selected ({selectedCount})
             </button>
           )}
           {unread > 0 && (
-            <button disabled={loading || actionState.busy} onClick={markAllRead} className="flex items-center gap-1.5 text-blue-700 text-sm font-semibold hover:underline disabled:opacity-50">
+            <button disabled={loading || actionState.busy} onClick={markAllRead} className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 text-sm font-semibold hover:underline disabled:opacity-50">
               <CheckCheck size={15} /> Mark all read
             </button>
           )}
-          <button disabled={loading || actionState.busy} onClick={reload} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <button disabled={loading || actionState.busy} onClick={reload} className="portal-input inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:text-slate-100 dark:hover:bg-slate-800/85">
             <RefreshCcw size={14} /> Refresh
           </button>
         </div>
@@ -135,35 +136,35 @@ export default function AdminNotifications() {
 
       <div className="flex gap-2 flex-wrap">
         {notifications.length > 0 && (
-          <button disabled={loading || actionState.busy} onClick={toggleSelectAll} className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 bg-white border border-slate-200 text-slate-500 hover:bg-slate-50">
+          <button disabled={loading || actionState.busy} onClick={toggleSelectAll} className="portal-input px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-800/85">
             {selectedCount === notifications.length ? "Clear selection" : "Select all"}
           </button>
         )}
         {types.map((t) => (
-          <button key={t} disabled={loading || actionState.busy} onClick={() => setFilter(t)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 ${filter === t ? "bg-blue-800 text-white" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+          <button key={t} disabled={loading || actionState.busy} onClick={() => setFilter(t)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 ${filter === t ? "bg-blue-800 text-white" : "portal-input text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-800/85"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 text-sm">{error}</div>}
-      {actionState.error && <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 text-sm">{actionState.error}</div>}
+      {error && <div className="bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 rounded-xl p-4 text-sm">{error}</div>}
+      {actionState.error && <div className="bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 rounded-xl p-4 text-sm">{actionState.error}</div>}
 
       {loading && notifications.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 text-sm text-slate-500">Loading notifications…</div>
+        <div className="portal-card rounded-xl border shadow-sm p-5 text-sm text-slate-500 dark:text-slate-400">Loading notifications…</div>
       ) : notifications.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-10 text-center text-sm text-slate-500">No notifications in this view.</div>
+        <div className="portal-card rounded-xl border shadow-sm p-10 text-center text-sm text-slate-500 dark:text-slate-400">No notifications in this view.</div>
       ) : (
         Object.entries(grouped).map(([date, items]) => (
           <div key={date}>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{date}</p>
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-300 uppercase tracking-wider mb-2">{date}</p>
             <div className="space-y-2">
               {items.map((n) => {
                 const Icon = typeIcon[n.type] ?? Bell;
                 return (
                   <div
                     key={n.id}
-                    className={`w-full flex items-start gap-3.5 p-4 rounded-xl border transition-all ${actionState.busy ? "opacity-70" : ""} ${n.read ? "bg-white border-slate-100" : "bg-blue-50/40 border-blue-100"}`}
+                    className={`w-full flex items-start gap-3.5 p-4 rounded-xl border transition-all ${actionState.busy ? "opacity-70" : ""} ${n.read ? "portal-card" : "border-blue-100 dark:border-blue-500/30 bg-blue-50/40 dark:border-blue-400/30 dark:bg-blue-500/12"}`}
                   >
                     <Checkbox
                       checked={selectedIds.includes(n.id)}
@@ -181,17 +182,26 @@ export default function AdminNotifications() {
                       className="flex-1 text-left"
                     >
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-semibold ${n.read ? "text-slate-700" : "text-slate-900"}`}>{n.title}</p>
+                        <p className={`text-sm font-semibold ${n.read ? "text-slate-700 dark:text-slate-200 dark:text-slate-100" : "text-slate-900 dark:text-slate-100 dark:text-slate-50"}`}>{n.title}</p>
                         {!n.read && <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />}
                       </div>
-                      <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{n.body}</p>
-                      <p className="text-slate-400 text-[10px] mt-1">{n.time}</p>
+                      <p className="text-slate-500 dark:text-slate-400 dark:text-slate-300 text-xs mt-0.5 leading-relaxed">{n.body}</p>
+                      <p className="text-slate-400 dark:text-slate-300 text-[10px] mt-1">{n.time}</p>
                     </button>
+                    <div className="mt-8 flex flex-wrap items-center gap-2 self-end">
+                      <CopyableIdChip value={n.id} label="Copy Notification ID" className="bg-transparent px-0" />
+                      {n.userId ? (
+                        <CopyableIdChip value={n.userId} label="Copy User ID" className="bg-transparent px-0" />
+                      ) : null}
+                      {n.dedupeKey ? (
+                        <CopyableIdChip value={n.dedupeKey} label="Copy Dedupe Key" className="bg-transparent px-0" />
+                      ) : null}
+                    </div>
                     <button
                       type="button"
                       disabled={loading || actionState.busy}
                       onClick={() => void deleteNotifications([n.id])}
-                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 disabled:opacity-50"
                     >
                       <Trash2 size={13} />
                       Delete

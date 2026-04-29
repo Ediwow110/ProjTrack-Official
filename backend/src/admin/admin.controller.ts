@@ -1,7 +1,21 @@
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
-import { UseGuards, Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import {
+  UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @UseGuards(JwtAuthGuard)
 @Roles('ADMIN')
@@ -9,6 +23,60 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
+  private actorContext(req: any) {
+    return {
+      actorUserId: String(req?.user?.sub ?? '').trim() || undefined,
+      actorEmail: String(req?.user?.email ?? '').trim() || undefined,
+      actorRole: String(req?.user?.role ?? 'ADMIN').trim() || 'ADMIN',
+      ipAddress: req?.ip || req?.socket?.remoteAddress,
+      userAgent: req?.headers?.['user-agent']
+        ? String(req.headers['user-agent'])
+        : undefined,
+    };
+  }
+
+  @Get('users')
+  users(
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.admin.users(search, role, status);
+  }
+
+  @Post('users/admins')
+  createAdmin(@Body() body: any, @Req() req: any) {
+    return this.admin.createAdmin(body, this.actorContext(req));
+  }
+
+  @Post('users/:id/activate')
+  activateUser(@Param('id') id: string, @Req() req: any) {
+    return this.admin.activateUser(id, this.actorContext(req));
+  }
+
+  @Post('users/:id/deactivate')
+  deactivateUser(@Param('id') id: string, @Req() req: any) {
+    return this.admin.deactivateUser(id, this.actorContext(req));
+  }
+
+  @Post('users/:id/send-reset-link')
+  sendUserResetLink(@Param('id') id: string, @Req() req: any) {
+    return this.admin.sendUserResetLink(id, this.actorContext(req));
+  }
+
+  @Post('users/:id/resend-activation')
+  resendUserActivation(@Param('id') id: string, @Req() req: any) {
+    return this.admin.resendUserActivation(id, this.actorContext(req));
+  }
+
+  @Delete('users/:id')
+  deleteUser(
+    @Param('id') id: string,
+    @Query('confirmation') confirmation?: string,
+    @Req() req?: any,
+  ) {
+    return this.admin.deleteUser(id, confirmation, this.actorContext(req));
+  }
 
   @Get('teachers')
   teachers(@Query('search') search?: string, @Query('status') status?: string) {
@@ -21,8 +89,23 @@ export class AdminController {
   }
 
   @Post('departments')
-  createDepartment(@Body() body: any) {
-    return this.admin.createDepartment(body);
+  createDepartment(@Body() body: CreateDepartmentDto, @Req() req: any) {
+    return this.admin.createDepartment(body, this.actorContext(req));
+  }
+
+  @Get('departments/:id')
+  departmentDetail(@Param('id') id: string) {
+    return this.admin.department(id);
+  }
+
+  @Patch('departments/:id')
+  updateDepartment(@Param('id') id: string, @Body() body: UpdateDepartmentDto, @Req() req: any) {
+    return this.admin.updateDepartment(id, body, this.actorContext(req));
+  }
+
+  @Delete('departments/:id')
+  deleteDepartment(@Param('id') id: string, @Query('confirmation') confirmation?: string, @Req() req?: any) {
+    return this.admin.deleteDepartment(id, confirmation, this.actorContext(req));
   }
 
   @Get('sections')
@@ -91,19 +174,9 @@ export class AdminController {
     return this.admin.subjects(search);
   }
 
-  @Post('students/:id/activate')
-  activateStudent(@Param('id') id: string) {
-    return this.admin.activateStudent(id);
-  }
-
-  @Post('students/:id/send-reset-link')
-  sendStudentResetLink(@Param('id') id: string) {
-    return this.admin.sendStudentResetLink(id);
-  }
-
   @Post('students/:id/deactivate')
-  deactivateStudent(@Param('id') id: string) {
-    return this.admin.deactivateStudent(id);
+  deactivateStudent(@Param('id') id: string, @Req() req: any) {
+    return this.admin.deactivateStudent(id, this.actorContext(req));
   }
 
   @Get('students/:id/detail')
@@ -117,18 +190,18 @@ export class AdminController {
   }
 
   @Post('teachers/:id/activate')
-  activateTeacher(@Param('id') id: string) {
-    return this.admin.activateTeacher(id);
+  activateTeacher(@Param('id') id: string, @Req() req: any) {
+    return this.admin.activateTeacher(id, this.actorContext(req));
   }
 
   @Post('teachers/:id/send-reset-link')
-  sendTeacherResetLink(@Param('id') id: string) {
-    return this.admin.sendTeacherResetLink(id);
+  sendTeacherResetLink(@Param('id') id: string, @Req() req: any) {
+    return this.admin.sendTeacherResetLink(id, this.actorContext(req));
   }
 
   @Post('teachers/:id/deactivate')
-  deactivateTeacher(@Param('id') id: string) {
-    return this.admin.deactivateTeacher(id);
+  deactivateTeacher(@Param('id') id: string, @Req() req: any) {
+    return this.admin.deactivateTeacher(id, this.actorContext(req));
   }
 
   @Get('teachers/:id/detail')
@@ -154,6 +227,36 @@ export class AdminController {
   @Get('submissions/:id/detail')
   submissionDetail(@Param('id') id: string) {
     return this.admin.submissionDetail(id);
+  }
+
+  @Get('submissions')
+  submissions(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('subjectId') subjectId?: string,
+    @Query('studentId') studentId?: string,
+    @Query('section') section?: string,
+  ) {
+    return this.admin.submissions(search, status, subjectId, studentId, section);
+  }
+
+  @Post('submissions')
+  createSubmission(@Body() body: any, @Req() req: any) {
+    return this.admin.createSubmission(body, this.actorContext(req));
+  }
+
+  @Patch('submissions/:id')
+  updateSubmission(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.admin.updateSubmission(id, body, this.actorContext(req));
+  }
+
+  @Delete('submissions/:id')
+  deleteSubmission(
+    @Param('id') id: string,
+    @Query('confirmation') confirmation?: string,
+    @Req() req?: any,
+  ) {
+    return this.admin.deleteSubmission(id, confirmation, this.actorContext(req));
   }
 
   @Post('submissions/:id/note')
@@ -182,8 +285,8 @@ export class AdminController {
   }
 
   @Post('settings/academic')
-  saveAcademicSettings(@Body() body: any) {
-    return this.admin.saveAcademicSettings(body);
+  saveAcademicSettings(@Body() body: any, @Req() req: any) {
+    return this.admin.saveAcademicSettings(body, this.actorContext(req));
   }
 
   @Get('settings/system')
@@ -192,8 +295,8 @@ export class AdminController {
   }
 
   @Post('settings/system')
-  saveSystemSettings(@Body() body: any) {
-    return this.admin.saveSystemSettings(body);
+  saveSystemSettings(@Body() body: any, @Req() req: any) {
+    return this.admin.saveSystemSettings(body, this.actorContext(req));
   }
 
   @Get('system-tools')
@@ -202,8 +305,8 @@ export class AdminController {
   }
 
   @Post('system-tools/:id/run')
-  runSystemTool(@Param('id') id: string) {
-    return this.admin.runSystemTool(id);
+  runSystemTool(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.admin.runSystemTool(id, body, this.actorContext(req));
   }
 
   @Get('system-tools/artifact')
@@ -288,8 +391,8 @@ export class AdminController {
   }
 
   @Post('notifications/read-all')
-  markAllNotificationsRead() {
-    return this.admin.markAllNotificationsRead();
+  markAllNotificationsRead(@Req() req: any) {
+    return this.admin.markAllNotificationsRead(this.actorContext(req));
   }
 
   @Post('notifications/delete')

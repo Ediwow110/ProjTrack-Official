@@ -127,7 +127,7 @@ export default function StudentCalendar() {
       />
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
           {error}
         </div>
       ) : null}
@@ -137,10 +137,10 @@ export default function StudentCalendar() {
         description="Move through the month, switch the presentation mode, and limit the view to one subject if you need focus."
       >
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-[24px] border border-slate-200 bg-white px-3 py-2 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] dark:border-slate-700/60 dark:bg-slate-900/80">
+          <div className="flex items-center gap-2 rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-3 py-2 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] dark:border-slate-700/60 dark:bg-slate-900/80">
             <button
               onClick={() => setCurrent(new Date(year, month - 1, 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <ChevronLeft size={15} />
             </button>
@@ -149,7 +149,7 @@ export default function StudentCalendar() {
             </p>
             <button
               onClick={() => setCurrent(new Date(year, month + 1, 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <ChevronRight size={15} />
             </button>
@@ -163,7 +163,7 @@ export default function StudentCalendar() {
                 className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                   view === item
                     ? "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)]"
-                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
+                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 {item}
@@ -174,7 +174,7 @@ export default function StudentCalendar() {
           <select
             value={subjectFilter}
             onChange={(event) => setSubjectFilter(event.target.value)}
-            className="rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] outline-none dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-200"
+            className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] outline-none dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-200"
           >
             {[
               "All Subjects",
@@ -202,7 +202,7 @@ export default function StudentCalendar() {
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                   <div
                     key={day}
-                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500"
+                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500"
                   >
                     {day}
                   </div>
@@ -225,8 +225,8 @@ export default function StudentCalendar() {
                             onClick={() => setSelected(event)}
                             className={`w-full rounded-2xl border px-2.5 py-2 text-left transition ${
                               activeSelected?.id === event.id
-                                ? "border-blue-200 bg-blue-50/80 dark:border-blue-400/30 dark:bg-blue-500/15"
-                                : "border-slate-200 bg-slate-50/85 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/75 dark:hover:bg-slate-800"
+                                ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/80 dark:border-blue-400/30 dark:bg-blue-500/15"
+                                : "border-slate-200 dark:border-slate-700 bg-slate-50/85 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/75 dark:hover:bg-slate-800"
                             }`}
                           >
                             <div className="mb-1 flex items-center gap-1.5">
@@ -235,11 +235,11 @@ export default function StudentCalendar() {
                                   subjectColors[event.subject] || "bg-slate-400"
                                 }`}
                               />
-                              <span className="truncate text-[11px] font-semibold text-slate-700 dark:text-slate-100">
+                              <span className="truncate text-[11px] font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-100">
                                 {event.title}
                               </span>
                             </div>
-                            <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">
+                            <p className="truncate text-[10px] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                               {event.subject}
                             </p>
                           </button>
@@ -252,7 +252,7 @@ export default function StudentCalendar() {
           ) : loading && !data ? (
             <div className="px-6 py-6 text-sm text-slate-500 dark:text-slate-400">Loading agenda...</div>
           ) : upcoming.length ? (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
               {upcoming.map((event) => (
                 <button
                   key={event.id}
@@ -278,7 +278,7 @@ export default function StudentCalendar() {
                 title="No calendar events in this view"
                 description="Adjust the subject filter or change the month to bring more items into the calendar."
                 icon={CalendarDays}
-                className="border-slate-200 bg-slate-50/80"
+                className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
               />
             </div>
           )}
@@ -300,16 +300,16 @@ export default function StudentCalendar() {
                   </p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                  <div className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       Due Date
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {activeSelected.displayDate || activeSelected.date}
                     </p>
                   </div>
-                  <div className="rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                  <div className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                       Submission Type
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -337,7 +337,7 @@ export default function StudentCalendar() {
                 title="Nothing selected yet"
                 description="Choose any calendar entry to preview its deadline, type, and next action."
                 icon={CalendarDays}
-                className="border-slate-200 bg-slate-50/80"
+                className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
               />
             )}
           </PortalPanel>
@@ -351,7 +351,7 @@ export default function StudentCalendar() {
                 {upcoming.slice(0, 5).map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-start justify-between gap-3 rounded-[22px] border border-slate-200 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
+                    className="flex items-start justify-between gap-3 rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -370,7 +370,7 @@ export default function StudentCalendar() {
                 title="No upcoming items"
                 description="This calendar view does not have any upcoming deadlines right now."
                 icon={Clock3}
-                className="border-slate-200 bg-slate-50/80"
+                className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
               />
             )}
           </PortalPanel>

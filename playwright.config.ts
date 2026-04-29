@@ -3,11 +3,14 @@ import { fileURLToPath } from 'url';
 import { resolve } from 'path';
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
-const frontendPort = 4173;
-const backendPort = 3101;
+const frontendPort = Number(process.env.PLAYWRIGHT_FRONTEND_PORT || 4173);
+const backendPort = Number(process.env.PLAYWRIGHT_BACKEND_PORT || 3101);
 const frontendUrl = `http://127.0.0.1:${frontendPort}`;
 const backendUrl = `http://127.0.0.1:${backendPort}`;
 const browserChannel = process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined;
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true'
+  ? true
+  : !process.env.CI;
 const backendCwd = resolve(rootDir, 'backend');
 const frontendViteCommand =
   process.platform === 'win32'
@@ -46,7 +49,7 @@ export default defineConfig({
       cwd: backendCwd,
       url: `${backendUrl}/health/live`,
       timeout: 120000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       env: {
         ...process.env,
         PORT: String(backendPort),
@@ -66,7 +69,7 @@ export default defineConfig({
       command: frontendViteCommand,
       url: `${frontendUrl}/login/student`,
       timeout: 120000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       env: {
         ...process.env,
         PLAYWRIGHT_FRONTEND_PORT: String(frontendPort),

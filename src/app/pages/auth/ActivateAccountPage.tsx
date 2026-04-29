@@ -34,31 +34,31 @@ export default function ActivateAccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-xl p-8 space-y-6">
-        <Link to={backTarget} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-800/70 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900/85 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl p-8 space-y-6">
+        <Link to={backTarget} className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800">
           <ArrowLeft size={15} /> Back to login
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Activate account</h1>
-          <p className="text-sm text-slate-500 mt-2">Complete your password setup to activate your PROJTRACK account.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Activate account</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Complete your password setup to activate your PROJTRACK account.</p>
         </div>
-        {(!ref || !token) && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Missing activation reference or token. Open the full activation link from your email.</div>}
-        {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-        {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 inline-flex items-center gap-2"><CheckCircle2 size={15} /> {message}</div>}
+        {(!ref || !token) && <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Missing activation reference or token. Open the full activation link from your email.</div>}
+        {error && <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">{error}</div>}
+        {message && <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-2"><CheckCircle2 size={15} /> {message}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">New password</span>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50">
-              <Lock size={16} className="text-slate-400" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800" placeholder="Enter a new password" />
+            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 mb-2">New password</span>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70">
+              <Lock size={16} className="text-slate-400 dark:text-slate-300" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800 dark:text-slate-100" placeholder="Enter a new password" />
             </div>
           </label>
           <label className="block">
-            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Confirm password</span>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50">
-              <Lock size={16} className="text-slate-400" />
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800" placeholder="Confirm your new password" />
+            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 mb-2">Confirm password</span>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70">
+              <Lock size={16} className="text-slate-400 dark:text-slate-300" />
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800 dark:text-slate-100" placeholder="Confirm your new password" />
             </div>
           </label>
           <button disabled={disabled || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">

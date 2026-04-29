@@ -273,7 +273,7 @@ export default function AdminSections() {
             >
               Academic Years
             </h1>
-            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-300">
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-300">
               Organize the school structure one step at a time: academic years, year levels, sections, then the section master list.
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function AdminSections() {
             <button
               disabled={loading}
               onClick={reload}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
             >
               <RefreshCcw size={14} />
               Refresh
@@ -290,7 +290,7 @@ export default function AdminSections() {
             <button
               type="button"
               onClick={() => navigate("/admin/bulk-move")}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
             >
               Move Students
             </button>
@@ -338,21 +338,21 @@ export default function AdminSections() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+          <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
             {error}
           </div>
         ) : null}
 
         {showAcademicYears ? (
-          <div className="flex max-w-sm items-center gap-2 rounded-lg border border-slate-200 bg-white/88 px-3 py-2 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/45">
-            <Search size={14} className="shrink-0 text-slate-400" />
+          <div className="flex max-w-sm items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/88 px-3 py-2 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/45">
+            <Search size={14} className="shrink-0 text-slate-400 dark:text-slate-300" />
             <input
               disabled={loading}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search academic years..."
               aria-label="Search academic years"
-              className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-50 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 disabled:opacity-50 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
         ) : null}
@@ -372,7 +372,7 @@ export default function AdminSections() {
                   key={year.id}
                   type="button"
                   onClick={() => openAcademicYear(year)}
-                  className="rounded-2xl border border-slate-200 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -388,7 +388,7 @@ export default function AdminSections() {
                     <Metric label="Sections" value={year.sectionCount} />
                     <Metric label="Students" value={year.studentCount} />
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-300">
+                  <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
                     <span>Open academic year</span>
                     <ChevronRight size={14} />
                   </div>
@@ -403,18 +403,18 @@ export default function AdminSections() {
             <button
               type="button"
               onClick={() => setView(emptyView)}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
             >
               <ArrowLeft size={14} />
               Back to Academic Years
             </button>
 
-            <div className="rounded-3xl border border-slate-200 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{selectedYear.name}</h2>
                 <StatusChip status={selectedYear.status} size="xs" />
               </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-300">
                 Open a year level to manage its sections and section master lists.
               </p>
             </div>
@@ -433,7 +433,7 @@ export default function AdminSections() {
                     key={level.id}
                     type="button"
                     onClick={() => openYearLevel(level)}
-                    className="rounded-2xl border border-slate-200 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
+                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -448,7 +448,7 @@ export default function AdminSections() {
                       <Metric label="Sections" value={level.sectionCount} />
                       <Metric label="Students" value={level.studentCount} />
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-300">
+                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
                       <span>Open year level</span>
                       <ChevronRight size={14} />
                     </div>
@@ -470,18 +470,18 @@ export default function AdminSections() {
                   sectionId: "",
                 })
               }
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
             >
               <ArrowLeft size={14} />
               Back to {selectedYear.name}
             </button>
 
-            <div className="rounded-3xl border border-slate-200 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
                 Year Level
               </p>
               <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{selectedYearLevel.name}</h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-300">
                 Sections in {selectedYear.name} / {selectedYearLevel.name}.
               </p>
             </div>
@@ -500,7 +500,7 @@ export default function AdminSections() {
                     key={section.id}
                     type="button"
                     onClick={() => openSection(section)}
-                    className="rounded-2xl border border-slate-200 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
+                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -519,7 +519,7 @@ export default function AdminSections() {
                       <Metric label="Students" value={section.students} />
                       <Metric label="Subjects" value={section.subjects} />
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-300">
+                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
                       <span>Open master list</span>
                       <ChevronRight size={14} />
                     </div>
@@ -541,29 +541,56 @@ export default function AdminSections() {
                   sectionId: "",
                 })
               }
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
             >
               <ArrowLeft size={14} />
               Back to {selectedYearLevel.name}
             </button>
 
-            <div className="rounded-3xl border border-slate-200 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                Section Master&apos;s List
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{selectedSection.code}</h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-                {selectedYear.name} / {selectedYearLevel.name} / {selectedSection.program || "Course not set"}
-              </p>
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">
+                    Section Master&apos;s List
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{selectedSection.code}</h2>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-300">
+                    {selectedYear.name} / {selectedYearLevel.name} / {selectedSection.program || "Course not set"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/admin/students?sectionId=${encodeURIComponent(selectedSection.id)}`)
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+                  >
+                    <Users size={14} />
+                    View Students
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/admin/bulk-move?sourceSectionId=${encodeURIComponent(selectedSection.id)}`)
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+                  >
+                    <FolderTree size={14} />
+                    Manage Moves
+                  </button>
+                </div>
+              </div>
             </div>
 
             {masterListError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+              <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
                 {masterListError}
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white/86 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/86 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
               <div className="border-b border-slate-200/70 px-6 py-4 dark:border-slate-700/70">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -595,17 +622,17 @@ export default function AdminSections() {
                         {["Student ID", "Last Name", "First Name", "M.I."].map((header) => (
                           <th
                             key={header}
-                            className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+                            className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300"
                           >
                             {header}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
                       {masterList.rows.map((student) => (
                         <tr key={`${student.id}-${student.studentId}`} className="bg-white/70 dark:bg-slate-950/20">
-                          <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-300">{student.studentId}</td>
+                          <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{student.studentId}</td>
                           <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{student.lastName}</td>
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.firstName}</td>
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.middleInitial || ""}</td>
@@ -633,7 +660,7 @@ export default function AdminSections() {
               type="button"
               disabled={submitState.saving}
               onClick={() => setCreateYearOpen(false)}
-              className="rounded-[20px] border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -669,7 +696,7 @@ export default function AdminSections() {
           />
 
           {submitState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
               {submitState.error}
             </div>
           ) : null}
@@ -689,7 +716,7 @@ export default function AdminSections() {
               type="button"
               disabled={submitState.saving}
               onClick={() => setCreateLevelOpen(false)}
-              className="rounded-[20px] border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -725,7 +752,7 @@ export default function AdminSections() {
             placeholder="Optional"
           />
           {submitState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
               {submitState.error}
             </div>
           ) : null}
@@ -746,7 +773,7 @@ export default function AdminSections() {
               type="button"
               disabled={submitState.saving}
               onClick={() => setCreateSectionOpen(false)}
-              className="rounded-[20px] border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-[20px] border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -806,7 +833,7 @@ export default function AdminSections() {
             placeholder="Optional"
           />
           {submitState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
               {submitState.error}
             </div>
           ) : null}
@@ -818,9 +845,9 @@ export default function AdminSections() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-3 text-center dark:bg-slate-950/45">
+    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/70 px-3 py-3 text-center dark:bg-slate-950/45">
       <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{value}</p>
-      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300 dark:text-slate-500">{label}</p>
     </div>
   );
 }
@@ -837,7 +864,7 @@ function EmptyState({
   onAction: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/82 p-10 text-center text-sm text-slate-500 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/35 dark:text-slate-300">
+    <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-white/82 p-10 text-center text-sm text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/35 dark:text-slate-300">
       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</p>
       <p className="mt-2 text-slate-500 dark:text-slate-400">{message}</p>
       <button
@@ -875,7 +902,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="h-12 w-full rounded-[20px] border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
+        className="h-12 w-full rounded-[20px] border border-slate-300 bg-white dark:bg-slate-900/85 px-4 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
       />
     </div>
   );
@@ -902,7 +929,7 @@ function SelectField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-[20px] border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
+        className="h-12 w-full rounded-[20px] border border-slate-300 bg-white dark:bg-slate-900/85 px-4 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

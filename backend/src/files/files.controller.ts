@@ -20,14 +20,14 @@ export class FilesController {
 
   @Roles('TEACHER', 'ADMIN')
   @Get()
-  list(@Query('scope') scope?: string) {
-    return this.files.list(scope);
+  list(@Query('scope') scope: string | undefined, @Req() req: any) {
+    return this.files.list(scope, { userId: req.user?.sub, role: req.user?.role });
   }
 
-  @Roles('TEACHER', 'ADMIN')
+  @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Get('submission/:submissionId')
-  bySubmission(@Param('submissionId') submissionId: string) {
-    return this.files.listForSubmission(submissionId);
+  bySubmission(@Param('submissionId') submissionId: string, @Req() req: any) {
+    return this.files.listForSubmission(submissionId, { userId: req.user?.sub, role: req.user?.role });
   }
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
@@ -46,9 +46,9 @@ export class FilesController {
     return res.download(file.absolutePath, file.fileName);
   }
 
-  @Roles('ADMIN')
+  @Roles('TEACHER', 'ADMIN')
   @Delete(':scope/:storedName')
-  remove(@Param('scope') scope: string, @Param('storedName') storedName: string) {
-    return this.files.remove(`${scope}/${storedName}`);
+  remove(@Param('scope') scope: string, @Param('storedName') storedName: string, @Req() req: any) {
+    return this.files.remove(`${scope}/${storedName}`, { userId: req.user?.sub, role: req.user?.role });
   }
 }

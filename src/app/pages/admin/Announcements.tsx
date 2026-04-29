@@ -39,9 +39,13 @@ function formatAudience(value: string) {
 }
 
 function statusTone(status: string) {
-  if (status === "Sent") return "bg-emerald-50 text-emerald-700";
-  if (status === "Scheduled") return "bg-violet-50 text-violet-700";
-  return "bg-amber-50 text-amber-700";
+  if (status === "Sent") {
+    return "border border-emerald-200/70 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 dark:border-emerald-500/25 dark:bg-emerald-500/12 dark:text-emerald-200";
+  }
+  if (status === "Scheduled") {
+    return "border border-violet-200/70 bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 dark:border-violet-500/25 dark:bg-violet-500/12 dark:text-violet-200";
+  }
+  return "border border-amber-200/70 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:border-amber-500/25 dark:bg-amber-500/12 dark:text-amber-200";
 }
 
 function newAnnouncementForm() {
@@ -56,7 +60,16 @@ function newAnnouncementForm() {
 }
 
 const announcementFieldClassName =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20";
+  "portal-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:focus:border-blue-400 dark:focus:ring-blue-400/20";
+
+const adminHeadingClassName = "font-bold text-[var(--text-strong)]";
+const adminMutedClassName = "text-[var(--text-muted)]";
+const adminSubtleClassName = "text-[var(--text-subtle)]";
+const adminCardClassName = "portal-card rounded-xl border p-4 shadow-[var(--shadow-soft)]";
+const adminButtonSecondaryClassName =
+  "portal-action-secondary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50";
+const adminPillClassName =
+  "portal-action-secondary rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50";
 
 export default function AdminAnnouncements() {
   const [filter, setFilter] = useState("All");
@@ -190,15 +203,15 @@ export default function AdminAnnouncements() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1
-            className={`text-slate-900 font-bold ${busy ? "opacity-80" : ""}`}
+            className={`${adminHeadingClassName} ${busy ? "opacity-80" : ""}`}
             style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}
           >
             Announcements
           </h1>
-          <p className={`mt-0.5 text-sm text-slate-400 ${busy ? "opacity-80" : ""}`}>
+          <p className={`mt-0.5 text-sm ${adminMutedClassName} ${busy ? "opacity-80" : ""}`}>
             Publish and schedule institution-wide announcements from the admin portal.
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className={`mt-1 text-xs ${adminSubtleClassName}`}>
             {loading ? "Loading announcements…" : `${items.length} announcement${items.length === 1 ? "" : "s"}`}
           </p>
         </div>
@@ -207,7 +220,7 @@ export default function AdminAnnouncements() {
             <button
               disabled={busy}
               onClick={() => void deleteAnnouncements(selectedIds)}
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200 dark:hover:bg-rose-500/20"
             >
               <Trash2 size={14} />
               Delete Selected ({selectedCount})
@@ -216,7 +229,7 @@ export default function AdminAnnouncements() {
           <button
             disabled={busy}
             onClick={reload}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className={adminButtonSecondaryClassName}
           >
             <RefreshCcw size={14} />
             Refresh
@@ -233,38 +246,38 @@ export default function AdminAnnouncements() {
       </div>
 
       {submitState.error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+        <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
           {submitState.error}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+        <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-200">
           {error}
         </div>
       )}
 
       {loading && items.length === 0 && (
-        <div className="text-xs text-slate-400">
+        <div className={`text-xs ${adminSubtleClassName}`}>
           Announcement metrics will update once the latest broadcast data finishes loading.
         </div>
       )}
 
       <div className={`grid grid-cols-2 gap-4 lg:grid-cols-4 ${busy ? "opacity-80" : ""}`}>
         {[
-          { label: "Total Broadcasts", value: counts.total, icon: Megaphone, tone: "bg-blue-50 text-blue-700" },
-          { label: "Scheduled", value: counts.scheduled, icon: CalendarClock, tone: "bg-violet-50 text-violet-700" },
-          { label: "Sent", value: counts.sent, icon: Send, tone: "bg-emerald-50 text-emerald-700" },
-          { label: "Drafts", value: counts.draft, icon: Mail, tone: "bg-amber-50 text-amber-700" },
+          { label: "Total Broadcasts", value: counts.total, icon: Megaphone, tone: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:bg-blue-500/12 dark:text-blue-200" },
+          { label: "Scheduled", value: counts.scheduled, icon: CalendarClock, tone: "bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 dark:bg-violet-500/12 dark:text-violet-200" },
+          { label: "Sent", value: counts.sent, icon: Send, tone: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/12 dark:text-emerald-200" },
+          { label: "Drafts", value: counts.draft, icon: Mail, tone: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:bg-amber-500/12 dark:text-amber-200" },
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div key={item.label} className={adminCardClassName}>
               <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.tone}`}>
                 <Icon size={15} />
               </div>
-              <p className="mt-3 text-2xl font-bold text-slate-900">{item.value}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{item.label}</p>
+              <p className="mt-3 text-2xl font-bold text-[var(--text-strong)]">{item.value}</p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{item.label}</p>
             </div>
           );
         })}
@@ -276,7 +289,7 @@ export default function AdminAnnouncements() {
             type="button"
             disabled={busy}
             onClick={toggleSelectAll}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+            className={adminPillClassName}
           >
             {selectedCount === items.length ? "Clear selection" : "Select all"}
           </button>
@@ -289,7 +302,7 @@ export default function AdminAnnouncements() {
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${
               filter === status
                 ? "bg-blue-800 text-white"
-                : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                : "portal-action-secondary"
             }`}
           >
             {status}
@@ -298,7 +311,7 @@ export default function AdminAnnouncements() {
       </div>
 
       {loading && (
-        <div className="rounded-xl border border-slate-100 bg-white p-5 text-sm text-slate-500 shadow-sm">
+        <div className="portal-card rounded-xl border p-5 text-sm text-[var(--text-muted)] shadow-[var(--shadow-soft)]">
           Loading announcements…
         </div>
       )}
@@ -307,7 +320,7 @@ export default function AdminAnnouncements() {
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm lg:flex-row lg:items-start"
+            className="portal-card flex flex-col gap-4 rounded-xl border p-5 shadow-[var(--shadow-soft)] lg:flex-row lg:items-start"
           >
             <div className="flex items-start gap-4">
               <Checkbox
@@ -316,19 +329,19 @@ export default function AdminAnnouncements() {
                 aria-label={`Select announcement ${item.title}`}
                 disabled={busy}
               />
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:bg-blue-500/12 dark:text-blue-200">
                 <Megaphone size={17} />
               </div>
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-bold text-slate-900">{item.title}</p>
+                <p className="text-sm font-bold text-[var(--text-strong)]">{item.title}</p>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(item.status)}`}>
                   {item.status}
                 </span>
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.body}</p>
-              <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-medium text-slate-400">
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{item.body}</p>
+              <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-medium text-[var(--text-subtle)]">
                 <span>Audience: {formatAudience(item.audience)}</span>
                 <span>Channel: {item.channel}</span>
                 <span>Delivery: {item.when}</span>
@@ -339,7 +352,7 @@ export default function AdminAnnouncements() {
                 type="button"
                 disabled={busy}
                 onClick={() => void deleteAnnouncements([item.id])}
-                className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 disabled:opacity-50"
               >
                 <Trash2 size={13} />
                 Delete
@@ -350,7 +363,7 @@ export default function AdminAnnouncements() {
       </div>
 
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+        <div className="portal-card rounded-xl border border-dashed p-8 text-center text-sm text-[var(--text-subtle)]">
           No announcements matched the current filter.
         </div>
       )}
@@ -372,7 +385,7 @@ export default function AdminAnnouncements() {
             <button
               type="button"
               onClick={() => closeModal()}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="portal-action-secondary rounded-lg px-4 py-2 text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -393,7 +406,7 @@ export default function AdminAnnouncements() {
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="announcement-title" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="announcement-title" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Title
             </label>
             <input
@@ -406,7 +419,7 @@ export default function AdminAnnouncements() {
           </div>
 
           <div>
-            <label htmlFor="announcement-audience" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="announcement-audience" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Audience
             </label>
             <select
@@ -423,7 +436,7 @@ export default function AdminAnnouncements() {
           </div>
 
           <div>
-            <label htmlFor="announcement-channel" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="announcement-channel" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Delivery Intent
             </label>
             <select
@@ -439,7 +452,7 @@ export default function AdminAnnouncements() {
           </div>
 
           <div>
-            <label htmlFor="announcement-delivery-mode" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="announcement-delivery-mode" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Delivery Mode
             </label>
             <select
@@ -460,7 +473,7 @@ export default function AdminAnnouncements() {
 
           {form.deliveryMode === "schedule" && (
             <div className="md:col-span-2">
-              <label htmlFor="announcement-scheduled-at" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label htmlFor="announcement-scheduled-at" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
                 Scheduled Time
               </label>
               <input
@@ -474,7 +487,7 @@ export default function AdminAnnouncements() {
           )}
 
           <div className="md:col-span-2">
-            <label htmlFor="announcement-body" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="announcement-body" className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Message
             </label>
             <textarea
@@ -487,20 +500,20 @@ export default function AdminAnnouncements() {
             />
           </div>
 
-          <div className="md:col-span-2 rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/60">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Preview</p>
-            <div className="mt-3 rounded-xl border border-blue-100 bg-white p-4 dark:border-blue-500/30 dark:bg-slate-950/70">
+          <div className="md:col-span-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">Preview</p>
+            <div className="portal-card mt-3 rounded-xl border border-blue-100 p-4 dark:border-blue-500/30">
               <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
                 <BellRing size={14} />
                 PROJTRACK Broadcast Preview
               </div>
-              <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <p className="mt-3 text-sm font-semibold text-[var(--text-strong)]">
                 {form.title || "Your announcement title"}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
                 {form.body || "Announcement content preview will appear here in the same clean PROJTRACK style."}
               </p>
-              <p className="mt-3 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+              <p className="mt-3 text-[11px] font-medium text-[var(--text-subtle)]">
                 {form.deliveryMode === "schedule"
                   ? `Scheduled for ${form.scheduledAt || "a selected time"}`
                   : "Publishes immediately"}

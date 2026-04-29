@@ -5,7 +5,7 @@ const adminAccount = {
   identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
   password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
   identifierLabel: /Admin Email/i,
-  buttonName: /Continue to Admin Login/i,
+  buttonName: /Sign In as Admin/i,
   dashboardPath: "/admin/dashboard",
 };
 

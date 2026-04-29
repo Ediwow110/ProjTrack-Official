@@ -37,7 +37,7 @@ const accounts = {
     identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "student@projtrack.local",
     password: process.env.SMOKE_STUDENT_PASSWORD || "Student123!ChangeMe",
     identifierLabel: /Student ID or Email/i,
-    buttonName: /Continue to Student Login/i,
+    buttonName: /Sign In as Student/i,
     dashboardPath: "/student/dashboard",
   },
   teacher: {
@@ -45,7 +45,7 @@ const accounts = {
     identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "teacher@projtrack.local",
     password: process.env.SMOKE_TEACHER_PASSWORD || "Teacher123!ChangeMe",
     identifierLabel: /Employee ID or School Email/i,
-    buttonName: /Continue to Teacher Login/i,
+    buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
   },
   admin: {
@@ -53,7 +53,7 @@ const accounts = {
     identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
     password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
     identifierLabel: /Admin Email/i,
-    buttonName: /Continue to Admin Login/i,
+    buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
   },
 } as const;

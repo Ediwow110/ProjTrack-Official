@@ -10,12 +10,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   private requestMeta(req: any) {
-    const forwarded = String(req?.headers?.['x-forwarded-for'] ?? '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)[0];
     return {
-      ipAddress: forwarded || req?.ip || req?.socket?.remoteAddress,
+      ipAddress: req?.ip || req?.socket?.remoteAddress,
       userAgent: req?.headers?.['user-agent'] ? String(req.headers['user-agent']) : undefined,
     };
   }

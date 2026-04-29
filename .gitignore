@@ -2,20 +2,30 @@ node_modules/
 backend/node_modules/
 dist/
 backend/dist/
+build/
+backend/build/
+.vite/
 coverage/
 playwright-report/
 test-results/
 
 .env
-backend/.env
 .env.*
+!.env.example
+!.env.local.example
+!.env.production.example
+backend/.env
 backend/.env.*
+!backend/.env.example
+!backend/.env.local.example
+!backend/.env.production.example
 
 *.log
+*.zip
 logs/
 !/src/app/components/lists/logs/
 !/src/app/components/lists/logs/**
-backups/
+/backups/
 tmp/
 .local-runtime/
 frontend-dev*.log
@@ -23,8 +33,25 @@ backend-dev*.log
 backend-runtime*.log
 
 backend/uploads/
+backend/data/*.json
+!backend/data/.gitkeep
+data/system-tools/backups/
+data/system-tools/
+backend/data/system-tools/backups/
 backend/data/system-tools/
 uploads/
+*.tmp
+*.bak
+*.backup
+*.tsbuildinfo
+artifacts-*.png
+*-report.json
+teacher-playwright.json
+apply_*.py
+patch_*.py
+backend/*.log
+backend/tmp-*.log
+backend/prisma/generated/
+backend/node_modules/.prisma/
 
 .github/.DS_Store
-.vite/

@@ -28,7 +28,7 @@ function MetadataCard({
 }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
-      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+      <div className="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-300 dark:text-slate-500">
         {icon}
         <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       </div>
@@ -76,7 +76,7 @@ export function StudentPreviewDrawer({
                 <Eyebrow>Student account</Eyebrow>
                 <SectionTitle className="mt-2">{student.name}</SectionTitle>
                 <BodyText className="mt-2" tone="muted">
-                  Review the current portal status, send setup instructions, or open the full record for edits.
+                  Review the current portal status, queue setup email, or open the full record for edits.
                 </BodyText>
               </div>
               <StatusChip status={student.status} />
@@ -110,7 +110,7 @@ export function StudentPreviewDrawer({
                 onClick={() => onSendSetupLink(student.id)}
                 className="bg-[var(--role-accent)] text-white hover:bg-[var(--role-accent-strong)]"
               >
-                {student.status === "Pending Setup" ? "Send setup link" : "Send reset link"}
+                {student.status === "Pending Setup" ? "Send setup email" : "Send password reset email"}
               </Button>
               {student.status !== "Inactive" ? (
                 <Button
