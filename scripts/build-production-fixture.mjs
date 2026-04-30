@@ -7,9 +7,6 @@ process.env.VITE_PUBLIC_APP_URL = 'https://www.projtrack.codes';
 import { build } from 'vite';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,13 +15,7 @@ async function run() {
   await build({
     root: join(__dirname, '../'),
     configFile: join(__dirname, '../vite.config.ts'),
-    mode: 'production-fixture',
-    resolve: {
-      alias: {
-        '@tailwindcss/vite': require.resolve('@tailwindcss/vite'),
-        'vite': require.resolve('vite'),
-      },
-    },
+    mode: 'production-fixture'
   });
 
   console.log('Build completed for production fixture.');
