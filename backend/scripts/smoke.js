@@ -75,9 +75,15 @@ async function main() {
   let uploadedAdminAvatar = null;
 
   try {
-    const databaseHealth = await request('/health/database');
-    expect(databaseHealth.status === 200, `Unexpected /health/database status: ${databaseHealth.status}`);
-    expect(databaseHealth.body?.ok === true, `Database health failed: ${JSON.stringify(databaseHealth.body)}`);
+    const liveHealth = await request('/health/live');
+    expect(liveHealth.status === 200, `Unexpected /health/live status: ${liveHealth.status}`);
+    expect(liveHealth.body?.ok === true, `Liveness check failed: ${JSON.stringify(liveHealth.body)}`);
+
+    const publicDatabaseHealth = await request('/health/database');
+    expect(
+      publicDatabaseHealth.status === 401,
+      `Expected public /health/database to require admin auth, got ${publicDatabaseHealth.status}`,
+    );
 
     const readyHealth = await request('/health/ready');
     expect(readyHealth.status === 200, `Unexpected /health/ready status: ${readyHealth.status}`);
@@ -116,6 +122,13 @@ async function main() {
 
     adminAccessToken = adminLogin.body.accessToken;
     const adminRefreshToken = adminLogin.body.refreshToken;
+
+    const databaseHealth = await request('/health/database', {
+      method: 'GET',
+      headers: { authorization: `Bearer ${adminAccessToken}` },
+    });
+    expect(databaseHealth.status === 200, `Unexpected authed /health/database status: ${databaseHealth.status}`);
+    expect(databaseHealth.body?.ok === true, `Database health failed: ${JSON.stringify(databaseHealth.body)}`);
 
     const me = await request('/auth/me', {
       method: 'GET',
@@ -289,6 +302,7 @@ async function main() {
         {
           ok: true,
           database: databaseHealth.body,
+          live: liveHealth.body,
           ready: readyHealth.body,
           throttleStatuses,
           verifiedRoles: roleAccounts.map((account) => account.role),

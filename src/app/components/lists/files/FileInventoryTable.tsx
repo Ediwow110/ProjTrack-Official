@@ -1,4 +1,4 @@
-import { Download, Eye, FileEarmarkText, Trash } from "react-bootstrap-icons";
+import { Download, Eye, FileText, Trash2 } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
@@ -55,7 +55,7 @@ export function FileInventoryTable({
           renderCell: (file) => (
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800/70">
-                <FileEarmarkText size={16} className="text-slate-600 dark:text-slate-300" />
+                <FileText size={16} className="text-slate-600 dark:text-slate-300" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{file.fileName}</p>
@@ -134,7 +134,7 @@ export function FileInventoryTable({
             file.relativePath && deletingPath === file.relativePath
               ? "Deleting..."
               : "Delete",
-          icon: <Trash size={15} />,
+          icon: <Trash2 size={15} />,
           ariaLabel: `Delete ${file.fileName}`,
           onClick: () => onDelete(file),
           tone: "danger",

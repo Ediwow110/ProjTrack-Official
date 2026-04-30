@@ -183,7 +183,7 @@ export function DataTableCard<T>({
       ) : (
         <>
           <Table className={cn("min-w-[1040px]", tableClassName)}>
-            <TableHeader className="bg-slate-50/85 dark:bg-slate-800/60">
+            <TableHeader className="portal-table-header">
               <TableRow className="hover:bg-transparent">
                 {selectable ? (
                   <TableHead className="w-12 px-5 py-3">
@@ -244,8 +244,8 @@ export function DataTableCard<T>({
                   <TableRow
                     key={key}
                     className={cn(
-                      onRowClick &&
-                        "cursor-pointer hover:bg-slate-50/85 dark:hover:bg-slate-800/55",
+                      "portal-table-row",
+                      onRowClick && "cursor-pointer",
                     )}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onKeyDown={
@@ -315,7 +315,7 @@ export function DataTableCard<T>({
                                   item.icon
                                     ? isDangerAction
                                       ? "h-8 w-8 rounded-xl border border-rose-200/80 bg-rose-50/80 p-0 text-rose-700 shadow-none transition-colors hover:border-rose-300 hover:bg-rose-100 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/20"
-                                      : "h-8 w-8 rounded-xl border border-slate-200/80 bg-white/90 p-0 text-blue-700 shadow-none transition-colors hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-blue-300 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/12"
+                                    : "portal-input h-8 w-8 rounded-xl border p-0 text-blue-700 shadow-none transition-colors hover:border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/12"
                                     : "h-auto px-0",
                                   isDangerAction
                                     ? "text-rose-700 hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200"
@@ -336,7 +336,7 @@ export function DataTableCard<T>({
           </Table>
 
           {totalPages > 1 ? (
-            <div className="flex flex-col gap-3 border-t border-slate-200/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/70">
+            <div className="portal-border flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-medium text-slate-400">
                 Showing {showingFrom}-{showingTo} of {rows.length}
               </p>

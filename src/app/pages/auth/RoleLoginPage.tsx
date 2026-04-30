@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { BookOpen, Eye, EyeOff, GraduationCap, Hash, Lock, Mail, ShieldCheck } from "lucide-react";
 
 import { AuthField, AuthLayout } from "../../components/auth/AuthLayout";
 import { Button } from "../../components/ui/button";
 import { BodyText } from "../../components/ui/typography";
-import { type AppRole } from "../../lib/mockAuth";
+import { getAuthSession, type AppRole } from "../../lib/mockAuth";
 import { authService } from "../../lib/api/services";
 
 const cfgMap: Record<AppRole, {
@@ -22,42 +22,42 @@ const cfgMap: Record<AppRole, {
     title: "Student Login",
     subtitle: "Access your subjects, calendar, submissions, and group work.",
     icon: GraduationCap,
-    badge: "Student Portal",
+    badge: "Student Access",
     fieldLabel: "Student ID or Email",
     fieldPlaceholder: "STU-2024-00142 or student@school.edu.ph",
-    hint: "Use your student number or school email to enter the student portal.",
+    hint: "Use your student number or school email to sign in.",
     stats: [
-      { value: "24/7", label: "Submission access" },
-      { value: "8", label: "Active subjects" },
-      { value: "3", label: "Unread alerts" },
+      { value: "Submit", label: "Coursework" },
+      { value: "Track", label: "Deadlines" },
+      { value: "Review", label: "Feedback" },
     ],
   },
   teacher: {
     title: "Teacher Login",
     subtitle: "Review records, manage subject rules, and monitor submissions.",
     icon: BookOpen,
-    badge: "Teacher Portal",
+    badge: "Teacher Access",
     fieldLabel: "Employee ID or School Email",
     fieldPlaceholder: "EMP-001 or teacher@school.edu.ph",
-    hint: "Use your employee ID or school email to enter the teacher portal.",
+    hint: "Use your employee ID or school email to sign in.",
     stats: [
-      { value: "57", label: "Pending reviews" },
-      { value: "6", label: "Assigned subjects" },
-      { value: "99%", label: "On-time review rate" },
+      { value: "Review", label: "Submissions" },
+      { value: "Manage", label: "Subjects" },
+      { value: "Notify", label: "Students" },
     ],
   },
   admin: {
     title: "Admin Login",
     subtitle: "Manage users, reports, announcements, and system operations.",
     icon: ShieldCheck,
-    badge: "Admin Portal",
+    badge: "Admin Access",
     fieldLabel: "Admin Email",
     fieldPlaceholder: "admin@school.edu.ph",
-    hint: "Admin portal access is limited to authorized staff.",
+    hint: "Admin access is limited to authorized staff.",
     stats: [
-      { value: "2,419", label: "Managed accounts" },
-      { value: "5,831", label: "Submission records" },
-      { value: "99.9%", label: "System uptime" },
+      { value: "Manage", label: "Accounts" },
+      { value: "Audit", label: "Operations" },
+      { value: "Monitor", label: "System health" },
     ],
   },
 };
@@ -79,6 +79,13 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
   const requestedTarget = typeof location.state === "object" && location.state && "from" in location.state
     ? String((location.state as { from?: string }).from || "")
     : "";
+
+  useEffect(() => {
+    const session = getAuthSession();
+    if (session?.role) {
+      navigate(`/${session.role}/dashboard`, { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +168,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
 
         <div className="flex items-center justify-between gap-4 text-sm">
           <BodyText tone="muted" className="auth-support-text">
-            Secure sign-in for your portal.
+            Secure sign-in for your account.
           </BodyText>
           <Link
             to={`/auth/forgot-password?role=${encodeURIComponent(role)}`}
@@ -172,7 +179,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
         </div>
 
         {error ? (
-          <div className="rounded-[var(--radius-control)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-[var(--shadow-soft)]">
+          <div role="alert" aria-live="polite" className="rounded-[var(--radius-control)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-[var(--shadow-soft)]">
             {error}
           </div>
         ) : null}

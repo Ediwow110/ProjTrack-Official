@@ -79,15 +79,32 @@ function Start-DetachedCommand([string] $Name, [string] $CommandFile, [string] $
   Write-Host "[start-local] Started $Name (PID $($process.Id))."
 }
 
+function Invoke-LocalPreparation {
+  $prepareScript = Join-Path $root "scripts\prepare-local.cmd"
+  for ($attempt = 1; $attempt -le 2; $attempt += 1) {
+    & $prepareScript
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -eq 0) {
+      return
+    }
+
+    $isTransientWindowsCrash = $exitCode -eq -1073741819 -or $exitCode -eq 3221225477
+    if ($attempt -lt 2 -and $isTransientWindowsCrash) {
+      Write-Host "[start-local] Local preparation crashed with exit code $exitCode; retrying once..."
+      Start-Sleep -Seconds 2
+      continue
+    }
+
+    throw "Local preparation failed with exit code $exitCode."
+  }
+}
+
 Ensure-RuntimeDirectory
 
 $backendHealthy = Test-HttpOk $backendUrl
 if (-not $backendHealthy) {
   Write-Host "[start-local] Preparing local infrastructure..."
-  & (Join-Path $root "scripts\prepare-local.cmd")
-  if ($LASTEXITCODE -ne 0) {
-    throw "Local preparation failed with exit code $LASTEXITCODE."
-  }
+  Invoke-LocalPreparation
 
   $backendScript = (Join-Path $root "scripts\run-backend-local.cmd")
   Start-DetachedCommand -Name "backend" -CommandFile $backendScript -PidFile $backendPidFile -StdOutLog $backendOutLog -StdErrLog $backendErrLog

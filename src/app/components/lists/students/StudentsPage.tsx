@@ -386,11 +386,18 @@ export default function StudentsPage() {
   }
 
   async function sendSetupLink(student: AdminStudentRecord) {
-    await adminService.sendStudentResetLink(student.id);
+    const response =
+      student.status === "Pending Setup"
+        ? await adminService.sendStudentSetupInvite(student.id)
+        : await adminService.sendStudentResetLink(student.id);
+    if (!response.mailJobId) {
+      throw new Error("The backend did not confirm a queued mail job.");
+    }
     updateStudentPatch(student.id, {
       status: student.status === "Pending Setup" ? "Pending Setup" : student.status,
-      lastActive: student.status === "Pending Setup" ? "Setup link sent" : "Reset link sent",
+      lastActive: student.status === "Pending Setup" ? "Setup email queued" : "Reset email queued",
     });
+    return response;
   }
 
   async function handleSendSetupLink(studentId: string) {
@@ -401,14 +408,14 @@ export default function StudentsPage() {
       if (!student) {
         throw new Error("Unable to find the selected student.");
       }
-      await sendSetupLink(student);
+      const response = await sendSetupLink(student);
       await reload();
       setActionState({ busy: false, error: null });
       showFeedback(
         "success",
         `${
-          student.status === "Pending Setup" ? "Setup" : "Reset"
-        } link sent for ${student.name}.`,
+          student.status === "Pending Setup" ? "Setup invite" : "Password reset"
+        } mail job queued for ${student.name}${response.mailJobId ? ` (${response.mailJobId})` : ""}. Open Mail Jobs to watch delivery.`,
       );
     } catch (setupError) {
       const message =

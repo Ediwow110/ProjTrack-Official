@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router/dom";
 import { ChevronLeft, FileText, Download, CheckCircle2, RotateCcw, Star, Clock, Users, AlertCircle } from "lucide-react";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { teacherService } from "../../lib/api/services";

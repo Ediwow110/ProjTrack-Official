@@ -9,6 +9,10 @@ import {
   resolveEmailRecipient,
   type EmailType,
 } from './mail-environment.guard';
+import {
+  resolveMailSenderConfig,
+  senderForMailCategory,
+} from './mail-sender-config';
 import type { MailSendInput } from './providers/mail-provider.interface';
 
 export type RoutedMailSendInput = MailSendInput & {
@@ -19,14 +23,6 @@ export type RoutedMailSendInput = MailSendInput & {
   emailType: EmailType;
   routedToTestmail: boolean;
 };
-
-function envValue(...keys: string[]) {
-  for (const key of keys) {
-    const value = String(process.env[key] ?? '').trim();
-    if (value) return value;
-  }
-  return '';
-}
 
 function normalizedTemplateKey(value?: string | null) {
   return String(value ?? '')
@@ -45,9 +41,11 @@ export class MailProviderRouterService {
     const mailCategory = this.resolveCategory(input);
     const emailType = this.resolveEmailType(input, mailCategory);
     const routedTo = resolveEmailRecipient(originalTo, emailType);
-    const fromName = envValue('MAIL_FROM_NAME') || 'ProjTrack';
+    const senderConfig = resolveMailSenderConfig();
+    const fromName = senderConfig.fromName || 'ProjTrack';
+    const categorySender = senderForMailCategory(mailCategory, senderConfig);
     const fromEmail =
-      normalizeEmail(input.fromEmail || this.resolveFromAddress(mailCategory)) ||
+      normalizeEmail(input.fromEmail || categorySender.email) ||
       'noreply@projtrack.local';
 
     return {
@@ -63,11 +61,11 @@ export class MailProviderRouterService {
   }
 
   getDefaultFromAddress() {
-    const fromName = envValue('MAIL_FROM_NAME') || 'ProjTrack';
+    const senderConfig = resolveMailSenderConfig();
+    const fromName = senderConfig.fromName || 'ProjTrack';
     const fromEmail =
-      normalizeEmail(
-        envValue('MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM', 'MAIL_FROM_ADMIN'),
-      ) || 'noreply@projtrack.local';
+      normalizeEmail(senderConfig.noreply.email || senderConfig.admin.email) ||
+      'noreply@projtrack.local';
     return `${fromName} <${fromEmail}>`;
   }
 
@@ -134,22 +132,6 @@ export class MailProviderRouterService {
     }
 
     return MAIL_CATEGORY_KEYS.ADMIN;
-  }
-
-  private resolveFromAddress(category: MailCategoryKey) {
-    switch (category) {
-      case MAIL_CATEGORY_KEYS.AUTH:
-        return envValue('MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM', 'MAIL_FROM_ADMIN');
-      case MAIL_CATEGORY_KEYS.INVITE:
-        return envValue('MAIL_FROM_INVITE', 'MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM');
-      case MAIL_CATEGORY_KEYS.NOTIFICATION:
-        return envValue('MAIL_FROM_NOTIFY', 'MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM');
-      case MAIL_CATEGORY_KEYS.SUPPORT:
-        return envValue('MAIL_FROM_SUPPORT', 'MAIL_FROM_ADMIN', 'MAIL_FROM_EMAIL', 'MAIL_FROM');
-      case MAIL_CATEGORY_KEYS.ADMIN:
-      default:
-        return envValue('MAIL_FROM_ADMIN', 'MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM');
-    }
   }
 
   private resolveEmailType(

@@ -50,6 +50,14 @@ export class AccountActionTokenService {
     return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token);
   }
 
+  async consumePasswordResetTx(tx: any, ref: string, token: string) {
+    return this.consume(AccountActionTokenType.PASSWORD_RESET, ref, token, tx);
+  }
+
+  async consumeActivationTx(tx: any, ref: string, token: string) {
+    return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token, tx);
+  }
+
   private async issue(input: IssueInput) {
     const active = await this.prisma.accountActionToken.findFirst({
       where: {
@@ -96,14 +104,15 @@ export class AccountActionTokenService {
     return { token, publicRef, expiresAt, reused: false };
   }
 
-  private async consume(type: AccountActionTokenType, ref: string, token: string) {
+  private async consume(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+    const client = tx ?? this.prisma;
     const publicRef = String(ref || '').trim();
     const rawToken = String(token || '').trim();
     if (!publicRef || !rawToken) {
       throw new BadRequestException('Token reference and token are required.');
     }
 
-    const record = await this.prisma.accountActionToken.findUnique({
+    const record = await client.accountActionToken.findUnique({
       where: { publicRef },
       include: { user: { include: { studentProfile: true, teacherProfile: true } } },
     });
@@ -123,7 +132,7 @@ export class AccountActionTokenService {
       throw new NotFoundException('Account action token not found.');
     }
 
-    await this.prisma.accountActionToken.update({
+    await client.accountActionToken.update({
       where: { id: record.id },
       data: { usedAt: new Date() },
     });

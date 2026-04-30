@@ -4,7 +4,9 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   MAIL_CATEGORY_KEYS,
@@ -17,6 +19,8 @@ import { NotificationRepository } from '../repositories/notification.repository'
 import { FilesService } from '../files/files.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessService } from '../access/access.service';
+import { eventActionForSubmission } from '../access/policies/submission-access.policy';
 import { canStudentEditSubmission, canTransitionSubmissionStatus, normalizeSubmissionLifecycleStatus } from './submission-lifecycle';
 
 @Injectable()
@@ -32,19 +36,48 @@ export class SubmissionsService {
     private readonly filesService: FilesService,
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
+    private readonly access: AccessService,
   ) {}
 
-  async studentList(userId = 'usr_student_1', status?: string) {
-    const rows: any[] = await this.submissionRepository.listStudentSubmissions(userId, status);
+  private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
+    const normalized = String(userId || '').trim();
+    if (!normalized) {
+      throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
+    }
+    return normalized;
+  }
+
+  private async ensureStudentEnrolledInSubject(userId: string, subjectId: string) {
+    const studentProfile = await this.prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!studentProfile) {
+      throw new ForbiddenException('Student profile is required for this action.');
+    }
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        studentId: studentProfile.id,
+        subjectId,
+      },
+      select: { id: true },
+    });
+    if (!enrollment) {
+      throw new ForbiddenException('You do not have access to this activity.');
+    }
+  }
+
+  async studentList(userId?: string, status?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const rows: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId, status);
     return Promise.all(rows.map((row) => this.decorate(row)));
   }
 
   async studentDetail(id: string, userId?: string) {
     const record = await this.submissionRepository.findSubmissionById(id);
     if (!record) throw new NotFoundException('Submission not found.');
-    if (!userId || !(await this.canStudentAccessSubmission(userId, record))) {
-      throw new ForbiddenException('You do not have access to this submission.');
-    }
+    await this.access.requireStudentCanAccessSubmission(userId, id);
     return this.decorate(record);
   }
 
@@ -54,41 +87,22 @@ export class SubmissionsService {
 
     const activity: any = await this.subjectRepository.findActivityById(body.activityId);
     if (!activity) throw new NotFoundException('Activity not found.');
+    const validation = await this.validateStudentSubmission(body, activity, userId);
+    body.groupId = validation.groupId;
 
-    const windowStatus = String(activity.windowStatus ?? (activity.isOpen ? 'OPEN' : 'CLOSED')).toUpperCase();
-    if (!['OPEN', 'REOPENED'].includes(windowStatus)) {
-      throw new BadRequestException('This activity is not open for submission.');
-    }
-
-    const groupMode = String(activity.submissionMode || '').toUpperCase() === 'GROUP';
-    if (groupMode) {
-      const groups: any[] = await this.subjectRepository.listGroupsBySubject(activity.subjectId);
-      const membership = groups.find((group: any) => group.memberUserIds?.includes?.(userId) || group.members?.some?.((member: any) => member.studentId === userId));
-      if (!membership) {
-        throw new BadRequestException('You must belong to a valid group before submitting this group activity.');
-      }
-      if (String(membership.status || '').toUpperCase() === 'LOCKED') {
-        throw new BadRequestException('This group is locked and cannot submit right now.');
-      }
-      if (body.groupId && String(body.groupId) !== String(membership.id)) {
-        throw new ForbiddenException('Submission group does not match your current subject group.');
-      }
-      body.groupId = membership.id;
-    } else {
-      body.groupId = undefined;
-    }
-
-    const existingSubmission: any = groupMode && body.groupId
-      ? await this.submissionRepository.findExistingSubmission(body.activityId, undefined, body.groupId)
+    const existingSubmission: any = validation.groupId
+      ? await this.submissionRepository.findExistingSubmission(body.activityId, undefined, validation.groupId)
       : await this.submissionRepository.findExistingSubmission(body.activityId, userId);
 
     if (existingSubmission && !canStudentEditSubmission(existingSubmission.status)) {
       throw new BadRequestException('This submission can no longer be edited or resubmitted from the student workflow.');
     }
 
+    const previousStatus = existingSubmission?.status ?? null;
     const record: any = await this.submissionRepository.createOrUpdateSubmission({
       ...body,
       userId,
+      status: validation.status,
     });
     if (!record) throw new NotFoundException('Activity not found.');
     const subject: any = await this.subjectRepository.findSubjectById(activity.subjectId);
@@ -117,12 +131,36 @@ export class SubmissionsService {
       result: 'Success',
     });
 
+    await this.recordSubmissionEvent({
+      submissionId: record.id,
+      actorUserId: userId,
+      action: eventActionForSubmission(previousStatus, record.status),
+      fromStatus: previousStatus,
+      toStatus: record.status,
+      details: {
+        activityId: body.activityId,
+        fileCount: body.files?.length || 0,
+        late: validation.status === 'LATE',
+      },
+    });
+    for (const file of record.files || []) {
+      await this.recordSubmissionEvent({
+        submissionId: record.id,
+        actorUserId: userId,
+        action: 'FILE_ATTACHED',
+        toStatus: record.status,
+        details: { fileId: file.id, fileName: file.fileName, relativePath: file.relativePath },
+      });
+    }
+
     const teacherUserId = subject?.teacher?.user?.id;
     if (teacherUserId) {
       const studentName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'A student';
       await this.notifyOperationalUsers([teacherUserId], {
         title: `New submission in ${subject?.name || 'your subject'}`,
         body: `${studentName} submitted ${record.title}. Open the teacher submission queue to review it.`,
+        dedupeKeyPrefix: `submission:created:${record.id}`,
+        mailIdempotencyKeyPrefix: `mail:submission-created:${record.id}`,
       });
     }
 
@@ -139,9 +177,7 @@ export class SubmissionsService {
   async teacherDetail(id: string, teacherId?: string) {
     const record = await this.submissionRepository.findSubmissionById(id);
     if (!record) throw new NotFoundException('Submission not found.');
-    if (!teacherId || !(await this.canTeacherAccessSubmission(teacherId, record))) {
-      throw new ForbiddenException('You do not have access to this submission.');
-    }
+    await this.access.requireTeacherCanReviewSubmission(teacherId, id);
     return this.decorate(record);
   }
 
@@ -156,9 +192,7 @@ export class SubmissionsService {
   async review(id: string, body: { status?: string; grade?: number; feedback?: string; actorUserId?: string }) {
     const existing: any = await this.submissionRepository.findSubmissionById(id);
     if (!existing) throw new NotFoundException('Submission not found.');
-    if (!body.actorUserId || !(await this.canTeacherAccessSubmission(body.actorUserId, existing))) {
-      throw new ForbiddenException('You do not have access to review this submission.');
-    }
+    await this.access.requireTeacherCanReviewSubmission(body.actorUserId, id);
     const nextStatus = normalizeSubmissionLifecycleStatus(body.status || existing.status);
     if (!canTransitionSubmissionStatus(existing.status, nextStatus)) {
       throw new BadRequestException(`Invalid submission status transition: ${existing.status || 'UNKNOWN'} -> ${nextStatus}.`);
@@ -179,6 +213,17 @@ export class SubmissionsService {
       entityId: record.id,
       result: 'Success',
       afterValue: record.status,
+    });
+    await this.recordSubmissionEvent({
+      submissionId: record.id,
+      actorUserId: body.actorUserId,
+      action: eventActionForSubmission(existing.status, record.status),
+      fromStatus: existing.status,
+      toStatus: record.status,
+      details: {
+        grade: record.grade,
+        hasFeedback: Boolean(record.feedback),
+      },
     });
 
     const decorated = await this.decorate(record);
@@ -202,7 +247,11 @@ export class SubmissionsService {
                 body: `${activityTitle} in ${subjectName} now shows ${String(nextStatus).replace(/_/g, ' ').toLowerCase()}.`,
               };
 
-      await this.notifyOperationalUsers(recipientIds, statusMessage);
+      await this.notifyOperationalUsers(recipientIds, {
+        ...statusMessage,
+        dedupeKeyPrefix: `submission:reviewed:${decorated.id}`,
+        mailIdempotencyKeyPrefix: `mail:submission-reviewed:${decorated.id}`,
+      });
     }
 
     return decorated;
@@ -219,6 +268,108 @@ export class SubmissionsService {
       return Boolean(group?.memberUserIds?.includes?.(userId) || group?.members?.some?.((member: any) => member.studentId === userId));
     }
     return false;
+  }
+
+  private async validateStudentSubmission(body: {
+    activityId: string;
+    groupId?: string;
+    externalLinks?: string[];
+    externalLink?: string;
+    files?: { name: string; sizeKb: number; relativePath?: string }[];
+  }, activity: any, userId: string) {
+    const { subject } = await this.access.requireStudentEnrolledInSubject(userId, activity.subjectId);
+    if (!subject.isOpen) {
+      throw new BadRequestException('This subject is closed for submissions.');
+    }
+
+    const now = Date.now();
+    const openAt = activity.openAt ? new Date(activity.openAt).getTime() : null;
+    const closeAt = activity.closeAt ? new Date(activity.closeAt).getTime() : null;
+    const dueAt = activity.dueAt ? new Date(activity.dueAt).getTime() : activity.deadline ? new Date(activity.deadline).getTime() : null;
+    if (openAt && now < openAt) {
+      throw new BadRequestException('This activity is not open for submission yet.');
+    }
+    if (closeAt && now > closeAt) {
+      throw new BadRequestException('This activity is already closed for submission.');
+    }
+    if (activity.isOpen === false) {
+      throw new BadRequestException('This activity is not open for submission.');
+    }
+
+    const allowLate = Boolean(activity.allowLateSubmission);
+    const isLate = Boolean(dueAt && now > dueAt);
+    if (isLate && !allowLate) {
+      throw new BadRequestException('The submission deadline has passed and late submissions are disabled.');
+    }
+
+    const acceptedTypes = Array.isArray(activity.acceptedFileTypes)
+      ? activity.acceptedFileTypes.map((value: unknown) => String(value).trim().toLowerCase()).filter(Boolean)
+      : [];
+    const maxFileSizeKb = Math.max(1, Number(activity.maxFileSizeMb || 10)) * 1024;
+    for (const file of body.files || []) {
+      const fileName = String(file.name || '').trim();
+      const extension = fileName.includes('.') ? `.${fileName.split('.').pop()}`.toLowerCase() : '';
+      if (acceptedTypes.length && !acceptedTypes.includes(extension) && !acceptedTypes.includes(extension.replace(/^\./, ''))) {
+        throw new BadRequestException(`File type ${extension || 'unknown'} is not accepted for this activity.`);
+      }
+      if (Number(file.sizeKb || 0) > maxFileSizeKb) {
+        throw new BadRequestException(`File ${fileName || 'upload'} exceeds the ${activity.maxFileSizeMb || 10} MB limit.`);
+      }
+    }
+
+    const externalLinks = [
+      ...(Array.isArray(body.externalLinks) ? body.externalLinks : []),
+      body.externalLink,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    if (externalLinks.length && activity.externalLinksAllowed === false) {
+      throw new BadRequestException('External links are not allowed for this activity.');
+    }
+
+    const groupMode = String(activity.submissionMode || '').toUpperCase() === 'GROUP';
+    if (!groupMode && body.groupId) {
+      throw new BadRequestException('This activity requires an individual submission.');
+    }
+
+    if (!groupMode) {
+      return { status: isLate ? 'LATE' : 'SUBMITTED', groupId: undefined };
+    }
+
+    const membership = await this.prisma.group.findFirst({
+      where: {
+        subjectId: activity.subjectId,
+        members: { some: { studentId: userId, status: { not: 'REMOVED' } } },
+        status: { in: ['PENDING', 'ACTIVE'] },
+      },
+      include: { members: true },
+    });
+    if (!membership) {
+      throw new BadRequestException('You must belong to a valid active group before submitting this group activity.');
+    }
+    if (body.groupId && String(body.groupId) !== String(membership.id)) {
+      throw new ForbiddenException('Submission group does not match your current subject group.');
+    }
+
+    return { status: isLate ? 'LATE' : 'SUBMITTED', groupId: membership.id };
+  }
+
+  private async recordSubmissionEvent(input: {
+    submissionId: string;
+    actorUserId?: string;
+    action: string;
+    fromStatus?: string | null;
+    toStatus?: string | null;
+    details?: Record<string, unknown>;
+  }) {
+    await this.prisma.submissionEvent.create({
+      data: {
+        submissionId: input.submissionId,
+        actorUserId: input.actorUserId,
+        action: input.action,
+        fromStatus: input.fromStatus || null,
+        toStatus: input.toStatus || null,
+        details: input.details ? (input.details as Prisma.InputJsonValue) : undefined,
+      },
+    });
   }
 
   private async canTeacherAccessSubmission(teacherId: string, record: any) {
@@ -265,7 +416,12 @@ export class SubmissionsService {
 
   private async notifyOperationalUsers(
     userIds: string[],
-    input: { title: string; body: string },
+    input: {
+      title: string;
+      body: string;
+      dedupeKeyPrefix?: string;
+      mailIdempotencyKeyPrefix?: string;
+    },
   ) {
     const uniqueUserIds = Array.from(
       new Set(userIds.filter((value) => typeof value === 'string' && value.trim().length > 0)),
@@ -283,6 +439,9 @@ export class SubmissionsService {
             title: input.title,
             body: input.body,
             type: 'system',
+            dedupeKey: input.dedupeKeyPrefix
+              ? `${input.dedupeKeyPrefix}:${userId}`
+              : undefined,
           }),
         ),
       );
@@ -313,6 +472,9 @@ export class SubmissionsService {
                 body: input.body,
                 mailCategory: MAIL_CATEGORY_KEYS.NOTIFICATION,
               },
+              idempotencyKey: input.mailIdempotencyKeyPrefix
+                ? `${input.mailIdempotencyKeyPrefix}:${String(user.email).trim().toLowerCase()}`
+                : undefined,
             }),
           ),
       );
@@ -371,6 +533,14 @@ export class SubmissionsService {
       notes: record.notes,
       externalLinks: Array.isArray(record.externalLinks) ? record.externalLinks : [],
       externalLink: Array.isArray(record.externalLinks) && record.externalLinks.length ? record.externalLinks[0] : undefined,
+      timeline: (record.events || []).map((event: any) => ({
+        id: event.id,
+        action: event.action,
+        fromStatus: event.fromStatus,
+        toStatus: event.toStatus,
+        details: event.details || null,
+        createdAt: event.createdAt,
+      })),
       files: record.files?.map?.((file: any) => ({
         id: file.id,
         name: file.name || file.fileName,

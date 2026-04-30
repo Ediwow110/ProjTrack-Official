@@ -80,6 +80,9 @@ model User {
   groupMemberships     GroupMember[]
   authSessions         AuthSession[]
   accountActionTokens  AccountActionToken[]
+  submissionEvents     SubmissionEvent[]
+  backupRuns           BackupRun[]      @relation("backupRunCreator")
+  importBatches        ImportBatch[]     @relation("importBatchCreator")
 }
 
 model StudentProfile {
@@ -134,6 +137,7 @@ model Section {
   students            StudentProfile[]
   enrollments         Enrollment[]
   groups              Group[]
+  subjectSections     SubjectSection[]
 
   @@unique([academicYearId, name])
   @@index([academicYearId, course, yearLevel])
@@ -181,6 +185,19 @@ model Subject {
   enrollments         Enrollment[]
   groups              Group[]
   submissions         Submission[]
+  subjectSections     SubjectSection[]
+}
+
+model SubjectSection {
+  id        String   @id @default(cuid())
+  subjectId String
+  sectionId String
+  createdAt DateTime @default(now())
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, sectionId])
+  @@index([sectionId])
 }
 
 model Enrollment {
@@ -198,7 +215,7 @@ model Enrollment {
 model SubmissionTask {
   id                  String         @id @default(cuid())
   subjectId           String
-  title               String         @unique
+  title               String
   description         String?
   submissionMode      SubmissionMode @default(INDIVIDUAL)
   isOpen              Boolean        @default(true)
@@ -214,6 +231,8 @@ model SubmissionTask {
   createdAt           DateTime       @default(now())
   subject             Subject        @relation(fields: [subjectId], references: [id])
   submissions         Submission[]
+
+  @@unique([subjectId, title])
 }
 
 model Group {
@@ -268,6 +287,23 @@ model Submission {
   submittedBy   User?           @relation("submissionActor", fields: [submittedById], references: [id])
   reviewer      User?           @relation("submissionReviewer", fields: [reviewerId], references: [id])
   files         SubmissionFile[]
+  events        SubmissionEvent[]
+}
+
+model SubmissionEvent {
+  id            String      @id @default(cuid())
+  submissionId  String
+  actorUserId   String?
+  action        String
+  fromStatus    String?
+  toStatus      String?
+  details       Json?
+  createdAt     DateTime    @default(now())
+  submission    Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actor         User?       @relation(fields: [actorUserId], references: [id])
+
+  @@index([submissionId, createdAt])
+  @@index([actorUserId])
 }
 
 model Notification {
@@ -276,6 +312,7 @@ model Notification {
   title           String
   body            String
   type            String
+  dedupeKey       String?   @unique
   isRead          Boolean   @default(false)
   createdAt       DateTime  @default(now())
   user            User      @relation(fields: [userId], references: [id])
@@ -292,6 +329,7 @@ model EmailJob {
   payload           Json
   attempts          Int            @default(0)
   maxAttempts       Int            @default(5)
+  retryableFailure  Boolean?
   lastAttemptAt     DateTime?
   lastError         String?
   failureReason     String?
@@ -306,15 +344,32 @@ model EmailJob {
   campaignId        String?
   batchKey          String?
   provider          String?
+  archivedAt        DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
   @@index([status, scheduledAt, type])
+  @@index([provider, archivedAt, status, scheduledAt, type])
+  @@index([archivedAt])
   @@index([userEmail])
   @@index([campaignId])
   @@index([idempotencyUntil])
   @@index([providerMessageId])
   @@index([failureReason])
+}
+
+model WorkerHeartbeat {
+  key                String   @id
+  workerId           String
+  provider           String?
+  pollMs             Int?
+  heartbeatAt        DateTime
+  lastProcessedJobAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([heartbeatAt])
+  @@index([provider])
 }
 
 model EmailProviderEvent {
@@ -489,6 +544,55 @@ model SystemTool {
   updatedAt   DateTime @updatedAt
 }
 
+model BackupRun {
+  id             String    @id @default(cuid())
+  status         String
+  trigger        String
+  backupType     String
+  fileName       String?
+  artifactPath   String?
+  storage        String    @default("local")
+  driveFileId    String?
+  sizeBytes      BigInt?
+  sha256         String?
+  recordCounts   Json?
+  isProtected    Boolean   @default(false)
+  retentionClass String?
+  expiresAt      DateTime?
+  error          String?
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  createdById    String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      User?     @relation("backupRunCreator", fields: [createdById], references: [id])
+
+  @@index([status, completedAt])
+  @@index([trigger])
+  @@index([deletedAt])
+  @@index([createdById])
+}
+
+model ImportBatch {
+  id          String    @id @default(cuid())
+  type        String
+  status      String
+  fileName    String?
+  payload     Json
+  createdById String?
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   User?     @relation("importBatchCreator", fields: [createdById], references: [id])
+
+  @@index([type, status])
+  @@index([expiresAt])
+  @@index([createdById])
+}
+
 
 model SubmissionFile {
   id            String      @id @default(cuid())
@@ -497,5 +601,9 @@ model SubmissionFile {
   fileSize      Int
   relativePath  String?
   createdAt     DateTime    @default(now())
+  deletedAt     DateTime?
   submission    Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([relativePath])
+  @@index([submissionId, deletedAt])
 }

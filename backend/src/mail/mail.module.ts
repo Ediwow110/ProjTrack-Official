@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TokenService } from '../auth/token.service';
-import { MailController, PublicMailController } from './mail.controller';
+import { AdminMailOperationsController, MailController, PublicMailController } from './mail.controller';
 import { MailLimitService } from './mail-limit.service';
 import { MailProviderRouterService } from './mail-provider-router.service';
 import { MailService } from './mail.service';
@@ -16,7 +16,7 @@ import { StubMailProvider } from './providers/stub.provider';
 
 @Global()
 @Module({
-  controllers: [MailController, PublicMailController, MailWebhookController],
+  controllers: [MailController, AdminMailOperationsController, PublicMailController, MailWebhookController],
   providers: [
     MailService,
     MailLimitService,
@@ -31,6 +31,6 @@ import { StubMailProvider } from './providers/stub.provider';
     TokenService,
     JwtAuthGuard,
   ],
-  exports: [MailService, MailTransportService, MailLimitService],
+  exports: [MailService, MailTransportService, MailLimitService, MailWorker],
 })
 export class MailModule {}

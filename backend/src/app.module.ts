@@ -13,8 +13,10 @@ import { AdminModule } from './admin/admin.module';
 import { ProfileModule } from './profile/profile.module';
 import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
+import { AccessModule } from './access/access.module';
+import { BackupsModule } from './backups/backups.module';
 
 @Module({
-  imports: [PrismaModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, HealthModule],
+  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule],
 })
 export class AppModule {}

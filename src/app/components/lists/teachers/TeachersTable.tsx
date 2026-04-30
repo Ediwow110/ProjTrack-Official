@@ -1,8 +1,9 @@
-import { BoxArrowUpRight, Envelope, Eye, Mortarboard, PersonX } from "react-bootstrap-icons";
+import { ArrowUpRight, Eye, GraduationCap, Mail, UserX } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
 import { DataTableCard } from "../shared/DataTableCard";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminTeacherRecord } from "../../../lib/api/contracts";
 
 type TeacherSortKey = "name" | "dept" | "status" | "subjects" | "students";
@@ -66,7 +67,10 @@ export function TeachersTable({
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{teacher.name}</p>
-                <p className="mt-1 text-[10px] text-slate-400">{teacher.id}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-[10px] text-slate-400">{teacher.employeeId || "No employee ID"}</p>
+                  <CopyableIdChip value={teacher.id} label="Copy User ID" className="bg-transparent px-0" />
+                </div>
               </div>
             </div>
           ),
@@ -133,7 +137,7 @@ export function TeachersTable({
         {
           key: "view",
           label: "View",
-          icon: <BoxArrowUpRight size={15} />,
+          icon: <ArrowUpRight size={15} />,
           ariaLabel: `Open full record for ${teacher.name}`,
           onClick: () => onView(teacher.id),
           disabled: () => actionBusy,
@@ -141,7 +145,7 @@ export function TeachersTable({
         {
           key: "setup",
           label: teacher.status === "Pending Activation" ? "Activate" : "Send Reset Link",
-          icon: <Envelope size={15} />,
+          icon: <Mail size={15} />,
           ariaLabel:
             teacher.status === "Pending Activation"
               ? `Send activation link to ${teacher.name}`
@@ -155,7 +159,7 @@ export function TeachersTable({
         {
           key: "deactivate",
           label: "Deactivate",
-          icon: <PersonX size={15} />,
+          icon: <UserX size={15} />,
           ariaLabel: `Deactivate ${teacher.name}`,
           onClick: () => onDeactivate(teacher),
           tone: "danger",
@@ -165,7 +169,7 @@ export function TeachersTable({
       ]}
       emptyState={(
         <PortalEmptyState
-          icon={Mortarboard}
+          icon={GraduationCap}
           title="No teachers match this view"
           description="Try clearing the search, widening the filters, or creating a new faculty account."
         />

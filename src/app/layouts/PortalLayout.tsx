@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router/dom";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import {
-  clearAuthSession,
   getAuthSession,
   subscribeAuthSession,
   type AuthSession,
 } from "../lib/mockAuth";
 import {
   adminService,
+  authService,
   profileService,
   studentCatalogService,
   teacherNotificationService,
@@ -21,10 +21,10 @@ import { cn } from "../components/ui/utils";
 import {
   LayoutDashboard, BookOpen, FileCheck2, Bell, UserCircle,
   Users, ClipboardList, GraduationCap, Layers, BarChart3,
-  Settings2, Inbox, Settings, Wrench, ShieldCheck,
+  Settings2, Settings, Wrench, ShieldCheck,
   LogOut, Menu, X, Search,
   FileBadge, Grid3X3, CalendarDays, Megaphone, Mail, FolderOpen, ShieldAlert, ClipboardCheck,
-  Moon, Sun, Building2,
+  Moon, Sun, Building2, UserCog, Database,
   type LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +58,7 @@ const TEACHER_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: "/admin/dashboard",          icon: LayoutDashboard, label: "Dashboard",          section: "main" },
+  { to: "/admin/users",              icon: UserCog,         label: "Users",              section: "main" },
   { to: "/admin/students",           icon: GraduationCap,   label: "Students",           section: "main" },
   { to: "/admin/teachers",           icon: Users,           label: "Teachers",           section: "main" },
   { to: "/admin/departments",        icon: Building2,       label: "Departments",        section: "main" },
@@ -69,11 +70,11 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/admin/announcements",      icon: Megaphone,       label: "Announcements",      section: "operations" },
   { to: "/admin/calendar",           icon: CalendarDays,    label: "Calendar",           section: "operations" },
   { to: "/admin/academic-settings",  icon: Settings2,       label: "Academic Settings",  section: "operations" },
-  { to: "/admin/requests",           icon: Inbox,           label: "Requests",           badge: 4, section: "operations" },
   { to: "/admin/notifications",      icon: Bell,            label: "Notifications",      section: "operations" },
   { to: "/admin/audit-logs",         icon: ClipboardList,   label: "Audit Logs",         section: "system" },
   { to: "/admin/settings",           icon: Settings,        label: "Settings",           section: "system" },
   { to: "/admin/system-tools",       icon: Wrench,          label: "System Tools",       section: "system" },
+  { to: "/admin/backups",            icon: Database,        label: "Backups",            section: "system" },
   { to: "/admin/mail-jobs",          icon: Mail,            label: "Mail Jobs",          section: "system" },
   { to: "/admin/file-inventory",      icon: FolderOpen,      label: "File Inventory",     section: "system" },
   { to: "/admin/system-health",       icon: ShieldAlert,    label: "System Health",      section: "system" },
@@ -304,7 +305,7 @@ function SidebarContent({
       {/* User footer */}
       <div className="px-3 py-4 border-t border-slate-200/70 dark:border-slate-700/60 shrink-0 space-y-2">
         <NavTooltip label="Logout" show={isCollapsed}>
-          <button onClick={() => { clearAuthSession(); navigate(`/${role}/login`); }}
+          <button onClick={async () => { await authService.logout(); navigate(`/${role}/login`); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-[22px] text-slate-400 hover:text-rose-600
               hover:bg-rose-50 transition-all dark:text-slate-400 dark:hover:bg-rose-500/12 ${isCollapsed ? "justify-center" : ""}`}>
             <LogOut size={18} strokeWidth={1.9} />

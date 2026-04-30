@@ -5,7 +5,33 @@ import { PrismaService } from '../prisma/prisma.service';
 export class NotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: { userId: string; title: string; body: string; type?: string }) {
+  async create(input: {
+    userId: string;
+    title: string;
+    body: string;
+    type?: string;
+    dedupeKey?: string;
+  }) {
+    if (input.dedupeKey) {
+      return this.prisma.notification.upsert({
+        where: { dedupeKey: input.dedupeKey },
+        update: {
+          title: input.title,
+          body: input.body,
+          type: input.type ?? 'system',
+          isRead: false,
+        },
+        create: {
+          userId: input.userId,
+          title: input.title,
+          body: input.body,
+          type: input.type ?? 'system',
+          dedupeKey: input.dedupeKey,
+          isRead: false,
+        },
+      });
+    }
+
     return this.prisma.notification.create({
       data: {
         userId: input.userId,

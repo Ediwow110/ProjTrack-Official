@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MAIL_PROVIDER_NAMES } from '../../common/constants/mail.constants';
+import { resolveMailSenderConfig } from '../mail-sender-config';
 import { classifyProviderError } from './provider-error-classification';
 import type { MailHealthResult, MailProvider, MailSendInput } from './mail-provider.interface';
 
@@ -22,10 +23,10 @@ function sendEmailsUrl(value: string) {
 }
 
 function resolveFromIdentity(input?: MailSendInput) {
-  const defaultFromName = envValue('MAIL_FROM_NAME') || 'ProjTrack';
+  const senderConfig = resolveMailSenderConfig();
+  const defaultFromName = senderConfig.fromName || 'ProjTrack';
   const defaultFromEmail =
-    envValue('MAIL_FROM_NOREPLY', 'MAIL_FROM_EMAIL', 'MAIL_FROM', 'MAIL_FROM_ADMIN') ||
-    'noreply@projtrack.local';
+    senderConfig.noreply.email || senderConfig.admin.email || 'noreply@projtrack.local';
   return {
     fromName: String(input?.fromName ?? defaultFromName).trim() || 'ProjTrack',
     fromEmail: String(input?.fromEmail ?? defaultFromEmail).trim().toLowerCase() || 'noreply@projtrack.local',
@@ -44,6 +45,24 @@ function safeJsonParse(value: string) {
   } catch {
     return null;
   }
+}
+
+function redactProviderDetail(value: string) {
+  return String(value || '')
+    .replace(/(api(?:[_-]?|\s+)key["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]')
+    .replace(/(token["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]')
+    .replace(/(x-auth-token["'\s:=]+)[^"',\s}]+/gi, '$1[redacted]');
+}
+
+function providerResponseDetail(parsedBody: any, rawBody: string) {
+  const detail = String(
+    parsedBody?.message ??
+      parsedBody?.error ??
+      parsedBody?.detail ??
+      rawBody ??
+      'Mailrelay API returned an error response.',
+  );
+  return truncate(redactProviderDetail(detail)) || 'Mailrelay API returned an error response.';
 }
 
 function extractMessageId(payload: any) {
@@ -170,8 +189,9 @@ export class MailrelayMailProvider implements MailProvider {
     const parsedBody = safeJsonParse(rawBody);
 
     if (!response.ok) {
+      const detail = providerResponseDetail(parsedBody, rawBody);
       throw new MailrelayApiError(
-        `Mailrelay API failed with status ${response.status}: ${truncate(rawBody || response.statusText)}`,
+        `Mailrelay API failed with status ${response.status}: ${detail}`,
         response.status,
       );
     }
@@ -179,16 +199,7 @@ export class MailrelayMailProvider implements MailProvider {
     // Mailrelay's public transactional example documents the request shape but not a canonical
     // response payload shape, so message-id extraction stays defensive here.
     if (!responseLooksSuccessful(parsedBody)) {
-      const detail =
-        truncate(
-          String(
-            parsedBody?.message ??
-              parsedBody?.error ??
-              parsedBody?.detail ??
-              rawBody ??
-              'Mailrelay API returned a non-success payload.',
-          ),
-        ) || 'Mailrelay API returned a non-success payload.';
+      const detail = providerResponseDetail(parsedBody, rawBody);
       throw new MailrelayApiError(detail, response.status || 400);
     }
 

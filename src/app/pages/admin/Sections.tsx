@@ -548,13 +548,40 @@ export default function AdminSections() {
             </button>
 
             <div className="rounded-3xl border border-slate-200 bg-white/82 p-6 shadow-[var(--shadow-soft)] dark:border-slate-700/70 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                Section Master&apos;s List
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{selectedSection.code}</h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-                {selectedYear.name} / {selectedYearLevel.name} / {selectedSection.program || "Course not set"}
-              </p>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                    Section Master&apos;s List
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{selectedSection.code}</h2>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+                    {selectedYear.name} / {selectedYearLevel.name} / {selectedSection.program || "Course not set"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/admin/students?sectionId=${encodeURIComponent(selectedSection.id)}`)
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+                  >
+                    <Users size={14} />
+                    View Students
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/admin/bulk-move?sourceSectionId=${encodeURIComponent(selectedSection.id)}`)
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+                  >
+                    <FolderTree size={14} />
+                    Manage Moves
+                  </button>
+                </div>
+              </div>
             </div>
 
             {masterListError ? (

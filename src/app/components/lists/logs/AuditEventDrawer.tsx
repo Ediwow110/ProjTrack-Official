@@ -1,6 +1,7 @@
 import { Copy, ExternalLink } from "lucide-react";
 
 import { DetailDrawer } from "../shared/DetailDrawer";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import { Button } from "../../ui/button";
 import { BodyText, Eyebrow, SectionTitle } from "../../ui/typography";
 import type { AuditLogRecord } from "../../../lib/api/contracts";
@@ -73,12 +74,16 @@ export function AuditEventDrawer({
           <div className="grid gap-3 sm:grid-cols-2">
             <MetadataCard label="Module" value={event.module} />
             <MetadataCard label="Actor" value={event.user} />
+            {event.actorUserId ? (
+              <MetadataChipCard label="Actor User ID" value={event.actorUserId} copyLabel="Copy Actor User ID" />
+            ) : null}
             <MetadataCard label="Role" value={event.role} />
             <MetadataCard label="Timestamp" value={event.time} />
             <MetadataCard label="IP address" value={event.ip} />
             <MetadataCard label="Result" value={event.result} />
             <MetadataCard label="Session" value={event.session} />
-            <MetadataCard label="Entity ID" value={event.entityId} />
+            <MetadataChipCard label="Audit Log ID" value={event.id} copyLabel="Copy Audit Log ID" />
+            <MetadataChipCard label="Entity ID" value={event.entityId} copyLabel="Copy Entity ID" />
           </div>
 
           <ContentCard title="Details" value={event.details} />
@@ -103,6 +108,25 @@ function MetadataCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
       <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
       <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{value}</p>
+    </div>
+  );
+}
+
+function MetadataChipCard({
+  label,
+  value,
+  copyLabel,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+}) {
+  return (
+    <div className="rounded-[var(--radius-card)] border border-slate-200/75 bg-white/90 p-4 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/70">
+      <Eyebrow className="text-[0.65rem]">{label}</Eyebrow>
+      <div className="mt-2">
+        <CopyableIdChip value={value} label={copyLabel} />
+      </div>
     </div>
   );
 }

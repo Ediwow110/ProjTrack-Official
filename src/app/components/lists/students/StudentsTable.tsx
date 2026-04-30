@@ -1,8 +1,9 @@
-import { ArrowRightCircle, BoxArrowUpRight, Envelope, Eye, People, PersonX } from "react-bootstrap-icons";
+import { ArrowRightLeft, ArrowUpRight, Eye, Mail, UserX, Users } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
 import { DataTableCard } from "../shared/DataTableCard";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminStudentRecord } from "../../../lib/api/contracts";
 
 type StudentsTableProps = {
@@ -46,7 +47,7 @@ export function StudentsTable({
   return (
     <DataTableCard
       title="Student directory"
-      description="Review the roster, resend setup links, or move students into the next section structure."
+      description="Review the roster, queue setup emails, or move students into the next section structure."
       action={loading ? <span className="text-xs font-medium text-slate-400">Loading directory...</span> : null}
       columns={[
         {
@@ -54,9 +55,12 @@ export function StudentsTable({
           header: "Student ID",
           sortable: true,
           renderCell: (student) => (
-            <span className="text-xs font-mono text-slate-500 dark:text-slate-300">
-              {student.studentId || "—"}
-            </span>
+            <div className="space-y-1">
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-300">
+                {student.studentId || "—"}
+              </span>
+              <CopyableIdChip value={student.id} label="Copy User ID" className="bg-transparent px-0" />
+            </div>
           ),
         },
         {
@@ -166,19 +170,19 @@ export function StudentsTable({
         {
           key: "view",
           label: "Edit Student",
-          icon: <BoxArrowUpRight size={15} />,
+          icon: <ArrowUpRight size={15} />,
           ariaLabel: `Edit ${student.name}`,
           onClick: () => onView(student.id),
           disabled: () => actionBusy,
         },
         {
           key: "setup",
-          label: student.status === "Pending Setup" ? "Send Setup Link" : "Send Reset Link",
-          icon: <Envelope size={15} />,
+          label: student.status === "Pending Setup" ? "Send Setup Email" : "Send Password Reset Email",
+          icon: <Mail size={15} />,
           ariaLabel:
             student.status === "Pending Setup"
-              ? `Send setup link to ${student.name}`
-              : `Send reset link to ${student.name}`,
+              ? `Send setup email to ${student.name}`
+              : `Send password reset email to ${student.name}`,
           onClick: () => onSendSetupLink(student.id),
           disabled: () =>
             actionBusy ||
@@ -191,7 +195,7 @@ export function StudentsTable({
         {
           key: "move",
           label: "Move Student",
-          icon: <ArrowRightCircle size={15} />,
+          icon: <ArrowRightLeft size={15} />,
           ariaLabel: `Move ${student.name}`,
           onClick: () => onMove(student),
           disabled: () => actionBusy,
@@ -199,7 +203,7 @@ export function StudentsTable({
         {
           key: "deactivate",
           label: "Deactivate",
-          icon: <PersonX size={15} />,
+          icon: <UserX size={15} />,
           ariaLabel: `Deactivate ${student.name}`,
           onClick: () => onDeactivate(student),
           tone: "danger",
@@ -209,7 +213,7 @@ export function StudentsTable({
       ]}
       emptyState={(
         <PortalEmptyState
-          icon={People}
+          icon={Users}
           title="No students match this view"
           description="Try clearing the search, widening the filters, or importing a fresh student roster."
         />

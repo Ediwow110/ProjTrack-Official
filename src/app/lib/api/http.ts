@@ -1,6 +1,8 @@
 import { apiRuntime, buildApiUrl } from './runtime';
 import { clearAuthSession, getAccessToken, getRefreshToken, updateAuthTokens } from '../mockAuth';
 
+let refreshPromise: Promise<string | null> | null = null;
+
 function toQueryString(query?: Record<string, string | number | boolean | undefined | null>) {
   if (!query) return '';
   const params = new URLSearchParams();
@@ -16,6 +18,16 @@ function shouldExposeRequestId(path: string, status: number, message: string) {
   if (path === '/auth/login' && status === 401) return false;
   if (/\binvalid\b/i.test(message)) return false;
   return true;
+}
+
+function backendUnavailableError(error: unknown) {
+  const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
+  if (import.meta.env.DEV) {
+    return new Error(
+      `Unable to reach the backend at ${apiRuntime.baseUrl}. Start the backend and try again.${detail}`,
+    );
+  }
+  return new Error('Service is temporarily unavailable. Please try again.');
 }
 
 async function executeFetch(method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined | null>, token?: string | null) {
@@ -36,14 +48,19 @@ async function executeFetch(method: string, path: string, body?: unknown, query?
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (error) {
-    const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
-    throw new Error(
-      `Unable to reach the backend at ${apiRuntime.baseUrl}. Start the backend and try again.${detail}`,
-    );
+    throw backendUnavailableError(error);
   }
 }
 
 async function tryRefreshToken() {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = doRefreshToken().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
+async function doRefreshToken() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
@@ -55,10 +72,7 @@ async function tryRefreshToken() {
       body: JSON.stringify({ refreshToken }),
     });
   } catch (error) {
-    const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
-    throw new Error(
-      `Unable to reach the backend at ${apiRuntime.baseUrl}. Start the backend and try again.${detail}`,
-    );
+    throw backendUnavailableError(error);
   }
 
   if (!response.ok) {
@@ -69,6 +83,17 @@ async function tryRefreshToken() {
   const data = await response.json() as { accessToken?: string; refreshToken?: string };
   updateAuthTokens(data);
   return data.accessToken ?? null;
+}
+
+async function logout() {
+  const refreshToken = getRefreshToken();
+  try {
+    if (refreshToken) {
+      await executeFetch('POST', '/auth/logout', { refreshToken }, undefined, getAccessToken());
+    }
+  } finally {
+    clearAuthSession();
+  }
 }
 
 async function request<T>(method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined | null>): Promise<T> {
@@ -151,4 +176,5 @@ export const http = {
   patch: <T>(path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined | null>) => request<T>('PATCH', path, body, query),
   delete: <T>(path: string, query?: Record<string, string | number | boolean | undefined | null>) => request<T>('DELETE', path, undefined, query),
   getBlob: (path: string, query?: Record<string, string | number | boolean | undefined | null>) => requestBlob(path, query),
+  logout,
 };

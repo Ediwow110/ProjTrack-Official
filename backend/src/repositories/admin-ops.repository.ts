@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } f
 import { basename, join, resolve } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { getStorageSummary } from '../files/storage.config';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
 const TOOL_META: Record<string, { btn: string; tone: string; danger: boolean }> = {
   backup: { btn: 'Run Backup', tone: 'blue', danger: false },
@@ -844,7 +845,7 @@ export class AdminOpsRepository {
 
     const subjects = await this.prisma.subject.findMany({
       include: {
-        teacher: { include: { user: true } },
+        teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         enrollments: { include: { section: true } },
       },
     });
@@ -1344,7 +1345,7 @@ export class AdminOpsRepository {
         academicYearLevel: true,
         students: {
           include: {
-            user: true,
+            user: { select: SAFE_USER_SELECT },
           },
         },
       },
@@ -1550,7 +1551,7 @@ export class AdminOpsRepository {
         include: {
           academicYear: true,
           academicYearLevel: true,
-          students: { include: { user: true } },
+          students: { include: { user: { select: SAFE_USER_SELECT } } },
         },
       }),
     ]);
@@ -1630,7 +1631,7 @@ export class AdminOpsRepository {
         userId: { in: ids },
         sectionId: sourceSection.id,
       },
-      include: { user: true },
+      include: { user: { select: SAFE_USER_SELECT } },
     });
 
     const movingProfileIds = moving.map((student) => student.id);

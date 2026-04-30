@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
 export interface AuditRecordCreateInput {
   actorUserId?: string;
@@ -41,7 +42,7 @@ export class AuditLogRepository {
 
   async listAuditLogs() {
     return this.prisma.auditLog.findMany({
-      include: { actor: true },
+      include: { actor: { select: SAFE_USER_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
   }

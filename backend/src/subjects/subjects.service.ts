@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
@@ -16,6 +17,8 @@ import { UserRepository } from '../repositories/user.repository';
 import { NotificationRepository } from '../repositories/notification.repository';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessService } from '../access/access.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 import {
   buildMasterListFileName,
   buildMasterListWorkbookBuffer,
@@ -53,15 +56,73 @@ export class SubjectsService {
     private readonly auditLogs: AuditLogsService,
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
+    private readonly access: AccessService,
   ) {}
 
-  async studentSubjects(userId = 'usr_student_1') {
-    return this.subjectRepository.listSubjectsForStudent(userId);
+  private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
+    const normalized = String(userId || '').trim();
+    if (!normalized) {
+      throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
+    }
+    return normalized;
   }
 
-  async studentSubmitCatalog(userId = 'usr_student_1') {
-    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(userId);
-    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(userId);
+  private async ensureStudentEnrolledInSubject(userId: string, subjectId: string) {
+    const studentProfile = await this.prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!studentProfile) {
+      throw new ForbiddenException('Student profile is required for this action.');
+    }
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        studentId: studentProfile.id,
+        subjectId,
+      },
+      select: { id: true },
+    });
+    if (!enrollment) {
+      throw new ForbiddenException('You do not have access to this subject.');
+    }
+
+    return studentProfile;
+  }
+
+  async studentSubjects(userId?: string) {
+    const rows = await this.subjectRepository.listSubjectsForStudent(
+      this.requireAuthenticatedUserId(userId, 'student'),
+    );
+    return rows.map((subject: any) => ({
+      id: subject.id,
+      code: subject.code,
+      name: subject.name,
+      status: subject.status,
+      isOpen: subject.isOpen,
+      groupEnabled: subject.groupEnabled,
+      sections: subject.sections || [],
+      teacher: subject.teacher?.user
+        ? {
+            id: subject.teacher.user.id,
+            firstName: subject.teacher.user.firstName,
+            lastName: subject.teacher.user.lastName,
+          }
+        : null,
+      activities: (subject.tasks || []).map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        deadline: task.deadline,
+        submissionMode: task.submissionMode,
+        isOpen: task.isOpen,
+      })),
+    }));
+  }
+
+  async studentSubmitCatalog(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
+    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
 
     const canSubmitFromActivity = (activity: any, match: any) => {
       const windowStatus = String(activity?.windowStatus ?? (activity?.isOpen ? 'OPEN' : 'CLOSED')).trim().toUpperCase();
@@ -83,7 +144,7 @@ export class SubjectsService {
 
       const activities: any[] = await this.subjectRepository.listActivitiesBySubject(subjectId);
       const groups: any[] = await this.subjectRepository.listGroupsBySubject(subjectId);
-      const group = groups.find((item: any) => item.memberUserIds?.includes?.(userId) || item.members?.some?.((member: any) => member.studentId === userId)) || null;
+      const group = groups.find((item: any) => item.memberUserIds?.includes?.(studentUserId) || item.members?.some?.((member: any) => member.studentId === studentUserId)) || null;
 
       catalog.subjects.push(subjectName);
       catalog.activities[subjectName] = await Promise.all(activities.map(async (activity: any) => {
@@ -136,16 +197,18 @@ export class SubjectsService {
     return catalog;
   }
 
-  async studentSubjectDetail(id: string, userId = 'usr_student_1') {
+  async studentSubjectDetail(id: string, userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
     const subject: any = await this.subjectRepository.findSubjectById(id);
     if (!subject) throw new NotFoundException('Subject not found.');
+    await this.ensureStudentEnrolledInSubject(studentUserId, id);
 
     const activities: any[] = await this.subjectRepository.listActivitiesBySubject(id);
-    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(userId);
+    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
     const groups: any[] = await this.subjectRepository.listGroupsBySubject(id);
     const group = groups.find((item: any) =>
-      item.memberUserIds?.includes?.(userId) ||
-      item.members?.some?.((member: any) => member.studentId === userId)
+      item.memberUserIds?.includes?.(studentUserId) ||
+      item.members?.some?.((member: any) => member.studentId === studentUserId)
     ) || null;
     const groupMembers = group ? await this.mapGroupMembers(group) : [];
     const groupLeader = group
@@ -153,7 +216,21 @@ export class SubjectsService {
       : undefined;
 
     return {
-      ...subject,
+      id: subject.id,
+      code: subject.code,
+      name: subject.name,
+      status: subject.status,
+      isOpen: subject.isOpen,
+      groupEnabled: subject.groupEnabled,
+      minGroupSize: subject.minGroupSize,
+      maxGroupSize: subject.maxGroupSize,
+      teacher: subject.teacher?.user
+        ? {
+            id: subject.teacher.user.id,
+            firstName: subject.teacher.user.firstName,
+            lastName: subject.teacher.user.lastName,
+          }
+        : null,
       activities: activities.map((activity: any) => {
         const match = submissions.find((submission: any) =>
           submission.activityId === activity.id || submission.taskId === activity.id,
@@ -176,7 +253,10 @@ export class SubjectsService {
       }),
       group: group
         ? {
-            ...group,
+            id: group.id,
+            name: group.name,
+            status: group.status,
+            inviteCode: group.inviteCode,
             leader: groupLeader,
             members: groupMembers,
           }
@@ -184,15 +264,17 @@ export class SubjectsService {
     };
   }
 
-  async studentSubmissionContext(activityId: string, userId = 'usr_student_1') {
+  async studentSubmissionContext(activityId: string, userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
     const activity: any = await this.subjectRepository.findActivityById(activityId);
     if (!activity) throw new NotFoundException('Activity not found.');
+    await this.ensureStudentEnrolledInSubject(studentUserId, activity.subjectId);
 
     const groups: any[] = await this.subjectRepository.listGroupsBySubject(activity.subjectId);
     const group = (activity.submissionMode === 'GROUP')
       ? groups.find((item: any) =>
-          item.memberUserIds?.includes?.(userId) ||
-          item.members?.some?.((member: any) => member.studentId === userId)
+          item.memberUserIds?.includes?.(studentUserId) ||
+          item.members?.some?.((member: any) => member.studentId === studentUserId)
         )
       : null;
 
@@ -214,40 +296,85 @@ export class SubjectsService {
     };
   }
 
-  async teacherSubjects(teacherId = 'usr_teacher_1') {
-    return this.subjectRepository.listSubjectsForTeacher(teacherId);
+  async teacherSubjects(teacherId?: string) {
+    return this.subjectRepository.listSubjectsForTeacher(
+      this.requireAuthenticatedUserId(teacherId, 'teacher'),
+    );
   }
 
-  async teacherStudents(teacherId = 'usr_teacher_1', search?: string, section?: string) {
-    const subjects: any[] = await this.subjectRepository.listSubjectsForTeacher(teacherId);
-    const allowedSections = new Set(subjects.flatMap((subject: any) => subject.sections || []));
+  async teacherStudents(teacherId?: string, search?: string, section?: string) {
+    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForTeacher(teacherUserId);
+    if (!subjects.length) {
+      return [];
+    }
+
+    const byStudent = new Map<string, any>();
+    const subjectIds = subjects.map((subject: any) => subject.id).filter(Boolean);
+    const assignedActivities = subjects.reduce(
+      (total: number, subject: any) => total + (Array.isArray(subject.tasks) ? subject.tasks.length : 0),
+      0,
+    );
+
+    for (const subject of subjects) {
+      for (const enrollment of subject.enrollments || []) {
+        const user = enrollment.student?.user;
+        if (!user?.id) continue;
+        const existing = byStudent.get(user.id) || {
+          user,
+          studentProfile: enrollment.student,
+          sectionName: enrollment.section?.name || enrollment.student?.section?.name || '—',
+          subjectIds: new Set<string>(),
+        };
+        existing.subjectIds.add(subject.id);
+        byStudent.set(user.id, existing);
+      }
+    }
+
+    if (!byStudent.size) {
+      return [];
+    }
+
+    const progressRows = await this.prisma.submission.findMany({
+      where: {
+        subjectId: { in: subjectIds },
+        OR: [
+          { studentId: { in: Array.from(byStudent.keys()) } },
+          { group: { members: { some: { studentId: { in: Array.from(byStudent.keys()) } } } } },
+        ],
+      },
+      include: {
+        group: { include: { members: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
     const q = String(search || '').trim().toLowerCase();
-    return (await this.userRepository.listAll())
-      .filter((user: any) => user.role === 'STUDENT')
-      .filter((user: any) => {
-        const sectionName =
-          user.studentProfile?.section?.name || user.studentProfile?.section || user.section || '';
-        return !allowedSections.size || allowedSections.has(sectionName);
-      })
-      .filter((user: any) => {
-        const sectionName =
-          user.studentProfile?.section?.name || user.studentProfile?.section || user.section || '';
-        return !section || section === 'All' || sectionName === section;
-      })
-      .map((user: any) => {
-        const sectionName =
-          user.studentProfile?.section?.name || user.studentProfile?.section || user.section || '—';
+    return Array.from(byStudent.entries())
+      .map(([studentUserId, row]) => {
+        const user = row.user;
+        const studentSubmissions = progressRows.filter((submission: any) => {
+          if (submission.studentId === studentUserId) return true;
+          return submission.group?.members?.some((member: any) => member.studentId === studentUserId);
+        });
+        const sectionName = row.sectionName || '—';
         return {
           id: user.id,
-          studentId: user.studentProfile?.studentNumber || user.studentNumber || user.id,
+          studentId: row.studentProfile?.studentNumber || user.studentNumber || user.id,
           academicYear:
-            user.studentProfile?.academicYear?.name ||
-            user.studentProfile?.section?.academicYear?.name ||
+            row.studentProfile?.academicYear?.name ||
+            row.studentProfile?.section?.academicYear?.name ||
             '—',
           name: `${user.firstName} ${user.lastName}`.trim(),
           email: user.email,
           section: sectionName,
-          subjects: subjects.filter((subject: any) => (subject.sections || []).includes(sectionName)).length,
+          subjects: row.subjectIds.size,
+          assignedActivities,
+          submittedCount: studentSubmissions.filter((item: any) => ['SUBMITTED', 'PENDING_REVIEW', 'REVIEWED', 'GRADED', 'LATE', 'NEEDS_REVISION'].includes(String(item.status).toUpperCase())).length,
+          gradedCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'GRADED').length,
+          needsRevisionCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'NEEDS_REVISION').length,
+          lateCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'LATE').length,
+          lastSubmissionDate: studentSubmissions[0]?.submittedAt?.toISOString?.() || null,
           status:
             user.status === 'ACTIVE'
               ? 'Active'
@@ -256,6 +383,9 @@ export class SubjectsService {
                   .toLowerCase()
                   .replace(/\b\w/g, (match) => match.toUpperCase()),
         };
+      })
+      .filter((user: any) => {
+        return !section || section === 'All' || user.section === section;
       })
       .filter(
         (row: any) =>
@@ -336,7 +466,7 @@ export class SubjectsService {
         academicYearLevel: true,
         students: {
           include: {
-            user: true,
+            user: { select: SAFE_USER_SELECT },
           },
         },
       },
@@ -412,9 +542,10 @@ export class SubjectsService {
     };
   }
 
-  async studentCalendar(userId = 'usr_student_1') {
-    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(userId);
-    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(userId);
+  async studentCalendar(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
+    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
     const items: any[] = [];
 
     for (const subject of subjects) {
@@ -444,9 +575,105 @@ export class SubjectsService {
 
     const submissions = await this.subjectRepository.listActivitiesBySubject(id);
     const groups = await this.subjectRepository.listGroupsBySubject(id);
-    const students = (subject.enrollments || []).map((enrollment: any) => enrollment.student?.user).filter(Boolean);
+    const enrollments = (subject.enrollments || []).map((enrollment: any) => {
+      const user = enrollment.student?.user;
+      return {
+        id: enrollment.id,
+        section: enrollment.section
+          ? { id: enrollment.section.id, name: enrollment.section.name }
+          : enrollment.student?.section
+            ? { id: enrollment.student.section.id, name: enrollment.student.section.name }
+            : null,
+        student: user
+          ? {
+              id: user.id,
+              email: user.email,
+              role: user.role,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              status: user.status,
+              avatarUrl: user.avatarUrl,
+              studentNumber: enrollment.student?.studentNumber,
+              section: enrollment.student?.section
+                ? { id: enrollment.student.section.id, name: enrollment.student.section.name }
+                : null,
+            }
+          : null,
+      };
+    });
+    const students = enrollments
+      .map((enrollment: any) =>
+        enrollment.student
+          ? {
+              ...enrollment.student,
+              studentProfile: {
+                studentNumber: enrollment.student.studentNumber,
+                section: enrollment.student.section || enrollment.section,
+              },
+            }
+          : null,
+      )
+      .filter(Boolean);
+    const safeGroups = (groups || []).map((group: any) => ({
+      id: group.id,
+      subjectId: group.subjectId,
+      sectionId: group.sectionId,
+      name: group.name,
+      inviteCode: group.inviteCode,
+      leaderId: group.leaderId,
+      status: group.status,
+      createdAt: group.createdAt,
+      section: group.section ? { id: group.section.id, name: group.section.name } : null,
+      members: (group.members || []).map((member: any) => ({
+        id: member.id,
+        studentId: member.studentId,
+        role: member.role,
+        status: member.status,
+        student: member.student
+          ? {
+              id: member.student.id,
+              email: member.student.email,
+              role: member.student.role,
+              firstName: member.student.firstName,
+              lastName: member.student.lastName,
+              status: member.student.status,
+              avatarUrl: member.student.avatarUrl,
+            }
+          : null,
+      })),
+      subject: {
+        enrollments: enrollments.map((enrollment: any) => ({ section: enrollment.section })),
+      },
+    }));
 
-    return { ...subject, submissions, students, groups };
+    return {
+      id: subject.id,
+      code: subject.code,
+      name: subject.name,
+      status: subject.status,
+      isOpen: subject.isOpen,
+      allowLateSubmission: subject.allowLateSubmission,
+      groupEnabled: subject.groupEnabled,
+      minGroupSize: subject.minGroupSize,
+      maxGroupSize: subject.maxGroupSize,
+      teacher: subject.teacher?.user
+        ? {
+            user: {
+              id: subject.teacher.user.id,
+              email: subject.teacher.user.email,
+              role: subject.teacher.user.role,
+              firstName: subject.teacher.user.firstName,
+              lastName: subject.teacher.user.lastName,
+              status: subject.teacher.user.status,
+              avatarUrl: subject.teacher.user.avatarUrl,
+            },
+          }
+        : null,
+      enrollments,
+      submissions,
+      students,
+      groups: safeGroups,
+    };
   }
 
   async createTeacherActivity(subjectId: string, body: any) {
@@ -472,17 +699,25 @@ export class SubjectsService {
       notificationTitle,
       notificationBody,
       'submission',
+      `classroom:activity-created:${activity.id}`,
     );
 
     if (body.notifyByEmail) {
       await this.queueEmailsForUsers(studentUserIds, {
-        templateKey: MAIL_TEMPLATE_KEYS.TEACHER_ACTIVITY_NOTICE,
-        title: notificationTitle,
-        body: notificationBody,
-        subjectName: subject.name,
-        teacherName,
-        activityLink,
-      });
+      templateKey: MAIL_TEMPLATE_KEYS.TEACHER_ACTIVITY_NOTICE,
+      title: notificationTitle,
+      body: notificationBody,
+      subjectName: subject.name,
+      teacherName,
+      activityLink,
+      suppressDeliveryErrors: true,
+      idempotencyKeyPrefix: `mail:activity-created:${activity.id}`,
+      rateLimit: {
+        actorUserId: body.actorUserId,
+        subjectId: subject.id,
+        action: 'activity-created',
+      },
+    });
     }
 
     await this.auditLogs.record({
@@ -499,7 +734,7 @@ export class SubjectsService {
   }
 
   async updateTeacherActivity(subjectId: string, activityId: string, body: any) {
-    const subject: any = await this.ensureTeacherOwnsSubject(subjectId, body.actorUserId);
+    await this.access.requireTeacherOwnsActivity(body.actorUserId, subjectId, activityId);
 
     const activity: any = await this.subjectRepository.updateActivity(activityId, body);
     if (!activity) throw new NotFoundException('Activity not found.');
@@ -543,6 +778,11 @@ export class SubjectsService {
       teacherName,
       activityLink,
       suppressDeliveryErrors: true,
+      rateLimit: {
+        actorUserId: body.actorUserId,
+        subjectId: subject.id,
+        action: 'manual-notify',
+      },
     });
 
     await this.auditLogs.record({
@@ -605,6 +845,7 @@ export class SubjectsService {
       notificationTitle,
       notificationBody,
       'announcement',
+      `classroom:subject-reopened:${subject.id}`,
     );
     await this.queueEmailsForUsers(studentUserIds, {
       templateKey: MAIL_TEMPLATE_KEYS.TEACHER_ACTIVITY_NOTICE,
@@ -614,12 +855,19 @@ export class SubjectsService {
       teacherName: await this.lookupUserName(actorUserId),
       activityLink: studentSubjectLink(subject.id),
       suppressDeliveryErrors: true,
+      idempotencyKeyPrefix: `mail:subject-reopened:${subject.id}`,
+      rateLimit: {
+        actorUserId,
+        subjectId: subject.id,
+        action: 'subject-reopened',
+      },
     });
 
     return { success: true };
   }
 
   async reopenTeacherActivity(subjectId: string, activityId: string, actorUserId?: string) {
+    await this.access.requireTeacherOwnsActivity(actorUserId, subjectId, activityId);
     const subject: any = await this.ensureTeacherOwnsSubject(subjectId, actorUserId);
 
     const activity: any = await this.subjectRepository.reopenActivity(activityId);
@@ -645,6 +893,7 @@ export class SubjectsService {
       notificationTitle,
       notificationBody,
       'submission',
+      `classroom:activity-reopened:${activity.id}`,
     );
     await this.queueEmailsForUsers(studentUserIds, {
       templateKey: MAIL_TEMPLATE_KEYS.TEACHER_ACTIVITY_NOTICE,
@@ -654,23 +903,35 @@ export class SubjectsService {
       teacherName: await this.lookupUserName(actorUserId),
       activityLink: `${studentSubjectLink(subject.id)}?tab=activities`,
       suppressDeliveryErrors: true,
+      idempotencyKeyPrefix: `mail:activity-reopened:${activity.id}`,
+      rateLimit: {
+        actorUserId,
+        subjectId: subject.id,
+        action: 'activity-reopened',
+      },
     });
 
     return { success: true };
   }
 
   async createGroup(body: { subjectId: string; name: string; leaderUserId?: string }) {
+    const leaderUserId = this.requireAuthenticatedUserId(body.leaderUserId, 'student');
+    await this.access.requireStudentCanCreateGroup(leaderUserId, body.subjectId);
     return this.subjectRepository.createGroup({
       subjectId: body.subjectId,
       name: body.name,
-      leaderUserId: body.leaderUserId || 'usr_student_1',
+      leaderUserId,
     });
   }
 
-  async joinGroupByCode(body: { code: string; userId?: string }) {
+  async joinGroupByCode(body: { code: string; subjectId?: string; userId?: string }) {
+    const userId = this.requireAuthenticatedUserId(body.userId, 'student');
+    const subjectId = requiredText(body.subjectId, 'Subject');
+    await this.access.requireStudentCanJoinGroup(userId, subjectId, body.code);
     const group = await this.subjectRepository.joinGroupByCode({
       code: body.code,
-      userId: body.userId || 'usr_student_1',
+      subjectId,
+      userId,
     });
     if (!group) throw new NotFoundException('Invite code not found.');
     return group;
@@ -845,13 +1106,10 @@ export class SubjectsService {
 
 
   private async ensureTeacherOwnsSubject(subjectId: string, teacherId?: string) {
+    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
+    await this.access.requireTeacherOwnsSubject(teacherUserId, subjectId);
     const subject: any = await this.subjectRepository.findSubjectById(subjectId);
     if (!subject) throw new NotFoundException('Subject not found.');
-    const actor: any = teacherId ? await this.userRepository.findById(teacherId) : null;
-    const allowedTeacherId = actor?.teacherProfile?.id ?? teacherId;
-    if (teacherId && String(subject.teacherId || '') !== String(allowedTeacherId || '')) {
-      throw new ForbiddenException('You do not have access to this subject.');
-    }
     return subject;
   }
 
@@ -864,7 +1122,7 @@ export class SubjectsService {
       },
       include: {
         members: {
-          include: { student: true },
+          include: { student: { select: SAFE_USER_SELECT } },
         },
       },
     });
@@ -895,12 +1153,28 @@ export class SubjectsService {
     };
   }
 
-  private async notifyUsers(userIds: string[], title: string, body: string, type = 'system') {
+  private async notifyUsers(
+    userIds: string[],
+    title: string,
+    body: string,
+    type = 'system',
+    dedupeKeyPrefix?: string,
+  ) {
     const preferences = await this.getNotificationPreferences();
     if (!preferences.classroomActivitySystemNotificationsEnabled) {
       return;
     }
-    await Promise.all(userIds.map((userId) => this.notificationRepository.create({ userId, title, body, type })));
+    await Promise.all(
+      userIds.map((userId) =>
+        this.notificationRepository.create({
+          userId,
+          title,
+          body,
+          type,
+          dedupeKey: dedupeKeyPrefix ? `${dedupeKeyPrefix}:${userId}` : undefined,
+        }),
+      ),
+    );
   }
 
   private async queueEmailsForUsers(
@@ -913,11 +1187,26 @@ export class SubjectsService {
       teacherName?: string;
       activityLink?: string;
       suppressDeliveryErrors?: boolean;
+      idempotencyKeyPrefix?: string;
+      rateLimit?: {
+        actorUserId?: string;
+        subjectId?: string;
+        action: string;
+      };
     },
   ) {
     const preferences = await this.getNotificationPreferences();
     if (!preferences.classroomActivityEmailsEnabled) {
       return 0;
+    }
+    if (input.rateLimit) {
+      const allowed = await this.consumeTeacherEmailRateLimit(input.rateLimit);
+      if (!allowed) {
+        this.logger.warn(
+          `Skipping classroom email queue because the teacher notification rate limit was reached for subject ${input.rateLimit.subjectId || 'unknown'}.`,
+        );
+        return 0;
+      }
     }
     const users = await Promise.all(userIds.map((id) => this.userRepository.findById(id)));
     const unique = new Map<string, any>();
@@ -945,6 +1234,9 @@ export class SubjectsService {
               activityLink: input.activityLink,
               mailCategory: MAIL_CATEGORY_KEYS.NOTIFICATION,
             },
+            idempotencyKey: input.idempotencyKeyPrefix
+              ? `${input.idempotencyKeyPrefix}:${String(user.email).trim().toLowerCase()}`
+              : undefined,
           }),
         ),
       );
@@ -962,6 +1254,73 @@ export class SubjectsService {
     }
 
     return unique.size;
+  }
+
+  private async consumeTeacherEmailRateLimit(input: {
+    actorUserId?: string;
+    subjectId?: string;
+    action: string;
+  }) {
+    const actorUserId = String(input.actorUserId || '').trim();
+    const subjectId = String(input.subjectId || '').trim();
+    if (!actorUserId || !subjectId) {
+      return true;
+    }
+
+    const action = `teacher:classroom-email:${String(input.action || 'notify').trim().toLowerCase() || 'notify'}`;
+    const key = `${actorUserId}|${subjectId}`;
+    const limit = Math.max(1, Number(process.env.TEACHER_CLASSROOM_EMAIL_MAX_PER_HOUR || 20));
+    const windowMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_WINDOW_MS || 60 * 60 * 1000));
+    const blockMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_BLOCK_MS || 60 * 60 * 1000));
+    const now = new Date();
+
+    const existing = await this.prisma.authRateLimit.findUnique({
+      where: { action_key: { action, key } },
+    });
+
+    if (existing?.blockedUntil && existing.blockedUntil.getTime() > now.getTime()) {
+      return false;
+    }
+
+    if (!existing || existing.firstAttemptAt.getTime() + windowMs <= now.getTime()) {
+      await this.prisma.authRateLimit.upsert({
+        where: { action_key: { action, key } },
+        update: {
+          attempts: 1,
+          firstAttemptAt: now,
+          lastAttemptAt: now,
+          blockedUntil: null,
+        },
+        create: {
+          action,
+          key,
+          attempts: 1,
+          firstAttemptAt: now,
+          lastAttemptAt: now,
+        },
+      });
+      return true;
+    }
+
+    if (existing.attempts >= limit) {
+      await this.prisma.authRateLimit.update({
+        where: { action_key: { action, key } },
+        data: {
+          lastAttemptAt: now,
+          blockedUntil: new Date(now.getTime() + blockMs),
+        },
+      });
+      return false;
+    }
+
+    await this.prisma.authRateLimit.update({
+      where: { action_key: { action, key } },
+      data: {
+        attempts: existing.attempts + 1,
+        lastAttemptAt: now,
+      },
+    });
+    return true;
   }
 
   private async mapGroupMembers(group: any) {

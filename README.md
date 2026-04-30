@@ -51,9 +51,10 @@ Local demo sign-in accounts:
 - Frontend API URL building now trims malformed whitespace and normalizes the final backend URL before each request.
 - Backend startup requires `DATABASE_URL`.
 - Backend startup now fails fast in production if weak/default secrets, stub mail, or local file storage are still configured.
-- Health endpoints now distinguish liveness from readiness:
+- Public health endpoints:
   - `/health/live`
   - `/health/ready`
+- Admin-only diagnostic health endpoints:
   - `/health/database`
   - `/health/storage`
   - `/health/mail`
@@ -64,4 +65,19 @@ Local demo sign-in accounts:
   - Student: student number or email
   - Teacher: employee ID or email
   - Admin: email
+
+## Production safety notes
+
+- Never commit or share `backend/.env`.
+- Rotate the Mailrelay API key immediately if it was ever exposed.
+- Rotate the Sender.net API key immediately if it was ever exposed.
+- Rotate `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` immediately if they were ever exposed.
+- Rotate S3 or object storage access keys immediately if they were ever exposed.
+- Production should use:
+  - `NODE_ENV=production`
+  - `APP_ENV=production`
+  - `APP_URL=https://projtrack.codes`
+  - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
+  - `VITE_API_BASE_URL=https://api.projtrack.codes`
+- Full deployment and cutover steps are documented in [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
   

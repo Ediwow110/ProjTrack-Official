@@ -24,7 +24,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const message =
       payload.message ??
-      (exception instanceof Error ? exception.message : 'Internal server error');
+      (isHttpException ? (exception instanceof Error ? exception.message : 'Request failed') : 'Internal server error');
 
     const errorName =
       payload.error ??

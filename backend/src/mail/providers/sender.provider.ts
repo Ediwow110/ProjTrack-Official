@@ -218,7 +218,7 @@ export class SenderMailProvider implements MailProvider {
 
     if (!response.ok) {
       throw new SenderApiError(
-        `Sender.net API failed with status ${response.status}: ${truncate(rawBody || response.statusText)}`,
+        `Sender.net API failed with status ${response.status}.`,
         response.status,
       );
     }

@@ -226,7 +226,7 @@ export default function StudentSubjectDetails() {
     () =>
       id
         ? studentSubjectService.getSubject(id)
-        : Promise.reject(new Error("Subject id is required.")),
+        : Promise.reject(new Error("Subject is required.")),
     [id],
   );
   const { data: submissionRowsData } = useAsyncData(

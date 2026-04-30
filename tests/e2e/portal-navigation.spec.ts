@@ -52,7 +52,6 @@ const accounts = {
       "/admin/announcements",
       "/admin/calendar",
       "/admin/academic-settings",
-      "/admin/requests",
       "/admin/notifications",
       "/admin/audit-logs",
       "/admin/settings",
@@ -147,6 +146,28 @@ async function openSidebarRoute(page: Page, route: string) {
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
 }
 
+test("public entry points resolve to student login without portal chooser UI", async ({
+  page,
+}) => {
+  const forbiddenChooserCopy =
+    /Choose another portal|Choose your portal|Back to portals|Change portal|Not your portal|Portal selector/i;
+
+  for (const route of ["/", "/login", "/portals"]) {
+    await page.goto(route);
+    await expect(page).toHaveURL(/\/student\/login$/);
+    await expect(page.getByRole("heading", { name: /^Student Login$/i })).toBeVisible();
+    await expect(page.getByText(forbiddenChooserCopy)).toHaveCount(0);
+    await expect(page.getByText(/^Teacher Portal$/i)).toHaveCount(0);
+    await expect(page.getByText(/^Admin Portal$/i)).toHaveCount(0);
+  }
+
+  for (const route of ["/student/login", "/teacher/login", "/admin/login"]) {
+    await page.goto(route);
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+    await expect(page.getByText(forbiddenChooserCopy)).toHaveCount(0);
+  }
+});
+
 test("student portal navigation resolves from real sidebar and topbar controls", async ({
   page,
 }) => {
@@ -224,13 +245,23 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
   await expect(page).toHaveURL(/\/admin\/profile$/);
   await assertHealthy(page, tracker);
 
+  await page.goto("/admin/requests");
+  await expect(page).toHaveURL(/\/admin\/notifications$/);
+  await assertHealthy(page, tracker);
+
   await openSidebarRoute(page, "/admin/sections");
+  await page.getByRole("button", { name: /Open academic year/i }).first().click();
+  await page.getByRole("button", { name: /Open year level/i }).first().click();
+  await page.getByRole("button", { name: /Open master list/i }).first().click();
   await page.getByRole("button", { name: /^View Students$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/students\?sectionId=[^&]+$/);
   await expect(page.getByRole("button", { name: /^Add Student$/ })).toBeVisible();
   await assertHealthy(page, tracker);
 
   await openSidebarRoute(page, "/admin/sections");
+  await page.getByRole("button", { name: /Open academic year/i }).first().click();
+  await page.getByRole("button", { name: /Open year level/i }).first().click();
+  await page.getByRole("button", { name: /Open master list/i }).first().click();
   await page.getByRole("button", { name: /^Manage Moves$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/bulk-move\?sourceSectionId=[^&]+$/);
   await expect(

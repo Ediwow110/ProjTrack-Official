@@ -59,7 +59,14 @@ async function seedReferenceData() {
 async function seedDemoData() {
   const admin = await prisma.user.upsert({
     where: { email: 'admin@projtrack.local' },
-    update: {},
+    update: {
+      passwordHash: hashPassword('Admin123!ChangeMe'),
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+      firstName: 'System',
+      lastName: 'Admin',
+      office: 'Main Office',
+    },
     create: {
       email: 'admin@projtrack.local',
       passwordHash: hashPassword('Admin123!ChangeMe'),
@@ -73,7 +80,14 @@ async function seedDemoData() {
 
   const teacher = await prisma.user.upsert({
     where: { email: 'teacher@projtrack.local' },
-    update: {},
+    update: {
+      passwordHash: hashPassword('Teacher123!ChangeMe'),
+      role: Role.TEACHER,
+      status: UserStatus.ACTIVE,
+      firstName: 'Ricardo',
+      lastName: 'Dela Cruz',
+      office: 'Computing Department',
+    },
     create: {
       email: 'teacher@projtrack.local',
       passwordHash: hashPassword('Teacher123!ChangeMe'),
@@ -91,8 +105,17 @@ async function seedDemoData() {
     },
   });
 
-  const teacherProfile = await prisma.teacherProfile.findUnique({
+  const teacherProfile = await prisma.teacherProfile.upsert({
     where: { userId: teacher.id },
+    update: {
+      employeeId: 'EMP-001',
+      department: 'IT Department',
+    },
+    create: {
+      userId: teacher.id,
+      employeeId: 'EMP-001',
+      department: 'IT Department',
+    },
   });
 
   const academicYear =
@@ -125,7 +148,13 @@ async function seedDemoData() {
 
   const student = await prisma.user.upsert({
     where: { email: 'student@projtrack.local' },
-    update: {},
+    update: {
+      passwordHash: hashPassword('Student123!ChangeMe'),
+      role: Role.STUDENT,
+      status: UserStatus.ACTIVE,
+      firstName: 'Maria',
+      lastName: 'Santos',
+    },
     create: {
       email: 'student@projtrack.local',
       passwordHash: hashPassword('Student123!ChangeMe'),
@@ -145,13 +174,32 @@ async function seedDemoData() {
     },
   });
 
-  const studentProfile = await prisma.studentProfile.findUnique({
+  const studentProfile = await prisma.studentProfile.upsert({
     where: { userId: student.id },
+    update: {
+      studentNumber: 'STU-2024-00142',
+      academicYearId: academicYear.id,
+      course: 'BSIT',
+      yearLevel: 3,
+      sectionId: section.id,
+    },
+    create: {
+      userId: student.id,
+      studentNumber: 'STU-2024-00142',
+      academicYearId: academicYear.id,
+      course: 'BSIT',
+      yearLevel: 3,
+      sectionId: section.id,
+    },
   });
 
   const subject = await prisma.subject.upsert({
     where: { code: 'IT 401' },
-    update: {},
+    update: {
+      name: 'Capstone Project',
+      teacherId: teacherProfile?.id,
+      status: 'ACTIVE',
+    },
     create: {
       code: 'IT 401',
       name: 'Capstone Project',
@@ -167,7 +215,9 @@ async function seedDemoData() {
         subjectId: subject.id,
       },
     },
-    update: {},
+    update: {
+      sectionId: section.id,
+    },
     create: {
       studentId: studentProfile!.id,
       subjectId: subject.id,
@@ -210,19 +260,37 @@ async function seedDemoData() {
     });
   }
 
-  await prisma.submissionTask.upsert({
-    where: { title: 'Final Project Proposal' },
-    update: {},
-    create: {
+  const existingTask = await prisma.submissionTask.findFirst({
+    where: {
       subjectId: subject.id,
       title: 'Final Project Proposal',
-      description: 'Submit the final proposal document.',
-      deadline: new Date('2026-05-20T23:59:00.000Z'),
-      submissionMode: SubmissionMode.GROUP,
-      isOpen: true,
-      allowLateSubmission: true,
     },
   });
+
+  if (existingTask) {
+    await prisma.submissionTask.update({
+      where: { id: existingTask.id },
+      data: {
+        description: 'Submit the final proposal document.',
+        deadline: new Date('2026-05-20T23:59:00.000Z'),
+        submissionMode: SubmissionMode.GROUP,
+        isOpen: true,
+        allowLateSubmission: true,
+      },
+    });
+  } else {
+    await prisma.submissionTask.create({
+      data: {
+        subjectId: subject.id,
+        title: 'Final Project Proposal',
+        description: 'Submit the final proposal document.',
+        deadline: new Date('2026-05-20T23:59:00.000Z'),
+        submissionMode: SubmissionMode.GROUP,
+        isOpen: true,
+        allowLateSubmission: true,
+      },
+    });
+  }
 
   return { admin: admin.email, teacher: teacher.email, student: student.email };
 }

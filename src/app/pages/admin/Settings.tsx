@@ -122,15 +122,13 @@ export default function AdminSettings() {
       description: "Define the core account protection rules used by the portal.",
       fields: [
         { key: "minPassLen", label: "Min Password Length", type: "number", description: "Minimum length required for passwords." },
-        { key: "maxFailedLogins", label: "Max Failed Logins", type: "number", description: "Failed attempts allowed before extra checks." },
-        { key: "sessionTimeout", label: "Session Timeout (min)", type: "number", description: "Automatic sign-out time for inactive sessions." },
       ],
     },
     {
       icon: Database,
       title: "Backup",
-      description: "Choose how often the portal should prepare backup runs.",
-      fields: [{ key: "backupFrequency", label: "Backup Frequency", type: "select", description: "Cadence for snapshot generation.", opts: ["Daily", "Weekly", "Manual"] }],
+      description: "Backup cadence is controlled by BACKUP_WORKER_ENABLED and BACKUP_INTERVAL_HOURS in the deployment environment.",
+      fields: [],
     },
   ] as const;
 
@@ -203,16 +201,20 @@ export default function AdminSettings() {
                     const fieldId = `system-${field.key}`;
                     const labelId = `${fieldId}-label`;
                     const value = String(form[field.key as keyof SystemSettingsResponse]);
+                    const selectOptions =
+                      "opts" in field && Array.isArray(field.opts)
+                        ? (field.opts as readonly string[])
+                        : null;
 
                     return (
                       <SettingsFieldRow
                         key={field.key}
                         label={field.label}
-                        htmlFor={"opts" in field ? undefined : fieldId}
+                        htmlFor={selectOptions ? undefined : fieldId}
                         labelId={labelId}
                         description={field.description}
                       >
-                        {"opts" in field ? (
+                        {selectOptions ? (
                           <Select
                             value={value}
                             onValueChange={(nextValue) => setForm({ ...form, [field.key]: nextValue })}
@@ -221,7 +223,7 @@ export default function AdminSettings() {
                               <SelectValue placeholder={field.label} />
                             </SelectTrigger>
                             <SelectContent>
-                              {field.opts.map((option) => (
+                              {selectOptions.map((option) => (
                                 <SelectItem key={option} value={option}>
                                   {option}
                                 </SelectItem>
@@ -264,9 +266,9 @@ export default function AdminSettings() {
                 description: "Require account email confirmation before the portal is fully unlocked.",
               },
               {
-                label: "Require 2FA for admins",
+                label: "Require 2FA for admins (coming soon)",
                 key: "twoFactorAdmin",
-                description: "Add an extra verification step for administrator logins.",
+                description: "Two-factor authentication is not active until the backend 2FA flow is implemented.",
               },
             ].map((item) => {
               const switchId = `system-${item.key}`;
@@ -285,6 +287,7 @@ export default function AdminSettings() {
                     id={switchId}
                     aria-labelledby={labelId}
                     checked={enabled}
+                    disabled={item.key === "twoFactorAdmin"}
                     onCheckedChange={(checked) => setForm({ ...form, [item.key]: checked })}
                   />
                 </SettingsFieldRow>

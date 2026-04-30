@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
     setSubmitting(true);
     try {
-      const response = await authService.forgotPassword(email);
+      const response = await authService.forgotPassword(email, role || undefined);
       setMessage(response.message || "If this email exists, we sent instructions.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to request a password reset.");

@@ -6,6 +6,8 @@ import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, HeadObjectCom
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PrismaService } from '../prisma/prisma.service';
 import { getS3Config, getStorageSummary } from './storage.config';
+import { AccessService } from '../access/access.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class FilesService {
@@ -35,7 +37,11 @@ export class FilesService {
         })
       : null;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+    private readonly auditLogs: AuditLogsService,
+  ) {
     if (this.storage.mode === 'local' && !existsSync(this.storageRoot)) {
       mkdirSync(this.storageRoot, { recursive: true });
     }
@@ -154,10 +160,8 @@ export class FilesService {
           Key: normalized,
         }),
       );
-    } catch (error) {
-      throw new NotFoundException(
-        `Stored object not found: ${error instanceof Error ? error.message : 'Unknown object storage error'}`,
-      );
+    } catch {
+      throw new NotFoundException('Stored object not found.');
     }
 
     const encodedFileName = encodeURIComponent(fileName).replace(/['()]/g, escape).replace(/\*/g, '%2A');
@@ -281,8 +285,12 @@ export class FilesService {
       unlinkSync(probeFile);
       const available = content === 'ok';
 
+      const isProduction =
+        String(process.env.NODE_ENV || '').toLowerCase() === 'production' ||
+        String(process.env.APP_ENV || '').toLowerCase() === 'production';
+
       return {
-        ok: false,
+        ok: available && !isProduction,
         storageMode: 'local',
         uploadsPath: this.storageRoot,
         bucket: '',
@@ -290,7 +298,9 @@ export class FilesService {
         endpoint: '',
         available,
         detail: available
-          ? 'Local uploads directory is writable, but production object storage is not enabled.'
+          ? isProduction
+            ? 'Local uploads directory is writable, but production object storage is not enabled.'
+            : 'Local uploads directory is writable.'
           : 'Local uploads probe failed.',
         timestamp,
       };
@@ -354,9 +364,15 @@ export class FilesService {
     };
   }
 
-  async list(scope?: string) {
+  async list(scope?: string, actor?: { userId?: string; role?: string }) {
     const scopedFiles = await this.prisma.submissionFile.findMany({
-      where: scope ? { relativePath: { startsWith: `${scope}/` } } : undefined,
+      where: {
+        deletedAt: null,
+        ...(scope ? { relativePath: { startsWith: `${scope}/` } } : {}),
+        ...(actor?.role === 'TEACHER'
+          ? { submission: { subject: { teacher: { userId: actor.userId } } } }
+          : {}),
+      },
       include: {
         submission: {
           select: {
@@ -387,9 +403,11 @@ export class FilesService {
         ]),
     );
 
-    const storageRows = this.storage.mode === 's3'
-      ? await this.listS3Objects(scope)
-      : this.listLocalObjects(scope);
+    const storageRows = actor?.role === 'ADMIN'
+      ? this.storage.mode === 's3'
+        ? await this.listS3Objects(scope)
+        : this.listLocalObjects(scope)
+      : [];
 
     for (const row of storageRows) {
       if (!indexed.has(row.relativePath)) {
@@ -469,28 +487,33 @@ export class FilesService {
 
   async resolveForDownload(relativePath: string, actor?: { userId?: string; role?: string }) {
     const normalized = this.normalizeRelativePath(relativePath);
-
-    const meta = await this.prisma.submissionFile.findFirst({
-      where: { relativePath: normalized },
-      include: {
-        submission: {
-          include: {
-            group: { include: { members: true } },
-          },
-        },
-      },
-    });
-
-    if (meta && actor?.role === 'STUDENT') {
-      const ownsIndividualSubmission = meta.submission?.studentId === actor.userId;
-      const ownsGroupSubmission = !!meta.submission?.group?.members.some((member) => member.studentId === actor.userId);
-      if (!ownsIndividualSubmission && !ownsGroupSubmission) {
-        throw new ForbiddenException('You do not have access to this file.');
-      }
+    let meta: any = null;
+    try {
+      meta = await this.access.requireUserCanDownloadFile(actor?.userId, actor?.role, normalized);
+    } catch (error) {
+      await this.auditLogs.record({
+        actorUserId: actor?.userId,
+        actorRole: String(actor?.role || 'UNKNOWN'),
+        action: 'FILE_ACCESS_DENIED',
+        module: 'Files',
+        target: normalized,
+        result: 'Denied',
+        details: error instanceof Error ? error.message : 'File access denied.',
+      });
+      throw error;
     }
 
     if (this.storage.mode === 's3') {
       const fileName = meta?.fileName || basename(normalized);
+      await this.auditLogs.record({
+        actorUserId: actor?.userId,
+        actorRole: String(actor?.role || 'UNKNOWN'),
+        action: 'FILE_DOWNLOADED',
+        module: 'Files',
+        target: normalized,
+        entityId: meta?.id,
+        result: 'Success',
+      });
       return {
         absolutePath: '',
         downloadUrl: await this.buildSignedDownload(normalized, fileName),
@@ -504,6 +527,15 @@ export class FilesService {
     if (!existsSync(target)) {
       throw new NotFoundException('File not found.');
     }
+    await this.auditLogs.record({
+      actorUserId: actor?.userId,
+      actorRole: String(actor?.role || 'UNKNOWN'),
+      action: 'FILE_DOWNLOADED',
+      module: 'Files',
+      target: normalized,
+      entityId: meta?.id,
+      result: 'Success',
+    });
 
     return {
       absolutePath: target,
@@ -527,15 +559,47 @@ export class FilesService {
     });
   }
 
-  async listForSubmission(submissionId: string) {
+  async listForSubmission(submissionId: string, actor?: { userId?: string; role?: string }) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { id: true },
+    });
+    if (!submission) throw new NotFoundException('Submission not found.');
+    if (actor?.role === 'STUDENT') {
+      await this.access.requireStudentCanAccessSubmission(actor.userId, submissionId);
+    } else if (actor?.role === 'TEACHER') {
+      await this.access.requireTeacherCanReviewSubmission(actor.userId, submissionId);
+    } else if (actor?.role !== 'ADMIN') {
+      throw new ForbiddenException('You do not have access to this submission.');
+    }
     return this.prisma.submissionFile.findMany({
-      where: { submissionId },
+      where: { submissionId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async remove(relativePath: string) {
-    await this.deleteObject(relativePath);
-    return { success: true, removed: relativePath };
+  async remove(relativePath: string, actor?: { userId?: string; role?: string }) {
+    const normalized = this.normalizeRelativePath(relativePath);
+    const meta = await this.access.requireUserCanDownloadFile(actor?.userId, actor?.role, normalized);
+    await this.deleteObject(normalized);
+    if (meta?.id) {
+      await this.prisma.submissionFile.update({
+        where: { id: meta.id },
+        data: { deletedAt: new Date() },
+      });
+    }
+    await this.auditLogs.record({
+      actorUserId: actor?.userId,
+      actorRole: String(actor?.role || 'UNKNOWN'),
+      action: 'FILE_DELETED',
+      module: 'Files',
+      target: normalized,
+      entityId: meta?.id,
+      result: 'Success',
+      details: meta?.submissionId
+        ? `Deleted file metadata linked to submission ${meta.submissionId}.`
+        : 'Deleted untracked storage object.',
+    });
+    return { success: true, removed: normalized };
   }
 }

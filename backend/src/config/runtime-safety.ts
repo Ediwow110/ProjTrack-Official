@@ -3,6 +3,7 @@ import {
   isProductionEmailEnvironment,
   isTestmailEnabled,
 } from '../mail/mail-environment.guard';
+import { getMailSenderConfigIssues } from '../mail/mail-sender-config';
 
 type RuntimeValidationResult = {
   ok: boolean;
@@ -15,6 +16,12 @@ type RuntimeValidationResult = {
 
 const DEFAULT_SECRET_VALUES = new Set([
   'change-me',
+  'secret',
+  'default-secret',
+  'development-secret',
+  'dev-secret',
+  'jwt-secret',
+  'replace-with-long-random-secret',
   'ci-access-secret',
   'ci-refresh-secret',
   'playwright-access-secret',
@@ -66,6 +73,15 @@ function isLocalUrl(value: string | undefined) {
   return normalized.includes('localhost') || normalized.includes('127.0.0.1') || normalized.includes('projtrack.local');
 }
 
+function isLocalDatabaseUrl(value: string | undefined) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized.includes('localhost') || normalized.includes('127.0.0.1') || normalized.includes('@db:') || normalized.includes('@postgres:');
+}
+
+function pushUnique(target: string[], value: string) {
+  if (!target.includes(value)) target.push(value);
+}
+
 function validateMailrelay(
   errors: string[],
   warnings: string[],
@@ -90,6 +106,9 @@ function validateMailrelay(
   if (!hasValue(fromSupport)) target.push('MAIL_FROM_SUPPORT is required when MAIL_PROVIDER=mailrelay.');
   if (!hasValue(apiKey)) target.push('MAILRELAY_API_KEY is required when MAIL_PROVIDER=mailrelay.');
   if (!hasValue(apiUrl)) target.push('MAILRELAY_API_URL is required when MAIL_PROVIDER=mailrelay.');
+  for (const issue of getMailSenderConfigIssues(env)) {
+    pushUnique(target, issue);
+  }
 
   if (isProduction) {
     errors.push(...getProductionEmailConfigErrors(env));
@@ -199,8 +218,8 @@ function validateMailProvider(errors: string[], warnings: string[], isProduction
   if (provider === 'resend') {
     (isProduction ? errors : warnings).push(
       isProduction
-        ? 'Production requires MAIL_PROVIDER=sender or MAIL_PROVIDER=mailrelay.'
-        : 'MAIL_PROVIDER=resend is supported, but Sender.net is the preferred active provider for this project.',
+        ? 'Production requires MAIL_PROVIDER=mailrelay.'
+        : 'MAIL_PROVIDER=resend is supported, but Mailrelay is the active production provider for this project.',
     );
     validateResend(errors, warnings, isProduction, env);
     return;
@@ -209,8 +228,8 @@ function validateMailProvider(errors: string[], warnings: string[], isProduction
   if (provider === 'stub' || !provider) {
     (isProduction ? errors : warnings).push(
       isProduction
-        ? 'Production requires MAIL_PROVIDER=sender or MAIL_PROVIDER=mailrelay.'
-        : 'MAIL_PROVIDER=stub keeps delivery local-only; set MAIL_PROVIDER=sender to exercise real outbound delivery.',
+        ? 'Production requires MAIL_PROVIDER=mailrelay.'
+        : 'MAIL_PROVIDER=stub keeps delivery local-only; set MAIL_PROVIDER=mailrelay to exercise real outbound delivery.',
     );
     return;
   }
@@ -218,14 +237,14 @@ function validateMailProvider(errors: string[], warnings: string[], isProduction
   if (provider === 'smtp') {
     (isProduction ? errors : warnings).push(
       isProduction
-        ? 'SMTP is deprecated for production; switch MAIL_PROVIDER to sender or mailrelay.'
-        : 'SMTP is deprecated; switch MAIL_PROVIDER to sender or mailrelay.',
+        ? 'SMTP is deprecated for production; switch MAIL_PROVIDER to mailrelay.'
+        : 'SMTP is deprecated; switch MAIL_PROVIDER to mailrelay.',
     );
     return;
   }
 
   (isProduction ? errors : warnings).push(
-    `MAIL_PROVIDER="${provider}" is unsupported. Use sender or mailrelay${isProduction ? '' : ', resend, or stub'}.`,
+    `MAIL_PROVIDER="${provider}" is unsupported. Use mailrelay${isProduction ? '' : ', resend, or stub'}.`,
   );
 }
 
@@ -258,6 +277,14 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
 
   if (!hasValue(env.DATABASE_URL)) {
     errors.push('DATABASE_URL is required.');
+  } else if (
+    isProduction &&
+    isLocalDatabaseUrl(env.DATABASE_URL) &&
+    !asBoolean(env.ALLOW_LOCAL_DATABASE_IN_PRODUCTION)
+  ) {
+    errors.push(
+      'DATABASE_URL cannot point to localhost or a local-only database in production unless ALLOW_LOCAL_DATABASE_IN_PRODUCTION=true is explicitly set for a private deployment.',
+    );
   }
 
   if (!hasValue(env.JWT_ACCESS_SECRET)) {
@@ -282,6 +309,8 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
     );
   } else if (isProduction && isLocalUrl(env.APP_URL)) {
     errors.push('APP_URL cannot point to localhost or a local-only domain in production.');
+  } else if (isProduction && !String(env.APP_URL).trim().toLowerCase().startsWith('https://')) {
+    errors.push('APP_URL must use https:// in production.');
   }
 
   if (!hasValue(env.CORS_ORIGINS)) {
@@ -292,6 +321,15 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
     );
   } else if (isProduction && isLocalUrl(env.CORS_ORIGINS)) {
     errors.push('CORS_ORIGINS cannot use localhost or local-only domains in production.');
+  } else if (
+    isProduction &&
+    String(env.CORS_ORIGINS)
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+      .some((value) => !value.startsWith('https://'))
+  ) {
+    errors.push('CORS_ORIGINS must use https:// origins in production.');
   }
 
   validateMailProvider(errors, warnings, isProduction, env);

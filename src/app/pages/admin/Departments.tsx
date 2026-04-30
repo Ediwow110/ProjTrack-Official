@@ -60,7 +60,7 @@ export default function AdminDepartments() {
   return (
     <PortalPage className="space-y-6">
       <PortalHero
-        tone="teal"
+        tone="slate"
         eyebrow="Academic Structure"
         title="Departments"
         description="Create the department catalog once, then reuse the same list when assigning teachers across the admin workspace."
@@ -99,7 +99,7 @@ export default function AdminDepartments() {
               variant="secondary"
               disabled={loading}
               onClick={reload}
-              className="bg-white text-slate-900 hover:bg-slate-100"
+              className="bg-white text-slate-900 hover:bg-slate-100 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
             >
               <RefreshCcw size={16} />
               Refresh
@@ -127,7 +127,7 @@ export default function AdminDepartments() {
         title="Search the department catalog"
         description="Use department cards as the source of truth for teacher assignment dropdowns."
       >
-        <label className="flex max-w-xl items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] dark:border-slate-700/60 dark:bg-slate-900/70">
+        <label className="portal-input flex max-w-xl items-center gap-3 rounded-[24px] px-4 py-3">
           <Search size={16} className="shrink-0 text-slate-400" />
           <input
             disabled={loading}
@@ -135,7 +135,7 @@ export default function AdminDepartments() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by department name or description..."
             aria-label="Search departments"
-            className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-50 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="w-full bg-transparent text-sm text-[var(--text-strong)] outline-none placeholder:text-[var(--text-subtle)] disabled:opacity-50"
           />
         </label>
       </PortalPanel>
@@ -158,7 +158,7 @@ export default function AdminDepartments() {
             title="No departments yet"
             description="Create your first department card so teacher forms can offer a real department dropdown."
             icon={Building2}
-            className="border-slate-200 bg-slate-50/80"
+            className="border-slate-200 bg-slate-50/80 dark:border-slate-700/60 dark:bg-slate-900/70"
           />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -191,7 +191,7 @@ export default function AdminDepartments() {
               type="button"
               disabled={submitState.saving || !form.name.trim()}
               onClick={handleCreateDepartment}
-              className="bg-teal-700 text-white hover:bg-teal-600"
+              className="bg-slate-800 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
             >
               {submitState.saving ? "Creating..." : "Create Department"}
             </Button>
@@ -217,7 +217,7 @@ export default function AdminDepartments() {
               }
               rows={4}
               placeholder="Optional details for the department card."
-              className="w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              className="portal-input w-full rounded-[22px] px-4 py-3 text-sm outline-none transition focus:border-slate-400"
             />
           </div>
 
@@ -234,17 +234,17 @@ export default function AdminDepartments() {
 
 function DepartmentCard({ department }: { department: AdminDepartmentRecord }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.97)_0%,rgba(240,253,250,0.82)_100%)] p-5 shadow-[0_24px_60px_-38px_rgba(13,148,136,0.28)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98)_0%,rgba(15,118,110,0.18)_100%)]">
+    <div className="portal-card rounded-[var(--radius-card)] border p-5 shadow-[var(--shadow-soft)]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-200">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             <Building2 size={18} />
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">
               {department.name}
             </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">
               {department.description?.trim() || "No description yet. This department is ready for teacher assignment."}
             </p>
           </div>
@@ -277,16 +277,16 @@ function MetricTile({
   value: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-white/70 bg-white/80 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/65">
+    <div className="rounded-[20px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-900/60">
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-200">
           <Icon size={15} />
         </div>
         <div>
-          <p className="text-lg font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">
+          <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
             {value}
           </p>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
             {label}
           </p>
         </div>
@@ -315,7 +315,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-12 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="portal-input h-12 w-full rounded-[22px] px-4 py-3 text-sm outline-none transition focus:border-slate-400"
       />
     </div>
   );

@@ -1,7 +1,8 @@
-import { Eye, JournalText } from "react-bootstrap-icons";
+import { Eye, FileText } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { DataTableCard } from "../shared/DataTableCard";
+import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AuditLogRecord } from "../../../lib/api/contracts";
 
 const actionColor: Record<string, string> = {
@@ -41,9 +42,12 @@ export function AuditLogsTable({
           key: "action",
           header: "Action",
           renderCell: (log) => (
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${actionColor[log.action] ?? "bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-200"}`}>
-              {log.action}
-            </span>
+            <div className="space-y-1.5">
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${actionColor[log.action] ?? "bg-slate-100 text-slate-600 dark:bg-slate-700/70 dark:text-slate-200"}`}>
+                {log.action}
+              </span>
+              <CopyableIdChip value={log.id} label="Copy Audit Log ID" className="bg-transparent px-0" />
+            </div>
           ),
         },
         {
@@ -60,6 +64,11 @@ export function AuditLogsTable({
             <div>
               <p className="text-xs font-medium text-slate-700 dark:text-slate-100">{log.user}</p>
               <p className="mt-1 text-[10px] text-slate-400">{log.role}</p>
+              {log.actorUserId ? (
+                <div className="mt-1">
+                  <CopyableIdChip value={log.actorUserId} label="Copy Actor User ID" className="bg-transparent px-0" />
+                </div>
+              ) : null}
             </div>
           ),
         },
@@ -67,7 +76,12 @@ export function AuditLogsTable({
           key: "target",
           header: "Target",
           renderCell: (log) => (
-            <span className="text-xs text-slate-500 dark:text-slate-300">{log.target}</span>
+            <div className="space-y-1">
+              <span className="text-xs text-slate-500 dark:text-slate-300">{log.target}</span>
+              {log.entityId && log.entityId !== "—" ? (
+                <CopyableIdChip value={log.entityId} label="Copy Target Entity ID" className="bg-transparent px-0" />
+              ) : null}
+            </div>
           ),
         },
         {
@@ -102,7 +116,7 @@ export function AuditLogsTable({
       ]}
       emptyState={(
         <PortalEmptyState
-          icon={JournalText}
+          icon={FileText}
           title="No audit events match this view"
           description="Try clearing the search or module filter to widen the visible event history."
         />

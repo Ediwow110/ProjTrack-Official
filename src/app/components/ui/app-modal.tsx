@@ -44,12 +44,12 @@ export function AppModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "max-h-[calc(100vh-2rem)] overflow-hidden rounded-[30px] border border-white/70 bg-[var(--surface-panel-strong)] p-0 shadow-[var(--shadow-shell)] backdrop-blur-xl sm:grid-rows-[auto,minmax(0,1fr),auto] dark:border-slate-700/60",
+          "portal-modal max-h-[calc(100vh-2rem)] overflow-hidden rounded-[30px] border p-0 shadow-[var(--shadow-shell)] sm:grid-rows-[auto,minmax(0,1fr),auto]",
           sizeMap[size],
           className,
         )}
       >
-        <DialogHeader className="gap-1 border-b border-slate-200/70 px-6 py-5 text-left dark:border-slate-700/60">
+        <DialogHeader className="portal-border gap-1 border-b px-6 py-5 text-left">
           <DialogTitle className="font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
             {title}
           </DialogTitle>
@@ -64,7 +64,7 @@ export function AppModal({
         {footer ? (
           <DialogFooter
             className={cn(
-              "border-t border-slate-200/70 bg-slate-50/90 px-6 py-5 dark:border-slate-700/60 dark:bg-slate-900/70",
+              "portal-border portal-table-header border-t px-6 py-5",
               footerClassName,
             )}
           >

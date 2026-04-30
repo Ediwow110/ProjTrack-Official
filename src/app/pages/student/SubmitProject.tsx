@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router/dom";
 import { ChevronLeft, Upload, X, CheckCircle2, FileText, Users, AlertCircle, Lock } from "lucide-react";
 import { studentService } from "../../lib/api/services";
 import { isEditableSubmissionStatus } from "../../lib/submissionRules";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
+import { getAuthSession } from "../../lib/mockAuth";
 
 export default function StudentSubmitProject() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function StudentSubmitProject() {
     const requestedActivityId = searchParams.get("activityId") || "";
   const requestedSubmissionId = searchParams.get("submissionId") || "";
   const backTarget = searchParams.get("back") || "/student/submissions";
+  const draftKey = `projtrack-draft:${getAuthSession()?.userId || "unknown"}:${activityId || requestedActivityId || "unselected"}`;
 
   const { data: existingSubmission } = useAsyncData<any | null>(
     () => requestedSubmissionId ? studentService.getSubmissionDetail(requestedSubmissionId) : Promise.resolve(null),
@@ -99,7 +101,7 @@ export default function StudentSubmitProject() {
       externalLinks: links.map((item) => item.trim()).filter(Boolean),
       fileName: file?.name ?? null,
     };
-    localStorage.setItem("student-submit-draft", JSON.stringify(payload));
+    localStorage.setItem(draftKey, JSON.stringify(payload));
     setDraftSaved(true);
     window.setTimeout(() => setDraftSaved(false), 2500);
   };

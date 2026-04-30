@@ -1,4 +1,4 @@
-import { Check2Circle, Eye, Inbox, XCircle } from "react-bootstrap-icons";
+import { CheckCircle2, Eye, Inbox, XCircle } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
@@ -98,7 +98,7 @@ export function RequestsTable({
         {
           key: "approve",
           label: "Approve",
-          icon: <Check2Circle size={15} />,
+          icon: <CheckCircle2 size={15} />,
           ariaLabel: `Approve ${request.type} request from ${request.requester}`,
           onClick: () => onApprove(request),
           hidden: () => request.status !== "Pending",

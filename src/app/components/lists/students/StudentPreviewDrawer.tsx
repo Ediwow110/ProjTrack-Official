@@ -76,7 +76,7 @@ export function StudentPreviewDrawer({
                 <Eyebrow>Student account</Eyebrow>
                 <SectionTitle className="mt-2">{student.name}</SectionTitle>
                 <BodyText className="mt-2" tone="muted">
-                  Review the current portal status, send setup instructions, or open the full record for edits.
+                  Review the current portal status, queue setup email, or open the full record for edits.
                 </BodyText>
               </div>
               <StatusChip status={student.status} />
@@ -110,7 +110,7 @@ export function StudentPreviewDrawer({
                 onClick={() => onSendSetupLink(student.id)}
                 className="bg-[var(--role-accent)] text-white hover:bg-[var(--role-accent-strong)]"
               >
-                {student.status === "Pending Setup" ? "Send setup link" : "Send reset link"}
+                {student.status === "Pending Setup" ? "Send setup email" : "Send password reset email"}
               </Button>
               {student.status !== "Inactive" ? (
                 <Button

@@ -10,6 +10,9 @@ test-results/
 backend/.env
 .env.*
 backend/.env.*
+!.env.example
+!backend/.env.example
+!backend/.env.minio.example
 
 *.log
 logs/
@@ -23,8 +26,14 @@ backend-dev*.log
 backend-runtime*.log
 
 backend/uploads/
+backend/data/system-tools/backups/
 backend/data/system-tools/
 uploads/
+*.tmp
+*.bak
+*.backup
+backend/prisma/generated/
+backend/node_modules/.prisma/
 
 .github/.DS_Store
 .vite/

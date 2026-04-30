@@ -72,23 +72,12 @@ export class MailLimitService {
 
     const usage = await this.getUsage(provider);
     const providerName = providerLabel(provider);
-    const monthlyLimitReason =
-      provider === MAIL_PROVIDER_NAMES.SENDER
-        ? MAIL_FAILURE_REASONS.SENDER_MONTHLY_LIMIT_REACHED
-        : MAIL_FAILURE_REASONS.MAILRELAY_MONTHLY_LIMIT_REACHED;
-    const dailyLimitReason =
-      provider === MAIL_PROVIDER_NAMES.SENDER
-        ? MAIL_FAILURE_REASONS.SENDER_DAILY_SAFETY_LIMIT_REACHED
-        : MAIL_FAILURE_REASONS.MAILRELAY_DAILY_SAFETY_LIMIT_REACHED;
-    const rateLimitReason =
-      provider === MAIL_PROVIDER_NAMES.SENDER
-        ? MAIL_FAILURE_REASONS.SENDER_RATE_LIMIT_REACHED
-        : MAIL_FAILURE_REASONS.MAILRELAY_RATE_LIMIT_REACHED;
+    const rateLimitReason = MAIL_FAILURE_REASONS.RATE_LIMITED;
 
     if (usage.monthlyLimit !== null && usage.monthlySent >= usage.monthlyLimit) {
       return {
         allowed: false,
-        reason: monthlyLimitReason,
+        reason: rateLimitReason,
         detail: `${providerName} monthly limit reached (${usage.monthlySent}/${usage.monthlyLimit}).`,
       };
     }
@@ -96,7 +85,7 @@ export class MailLimitService {
     if (usage.dailySafetyLimit !== null && usage.dailySent >= usage.dailySafetyLimit) {
       return {
         allowed: false,
-        reason: dailyLimitReason,
+        reason: rateLimitReason,
         detail: `${providerName} daily safety limit reached (${usage.dailySent}/${usage.dailySafetyLimit}).`,
       };
     }

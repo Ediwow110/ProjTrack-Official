@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Database, Download, HardDrive, RefreshCw, Activity, Trash2, RefreshCcw, FileText } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
 import { adminOpsService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
-import type { SystemToolRecord, SystemToolRunResult } from "../../lib/api/contracts";
+import type { SeedCleanupPreview, SystemToolRecord, SystemToolRunResult } from "../../lib/api/contracts";
 
 const iconMap: Record<string, typeof Database> = {
   backup: Database,
@@ -12,6 +12,7 @@ const iconMap: Record<string, typeof Database> = {
   purge: Trash2,
   diag: Activity,
   export: Download,
+  "seed-cleanup": Trash2,
 };
 
 const toneMap: Record<string, string> = {
@@ -31,17 +32,49 @@ export default function AdminSystemTools() {
   const [runState, setRunState] = useState<{ running: boolean; error: string | null }>({ running: false, error: null });
   const [importState, setImportState] = useState<{ importing: boolean; error: string | null }>({ importing: false, error: null });
   const [artifactBusy, setArtifactBusy] = useState(false);
+  const [seedCleanupPreview, setSeedCleanupPreview] = useState<SeedCleanupPreview | null>(null);
+  const [seedCleanupConfirmation, setSeedCleanupConfirmation] = useState("");
+  const [seedCleanupBackupConfirmed, setSeedCleanupBackupConfirmed] = useState(false);
   const backupImportInputRef = useRef<HTMLInputElement | null>(null);
+  const isSeedCleanupTool = confirmTool?.id === "seed-cleanup";
+
+  useEffect(() => {
+    if (!isSeedCleanupTool) {
+      setSeedCleanupPreview(null);
+      setSeedCleanupConfirmation("");
+      setSeedCleanupBackupConfirmed(false);
+    }
+  }, [isSeedCleanupTool]);
 
   const handleRun = async () => {
     if (!confirmTool || runState.running) return;
     setLastResult(null);
     setRunState({ running: true, error: null });
     try {
-      const response = await adminOpsService.runSystemTool(confirmTool.id);
+      const response = await adminOpsService.runSystemTool(
+        confirmTool.id,
+        isSeedCleanupTool
+          ? seedCleanupPreview
+            ? {
+                mode: "execute",
+                confirmation: seedCleanupConfirmation,
+                backupConfirmed: seedCleanupBackupConfirmed,
+              }
+            : { mode: "preview" }
+          : {},
+      );
       setData(response.tools);
       setLastResult(response.result);
-      setConfirmTool(null);
+      if (confirmTool.id === "seed-cleanup") {
+        setSeedCleanupPreview(response.result.preview ?? null);
+        if (response.result.status === "Completed") {
+          setConfirmTool(null);
+          setSeedCleanupConfirmation("");
+          setSeedCleanupBackupConfirmed(false);
+        }
+      } else {
+        setConfirmTool(null);
+      }
       setRunState({ running: false, error: null });
       await reload();
     } catch (err) {
@@ -235,10 +268,23 @@ export default function AdminSystemTools() {
             </button>
             <button
               onClick={handleRun}
-              disabled={runState.running}
+              disabled={
+                runState.running ||
+                (isSeedCleanupTool &&
+                  Boolean(seedCleanupPreview) &&
+                  (!seedCleanupBackupConfirmed ||
+                    seedCleanupConfirmation.trim().toUpperCase() !==
+                      seedCleanupPreview?.confirmationWord))
+              }
               className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${confirmTool?.danger ? "bg-rose-600 hover:bg-rose-700" : "bg-blue-800 hover:bg-blue-900"}`}
             >
-              {runState.running ? "Running…" : "Confirm"}
+              {runState.running
+                ? "Running…"
+                : isSeedCleanupTool
+                  ? seedCleanupPreview
+                    ? "Run Cleanup"
+                    : "Preview Affected Records"
+                  : "Confirm"}
             </button>
           </>
         }
@@ -253,14 +299,103 @@ export default function AdminSystemTools() {
                 Run <span className="font-semibold text-slate-700 dark:text-slate-100">{confirmTool.title}</span> now?
               </p>
               <p className="mt-2 text-xs leading-5 text-slate-400 dark:text-slate-500">
-                {confirmTool.danger
-                  ? "This tool can change or remove stored data. Confirm only if you intend to perform the operation immediately."
-                  : "This tool will run immediately and update the latest system state when it completes."}
+                {isSeedCleanupTool
+                  ? "Preview the affected seed/demo records first. Cleanup stays locked until you confirm a fresh backup and type the required confirmation phrase."
+                  : confirmTool.danger
+                    ? "This tool can change or remove stored data. Confirm only if you intend to perform the operation immediately."
+                    : "This tool will run immediately and update the latest system state when it completes."}
               </p>
+              {isSeedCleanupTool && seedCleanupPreview ? (
+                <div className="mt-4 space-y-4 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-xs text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
+                  <p className="font-semibold">{seedCleanupPreview.summary}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <PreviewStat label="Users" value={seedCleanupPreview.counts.users} />
+                    <PreviewStat label="Subjects" value={seedCleanupPreview.counts.subjects} />
+                    <PreviewStat label="Activities" value={seedCleanupPreview.counts.activities} />
+                    <PreviewStat label="Submissions" value={seedCleanupPreview.counts.submissions} />
+                    <PreviewStat label="Notifications" value={seedCleanupPreview.counts.notifications} />
+                    <PreviewStat label="Mail Jobs" value={seedCleanupPreview.counts.mailJobs} />
+                  </div>
+                  <PreviewList
+                    label="User IDs"
+                    values={seedCleanupPreview.users.map((user) =>
+                      user.studentNumber
+                        ? `${user.id} · ${user.studentNumber}`
+                        : user.employeeId
+                          ? `${user.id} · ${user.employeeId}`
+                          : user.id,
+                    )}
+                  />
+                  <PreviewList
+                    label="Subject IDs"
+                    values={seedCleanupPreview.subjects.map((subject) => `${subject.id} · ${subject.code}`)}
+                  />
+                  <PreviewList
+                    label="Submission IDs"
+                    values={seedCleanupPreview.submissions.map((submission) => submission.id)}
+                  />
+                  <PreviewList
+                    label="Notification IDs"
+                    values={seedCleanupPreview.notifications.map((notification) => notification.id)}
+                  />
+                  <PreviewList
+                    label="Mail Job IDs"
+                    values={seedCleanupPreview.mailJobs.map((job) => job.id)}
+                  />
+                  <label className="flex items-start gap-3 rounded-xl border border-rose-200 bg-white/80 px-3 py-3 text-xs dark:border-rose-500/25 dark:bg-slate-900/60">
+                    <input
+                      type="checkbox"
+                      checked={seedCleanupBackupConfirmed}
+                      onChange={(event) => setSeedCleanupBackupConfirmed(event.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      I created and verified a fresh backup before running this destructive cleanup.
+                    </span>
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="font-semibold">
+                      Type {seedCleanupPreview.confirmationWord} to confirm
+                    </span>
+                    <input
+                      value={seedCleanupConfirmation}
+                      onChange={(event) => setSeedCleanupConfirmation(event.target.value)}
+                      className="h-10 w-full rounded-xl border border-rose-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-rose-400 dark:border-rose-500/25 dark:bg-slate-900/60 dark:text-slate-100"
+                    />
+                  </label>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
       </AppModal>
+    </div>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-rose-200 bg-white/80 px-3 py-2 dark:border-rose-500/25 dark:bg-slate-900/60">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-500">{label}</p>
+      <p className="mt-1 text-sm font-bold text-rose-900 dark:text-rose-100">{value}</p>
+    </div>
+  );
+}
+
+function PreviewList({ label, values }: { label: string; values: string[] }) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="font-semibold">{label}</p>
+      <div className="max-h-28 overflow-y-auto rounded-xl border border-rose-200 bg-white/80 px-3 py-2 font-mono text-[11px] dark:border-rose-500/25 dark:bg-slate-900/60">
+        {values.slice(0, 12).map((value) => (
+          <div key={value}>{value}</div>
+        ))}
+        {values.length > 12 ? <div>...and {values.length - 12} more</div> : null}
+      </div>
     </div>
   );
 }

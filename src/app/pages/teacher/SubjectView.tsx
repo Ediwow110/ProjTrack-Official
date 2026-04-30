@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router/dom";
 import {
   Bell,
   BookOpen,
@@ -127,7 +127,7 @@ export default function TeacherSubjectView() {
 
   const handleSaveActivity = async () => {
     if (!subjectId) {
-      showBanner("Subject ID is missing.");
+      showBanner("Subject is missing.");
       return;
     }
     if (!activityForm.title.trim() || !activityForm.deadline) {
@@ -169,7 +169,7 @@ export default function TeacherSubjectView() {
 
   const handleNotifyStudents = async () => {
     if (!subjectId) {
-      showBanner("Subject ID is missing.");
+      showBanner("Subject is missing.");
       return;
     }
     if (!notifyForm.title.trim() || !notifyForm.message.trim()) {
@@ -192,7 +192,7 @@ export default function TeacherSubjectView() {
 
   const handleReopenSubject = async () => {
     if (!subjectId) {
-      showBanner("Subject ID is missing.");
+      showBanner("Subject is missing.");
       return;
     }
 
