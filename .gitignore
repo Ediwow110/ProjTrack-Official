@@ -33,8 +33,10 @@ backend-dev*.log
 backend-runtime*.log
 
 backend/uploads/
+backend/uploads/branding/
 backend/data/*.json
 !backend/data/.gitkeep
+backend/data/branding/
 data/system-tools/backups/
 data/system-tools/
 backend/data/system-tools/backups/
@@ -53,5 +55,15 @@ backend/*.log
 backend/tmp-*.log
 backend/prisma/generated/
 backend/node_modules/.prisma/
+
+# diagnostics
+diagnostics/
+*.diagnostic.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
 
 .github/.DS_Store
