@@ -4,8 +4,30 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const SECRET_KEY_PATTERN =
-  /(?:SECRET|TOKEN|PASSWORD|PASS|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|CLIENT[_-]?SECRET|ACCOUNT[_-]?ACTION[_-]?TOKEN[_-]?ENC[_-]?KEY)/i;
+const EXCLUDED_DIRS = new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "build",
+  "coverage",
+  "playwright-report",
+  "test-results",
+  "tmp",
+  "uploads",
+  ".local-runtime",
+]);
+
+const FILE_ALLOWLIST = [
+  /^package-lock\.json$/,
+  /^backend\/package-lock\.json$/,
+  /\.(png|jpg|jpeg|webp|ico|svg|gif|woff2?|ttf|eot)$/i,
+];
+
+const SCANNABLE_FILE_PATTERN =
+  /\.(env|ya?ml|md|txt|json|config|example|conf|ini|toml|js|mjs|cjs|ts|tsx)$/i;
+
+const CONFIG_ASSIGNMENT_FILE_PATTERN =
+  /\.(env|ya?ml|md|txt|json|config|example|conf|ini|toml)$/i;
 
 const PROVIDER_LITERAL_PATTERNS = [
   { key: "GITHUB_TOKEN", pattern: /\bghp_[A-Za-z0-9_]{30,}\b/g },
@@ -23,12 +45,8 @@ const PROVIDER_LITERAL_PATTERNS = [
 const PRIVATE_KEY_PATTERN =
   /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/;
 
-const ALLOWED_PLACEHOLDER_PREFIXES = [
-  "REPLACE_WITH_",
-  "EXAMPLE_",
-  "DUMMY_",
-  "FAKE_",
-];
+const SUSPICIOUS_ASSIGNMENT_KEY_PATTERN =
+  /(?:SECRET|TOKEN|PASSWORD|PASS|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|CLIENT[_-]?SECRET|ACCOUNT[_-]?ACTION[_-]?TOKEN[_-]?ENC[_-]?KEY)/i;
 
 const SAFE_EXACT_VALUES = new Set([
   "",
@@ -50,6 +68,8 @@ const SAFE_EXACT_VALUES = new Set([
   "projtrack",
   "password",
   "changeme",
+  "[redacted]",
+  "***",
 ]);
 
 const SAFE_VALUE_PATTERNS = [
@@ -57,75 +77,35 @@ const SAFE_VALUE_PATTERNS = [
   /^EXAMPLE_/i,
   /^DUMMY_/i,
   /^FAKE_/i,
-
-  // Explicit fake/local/test values.
   /^local[-_]/i,
   /^test[-_]/i,
   /^ci[-_]/i,
   /^example[-_]/i,
   /^dummy[-_]/i,
+  /^fake[-_]/i,
+  /^your[-_]/i,
+  /^secure[-_]/i,
+  /^sample[-_]/i,
+  /^demo[-_]/i,
+  /^<[^>]+>$/,
+  /^\[[^\]]+\]$/,
 
-  // Local/dev URLs.
   /^https?:\/\/localhost(?::\d+)?(?:\/.*)?$/i,
   /^https?:\/\/127\.0\.0\.1(?::\d+)?(?:\/.*)?$/i,
-
-  // Project example URLs.
   /^https:\/\/(?:www\.|api\.|staging\.|api-staging\.)?projtrack\.codes(?:\/.*)?$/i,
 
-  // Example/local emails.
   /^[a-z0-9._%+-]+@(?:example\.com|projtrack\.codes|projtrack\.local)$/i,
 
-  // Safe example DB URLs.
   /^postgresql:\/\/username:password@(?:localhost|127\.0\.0\.1|production-host):5432\/[a-z0-9_]+$/i,
   /^postgres(?:ql)?:\/\/postgres:postgres@(?:localhost|127\.0\.0\.1|postgres):5432\/[a-z0-9_]+$/i,
 
-  // Numeric config.
   /^\d+$/,
-
-  // Safe fake key/version labels.
   /^production-REPLACE_WITH_/i,
   /^staging-REPLACE_WITH_/i,
 ];
 
-const FILE_ALLOWLIST = [
-  /^package-lock\.json$/,
-  /^backend\/package-lock\.json$/,
-  /\.(png|jpg|jpeg|webp|ico|svg|gif|woff2?|ttf|eot)$/i,
-];
-
-const CONFIG_OR_TEXT_FILE_PATTERN =
-  /\.(env|ya?ml|md|txt|json|config|example|conf|ini|toml|sql|prisma|js|mjs|cjs|ts|tsx)$/i;
-
-const EXAMPLE_DOC_CI_FILE_PATTERNS = [
-  /\.env(?:\.[A-Za-z0-9_-]+)?\.example$/,
-  /\.example$/,
-  /^docs\//,
-  /^backend\/docs\//,
-  /\.md$/,
-  /^\.github\/workflows\//,
-  /docker-compose.*\.ya?ml$/,
-  /PRODUCTION_ENV_TEMPLATE\.md$/,
-  /DEPLOYMENT\.md$/,
-  /MAILRELAY_RUNBOOK\.md$/,
-  /STAGING_SMOKE_TEST_GUIDE\.md$/,
-  /SECURITY_NOTES\.md$/,
-];
-
-const EXCLUDED_FALLBACK_DIRS = new Set([
-  ".git",
-  "node_modules",
-  "dist",
-  "build",
-  "coverage",
-  "playwright-report",
-  "test-results",
-  "tmp",
-  "uploads",
-  ".local-runtime",
-]);
-
 function normalizePath(value) {
-  return value.trim().replace(/\\/g, "/");
+  return String(value ?? "").trim().replace(/\\/g, "/");
 }
 
 function normalizeValue(value) {
@@ -141,35 +121,12 @@ function maskValue(value) {
   return `${cleaned.slice(0, 4)}...${cleaned.slice(-4)}`;
 }
 
-function isExampleDocOrCiFile(filePath) {
-  const normalized = normalizePath(filePath);
-  return EXAMPLE_DOC_CI_FILE_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-function hasAllowedPlaceholderPrefix(value) {
-  const cleaned = normalizeValue(value);
-  return ALLOWED_PLACEHOLDER_PREFIXES.some((prefix) =>
-    cleaned.toUpperCase().startsWith(prefix),
-  );
-}
-
-function isSafePlaceholderOrExampleValue(filePath, value) {
+function isSafeExampleValue(value) {
   const cleaned = normalizeValue(value);
   const lower = cleaned.toLowerCase();
 
-  if (hasAllowedPlaceholderPrefix(cleaned)) return true;
   if (SAFE_EXACT_VALUES.has(lower)) return true;
-  if (SAFE_VALUE_PATTERNS.some((pattern) => pattern.test(cleaned))) return true;
-
-  // Looser allowances only for examples/docs/workflows/docker-compose files.
-  if (isExampleDocOrCiFile(filePath)) {
-    if (/^(your-|your_|secure-|secure_|sample-|sample_|demo-|demo_)/i.test(cleaned)) return true;
-    if (/^(local|test|ci|example|dummy|fake)[-_a-z0-9]*$/i.test(cleaned)) return true;
-    if (/^[a-z0-9._%+-]+@example\.com$/i.test(cleaned)) return true;
-    if (/^[a-z0-9._%+-]+@projtrack\.(codes|local)$/i.test(cleaned)) return true;
-  }
-
-  return false;
+  return SAFE_VALUE_PATTERNS.some((pattern) => pattern.test(cleaned));
 }
 
 function walkSourceFiles(dir = ".", prefix = "") {
@@ -179,9 +136,7 @@ function walkSourceFiles(dir = ".", prefix = "") {
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
 
     if (entry.isDirectory()) {
-      if (EXCLUDED_FALLBACK_DIRS.has(entry.name) || EXCLUDED_FALLBACK_DIRS.has(relative)) {
-        continue;
-      }
+      if (EXCLUDED_DIRS.has(entry.name) || EXCLUDED_DIRS.has(relative)) continue;
       rows.push(...walkSourceFiles(join(dir, entry.name), relative));
       continue;
     }
@@ -200,7 +155,7 @@ function candidateFiles() {
       .filter(Boolean);
   } catch (error) {
     console.warn(
-      `git ls-files failed; falling back to a source-tree scan. ${
+      `git ls-files failed; falling back to source-tree scan. ${
         error instanceof Error ? error.message : ""
       }`.trim(),
     );
@@ -210,7 +165,11 @@ function candidateFiles() {
 
 function shouldScanFile(filePath) {
   if (FILE_ALLOWLIST.some((pattern) => pattern.test(filePath))) return false;
-  return CONFIG_OR_TEXT_FILE_PATTERN.test(filePath);
+  return SCANNABLE_FILE_PATTERN.test(filePath);
+}
+
+function shouldScanAssignments(filePath) {
+  return CONFIG_ASSIGNMENT_FILE_PATTERN.test(filePath);
 }
 
 function stripInlineComment(value) {
@@ -234,14 +193,9 @@ function stripInlineComment(value) {
   return raw.trim();
 }
 
-function extractAssignments(line) {
+function extractConfigAssignments(line) {
   const assignments = [];
 
-  // ENV/YAML/Markdown-ish key-value forms:
-  // KEY=value
-  // KEY: value
-  // - KEY=value
-  // `KEY=value`
   const assignmentPattern =
     /(?:^|[\s`"'-])([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASS|API_KEY|ACCESS_KEY|PRIVATE_KEY|CLIENT_SECRET|ACCOUNT_ACTION_TOKEN_ENC_KEY)[A-Z0-9_]*)\s*[:=]\s*`?([^`\s#]+)`?/gi;
 
@@ -253,20 +207,6 @@ function extractAssignments(line) {
   }
 
   return assignments;
-}
-
-function looksLikeLongRandomSecret(value) {
-  const cleaned = normalizeValue(value);
-
-  if (cleaned.length < 40) return false;
-  if (isSafePlaceholderOrExampleValue("", cleaned)) return false;
-
-  // Base64-ish, hex-ish, or mixed token-ish values.
-  if (/^[A-Za-z0-9+/=]{40,}$/.test(cleaned)) return true;
-  if (/^[a-f0-9]{40,}$/i.test(cleaned)) return true;
-  if (/^[A-Za-z0-9_-]{40,}$/.test(cleaned)) return true;
-
-  return false;
 }
 
 function scanFile(filePath) {
@@ -296,10 +236,11 @@ function scanFile(filePath) {
 
     if (!line || line.startsWith("#") || line.startsWith("//")) return;
 
+    // Always scan for real provider/token literals anywhere, including source files.
     for (const provider of PROVIDER_LITERAL_PATTERNS) {
       for (const match of line.matchAll(provider.pattern)) {
         const value = match[0];
-        if (isSafePlaceholderOrExampleValue(filePath, value)) continue;
+        if (isSafeExampleValue(value)) continue;
 
         findings.push({
           file: filePath,
@@ -310,12 +251,16 @@ function scanFile(filePath) {
       }
     }
 
-    for (const assignment of extractAssignments(line)) {
+    // Only scan suspicious KEY=value assignments in config/docs/env/workflow files.
+    // Do not scan normal TypeScript source variables like refreshToken or passwordHash.
+    if (!shouldScanAssignments(filePath)) return;
+
+    for (const assignment of extractConfigAssignments(line)) {
       const key = assignment.key;
       const value = normalizeValue(assignment.value);
 
-      if (!SECRET_KEY_PATTERN.test(key)) continue;
-      if (isSafePlaceholderOrExampleValue(filePath, value)) continue;
+      if (!SUSPICIOUS_ASSIGNMENT_KEY_PATTERN.test(key)) continue;
+      if (isSafeExampleValue(value)) continue;
 
       findings.push({
         file: filePath,
@@ -323,23 +268,6 @@ function scanFile(filePath) {
         key,
         value: maskValue(value),
       });
-    }
-
-    // Catch long secret-looking literals in config/docs even without a suspicious key.
-    if (isExampleDocOrCiFile(filePath)) return;
-
-    const words = line.split(/\s+/);
-    for (const word of words) {
-      const cleaned = normalizeValue(word.replace(/[",;)]$/g, ""));
-      if (looksLikeLongRandomSecret(cleaned)) {
-        findings.push({
-          file: filePath,
-          line: lineNumber,
-          key: "LONG_RANDOM_LITERAL",
-          value: maskValue(cleaned),
-        });
-        break;
-      }
     }
   });
 
