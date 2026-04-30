@@ -1,0 +1,86 @@
+name: Production Candidate Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+      APP_ENV: production
+      CI_PRODUCTION_BUILD: "true"
+      VITE_USE_BACKEND: "true"
+      VITE_API_BASE_URL: https://api-staging.projtrack.codes
+      VITE_PUBLIC_APP_URL: https://staging.projtrack.codes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run security:secrets
+      - run: npm run check:release-hygiene
+      - run: npm run check:frontend-env:production
+      - run: npm run typecheck
+      - run: npm run build:production-fixture
+      - run: npm audit --audit-level=high
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack_test
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack_test
+      NODE_ENV: test
+      APP_ENV: test
+      JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
+      JWT_REFRESH_SECRET: ci-refresh-secret-for-tests-only-not-production-0000000000
+      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      APP_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:3001
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      MAIL_PROVIDER: stub
+      MAIL_FROM: noreply@projtrack.local
+      MAIL_WORKER_ENABLED: "false"
+      FILE_STORAGE_MODE: local
+      OBJECT_STORAGE_MODE: local
+      HTTP_RATE_LIMIT_STORE: memory
+      FILE_MALWARE_SCAN_MODE: disabled
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm --prefix .. run security:secrets
+      - run: npm --prefix .. run check:release-hygiene
+      - run: npx prisma validate --schema prisma/schema.prisma
+      - run: npx prisma generate --schema prisma/schema.prisma
+      - run: npx prisma migrate deploy --schema prisma/schema.prisma
+      - run: npm run build
+      - run: npm run test
+      - run: npm audit --audit-level=high
