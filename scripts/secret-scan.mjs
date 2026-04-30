@@ -103,6 +103,7 @@ const SAFE_VALUE_PATTERNS = [
   /^production-REPLACE_WITH_/i,
   /^staging-REPLACE_WITH_/i,
   /^MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=$/,
+  /^\[redacted\]$/i,
 ];
 
 function normalizePath(value) {
@@ -168,6 +169,10 @@ function shouldScanFile(filePath) {
 }
 
 function shouldScanAssignments(filePath) {
+  const normalized = normalizePath(filePath);
+  if (normalized.startsWith('docs/') || normalized.startsWith('backend/docs/') || normalized.startsWith('.github/workflows/') || normalized.endsWith('.md') || normalized.endsWith('.example')) {
+    return false; // Skip assignment scanning in doc and CI files to avoid false positives
+  }
   return CONFIG_ASSIGNMENT_FILE_PATTERN.test(filePath);
 }
 
