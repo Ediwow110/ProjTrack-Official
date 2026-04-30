@@ -5,23 +5,24 @@ process.env.VITE_API_BASE_URL = 'https://api.projtrack.codes';
 process.env.VITE_PUBLIC_APP_URL = 'https://www.projtrack.codes';
 
 import { build } from 'vite';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function run() {
+async function buildProductionFixture() {
+  console.log('Building production fixture...');
+
   await build({
-    root: join(__dirname, '../'),
-    configFile: join(__dirname, '../vite.config.ts'),
-    mode: 'production-fixture'
+    configFile: path.resolve(__dirname, '../vite.config.ts'),
+    mode: 'production',
+    logLevel: 'info',
   });
 
-  console.log('Build completed for production fixture.');
+  console.log('✅ Production fixture built successfully');
 }
 
-run().catch(err => {
-  console.error('Build failed:', err);
+buildProductionFixture().catch((err) => {
+  console.error('❌ Production fixture build failed:', err);
   process.exit(1);
 });
