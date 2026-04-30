@@ -7,6 +7,7 @@ Use placeholders only in committed documentation. Set real values directly in th
 ```env
 VITE_USE_BACKEND=true
 VITE_API_BASE_URL=https://api.projtrack.codes
+VITE_PUBLIC_APP_URL=https://www.projtrack.codes
 ```
 
 ## Backend
@@ -16,10 +17,16 @@ NODE_ENV=production
 APP_ENV=production
 APP_URL=https://projtrack.codes
 FRONTEND_URL=https://projtrack.codes
+BACKEND_URL=https://api.projtrack.codes
 CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes
 DATABASE_URL=<production-postgres-url>
 JWT_ACCESS_SECRET=<long-random-secret>
 JWT_REFRESH_SECRET=<different-long-random-secret>
+JWT_ISSUER=projtrack-api
+JWT_AUDIENCE=projtrack-web
+JWT_KEY_ID=<active-jwt-key-id>
+ACCOUNT_ACTION_TOKEN_ENC_KEY=<32-byte-base64-or-64-hex-key>
+TRUST_PROXY=true
 ALLOW_DEMO_SEED=false
 ```
 
@@ -81,6 +88,15 @@ S3_ENDPOINT=<provider-endpoint-if-needed>
 S3_ACCESS_KEY_ID=<key>
 S3_SECRET_ACCESS_KEY=<secret>
 S3_FORCE_PATH_STYLE=<true-or-false>
+S3_SIGNED_URL_TTL_SECONDS=300
+S3_BUCKET_PUBLIC=false
+FILE_UPLOAD_MAX_MB=20
+FILE_UPLOAD_ALLOW_ARCHIVES=false
+PENDING_UPLOAD_TTL_MINUTES=60
+FILE_MALWARE_SCAN_MODE=fail-closed
+FILE_MALWARE_SCANNER=clamav
+CLAMAV_HOST=<clamav-host>
+CLAMAV_PORT=3310
 ```
 
 ## Backup
