@@ -8,12 +8,15 @@ import compression = require('compression');
 import helmet from 'helmet';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { runWithRequestContext } from './common/request-context';
 import { logSafeMailRuntimeState } from './config/mail-runtime-diagnostics';
 import { inspectRuntimeConfiguration } from './config/runtime-safety';
 import { validateProductionEmailConfig } from './mail/mail-environment.guard';
+import { BRANDING_ASSET_ROUTE_PREFIX } from './branding/branding.constants';
+import { PrismaClient } from '@prisma/client';
 
 const envCandidates = [
   resolve(process.cwd(), '.env'),
@@ -25,6 +28,68 @@ for (const candidate of envCandidates) {
   if (!existsSync(candidate)) continue;
   loadEnv({ path: candidate, override: false });
   break;
+}
+
+function isProductionRuntime() {
+  return (
+    String(process.env.NODE_ENV ?? '').toLowerCase() === 'production' ||
+    String(process.env.APP_ENV ?? '').toLowerCase() === 'production'
+  );
+}
+
+function contentSecurityPolicy() {
+  const appUrl = String(process.env.FRONTEND_URL || process.env.APP_URL || "'self'").replace(/\/+$/, '');
+  const apiUrl = String(process.env.BACKEND_URL || '').replace(/\/+$/, '');
+  const connectSrc = ["'self'", appUrl, apiUrl, ...(process.env.CSP_CONNECT_SRC || '').split(',')]
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', ...(process.env.CSP_IMG_SRC || '').split(',').map((value) => value.trim()).filter(Boolean)],
+      connectSrc,
+    },
+  };
+}
+
+function rateLimitRules() {
+  return [
+    { name: 'login', prefix: '/auth/login', max: Number(process.env.RATE_LIMIT_LOGIN_MAX || 20), windowMs: Number(process.env.RATE_LIMIT_LOGIN_WINDOW_MS || 60_000) },
+    { name: 'refresh', prefix: '/auth/refresh', max: Number(process.env.RATE_LIMIT_REFRESH_MAX || 60), windowMs: Number(process.env.RATE_LIMIT_REFRESH_WINDOW_MS || 60_000) },
+    { name: 'forgot-password', prefix: '/auth/forgot-password', max: Number(process.env.RATE_LIMIT_PASSWORD_RESET_REQUEST_MAX || 5), windowMs: Number(process.env.RATE_LIMIT_PASSWORD_RESET_REQUEST_WINDOW_MS || 60 * 60_000) },
+    { name: 'reset-password', prefix: '/auth/reset-password', max: Number(process.env.RATE_LIMIT_PASSWORD_RESET_MAX || 10), windowMs: Number(process.env.RATE_LIMIT_PASSWORD_RESET_WINDOW_MS || 60 * 60_000) },
+    { name: 'activation', prefix: '/auth/activate', max: Number(process.env.RATE_LIMIT_ACTIVATION_MAX || 10), windowMs: Number(process.env.RATE_LIMIT_ACTIVATION_WINDOW_MS || 60 * 60_000) },
+    { name: 'file-upload', prefix: '/files/upload', max: Number(process.env.RATE_LIMIT_FILE_UPLOAD_MAX || 30), windowMs: Number(process.env.RATE_LIMIT_FILE_UPLOAD_WINDOW_MS || 60 * 60_000) },
+    { name: 'admin-import', prefix: '/admin/students/import', max: Number(process.env.RATE_LIMIT_ADMIN_IMPORT_MAX || 20), windowMs: Number(process.env.RATE_LIMIT_ADMIN_IMPORT_WINDOW_MS || 60 * 60_000) },
+    { name: 'report-export', prefix: '/admin/reports/export', max: Number(process.env.RATE_LIMIT_REPORT_EXPORT_MAX || 30), windowMs: Number(process.env.RATE_LIMIT_REPORT_EXPORT_WINDOW_MS || 60 * 60_000) },
+    { name: 'health', prefix: '/health', max: Number(process.env.RATE_LIMIT_HEALTH_MAX || 120), windowMs: Number(process.env.RATE_LIMIT_HEALTH_WINDOW_MS || 60_000) },
+  ];
+}
+
+async function databaseRateLimit(
+  prisma: PrismaClient,
+  action: string,
+  key: string,
+  max: number,
+  windowMs: number,
+) {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - windowMs);
+  await prisma.authRateLimit.deleteMany({
+    where: { action, key, firstAttemptAt: { lte: windowStart } },
+  });
+  const row = await prisma.authRateLimit.upsert({
+    where: { action_key: { action, key } },
+    update: { attempts: { increment: 1 }, lastAttemptAt: now },
+    create: { action, key, attempts: 1, firstAttemptAt: now, lastAttemptAt: now },
+  });
+  return row.attempts <= max;
 }
 
 async function bootstrap() {
@@ -46,8 +111,17 @@ async function bootstrap() {
   validateProductionEmailConfig(process.env);
   logSafeMailRuntimeState(bootstrapLogger);
 
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const prisma = new PrismaClient();
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   const expressApp = app.getHttpAdapter().getInstance();
+  app.useStaticAssets(resolve(__dirname, '../uploads/branding'), {
+    prefix: `${BRANDING_ASSET_ROUTE_PREFIX}/`,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    },
+  });
   if (String(process.env.TRUST_PROXY ?? 'false').toLowerCase() === 'true') {
     expressApp.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
   }
@@ -72,16 +146,16 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: bodyParserLimit }));
   app.use(compression());
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: contentSecurityPolicy(),
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
   const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-  app.use((req: any, res: any, next: () => void) => {
+  const useDatabaseRateLimit = String(process.env.HTTP_RATE_LIMIT_STORE || '').toLowerCase() === 'database';
+  app.use(async (req: any, res: any, next: () => void) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    if (process.env.NODE_ENV === 'production') {
+    if (isProductionRuntime()) {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
     const path = String(req?.originalUrl ?? req?.url ?? '');
@@ -89,26 +163,34 @@ async function bootstrap() {
       res.setHeader('Cache-Control', 'no-store');
     }
 
-    const rateLimited = [
-      '/auth/login',
-      '/auth/forgot-password',
-      '/auth/reset-password',
-      '/files/upload-base64',
-      '/admin/students/import',
-    ].some((prefix) => path.startsWith(prefix));
-    if (!rateLimited) return next();
+    const rule = rateLimitRules().find((item) => path.startsWith(item.prefix));
+    if (!rule) return next();
 
-    const windowMs = Number(process.env.HTTP_RATE_LIMIT_WINDOW_MS || 60_000);
-    const limit = Number(process.env.HTTP_RATE_LIMIT_MAX || 120);
     const key = `${req.ip || req.socket?.remoteAddress || 'unknown'}:${path.split('?')[0]}`;
     const now = Date.now();
+    if (useDatabaseRateLimit) {
+      try {
+        const allowed = await databaseRateLimit(prisma, `http:${rule.name}`, key, rule.max, rule.windowMs);
+        if (!allowed) {
+          res.statusCode = 429;
+          return res.json({ statusCode: 429, message: 'Too many requests. Please try again later.' });
+        }
+        return next();
+      } catch (error) {
+        if (isProductionRuntime()) {
+          res.statusCode = 503;
+          return res.json({ statusCode: 503, message: 'Rate limiting is temporarily unavailable.' });
+        }
+        logger.warn(`Database rate limiting unavailable; using memory bucket. ${error instanceof Error ? error.message : ''}`.trim());
+      }
+    }
     const bucket = rateBuckets.get(key);
     if (!bucket || bucket.resetAt <= now) {
-      rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+      rateBuckets.set(key, { count: 1, resetAt: now + rule.windowMs });
       return next();
     }
     bucket.count += 1;
-    if (bucket.count > limit) {
+    if (bucket.count > rule.max) {
       res.statusCode = 429;
       return res.json({ statusCode: 429, message: 'Too many requests. Please try again later.' });
     }
@@ -148,6 +230,8 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableCors({
     origin: allowedOrigins,
+    credentials: true,
+    exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });
   await app.listen(Number(process.env.PORT ?? 3001));
 }
@@ -157,8 +241,10 @@ bootstrap().catch((error) => {
   logger.error(message);
   if (/Database connection failed|Can't reach database server|P1001|ECONNREFUSED/i.test(message)) {
     logger.error('Local backend startup failed because PostgreSQL is not reachable or DATABASE_URL points at the wrong database. Run npm run backend:doctor, then npm run prepare:local.');
-    logger.warn('Continuing without database for development purposes.');
-    // process.exit(1);
+    if (isProductionRuntime()) {
+      process.exit(1);
+    }
+    logger.warn('Continuing without database is only allowed for local development startup diagnostics.');
   } else {
     process.exit(1);
   }
