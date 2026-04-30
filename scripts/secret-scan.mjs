@@ -87,21 +87,22 @@ const SAFE_VALUE_PATTERNS = [
   /^secure[-_]/i,
   /^sample[-_]/i,
   /^demo[-_]/i,
+  /^replace[-_]/i,
+  /^repl/i,
+  /^playwright[-_]/i,
   /^<[^>]+>$/,
   /^\[[^\]]+\]$/,
-
+  /^\*\*\*$/,
   /^https?:\/\/localhost(?::\d+)?(?:\/.*)?$/i,
   /^https?:\/\/127\.0\.0\.1(?::\d+)?(?:\/.*)?$/i,
   /^https:\/\/(?:www\.|api\.|staging\.|api-staging\.)?projtrack\.codes(?:\/.*)?$/i,
-
   /^[a-z0-9._%+-]+@(?:example\.com|projtrack\.codes|projtrack\.local)$/i,
-
   /^postgresql:\/\/username:password@(?:localhost|127\.0\.0\.1|production-host):5432\/[a-z0-9_]+$/i,
   /^postgres(?:ql)?:\/\/postgres:postgres@(?:localhost|127\.0\.0\.1|postgres):5432\/[a-z0-9_]+$/i,
-
   /^\d+$/,
   /^production-REPLACE_WITH_/i,
   /^staging-REPLACE_WITH_/i,
+  /^MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=$/,
 ];
 
 function normalizePath(value) {
@@ -109,9 +110,7 @@ function normalizePath(value) {
 }
 
 function normalizeValue(value) {
-  return String(value ?? "")
-    .trim()
-    .replace(/^["'`]|["'`]$/g, "");
+  return String(value ?? "").trim().replace(/^["'`]|["'`]$/g, "");
 }
 
 function maskValue(value) {
