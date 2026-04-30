@@ -3,16 +3,13 @@ import { router } from "./routes";
 import { ThemeProvider } from "./context/ThemeContext";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { BrandingProvider } from "./components/brand/BrandingProvider";
 
 export default function App() {
   return (
     <ThemeProvider>
-      <BrandingProvider>
-        <RouterProvider router={router} />
-        <Toaster richColors position="top-right" />
-        <SpeedInsights />
-      </BrandingProvider>
+      <RouterProvider router={router} />
+      <Toaster richColors position="top-right" />
+      <SpeedInsights />
     </ThemeProvider>
   );
 }
