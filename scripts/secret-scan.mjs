@@ -104,6 +104,8 @@ const SAFE_VALUE_PATTERNS = [
   /^staging-REPLACE_WITH_/i,
   /^MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=$/,
   /^\[redacted\]$/i,
+  /^[Rr][Ee][Pp][Ll][Aa][Cc][Ee][-_.]?[Ss][Ee][Cc][Rr][Ee][Tt]$/i,
+  /^[Rr][Ee][Pp][Ll][Aa][Cc][Ee][-_.]?[Kk][Ee][Yy]$/i,
 ];
 
 function normalizePath(value) {
