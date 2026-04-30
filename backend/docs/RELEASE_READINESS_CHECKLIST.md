@@ -8,7 +8,7 @@ This checklist tracks the remaining work after the auth/controller fix, readines
 - [x] Frontend production build passes
 - [x] Backend TypeScript build passes
 - [x] Backend smoke suite verifies health, login, refresh/logout rotation, throttling, profile persistence, and file upload/download/delete
-- [x] Login works for seeded admin, teacher, and student accounts
+- [x] Login works for role-based admin, teacher, and student accounts when operator-managed users are present
 - [x] Backend liveness/readiness endpoints distinguish service reachability from dependency readiness
 - [x] Frontend admin route `/admin/bootstrap-guide` resolves to a real page
 - [x] Frontend/backend build validation is wired into CI

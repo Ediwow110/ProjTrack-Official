@@ -19,8 +19,6 @@ This batch adds a ready-to-run local Postgres setup for the backend.
    - `npm run prisma:generate`
 4. Apply local migrations:
    - `npm run prisma:migrate:dev`
-5. Seed demo data:
-   - `npm run seed`
 
 ## Notes
 - This is the bridge toward the real Prisma/PostgreSQL cutover.

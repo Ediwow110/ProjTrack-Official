@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
 
 const baseUrl = process.env.SMOKE_BASE_URL || "http://127.0.0.1:5173";
+const adminIdentifier = process.env.SMOKE_ADMIN_IDENTIFIER || "";
+const adminPassword = process.env.SMOKE_ADMIN_PASSWORD || "";
 const tinyPngBase64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sX0XW0AAAAASUVORK5CYII=";
 
 async function loginAdmin(page) {
+  assert.ok(adminIdentifier.trim(), "SMOKE_ADMIN_IDENTIFIER is required.");
+  assert.ok(adminPassword.trim(), "SMOKE_ADMIN_PASSWORD is required.");
   await page.goto(`${baseUrl}/admin/login`);
-  await page.getByLabel(/Admin Email/i).fill("admin@projtrack.local");
-  await page.getByLabel(/^Password$/i).fill("Admin123!ChangeMe");
+  await page.getByLabel(/Admin Email/i).fill(adminIdentifier);
+  await page.getByLabel(/^Password$/i).fill(adminPassword);
   await page.getByRole("button", { name: /Continue to Admin Login/i }).click();
   await page.waitForURL(/\/admin\/dashboard$/);
 }

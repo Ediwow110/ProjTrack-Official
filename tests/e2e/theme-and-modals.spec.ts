@@ -2,35 +2,35 @@ import { expect, test, type Page } from '@playwright/test';
 
 const adminAccount = {
   role: 'admin',
-  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || 'admin@projtrack.local',
-  password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
+  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
+  password: process.env.SMOKE_ADMIN_PASSWORD || '',
   identifierLabel: /Admin Email/i,
-  buttonName: /Sign In as Admin/i,
+  buttonName: /Continue to Admin Portal Login/i,
   dashboardPath: '/admin/dashboard',
 } as const;
 
 const teacherAccount = {
   role: 'teacher',
-  identifier: process.env.SMOKE_TEACHER_IDENTIFIER || 'teacher@projtrack.local',
-  password: process.env.SMOKE_TEACHER_PASSWORD || 'Teacher123!ChangeMe',
+  identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
+  password: process.env.SMOKE_TEACHER_PASSWORD || '',
   identifierLabel: /Employee ID or School Email/i,
-  buttonName: /Sign In as Teacher/i,
+  buttonName: /Continue to Teacher Portal Login/i,
   dashboardPath: '/teacher/dashboard',
 } as const;
 
 const studentAccount = {
   role: 'student',
-  identifier: process.env.SMOKE_STUDENT_IDENTIFIER || 'student@projtrack.local',
-  password: process.env.SMOKE_STUDENT_PASSWORD || 'Student123!ChangeMe',
+  identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
+  password: process.env.SMOKE_STUDENT_PASSWORD || '',
   identifierLabel: /Student ID or Email/i,
-  buttonName: /Sign In as Student/i,
+  buttonName: /Continue to Student Portal Login/i,
   dashboardPath: '/student/dashboard',
 } as const;
 
 const roleLogoExpectations = [
-  { role: 'student', label: 'Student Portal', title: /Student Portal Login/i, path: '/student/login', color: 'rgb(37, 99, 235)', dotColor: 'rgb(8, 189, 244)', buttonName: /Sign In as Student/i },
-  { role: 'teacher', label: 'Teacher Portal', title: /Teacher Portal Login/i, path: '/teacher/login', color: 'rgb(139, 92, 246)', dotColor: 'rgb(167, 139, 250)', buttonName: /Sign In as Teacher/i },
-  { role: 'admin', label: 'Admin Portal', title: /Admin Portal Login/i, path: '/admin/login', color: 'rgb(255, 121, 0)', dotColor: 'rgb(255, 157, 0)', buttonName: /Sign In as Admin/i },
+  { role: 'student', label: 'Student Portal', title: /Student Portal Login/i, path: '/student/login', color: 'rgb(37, 99, 235)', dotColor: 'rgb(8, 189, 244)', buttonName: /Continue to Student Portal Login/i },
+  { role: 'teacher', label: 'Teacher Portal', title: /Teacher Portal Login/i, path: '/teacher/login', color: 'rgb(139, 92, 246)', dotColor: 'rgb(167, 139, 250)', buttonName: /Continue to Teacher Portal Login/i },
+  { role: 'admin', label: 'Admin Portal', title: /Admin Portal Login/i, path: '/admin/login', color: 'rgb(255, 121, 0)', dotColor: 'rgb(255, 157, 0)', buttonName: /Continue to Admin Portal Login/i },
 ] as const;
 
 const adminRoutes = [
@@ -48,6 +48,13 @@ const publicLoginRoutes = [
   { path: '/teacher/login', heading: /Teacher Portal Login/i },
   { path: '/admin/login', heading: /Admin Portal Login/i },
 ] as const;
+
+test.skip(
+  [adminAccount, teacherAccount, studentAccount].some(
+    (account) => !String(account.identifier).trim() || !String(account.password).trim(),
+  ),
+  'Set SMOKE_* identifiers and passwords before running theme-and-modals e2e.',
+);
 
 type RuntimeTracker = { consoleErrors: string[]; pageErrors: string[] };
 

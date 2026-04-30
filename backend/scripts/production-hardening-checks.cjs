@@ -10,10 +10,19 @@ const {
 } = require(path.join(root, 'src/mail/providers/provider-error-classification.ts'));
 const {
   MAIL_FAILURE_REASONS,
+  MAIL_TEMPLATE_KEYS,
 } = require(path.join(root, 'src/common/constants/mail.constants.ts'));
+const {
+  renderMailTemplate,
+  validateMailTemplatePayload,
+} = require(path.join(root, 'src/mail/mail.templates.ts'));
 const {
   evaluateSeedSectionCandidate,
 } = require(path.join(root, 'src/admin/seed-cleanup.utils.ts'));
+const {
+  inspectRuntimeConfiguration,
+} = require(path.join(root, 'src/config/runtime-safety.ts'));
+require(path.join(root, 'scripts/branding-regression.ts'));
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -25,6 +34,67 @@ function readRepo(relativePath) {
 
 function assert(condition, message) {
   if (!condition) failures.push(message);
+}
+
+function assertThrows(fn, expected, message) {
+  try {
+    fn();
+    failures.push(message);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    assert(detail.includes(expected), `${message} Expected error containing "${expected}", got "${detail}".`);
+  }
+}
+
+function productionEnv(overrides = {}) {
+  return {
+    NODE_ENV: 'production',
+    APP_ENV: 'production',
+    DATABASE_URL: 'postgresql://projtrack:prod-password@db.prod.example.com:5432/projtrack',
+    JWT_ACCESS_SECRET: 'prod-access-secret-for-tests-only-000000000000000000000000',
+    JWT_REFRESH_SECRET: 'prod-refresh-secret-for-tests-only-00000000000000000000000',
+    JWT_ISSUER: 'projtrack-api',
+    JWT_AUDIENCE: 'projtrack-web',
+    JWT_KEY_ID: 'prod-test',
+    ACCOUNT_ACTION_TOKEN_ENC_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
+    APP_URL: 'https://www.projtrack.codes',
+    FRONTEND_URL: 'https://www.projtrack.codes',
+    BACKEND_URL: 'https://api.projtrack.codes',
+    CORS_ORIGINS: 'https://www.projtrack.codes',
+    TRUST_PROXY: 'true',
+    MAIL_PROVIDER: 'mailrelay',
+    TESTMAIL_ENABLED: 'false',
+    MAIL_FROM_NAME: 'ProjTrack',
+    MAIL_FROM_ADMIN: 'admin@projtrack.codes',
+    MAIL_FROM_NOREPLY: 'support@projtrack.codes',
+    MAIL_FROM_INVITE: 'support@projtrack.codes',
+    MAIL_FROM_NOTIFY: 'notification@projtrack.codes',
+    MAIL_FROM_SUPPORT: 'support@projtrack.codes',
+    MAILRELAY_API_KEY: 'mailrelay-live-test-key-not-real-000000000000',
+    MAILRELAY_API_URL: 'https://projtrack.ipzmarketing.com/api/v1',
+    MAIL_WORKER_ENABLED: 'false',
+    MAIL_WORKER_POLL_MS: '60000',
+    OBJECT_STORAGE_MODE: 's3',
+    S3_BUCKET: 'projtrack-private-prod',
+    S3_REGION: 'ap-southeast-1',
+    S3_ENDPOINT: 'https://s3.ap-southeast-1.amazonaws.com',
+    S3_ACCESS_KEY_ID: 'prod-storage-access-key-test',
+    S3_SECRET_ACCESS_KEY: 'prod-storage-secret-key-test',
+    S3_SIGNED_URL_TTL_SECONDS: '300',
+    S3_BUCKET_PUBLIC: 'false',
+    HTTP_RATE_LIMIT_STORE: 'database',
+    FILE_MALWARE_SCAN_MODE: 'fail-closed',
+    FILE_MALWARE_SCANNER: 'clamav',
+    CLAMAV_HOST: 'clamav.prod.example.com',
+    CLAMAV_PORT: '3310',
+    BACKUP_WORKER_ENABLED: 'false',
+    BACKUP_SCHEDULE_ENABLED: 'false',
+    BACKUP_WORKER_POLL_MS: '60000',
+    ALLOW_DEMO_SEED: 'false',
+    ALLOW_SEED_DATA_CLEANUP: 'false',
+    ALLOW_PRODUCTION_ADMIN_TOOL_RUNS: 'false',
+    ...overrides,
+  };
 }
 
 function includes(relativePath, patterns) {
@@ -50,6 +120,55 @@ const accessService = includes('src/access/access.service.ts', [
 ]);
 
 assert(!/passwordHash:\s*true/.test(accessService), 'Access service must never select passwordHash.');
+
+const validProductionConfig = inspectRuntimeConfiguration(productionEnv());
+assert(validProductionConfig.ok, `Valid production config fixture should pass: ${validProductionConfig.errors.join('; ')}`);
+for (const [label, overrides, expected] of [
+  ['local database', { DATABASE_URL: 'postgresql://projtrack:projtrack@localhost:5432/projtrack' }, 'DATABASE_URL cannot point to localhost'],
+  ['weak access secret', { JWT_ACCESS_SECRET: 'short' }, 'JWT_ACCESS_SECRET is using a default or weak value'],
+  ['missing account action key', { ACCOUNT_ACTION_TOKEN_ENC_KEY: '' }, 'ACCOUNT_ACTION_TOKEN_ENC_KEY is required'],
+  ['stub mail', { MAIL_PROVIDER: 'stub' }, 'Production requires MAIL_PROVIDER=mailrelay'],
+  ['local storage', { OBJECT_STORAGE_MODE: 'local' }, 'Production requires OBJECT_STORAGE_MODE=s3'],
+  ['missing cors', { CORS_ORIGINS: '' }, 'CORS_ORIGINS must be explicitly configured'],
+  ['memory rate limit', { HTTP_RATE_LIMIT_STORE: 'memory' }, 'HTTP_RATE_LIMIT_STORE must be database'],
+  ['scanner disabled', { FILE_MALWARE_SCAN_MODE: 'disabled' }, 'FILE_MALWARE_SCAN_MODE must be fail-closed'],
+  ['ambiguous node env', { NODE_ENV: 'development' }, 'NODE_ENV and APP_ENV must both be production'],
+]) {
+  const result = inspectRuntimeConfiguration(productionEnv(overrides));
+  assert(!result.ok, `Production config fixture must reject ${label}.`);
+  assert(result.errors.some((error) => error.includes(expected)), `Production config ${label} rejection must mention ${expected}.`);
+}
+
+assertThrows(
+  () => validateMailTemplatePayload('made-up-template', {}),
+  'Unknown mail template key',
+  'Unknown mail template keys must be rejected.',
+);
+assertThrows(
+  () => validateMailTemplatePayload(MAIL_TEMPLATE_KEYS.PASSWORD_RESET, {
+    firstName: 'Ada',
+    resetLink: 'javascript:alert(1)',
+    expiresAt: new Date().toISOString(),
+  }),
+  'resetLink must use http or https',
+  'Unsafe mail action URLs must be rejected.',
+);
+assertThrows(
+  () => validateMailTemplatePayload(MAIL_TEMPLATE_KEYS.PASSWORD_RESET, {
+    firstName: 'Ada',
+    resetLink: 'https://www.projtrack.codes/reset',
+    expiresAt: 'not-a-date',
+  }),
+  'expiresAt must be a valid date',
+  'Invalid mail template dates must be rejected.',
+);
+const maliciousBroadcast = renderMailTemplate(MAIL_TEMPLATE_KEYS.BROADCAST, {
+  title: 'Hello\r\nBcc: attacker@example.com',
+  body: '<script>alert(1)</script><img src=x onerror=alert(1)>',
+});
+assert(!/[\r\n]/.test(maliciousBroadcast.subject), 'Rendered mail subjects must remove CRLF injection.');
+assert(!maliciousBroadcast.html.includes('<script>'), 'Rendered mail HTML must escape script tags.');
+assert(maliciousBroadcast.html.includes('&lt;script&gt;'), 'Rendered mail HTML must preserve user text safely escaped.');
 
 const backendSourceFiles = [];
 function collect(dir) {
@@ -119,8 +238,8 @@ includes('src/submissions/submissions.service.ts', [
   'maxFileSizeMb',
   'externalLinksAllowed',
   'status: \'ACTIVE\'',
-  'validateUploadedFileReferences',
-  'ensureFilesAttachedToSubmission',
+  'resolvePendingUploadsForSubmission',
+  'uploadId',
   'recordSubmissionEvent',
 ]);
 
@@ -226,16 +345,31 @@ includes('scripts/backfill-submission-events.cjs', [
   'prisma.submissionEvent.createMany',
 ]);
 
-includes('scripts/seed-local.js', [
-  'seed:local is blocked when NODE_ENV or APP_ENV is production.',
-  'ALLOW_DEMO_SEED',
-]);
-
 const frontendHttp = readRepo('src/app/lib/api/http.ts');
 assert(frontendHttp.includes('refreshPromise'), 'Frontend API client must keep refresh single-flight logic.');
 assert(frontendHttp.includes("executeFetch('POST', '/auth/logout'"), 'Frontend logout must call backend logout.');
 assert(frontendHttp.includes('import.meta.env.DEV'), 'Frontend backend-unavailable details must be dev-only.');
 assert(!/Start the backend/.test(frontendHttp.replace(/if \(import\.meta\.env\.DEV\)[\s\S]*?return new Error\([^;]+;/, '')), 'Production frontend errors must not tell users to start the backend.');
+
+const mainTs = read('src/main.ts');
+assert(mainTs.includes("exposedHeaders: ['Content-Disposition', 'X-Request-Id']"), 'Backend CORS must expose download and request-id headers.');
+
+const submissionDto = read('src/submissions/dto/submission.dto.ts');
+assert(submissionDto.includes('uploadId!'), 'Student submission file DTO must require uploadId.');
+assert(!submissionDto.includes('relativePath?:'), 'Student submission DTO must reject raw relativePath payloads.');
+
+const submissionsService = read('src/submissions/submissions.service.ts');
+assert(submissionsService.includes('resolvePendingUploadsForSubmission'), 'Student submissions must resolve owned pending uploads before attaching files.');
+assert(!submissionsService.includes('validateUploadedFileReferences(linkedPaths)'), 'Student submissions must not trust client-provided relativePath references.');
+
+const submissionRepositorySource = read('src/repositories/submission.repository.ts');
+assert(submissionRepositorySource.includes('consumePendingUploads'), 'Submission repository must consume pending uploads inside the submission transaction.');
+assert(submissionRepositorySource.includes('pendingUpload.updateMany'), 'Pending upload consumption must be guarded by an atomic updateMany.');
+assert(submissionRepositorySource.includes("status: 'CONSUMED'"), 'Consumed uploads must be marked consumed.');
+
+const filesServiceSource = read('src/files/files.service.ts');
+assert(filesServiceSource.includes('pendingUpload.create'), 'Upload endpoint must persist pending upload ownership metadata.');
+assert(filesServiceSource.includes('cleanupExpiredPendingUploads'), 'Expired pending uploads must have a cleanup path.');
 
 const frontendRuntime = readRepo('src/app/lib/api/runtime.ts');
 assert(frontendRuntime.includes('VITE_API_BASE_URL is required for production builds.'), 'Production frontend must fail fast when VITE_API_BASE_URL is missing.');
@@ -273,6 +407,31 @@ const portalLayout = readRepo('src/app/layouts/PortalLayout.tsx');
 assert(portalLayout.includes('<ProjTrackLogo') && portalLayout.includes('role={role}'), 'Authenticated portal layout must use the shared role-colored ProjTrack logo.');
 assert(portalLayout.includes('showRoleDot={!isCollapsed}'), 'Authenticated portal brand must show one role-colored dot with the role label.');
 assert(!portalLayout.includes('<GraduationCap size={23}'), 'Authenticated portal brand must not use the old hat-only logo.');
+
+const brandingService = read('src/branding/branding.service.ts');
+assert(brandingService.includes('BRANDING_UPLOAD_MAX_BYTES'), 'Branding uploads must enforce the 2MB size limit.');
+assert(brandingService.includes('Unsafe SVG content was rejected.'), 'Branding uploads must reject unsafe SVG payloads.');
+
+const brandingConstants = read('src/branding/branding.constants.ts');
+assert(brandingConstants.includes("'/branding-assets'"), 'Branding asset URLs must be served from the safe public branding route.');
+
+const brandingAdminController = read('src/branding/admin-branding.controller.ts');
+assert(brandingAdminController.includes("@Roles('ADMIN')"), 'Branding mutations must remain admin-only.');
+assert(brandingAdminController.includes("@UseGuards(JwtAuthGuard)"), 'Branding mutations must require JWT auth.');
+assert(brandingAdminController.includes("@Post('logo')"), 'Admin branding controller must expose the logo upload route.');
+assert(brandingAdminController.includes("@Post('icon')"), 'Admin branding controller must expose the icon upload route.');
+assert(brandingAdminController.includes("@Post('favicon')"), 'Admin branding controller must expose the favicon upload route.');
+assert(brandingAdminController.includes("@Delete('reset')"), 'Admin branding controller must expose the reset route.');
+
+const brandingSettings = readRepo('src/app/components/settings/BrandingSettingsSection.tsx');
+assert(brandingSettings.includes('Save Branding'), 'Admin settings branding section must expose a Save Branding action.');
+assert(brandingSettings.includes('Reset to Default'), 'Admin settings branding section must expose a Reset to Default action.');
+assert(brandingSettings.includes('JPG does not support transparent backgrounds'), 'Branding settings must warn admins about JPG transparency limits.');
+assert(brandingSettings.includes('was not present in the saved branding response'), 'Branding settings must not show success when saved uploads are missing from the response.');
+
+const apiServices = readRepo('src/app/lib/api/services.ts');
+assert(apiServices.includes('buildBackendFileUrl(raw)'), 'Branding asset URLs must resolve against the backend API origin.');
+assert(apiServices.includes('/branding-assets/'), 'Branding asset URL normalization must target uploaded branding assets.');
 
 const pagination = readRepo('src/app/components/ui/pagination.tsx');
 assert(pagination.includes('type="button"'), 'Pagination controls must render real buttons.');
@@ -322,6 +481,7 @@ assert(mailWorker.includes('status: EmailJobStatus.SENT'), 'Mail worker must onl
 assert(mailWorker.includes('classification.failureReason'), 'Mail worker must preserve provider-specific failure reasons.');
 
 const mailService = read('src/mail/mail.service.ts');
+assert(mailService.includes('validateMailTemplatePayload'), 'Mail service must validate template keys and payloads before queueing.');
 assert(mailService.includes('scheduledAt: null'), 'Fresh and retried mail jobs must be immediately eligible with null nextTryAt.');
 assert(mailService.includes('previousLastError'), 'Mail retry must preserve previous failure context before clearing current error fields.');
 assert(mailService.includes('previousAttempts'), 'Mail retry must preserve previous attempt count context before clearing current error fields.');
@@ -341,6 +501,14 @@ assert(mailService.includes('queueStudentSetupInvitation'), 'Student setup invit
 assert(mailService.includes('mail:student-setup-invite:'), 'Student setup invite must have idempotency protection.');
 assert(mailService.includes('MAIL_CATEGORY_KEYS.INVITE'), 'Student setup invite must use the centralized invite sender category.');
 assert(!mailService.includes('passwordHash'), 'Mail job API must not expose passwordHash.');
+
+const mailTemplates = read('src/mail/mail.templates.ts');
+assert(mailTemplates.includes('validateMailTemplatePayload'), 'Mail templates must expose a reusable payload validator.');
+assert(mailTemplates.includes('Unknown mail template key'), 'Unknown mail template keys must throw instead of falling back to broadcast.');
+assert(!/case MAIL_TEMPLATE_KEYS\.BROADCAST:\s*default:/.test(mailTemplates), 'Mail renderer must not route unknown template keys to broadcast.');
+for (const phrase of ['escapeHtml', 'assertSafeUrl', 'normalizeSubject', 'requiredDate']) {
+  assert(mailTemplates.includes(phrase), `Mail renderer must include ${phrase}.`);
+}
 
 const adminMailFlows = read('src/admin/admin.service.ts');
 assert(adminMailFlows.includes("body.audience === 'ADMINS'"), 'Admin-only broadcasts must use admin sender routing.');

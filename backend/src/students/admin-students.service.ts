@@ -65,42 +65,40 @@ export class AdminStudentsService {
     return {
       columns: [
         'student_id',
-        'last_name',
         'first_name',
         'middle_initial',
+        'last_name',
+        'email',
+        'academic_year',
+        'course_code',
+        'course_name',
         'year_level',
         'section',
-        'course',
-        'academic_year',
-        'email',
       ],
       sample: {
         student_id: 'STU-2026-00001',
-        last_name: 'Dela Cruz',
         first_name: 'Juan',
         middle_initial: 'M',
-        year_level: '3rd Year',
-        section: 'BSIT 3A',
-        course: 'BSIT',
-        academic_year: '2025-2026',
+        last_name: 'Dela Cruz',
         email: 'juan.delacruz@example.edu',
+        academic_year: '2025-2026',
+        course_code: 'BSIT',
+        course_name: 'Bachelor of Science in Information Technology',
+        year_level: '3rd Year',
+        section: 'BSIT 3991',
       },
     };
   }
 
 async importPreview(body: ImportStudentsDto) {
-  const [existingStudents, academicYears, sections] = await Promise.all([
-    this.userRepository.listStudents() as Promise<any[]>,
-    this.adminOpsRepository.listAcademicYears(),
-    this.adminOpsRepository.listSections(),
-  ]);
+  const existingStudents = (await this.userRepository.listStudents()) as any[];
   const sourceRows =
     body.rows && body.rows.length
       ? body.rows
       : body.fileType === 'csv' && body.csvText
         ? this.importFileService.parseCsvText(body.csvText)
         : body.fileBase64
-          ? this.importFileService.parseBase64Spreadsheet(body.fileBase64, body.fileName)
+          ? await this.importFileService.parseBase64Spreadsheet(body.fileBase64, body.fileName)
           : [];
 
   if (!sourceRows.length) {
@@ -109,100 +107,90 @@ async importPreview(body: ImportStudentsDto) {
 
   const seenStudentIds = new Set<string>();
   const seenEmails = new Set<string>();
-  const academicYearNames = new Set(
-    academicYears.map((year) => normalizeAcademicYearValue(year.name).toLowerCase()).filter(Boolean),
+  const existingStudentIds = new Set(
+    existingStudents
+      .map((user) => String(user.studentProfile?.studentNumber ?? '').trim().toLowerCase())
+      .filter(Boolean),
   );
-  const sectionLookup = new Set(
-    sections.flatMap((section) => {
-      const academicYear = String(section.academicYear || '').trim().toLowerCase();
-      const course = String(section.program || '').trim().toLowerCase();
-      const sectionCode = String(section.code || '').trim().toLowerCase();
-      const yearLevelCandidates = Array.from(
-        new Set(
-          [
-            normalizeYearLevelValue(String(section.yearLevelName || section.yearLevelLabel || '')),
-            normalizeYearLevelValue(String(section.yearLevel || '')),
-          ]
-            .map((value) => value.trim())
-            .filter(Boolean),
-        ),
-      );
-      return yearLevelCandidates.map((yearLevel) =>
-        [academicYear, course, yearLevel.toLowerCase(), sectionCode].join('||'),
-      );
-    }),
+  const existingEmailAddresses = new Set(
+    existingStudents.map((user) => String(user.email ?? '').trim().toLowerCase()).filter(Boolean),
   );
 
-  const preview = sourceRows.map((row, index) => {
+  const preview = await Promise.all(sourceRows.map(async (row, index) => {
       const issues: string[] = [];
-      const studentId = (row.student_id || '').trim();
+      const studentId = (row.student_id || row.student_number || '').trim();
       const email = (row.email || '').trim().toLowerCase();
-      const course = (row.course || '').trim();
+      const course = String(row.course_code || row.course || row.program || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const courseName = String(row.course_name || '').replace(/\s+/g, ' ').trim();
       const rawYearLevel = (row.year_level || '').trim();
       const normalizedYearLevel = normalizeYearLevelValue(rawYearLevel);
       const section = (row.section || '').trim();
-      const academicYear = normalizeAcademicYearValue(row.academic_year);
+      const academicYear = normalizeAcademicYearValue(row.academic_year || row.school_year);
+      let resolvedAcademicYear = academicYear;
+      let resolvedCourse = course;
+      let resolvedYearLevel = normalizedYearLevel || rawYearLevel;
 
       if (!studentId) issues.push('Missing student_id');
       if (!row.first_name?.trim()) issues.push('Missing first_name');
       if (!row.last_name?.trim()) issues.push('Missing last_name');
       if (!email) issues.push('Missing email');
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) issues.push('Invalid email format');
-      if (!course) issues.push('Missing course');
+      if (!course) issues.push('Missing course_code');
       if (!rawYearLevel) issues.push('Missing year_level');
       if (!section) issues.push('Missing section');
-      if (!academicYear) issues.push('Missing academic_year');
-      if (academicYear && !academicYearNames.has(academicYear.toLowerCase())) {
-        issues.push('Unknown academic_year');
-      }
-      if (
-        academicYear &&
-        course &&
-        rawYearLevel &&
-        section &&
-        !sectionLookup.has(
-          [
-            academicYear.toLowerCase(),
-            course.toLowerCase(),
-            normalizedYearLevel.toLowerCase(),
-            section.toLowerCase(),
-          ].join('||'),
-        )
-      ) {
-        issues.push(
-          `Section ${section} does not exist under Academic Year ${academicYear} and Year Level ${normalizedYearLevel || rawYearLevel}.`,
-        );
+
+      if (issues.length === 0) {
+        try {
+          const placement = await this.adminOpsRepository.resolveSectionPlacement({
+            academicYear: academicYear || undefined,
+            course,
+            yearLevel: normalizedYearLevel || rawYearLevel,
+            yearLevelName: normalizedYearLevel || rawYearLevel,
+            section,
+            requireSection: true,
+          });
+
+          resolvedAcademicYear =
+            placement.academicYear?.name ??
+            placement.section?.academicYear?.name ??
+            academicYear;
+          resolvedCourse = placement.course ?? course;
+          resolvedYearLevel =
+            placement.yearLevelName ??
+            placement.section?.academicYearLevel?.name ??
+            placement.section?.yearLevelName ??
+            resolvedYearLevel;
+        } catch (error) {
+          issues.push(
+            error instanceof Error ? error.message : 'Academic hierarchy validation failed.',
+          );
+        }
       }
       if (
         studentId &&
-        (
-          seenStudentIds.has(studentId) ||
-          existingStudents.some((u) => String(u.studentProfile?.studentNumber ?? '').toLowerCase() === studentId.toLowerCase())
-        )
+        (seenStudentIds.has(studentId.toLowerCase()) || existingStudentIds.has(studentId.toLowerCase()))
       ) {
         issues.push('Duplicate student_id');
       }
-      if (
-        email &&
-        (
-          seenEmails.has(email) ||
-          existingStudents.some((u) => String(u.email || '').toLowerCase() === email)
-        )
-      ) {
+      if (email && (seenEmails.has(email) || existingEmailAddresses.has(email))) {
         issues.push('Duplicate email');
       }
 
-      if (studentId) seenStudentIds.add(studentId);
+      if (studentId) seenStudentIds.add(studentId.toLowerCase());
       if (email) seenEmails.add(email);
 
       return {
         index,
         row: {
           ...row,
-          course,
-          year_level: normalizedYearLevel || rawYearLevel,
+          course: resolvedCourse,
+          course_code: resolvedCourse,
+          course_name: courseName,
+          year_level: resolvedYearLevel,
           section,
-          academic_year: academicYear,
+          academic_year: resolvedAcademicYear,
           email,
           student_id: studentId,
           middle_initial: String(row.middle_initial ?? '').trim(),
@@ -210,7 +198,7 @@ async importPreview(body: ImportStudentsDto) {
         valid: issues.length === 0,
         issues,
       };
-    });
+    }));
 
     await this.prisma.importBatch.deleteMany({
       where: { type: 'student', expiresAt: { lt: new Date() } },
@@ -288,7 +276,7 @@ async importPreview(body: ImportStudentsDto) {
             placement.academicYear?.id ?? placement.section?.academicYearId ?? null,
           academicYear:
             placement.academicYear?.name ?? placement.section?.academicYear?.name ?? undefined,
-          status: 'PENDING_SETUP',
+          status: 'PENDING_ACTIVATION',
         });
       }),
     );
@@ -308,7 +296,7 @@ async importPreview(body: ImportStudentsDto) {
       target: body.batchId,
       entityId: body.batchId,
       result: 'Success',
-      details: `Imported ${importedUsers.length} student account(s) as pending setup.`,
+      details: `Imported ${importedUsers.length} student account(s) as pending activation.`,
     });
 
     return {
@@ -318,7 +306,7 @@ async importPreview(body: ImportStudentsDto) {
         created: importedUsers.length,
         updatedOrSkipped,
         invalidRows,
-        pendingSetup: importedUsers.length,
+        pendingActivation: importedUsers.length,
       },
       students: importedUsers.map((user) => ({
         id: user.id,

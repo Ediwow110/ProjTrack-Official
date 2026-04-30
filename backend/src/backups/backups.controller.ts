@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, Use
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { BackupsService } from './backups.service';
+import { BackupRestoreDto, BackupRunDto, BackupSettingsDto } from './dto/backup.dto';
 
 @UseGuards(JwtAuthGuard)
 @Roles('ADMIN')
@@ -28,12 +29,12 @@ export class BackupsController {
   }
 
   @Patch('settings')
-  updateSettings(@Body() body: any) {
+  updateSettings(@Body() body: BackupSettingsDto) {
     return this.backups.updateBackupSettings(body);
   }
 
   @Post('run')
-  run(@Body() body: { backupType?: string }, @Req() req: any) {
+  run(@Body() body: BackupRunDto, @Req() req: any) {
     return this.backups.runManual(this.actor(req), String(body?.backupType || 'full'));
   }
 
@@ -63,7 +64,7 @@ export class BackupsController {
   }
 
   @Post(':id/restore')
-  restore(@Param('id') id: string, @Body() body: { confirmation?: string }, @Req() req: any) {
+  restore(@Param('id') id: string, @Body() body: BackupRestoreDto, @Req() req: any) {
     return this.backups.restore(id, body?.confirmation, this.actor(req));
   }
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, CheckCircle2, Lock } from "lucide-react";
+import { ProjTrackLogo } from "../../components/brand/ProjTrackLogo";
 import { authService } from "../../lib/api/services";
 
 export default function ResetPasswordPage() {
@@ -9,6 +10,7 @@ export default function ResetPasswordPage() {
   const token = searchParams.get("token") || "";
   const ref = searchParams.get("ref") || "";
   const role = (searchParams.get("role") || "student").toLowerCase();
+  const logoRole = role === "teacher" || role === "admin" ? role : "student";
   const mode = (searchParams.get("mode") || "").toLowerCase();
   const isSetupMode = mode === "setup";
   const backTarget = role === "teacher" || role === "admin" ? `/${role}/login` : "/student/login";
@@ -41,6 +43,7 @@ export default function ResetPasswordPage() {
         <Link to={backTarget} className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800">
           <ArrowLeft size={15} /> Back to login
         </Link>
+        <ProjTrackLogo role={logoRole} subtitle={isSetupMode ? "Password Setup" : "Password Reset"} className="max-w-full" />
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{isSetupMode ? "Create password" : "Reset password"}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">

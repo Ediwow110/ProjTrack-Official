@@ -2,6 +2,14 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards }
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { SubjectsService } from './subjects.service';
+import {
+  CreateGroupDto,
+  JoinGroupByCodeDto,
+  MemberIdDto,
+  NotifySubjectDto,
+  SubjectRestrictionsDto,
+  TeacherActivityDto,
+} from './dto/subject-action.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -34,13 +42,13 @@ export class SubjectsController {
 
   @Roles('STUDENT')
   @Post('student/groups')
-  createGroup(@Body() body: { subjectId: string; name: string; leaderUserId?: string }, @Req() req: any) {
+  createGroup(@Body() body: CreateGroupDto, @Req() req: any) {
     return this.subjects.createGroup({ ...body, leaderUserId: req.user?.sub });
   }
 
   @Roles('STUDENT')
   @Post('student/groups/join-by-code')
-  joinByCode(@Body() body: { subjectId?: string; code: string; userId?: string }, @Req() req: any) {
+  joinByCode(@Body() body: JoinGroupByCodeDto, @Req() req: any) {
     return this.subjects.joinGroupByCode({ ...body, userId: req.user?.sub });
   }
 
@@ -94,14 +102,14 @@ export class SubjectsController {
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:id/submissions')
-  createActivity(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  createActivity(@Param('id') id: string, @Body() body: TeacherActivityDto, @Req() req: any) {
     return this.subjects.createTeacherActivity(id, { ...body, actorUserId: req.user?.sub });
   }
 
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:subjectId/submissions/:activityId')
-  updateActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Body() body: any, @Req() req: any) {
+  updateActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Body() body: TeacherActivityDto, @Req() req: any) {
     return this.subjects.updateTeacherActivity(subjectId, activityId, { ...body, actorUserId: req.user?.sub });
   }
 
@@ -134,7 +142,7 @@ export class SubjectsController {
   assignGroupLeader(
     @Param('subjectId') subjectId: string,
     @Param('groupId') groupId: string,
-    @Body() body: { memberId?: string },
+    @Body() body: MemberIdDto,
     @Req() req: any,
   ) {
     return this.subjects.teacherAssignGroupLeader(subjectId, groupId, body.memberId, req.user?.sub);
@@ -153,13 +161,13 @@ export class SubjectsController {
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:id/notify')
-  notifyStudents(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  notifyStudents(@Param('id') id: string, @Body() body: NotifySubjectDto, @Req() req: any) {
     return this.subjects.notifySubjectStudents(id, { ...body, actorUserId: req.user?.sub });
   }
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:id/restrictions')
-  updateRestrictions(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  updateRestrictions(@Param('id') id: string, @Body() body: SubjectRestrictionsDto, @Req() req: any) {
     return this.subjects.updateRestrictions(id, { ...body, actorUserId: req.user?.sub });
   }
 

@@ -1,7 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { basename, extname, join } from 'path';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
+import { Socket } from 'net';
 import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,14 +10,30 @@ import { getS3Config, getStorageSummary } from './storage.config';
 import { AccessService } from '../access/access.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
+export type PendingUploadForSubmission = {
+  id: string;
+  userId: string;
+  scope: string;
+  storageKey: string;
+  originalFilename: string;
+  sanitizedFilename: string;
+  mimeType: string | null;
+  detectedExtension: string | null;
+  sizeBytes: number;
+  sha256: string | null;
+  expiresAt: Date;
+};
+
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
   private readonly storageRoot = join(process.cwd(), 'uploads');
   private readonly storage = getStorageSummary();
   private readonly s3Config = getS3Config();
   private readonly maxUploadBytes = Number(process.env.FILE_UPLOAD_MAX_MB || 20) * 1024 * 1024;
+  private readonly pendingUploadTtlMs = Math.max(5, Number(process.env.PENDING_UPLOAD_TTL_MINUTES || 60)) * 60 * 1000;
   private readonly allowedExtensions = String(
-    process.env.FILE_UPLOAD_ALLOWED_EXTENSIONS || '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp',
+    process.env.FILE_UPLOAD_ALLOWED_EXTENSIONS || '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.webp',
   )
     .split(',')
     .map((value) => value.trim().toLowerCase())
@@ -100,6 +117,55 @@ export class FilesService {
     }
   }
 
+  private isProductionRuntime() {
+    return (
+      String(process.env.NODE_ENV ?? '').toLowerCase() === 'production' ||
+      String(process.env.APP_ENV ?? '').toLowerCase() === 'production'
+    );
+  }
+
+  private assertExtensionPolicy(extension: string) {
+    const blockedExtensions = new Set([
+      '.exe', '.dll', '.bat', '.cmd', '.ps1', '.sh', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.php', '.py', '.rb', '.pl',
+      '.jar', '.msi', '.com', '.scr', '.vbs', '.hta', '.html', '.htm',
+    ]);
+    const archiveExtensions = new Set(['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2']);
+    if (blockedExtensions.has(extension)) {
+      throw new BadRequestException('Executable, script, or active content uploads are not allowed.');
+    }
+    if (archiveExtensions.has(extension) && String(process.env.FILE_UPLOAD_ALLOW_ARCHIVES || 'false').toLowerCase() !== 'true') {
+      throw new BadRequestException('Archive uploads are disabled by policy.');
+    }
+    if (!extension || !this.allowedExtensions.includes(extension)) {
+      throw new BadRequestException(`Unsupported file type ${extension || '(none)'}.`);
+    }
+  }
+
+  private assertMimeMatchesExtension(extension: string, contentType?: string | null) {
+    const declared = String(contentType ?? '').split(';')[0].trim().toLowerCase();
+    if (!declared) return;
+    const expected: Record<string, string[]> = {
+      '.pdf': ['application/pdf'],
+      '.doc': ['application/msword', 'application/octet-stream'],
+      '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
+      '.ppt': ['application/vnd.ms-powerpoint', 'application/octet-stream'],
+      '.pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip', 'application/octet-stream'],
+      '.xls': ['application/vnd.ms-excel', 'application/octet-stream'],
+      '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip', 'application/octet-stream'],
+      '.csv': ['text/csv', 'application/csv', 'text/plain', 'application/vnd.ms-excel'],
+      '.txt': ['text/plain'],
+      '.png': ['image/png'],
+      '.jpg': ['image/jpeg'],
+      '.jpeg': ['image/jpeg'],
+      '.webp': ['image/webp'],
+      '.zip': ['application/zip', 'application/x-zip-compressed'],
+    };
+    const allowed = expected[extension] || [];
+    if (allowed.length && !allowed.includes(declared)) {
+      throw new BadRequestException(`Uploaded MIME type ${declared} does not match ${extension}.`);
+    }
+  }
+
   private decodeBase64Strict(contentBase64: string) {
     const raw = String(contentBase64 ?? '').trim();
     const withoutDataUrl = raw.includes(',')
@@ -153,6 +219,78 @@ export class FilesService {
       default:
         break;
     }
+  }
+
+  private async scanForMalware(buffer: Buffer, fileName: string) {
+    const mode = String(process.env.FILE_MALWARE_SCAN_MODE || (this.isProductionRuntime() ? 'fail-closed' : 'disabled')).trim().toLowerCase();
+    if (mode === 'disabled') return;
+    const scanner = String(process.env.FILE_MALWARE_SCANNER || '').trim().toLowerCase();
+    if (scanner !== 'clamav') {
+      if (mode === 'fail-open') {
+        this.logger.warn('Malware scanner is not configured; upload allowed because FILE_MALWARE_SCAN_MODE=fail-open.');
+        return;
+      }
+      throw new ServiceUnavailableException('File scanning is required but no malware scanner is configured.');
+    }
+    try {
+      await this.scanWithClamAv(buffer);
+    } catch (error) {
+      if (mode === 'fail-open') {
+        this.logger.warn(`Malware scan failed open for ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private scanWithClamAv(buffer: Buffer) {
+    const host = String(process.env.CLAMAV_HOST || '').trim();
+    const port = Number(process.env.CLAMAV_PORT || 3310);
+    const timeoutMs = Number(process.env.CLAMAV_TIMEOUT_MS || 10_000);
+    if (!host || !Number.isFinite(port)) {
+      throw new ServiceUnavailableException('ClamAV scanner host/port is not configured.');
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const socket = new Socket();
+      const chunks: Buffer[] = [];
+      let settled = false;
+      const fail = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        reject(new ServiceUnavailableException(error.message));
+      };
+      socket.setTimeout(timeoutMs);
+      socket.once('timeout', () => fail(new Error('ClamAV scan timed out.')));
+      socket.once('error', (error) => fail(error));
+      socket.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      socket.once('close', () => {
+        if (settled) return;
+        settled = true;
+        const response = Buffer.concat(chunks).toString('utf8');
+        if (/FOUND/i.test(response)) {
+          reject(new BadRequestException('Uploaded file failed malware scanning.'));
+          return;
+        }
+        if (!/OK/i.test(response)) {
+          reject(new ServiceUnavailableException('ClamAV scanner returned an unexpected response.'));
+          return;
+        }
+        resolve();
+      });
+      socket.connect(port, host, () => {
+        socket.write('zINSTREAM\0');
+        for (let offset = 0; offset < buffer.length; offset += 64 * 1024) {
+          const chunk = buffer.subarray(offset, Math.min(buffer.length, offset + 64 * 1024));
+          const size = Buffer.alloc(4);
+          size.writeUInt32BE(chunk.length, 0);
+          socket.write(size);
+          socket.write(chunk);
+        }
+        socket.write(Buffer.alloc(4));
+      });
+    });
   }
 
   private async putObject(relativePath: string, fileName: string, buffer: Buffer) {
@@ -381,6 +519,24 @@ export class FilesService {
     uploadedByUserId?: string;
     uploadedByRole?: string;
   }) {
+    if (this.isProductionRuntime() && String(process.env.ALLOW_BASE64_UPLOADS_IN_PRODUCTION || 'false').toLowerCase() !== 'true') {
+      throw new BadRequestException('Base64 JSON uploads are disabled in production. Use multipart upload.');
+    }
+    const buffer = this.decodeBase64Strict(input.contentBase64);
+    return this.uploadBuffer({
+      ...input,
+      buffer,
+    });
+  }
+
+  async uploadBuffer(input: {
+    fileName: string;
+    buffer: Buffer;
+    contentType?: string;
+    scope?: string;
+    uploadedByUserId?: string;
+    uploadedByRole?: string;
+  }) {
     const scope = String(input.scope || 'general').trim();
     if (!/^[a-zA-Z0-9/_-]+$/.test(scope)) {
       throw new BadRequestException('Invalid upload scope.');
@@ -388,11 +544,10 @@ export class FilesService {
 
     const safeName = basename(input.fileName || 'upload.bin').replace(/[^a-zA-Z0-9._-]/g, '_');
     const extension = extname(safeName).toLowerCase();
-    if (extension && this.allowedExtensions.length && !this.allowedExtensions.includes(extension)) {
-      throw new BadRequestException(`Unsupported file type ${extension}.`);
-    }
+    this.assertExtensionPolicy(extension);
+    this.assertMimeMatchesExtension(extension, input.contentType);
 
-    const buffer = this.decodeBase64Strict(input.contentBase64);
+    const buffer = Buffer.isBuffer(input.buffer) ? input.buffer : Buffer.alloc(0);
     if (!buffer.byteLength) {
       throw new BadRequestException('Uploaded file is empty.');
     }
@@ -402,24 +557,134 @@ export class FilesService {
     if (extension) {
       this.assertContentMatchesExtension(extension, buffer);
     }
+    await this.scanForMalware(buffer, safeName);
 
     const id = randomUUID();
     const outputName = `${id}${extname(safeName) || '.bin'}`;
     const relativePath = this.normalizeRelativePath(join(scope, outputName).replace(/\\/g, '/'));
     await this.putObject(relativePath, safeName, buffer);
+    const sha256 = createHash('sha256').update(buffer).digest('hex');
+    const pendingUpload = input.uploadedByUserId
+      ? await this.prisma.pendingUpload.create({
+          data: {
+            userId: input.uploadedByUserId,
+            scope,
+            storageKey: relativePath,
+            originalFilename: basename(input.fileName || safeName),
+            sanitizedFilename: safeName,
+            mimeType: input.contentType || this.inferContentType(safeName),
+            detectedExtension: extension || null,
+            sizeBytes: buffer.byteLength,
+            sha256,
+            status: 'PENDING',
+            expiresAt: new Date(Date.now() + this.pendingUploadTtlMs),
+          },
+        })
+      : null;
 
     return {
       id,
+      uploadId: pendingUpload?.id || id,
       fileName: safeName,
       storedName: outputName,
       scope,
       sizeBytes: buffer.byteLength,
+      sha256,
       path: this.storage.mode === 'local' ? join(this.storageRoot, relativePath) : relativePath,
       relativePath,
       uploadedAt: new Date().toISOString(),
+      expiresAt: pendingUpload?.expiresAt.toISOString(),
       uploadedByUserId: input.uploadedByUserId,
       uploadedByRole: input.uploadedByRole,
     };
+  }
+
+  async resolvePendingUploadsForSubmission(input: {
+    uploadIds: string[];
+    userId: string;
+  }): Promise<PendingUploadForSubmission[]> {
+    const userId = String(input.userId || '').trim();
+    if (!userId) {
+      throw new ForbiddenException('Authenticated student session is required to attach uploads.');
+    }
+
+    const uploadIds = Array.from(
+      new Set((input.uploadIds || []).map((id) => String(id || '').trim()).filter(Boolean)),
+    );
+    if (!uploadIds.length) return [];
+
+    const rows = await this.prisma.pendingUpload.findMany({
+      where: {
+        id: { in: uploadIds },
+        userId,
+        status: 'PENDING',
+        consumedAt: null,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const found = new Map(rows.map((row) => [row.id, row]));
+    const missing = uploadIds.filter((id) => !found.has(id));
+    if (missing.length) {
+      throw new BadRequestException('One or more uploads are not available for this submission.');
+    }
+
+    const now = Date.now();
+    const expired = rows.filter((row) => row.expiresAt.getTime() <= now);
+    if (expired.length) {
+      await this.prisma.pendingUpload.updateMany({
+        where: { id: { in: expired.map((row) => row.id) }, status: 'PENDING' },
+        data: { status: 'EXPIRED' },
+      });
+      throw new BadRequestException('One or more uploads have expired. Upload the file again before submitting.');
+    }
+
+    const missingStorage: string[] = [];
+    for (const row of rows) {
+      if (!(await this.hasObject(row.storageKey))) {
+        missingStorage.push(row.id);
+      }
+    }
+    if (missingStorage.length) {
+      throw new BadRequestException('One or more uploads are missing from storage. Upload the file again before submitting.');
+    }
+
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return uploadIds.map((id) => byId.get(id)).filter(Boolean) as PendingUploadForSubmission[];
+  }
+
+  async cleanupExpiredPendingUploads(limit = 100) {
+    const take = Math.max(1, Math.min(500, Math.floor(Number(limit) || 100)));
+    const expired = await this.prisma.pendingUpload.findMany({
+      where: {
+        status: 'PENDING',
+        consumedAt: null,
+        expiresAt: { lt: new Date() },
+      },
+      orderBy: { expiresAt: 'asc' },
+      take,
+    });
+    if (!expired.length) return { expired: 0, deletedStorageObjects: 0, warnings: [] as string[] };
+
+    const warnings: string[] = [];
+    let deletedStorageObjects = 0;
+    for (const upload of expired) {
+      try {
+        await this.deleteObject(upload.storageKey);
+        deletedStorageObjects += 1;
+      } catch (error) {
+        warnings.push(
+          `${upload.id}: ${error instanceof Error ? error.message : 'Unable to delete expired pending upload.'}`,
+        );
+      }
+    }
+
+    await this.prisma.pendingUpload.updateMany({
+      where: { id: { in: expired.map((upload) => upload.id) }, status: 'PENDING' },
+      data: { status: 'EXPIRED' },
+    });
+
+    return { expired: expired.length, deletedStorageObjects, warnings };
   }
 
   async list(scope?: string, actor?: { userId?: string; role?: string }) {

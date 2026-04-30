@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
@@ -143,7 +143,7 @@ export class SubmissionRepository {
     description?: string;
     notes?: string;
     externalLinks?: string[];
-    files?: { name: string; sizeKb: number; relativePath?: string }[];
+    files?: { uploadId?: string; name: string; sizeKb: number; relativePath?: string }[];
     status?: string;
   }) {
     const task = await this.prisma.submissionTask.findUnique({ where: { id: body.activityId } });
@@ -151,64 +151,72 @@ export class SubmissionRepository {
 
     const existing = await this.findExistingSubmission(body.activityId, body.userId, body.groupId);
     if (existing) {
-      await this.prisma.submissionFile.deleteMany({ where: { submissionId: existing.id } });
-      return this.prisma.submission.update({
-        where: { id: existing.id },
-        data: {
-          status: body.status || 'SUBMITTED',
-          submittedAt: new Date(),
-          submittedById: body.userId,
-          title: body.title || task.title,
-          feedback: 'Submission received.',
-          description: body.description,
-          notes: body.notes,
-          externalLinks: body.externalLinks || [],
-          files: {
-            create: (body.files || []).map((file) => ({
-              fileName: file.name,
-              fileSize: file.sizeKb,
-              relativePath: file.relativePath,
-            })),
+      return this.prisma.$transaction(async (tx) => {
+        await tx.submissionFile.deleteMany({ where: { submissionId: existing.id } });
+        const record = await tx.submission.update({
+          where: { id: existing.id },
+          data: {
+            status: body.status || 'SUBMITTED',
+            submittedAt: new Date(),
+            submittedById: body.userId,
+            title: body.title || task.title,
+            feedback: 'Submission received.',
+            description: body.description,
+            notes: body.notes,
+            externalLinks: body.externalLinks || [],
+            files: {
+              create: (body.files || []).map((file) => ({
+                fileName: file.name,
+                fileSize: file.sizeKb,
+                relativePath: file.relativePath,
+              })),
+            },
           },
-        },
-        include: {
-          task: true,
-          files: true,
-          student: { select: SAFE_USER_SELECT },
-          group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
-        },
+          include: {
+            task: true,
+            files: true,
+            student: { select: SAFE_USER_SELECT },
+            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+          },
+        });
+        await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
+        return record;
       });
     }
 
     try {
-      return await this.prisma.submission.create({
-        data: {
-          taskId: body.activityId,
-          subjectId: task.subjectId,
-          studentId: body.groupId ? null : body.userId,
-          groupId: body.groupId,
-          submittedById: body.userId,
-          title: body.title || task.title,
-          status: body.status || 'SUBMITTED',
-          submittedAt: new Date(),
-          feedback: 'Submission received.',
-          description: body.description,
-          notes: body.notes,
-          externalLinks: body.externalLinks || [],
-          files: {
-            create: (body.files || []).map((file) => ({
-              fileName: file.name,
-              fileSize: file.sizeKb,
-              relativePath: file.relativePath,
-            })),
+      return await this.prisma.$transaction(async (tx) => {
+        const record = await tx.submission.create({
+          data: {
+            taskId: body.activityId,
+            subjectId: task.subjectId,
+            studentId: body.groupId ? null : body.userId,
+            groupId: body.groupId,
+            submittedById: body.userId,
+            title: body.title || task.title,
+            status: body.status || 'SUBMITTED',
+            submittedAt: new Date(),
+            feedback: 'Submission received.',
+            description: body.description,
+            notes: body.notes,
+            externalLinks: body.externalLinks || [],
+            files: {
+              create: (body.files || []).map((file) => ({
+                fileName: file.name,
+                fileSize: file.sizeKb,
+                relativePath: file.relativePath,
+              })),
+            },
           },
-        },
-        include: {
-          task: true,
-          files: true,
-          student: { select: SAFE_USER_SELECT },
-          group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
-        },
+          include: {
+            task: true,
+            files: true,
+            student: { select: SAFE_USER_SELECT },
+            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+          },
+        });
+        await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
+        return record;
       });
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
@@ -219,6 +227,37 @@ export class SubmissionRepository {
         );
       }
       throw error;
+    }
+  }
+
+  private async consumePendingUploads(
+    tx: Prisma.TransactionClient,
+    files: { uploadId?: string }[],
+    userId: string,
+    submissionId: string,
+  ) {
+    const uploadIds = Array.from(
+      new Set(files.map((file) => String(file.uploadId || '').trim()).filter(Boolean)),
+    );
+    if (!uploadIds.length) return;
+
+    const result = await tx.pendingUpload.updateMany({
+      where: {
+        id: { in: uploadIds },
+        userId,
+        status: 'PENDING',
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: {
+        status: 'CONSUMED',
+        consumedAt: new Date(),
+        consumedBySubmissionId: submissionId,
+      },
+    });
+
+    if (result.count !== uploadIds.length) {
+      throw new BadRequestException('One or more uploads were already used, expired, or no longer belong to this student.');
     }
   }
 

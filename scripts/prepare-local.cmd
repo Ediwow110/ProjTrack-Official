@@ -42,9 +42,5 @@ echo [prepare-local] Applying Prisma migrations...
 call npm.cmd run prisma:migrate:deploy
 if errorlevel 1 exit /b %errorlevel%
 
-echo [prepare-local] Seeding local data...
-call npm.cmd run seed:local
-if errorlevel 1 exit /b %errorlevel%
-
 popd
-echo [prepare-local] Local infrastructure and database are ready.
+echo [prepare-local] Local infrastructure and database are ready (no demo seed applied).

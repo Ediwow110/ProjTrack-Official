@@ -5,6 +5,7 @@ import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import type { SystemSettingsResponse } from "../../lib/api/contracts";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { BrandingSettingsSection } from "../../components/settings/BrandingSettingsSection";
 import {
   Select,
   SelectContent,
@@ -103,8 +104,8 @@ export default function AdminSettings() {
   const sections = [
     {
       icon: Shield,
-      title: "Branding",
-      description: "Control the shared product identity shown across public-facing screens and notifications.",
+      title: "Organization",
+      description: "Control the institution name and contact profile used across the portal.",
       fields: [{ key: "schoolName", label: "School Name", type: "text", description: "Primary institution or portal name." }],
     },
     {
@@ -186,6 +187,7 @@ export default function AdminSettings() {
         </SettingsSection>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
+          <BrandingSettingsSection />
           {sections.map((section) => {
             const Icon = section.icon;
             return (

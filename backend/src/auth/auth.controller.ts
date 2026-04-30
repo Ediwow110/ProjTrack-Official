@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Headers, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { RequestResetDto } from './dto/request-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { LogoutDto } from './dto/logout.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import {
+  clearRefreshCookie,
+  refreshTokenFromCookie,
+  setRefreshCookie,
+  stripRefreshTokenInProduction,
+} from './session-cookie';
 
 @Controller('auth')
 export class AuthController {
@@ -17,18 +26,33 @@ export class AuthController {
   }
 
   @Post('login')
-  login(@Body() body: LoginDto, @Req() req: any) {
-    return this.authService.login(body, this.requestMeta(req));
+  @HttpCode(200)
+  async login(@Body() body: LoginDto, @Req() req: any, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(body, this.requestMeta(req));
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return stripRefreshTokenInProduction(result);
   }
 
   @Post('refresh')
-  refresh(@Body() body: { refreshToken: string }, @Req() req: any) {
-    return this.authService.refresh(body, this.requestMeta(req));
+  @HttpCode(200)
+  async refresh(@Body() body: RefreshTokenDto = {}, @Req() req: any, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = body.refreshToken || refreshTokenFromCookie(req);
+    const result = await this.authService.refresh({ refreshToken }, this.requestMeta(req));
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return stripRefreshTokenInProduction(result);
   }
 
   @Post('logout')
-  logout(@Body() body: { refreshToken?: string }, @Req() req: any) {
-    return this.authService.logout(body, this.requestMeta(req));
+  @HttpCode(200)
+  async logout(@Body() body: LogoutDto = {}, @Req() req: any, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = body.refreshToken || refreshTokenFromCookie(req);
+    const result = await this.authService.logout({ refreshToken }, this.requestMeta(req));
+    clearRefreshCookie(res);
+    return result;
   }
 
   @Get('me')

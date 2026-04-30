@@ -596,7 +596,7 @@ export default function AdminSections() {
                   <div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Master&apos;s List</p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Student ID, last name, first name, and M.I. only.
+                      Student ID, last name, first name, M.I., and account status.
                     </p>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -616,10 +616,10 @@ export default function AdminSections() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] text-sm">
+                  <table className="w-full min-w-[760px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-200/70 bg-slate-50/85 dark:border-slate-700/70 dark:bg-slate-900/70">
-                        {["Student ID", "Last Name", "First Name", "M.I."].map((header) => (
+                        {["Student ID", "Last Name", "First Name", "M.I.", "Account Status"].map((header) => (
                           <th
                             key={header}
                             className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300"
@@ -632,12 +632,13 @@ export default function AdminSections() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
                       {masterList.rows.map((student) => (
                         <tr key={`${student.id}-${student.studentId}`} className="bg-white/70 dark:bg-slate-950/20">
-                          <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{student.studentId}</td>
-                          <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{student.lastName}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.firstName}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.middleInitial || ""}</td>
-                        </tr>
-                      ))}
+                        <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{student.studentId}</td>
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{student.lastName}</td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.firstName}</td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.middleInitial || ""}</td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.accountStatus || "—"}</td>
+                      </tr>
+                    ))}
                     </tbody>
                   </table>
                 </div>

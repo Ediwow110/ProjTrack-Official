@@ -22,6 +22,11 @@ import { Button } from "../../ui/button";
 import { StatusChip } from "../../ui/StatusChip";
 import { AppModal } from "../../ui/app-modal";
 import { BootstrapIcon } from "../../ui/bootstrap-icon";
+import {
+  getCourseOptions,
+  getSectionOptions,
+  getYearLevelOptions,
+} from "../../../lib/academicStructure";
 import { adminCatalogService, adminService } from "../../../lib/api/services";
 import { useAsyncData } from "../../../lib/hooks/useAsyncData";
 import type {
@@ -102,6 +107,8 @@ export default function StudentsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState("");
   const [activeSection, setActiveSection] = useState(sectionFromUrl);
+  const [courseFilter, setCourseFilter] = useState("");
+  const [yearLevelFilter, setYearLevelFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortState, setSortState] = useState<{
     columnKey: StudentSortKey;
@@ -154,9 +161,38 @@ export default function StudentsPage() {
     sectionOptions.find((section) => section.id === activeSection) ??
     sectionOptions.find((section) => section.code === activeSection) ??
     null;
-  const filteredStudents = allStudents.filter((student) =>
-    !activeSection || student.sectionId === activeSection || student.section === activeSection,
-  );
+  const sectionFilterAcademicYearId =
+    activeSectionRecord?.academicYearId || activeAcademicYearId;
+  const sectionFilterCourse = courseFilter || activeSectionRecord?.program || "";
+  const availableCourseFilters = getCourseOptions(sectionOptions, sectionFilterAcademicYearId);
+  const availableYearLevelFilters = getYearLevelOptions(sectionOptions, {
+    academicYearId: sectionFilterAcademicYearId,
+    course: sectionFilterCourse,
+  });
+  const selectedYearLevelLabel =
+    availableYearLevelFilters.find((option) => option.id === yearLevelFilter)?.label ??
+    yearLevelFilter;
+  const availableSectionFilters = getSectionOptions(sectionOptions, {
+    academicYearId: sectionFilterAcademicYearId,
+    course: sectionFilterCourse,
+    yearLevelId: yearLevelFilter,
+    yearLevelName: selectedYearLevelLabel,
+  }) as AdminSectionRecord[];
+  const filteredStudents = allStudents.filter((student) => {
+    if (activeSection && student.sectionId !== activeSection && student.section !== activeSection) {
+      return false;
+    }
+    if (courseFilter && String(student.course || "").trim().toLowerCase() !== courseFilter.toLowerCase()) {
+      return false;
+    }
+    if (
+      yearLevelFilter &&
+      String(student.yearLevel || "").trim().toLowerCase() !== selectedYearLevelLabel.toLowerCase()
+    ) {
+      return false;
+    }
+    return true;
+  });
   const students = [...filteredStudents].sort((left, right) => {
     if (!sortState) return 0;
 
@@ -194,30 +230,35 @@ export default function StudentsPage() {
     allStudents.find((student) => student.id === previewStudentId) ??
     null;
   const activeCount = students.filter((student) => student.status === "Active").length;
-  const pendingSetupCount = students.filter((student) => student.status === "Pending Setup").length;
-  const yearLevelOptions = (activeAcademicYear?.yearLevels ?? []).map((level) => ({
-    value: level.id,
-    label: level.name,
-  }));
-  const filteredCreateSectionOptions = sectionOptions.filter((section) => {
-    const matchesAcademicYear =
-      !activeAcademicYearId || section.academicYearId === activeAcademicYearId;
-    const matchesCourse =
-      !createForm.course?.trim() ||
-      section.program.toLowerCase() === createForm.course.trim().toLowerCase();
-    const matchesYearLevel =
-      !createForm.yearLevelId ||
-      section.yearLevelId === createForm.yearLevelId ||
-      String(section.yearLevelName || section.yearLevelLabel || section.yearLevel || "").trim() ===
-        String(createForm.yearLevelName || createForm.yearLevel || "").trim();
-
-    return matchesAcademicYear && matchesCourse && matchesYearLevel;
+  const pendingActivationCount = students.filter(
+    (student) => student.status === "Pending Activation",
+  ).length;
+  const createAcademicYearId = createForm.academicYearId || activeAcademicYearId;
+  const createCourseOptions = getCourseOptions(sectionOptions, createAcademicYearId);
+  const createYearLevelOptions = getYearLevelOptions(sectionOptions, {
+    academicYearId: createAcademicYearId,
+    course: createForm.course,
   });
+  const createYearLevelLabel =
+    createYearLevelOptions.find((option) => option.id === createForm.yearLevelId)?.label ??
+    createForm.yearLevelName ??
+    String(createForm.yearLevel ?? "");
+  const filteredCreateSectionOptions = getSectionOptions(sectionOptions, {
+    academicYearId: createAcademicYearId,
+    course: createForm.course,
+    yearLevelId: createForm.yearLevelId,
+    yearLevelName: createYearLevelLabel,
+  }) as AdminSectionRecord[];
   const sectionSelectionDisabled =
-    !activeAcademicYearId || !createForm.yearLevelId || filteredCreateSectionOptions.length === 0;
+    !createAcademicYearId ||
+    !createForm.course?.trim() ||
+    !createForm.yearLevelId ||
+    filteredCreateSectionOptions.length === 0;
   const hasActiveFilters =
     Boolean(search.trim()) ||
     Boolean(activeSection) ||
+    Boolean(courseFilter) ||
+    Boolean(yearLevelFilter) ||
     statusFilter !== "All";
 
   useEffect(() => {
@@ -247,7 +288,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     setSelected([]);
-  }, [search, statusFilter, activeSection]);
+  }, [search, statusFilter, activeSection, courseFilter, yearLevelFilter]);
 
   useEffect(() => {
     if (previewStudentId && !previewStudent) {
@@ -256,20 +297,13 @@ export default function StudentsPage() {
   }, [previewStudentId, previewStudent]);
 
   useEffect(() => {
-    if (!createForm.yearLevelId) {
-      if (createForm.section) {
-        setCreateForm((current) => ({ ...current, section: "" }));
-      }
-      return;
-    }
-
     if (
       createForm.section &&
       !filteredCreateSectionOptions.some((section) => section.id === createForm.section)
     ) {
       setCreateForm((current) => ({ ...current, section: "" }));
     }
-  }, [createForm.yearLevelId, createForm.section, filteredCreateSectionOptions]);
+  }, [createForm.section, filteredCreateSectionOptions]);
 
   useEffect(() => {
     let active = true;
@@ -309,6 +343,27 @@ export default function StudentsPage() {
           key: "section",
           label: `Section: ${activeSectionRecord?.code ?? activeSection}`,
           onRemove: () => updateSectionFilter(""),
+        }
+      : null,
+    courseFilter
+      ? {
+          key: "course",
+          label: `Course: ${courseFilter}`,
+          onRemove: () => {
+            setCourseFilter("");
+            setYearLevelFilter("");
+            updateSectionFilter("");
+          },
+        }
+      : null,
+    yearLevelFilter
+      ? {
+          key: "yearLevel",
+          label: `Year Level: ${selectedYearLevelLabel}`,
+          onRemove: () => {
+            setYearLevelFilter("");
+            updateSectionFilter("");
+          },
         }
       : null,
     statusFilter !== "All"
@@ -361,6 +416,8 @@ export default function StudentsPage() {
 
   function resetFilters() {
     setSearch("");
+    setCourseFilter("");
+    setYearLevelFilter("");
     setStatusFilter("All");
     updateSectionFilter("");
   }
@@ -394,15 +451,21 @@ export default function StudentsPage() {
 
   async function sendSetupLink(student: AdminStudentRecord) {
     const response =
-      student.status === "Pending Setup"
+      student.status === "Pending Setup" || student.status === "Pending Activation"
         ? await adminService.sendStudentSetupInvite(student.id)
         : await adminService.sendStudentResetLink(student.id);
     if (!response.mailJobId) {
       throw new Error("The backend did not confirm a queued mail job.");
     }
     updateStudentPatch(student.id, {
-      status: student.status === "Pending Setup" ? "Pending Setup" : student.status,
-      lastActive: student.status === "Pending Setup" ? "Setup email queued" : "Reset email queued",
+      status:
+        student.status === "Pending Setup" || student.status === "Pending Activation"
+          ? "Pending Setup"
+          : student.status,
+      lastActive:
+        student.status === "Pending Setup" || student.status === "Pending Activation"
+          ? "Activation email queued"
+          : "Reset email queued",
     });
     return response;
   }
@@ -421,7 +484,9 @@ export default function StudentsPage() {
       showFeedback(
         "success",
         `${
-          student.status === "Pending Setup" ? "Setup invite" : "Password reset"
+          student.status === "Pending Setup" || student.status === "Pending Activation"
+            ? "Activation email"
+            : "Password reset"
         } mail job queued for ${student.name}${response.mailJobId ? ` (${response.mailJobId})` : ""}. Open Mail Jobs to watch delivery.`,
       );
     } catch (setupError) {
@@ -540,7 +605,7 @@ export default function StudentsPage() {
       setImportState({ processing: false, error: null });
       showFeedback(
         "success",
-        `Import complete: ${result.summary.created} created, ${result.summary.updatedOrSkipped} updated/skipped, ${result.summary.invalidRows} invalid row${result.summary.invalidRows === 1 ? "" : "s"}, ${result.summary.pendingSetup} pending setup.`,
+        `Import complete: ${result.summary.created} created, ${result.summary.updatedOrSkipped} updated/skipped, ${result.summary.invalidRows} invalid row${result.summary.invalidRows === 1 ? "" : "s"}, ${result.summary.pendingActivation} pending activation.`,
       );
     } catch (confirmError) {
       setImportState({
@@ -577,7 +642,7 @@ export default function StudentsPage() {
       setCreateState({ saving: false, error: null });
       showFeedback(
         "success",
-        "Student created. They can set up their password using Forgot Password, or you can send a setup link manually.",
+        "Student created. They remain Pending Activation until you send an activation email or they complete account setup.",
       );
     } catch (createError) {
       setCreateState({
@@ -635,9 +700,9 @@ export default function StudentsPage() {
           <span className="font-semibold">{activeSectionRecord?.code ?? activeSection}</span>.
         </PortalNotice>
       ) : null}
-      {statusFilter === "Pending Setup" ? (
+      {statusFilter === "Pending Activation" ? (
         <PortalNotice tone="warning">
-          Showing students who still need to create their first password.
+          Showing students who still need an activation email or first-time setup.
         </PortalNotice>
       ) : null}
     </div>
@@ -673,9 +738,9 @@ export default function StudentsPage() {
             hint: "Students currently able to access the portal.",
           },
           {
-            label: "Needs setup",
-            value: loading ? "..." : String(pendingSetupCount),
-            hint: "Accounts still waiting for first-time password setup.",
+            label: "Pending Activation",
+            value: loading ? "..." : String(pendingActivationCount),
+            hint: "Accounts waiting for activation before first-time setup begins.",
           },
           {
             label: "Selected",
@@ -718,12 +783,43 @@ export default function StudentsPage() {
             primaryFilters={(
               <>
                 <FilterSelect
+                  label="Course"
+                  value={courseFilter}
+                  onChange={(value) => {
+                    setCourseFilter(value);
+                    setYearLevelFilter("");
+                    updateSectionFilter("");
+                  }}
+                  options={[
+                    { value: "", label: "All courses" },
+                    ...availableCourseFilters.map((course) => ({
+                      value: course,
+                      label: course,
+                    })),
+                  ]}
+                />
+                <FilterSelect
+                  label="Year Level"
+                  value={yearLevelFilter}
+                  onChange={(value) => {
+                    setYearLevelFilter(value);
+                    updateSectionFilter("");
+                  }}
+                  options={[
+                    { value: "", label: "All year levels" },
+                    ...availableYearLevelFilters.map((option) => ({
+                      value: option.id,
+                      label: option.label,
+                    })),
+                  ]}
+                />
+                <FilterSelect
                   label="Section"
                   value={activeSection}
                   onChange={updateSectionFilter}
                   options={[
                     { value: "", label: "All sections" },
-                    ...sectionOptions.map((section) => ({
+                    ...availableSectionFilters.map((section) => ({
                       value: section.id,
                       label: `${section.code} · ${section.academicYear ?? section.ay}`,
                     })),
@@ -741,6 +837,7 @@ export default function StudentsPage() {
                     { value: "Disabled", label: "Disabled" },
                     { value: "Archived", label: "Archived" },
                     { value: "Graduated", label: "Graduated" },
+                    { value: "Pending Activation", label: "Pending Activation" },
                     { value: "Pending Setup", label: "Pending Setup" },
                   ]}
                 />
@@ -787,7 +884,7 @@ export default function StudentsPage() {
                 className="bg-[var(--role-accent)] text-white hover:bg-[var(--role-accent-strong)]"
               >
                 <Mail size={14} />
-                Send setup links to selected students
+                Send activation/setup links to selected students
               </Button>
             )}
           />
@@ -845,7 +942,7 @@ export default function StudentsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Add Student"
-        description="Create a real student account in pending setup state."
+        description="Create a student inside the academic hierarchy. New records start as pending activation."
         size="xl"
         footer={(
           <>
@@ -901,11 +998,64 @@ export default function StudentsPage() {
               setCreateForm((current) => ({ ...current, studentNumber: value }))
             }
           />
-          <Field
-            label="Course"
-            value={createForm.course ?? ""}
-            onChange={(value) => setCreateForm((current) => ({ ...current, course: value }))}
-          />
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
+              Academic Year
+            </label>
+            <select
+              value={createAcademicYearId}
+              onChange={(event) =>
+                setCreateForm((current) => {
+                  return {
+                    ...current,
+                    academicYearId: event.target.value,
+                    academicYear:
+                      academicYears.find((year) => year.id === event.target.value)?.name ?? "",
+                    course: "",
+                    yearLevelId: "",
+                    yearLevelName: "",
+                    yearLevel: "",
+                    section: "",
+                  };
+                })
+              }
+              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+            >
+              <option value="">Select academic year</option>
+              {academicYears.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
+              Course / Program
+            </label>
+            <select
+              value={createForm.course ?? ""}
+              onChange={(event) =>
+                setCreateForm((current) => ({
+                  ...current,
+                  course: event.target.value,
+                  yearLevelId: "",
+                  yearLevelName: "",
+                  yearLevel: "",
+                  section: "",
+                }))
+              }
+              disabled={!createAcademicYearId}
+              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+            >
+              <option value="">{createAcademicYearId ? "Select course" : "Select academic year first"}</option>
+              {createCourseOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">
               Year Level
@@ -914,23 +1064,26 @@ export default function StudentsPage() {
               value={createForm.yearLevelId ?? ""}
               onChange={(event) =>
                 setCreateForm((current) => {
-                  const selectedLevel = (activeAcademicYear?.yearLevels ?? []).find(
+                  const selectedLevel = createYearLevelOptions.find(
                     (level) => level.id === event.target.value,
                   );
                   return {
                     ...current,
                     yearLevelId: event.target.value,
-                    yearLevelName: selectedLevel?.name ?? "",
-                    yearLevel: selectedLevel?.name ?? "",
+                    yearLevelName: selectedLevel?.label ?? "",
+                    yearLevel: selectedLevel?.label ?? "",
                     section: "",
                   };
                 })
               }
-              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+              disabled={!createAcademicYearId || !createForm.course?.trim()}
+              className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
             >
-              <option value="">Select year level</option>
-              {yearLevelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+              <option value="">
+                {createForm.course?.trim() ? "Select year level" : "Select course first"}
+              </option>
+              {createYearLevelOptions.map((option) => (
+                <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
@@ -976,7 +1129,11 @@ export default function StudentsPage() {
                 </option>
               ))}
             </select>
-            {!createForm.yearLevelId ? (
+            {!createForm.course?.trim() ? (
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                Select a course to load its year levels.
+              </p>
+            ) : !createForm.yearLevelId ? (
               <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                 Select a year level to enable section choices.
               </p>
@@ -987,7 +1144,7 @@ export default function StudentsPage() {
             ) : null}
           </div>
           <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-800 md:col-span-2 dark:border-blue-500/30 dark:bg-blue-500/12 dark:text-blue-100">
-            Academic Year: <span className="font-semibold">{activeAcademicYearLabel}</span>. New students are added to the current active academic year by default.
+            New students stay visible in rosters as <span className="font-semibold">Pending Activation</span> until they receive and complete account setup.
           </div>
           {createState.error ? (
             <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 md:col-span-2 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
@@ -1008,7 +1165,7 @@ export default function StudentsPage() {
             <p className="mr-auto text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
               Imported rows will be added with{" "}
               <span className="font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
-                Pending Setup
+                Pending Activation
               </span>{" "}
               status. No emails are sent automatically after import.
             </p>
@@ -1038,7 +1195,7 @@ export default function StudentsPage() {
                     Upload Student Import File
                   </p>
                   <p className="text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
-                    Supported: .xlsx, .xls, .csv, .tsv · Required: student_id, last_name, first_name, year_level, section, course, academic_year, email
+                    Supported: .xlsx, .xls, .csv, .tsv · Required: student_id, first_name, last_name, email, course_code, year_level, section
                   </p>
                 </div>
               </div>
@@ -1071,6 +1228,10 @@ export default function StudentsPage() {
               {importState.error}
             </div>
           ) : null}
+
+          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-xs text-blue-900 dark:text-blue-100 dark:border-blue-500/35 dark:bg-blue-500/12">
+            Course Code must match an existing Course / Program. Year Level must already exist under that Course / Program. Section must already exist under the selected Academic Year, Course / Program, and Year Level. If Academic Year is blank, the active academic year is used only when that match is safe.
+          </div>
 
           {previewRows.length > 0 ? (
             <>

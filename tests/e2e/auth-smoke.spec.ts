@@ -3,32 +3,38 @@ import { expect, test, type Page } from '@playwright/test';
 const accounts = [
   {
     role: 'student',
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || 'student@projtrack.local',
-    password: process.env.SMOKE_STUDENT_PASSWORD || 'Student123!ChangeMe',
+    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
+    password: process.env.SMOKE_STUDENT_PASSWORD || '',
     identifierLabel: /Student ID or Email/i,
     dashboardPath: '/student/dashboard',
-    buttonName: /Sign In as Student/i,
+    buttonName: /Continue to Student Portal Login/i,
     dashboardAssertion: /Submit Project/i,
   },
   {
     role: 'teacher',
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || 'teacher@projtrack.local',
-    password: process.env.SMOKE_TEACHER_PASSWORD || 'Teacher123!ChangeMe',
+    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
+    password: process.env.SMOKE_TEACHER_PASSWORD || '',
     identifierLabel: /Employee ID or School Email/i,
     dashboardPath: '/teacher/dashboard',
-    buttonName: /Sign In as Teacher/i,
+    buttonName: /Continue to Teacher Portal Login/i,
     dashboardAssertion: /Review Submissions/i,
   },
   {
     role: 'admin',
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || 'admin@projtrack.local',
-    password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
+    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
+    password: process.env.SMOKE_ADMIN_PASSWORD || '',
     identifierLabel: /Admin Email/i,
     dashboardPath: '/admin/dashboard',
-    buttonName: /Sign In as Admin/i,
+    buttonName: /Continue to Admin Portal Login/i,
     dashboardAssertion: /^System Status$/i,
   },
 ] as const;
+
+const hasSmokeCredentials = accounts.every(
+  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
+);
+
+test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e auth smoke.');
 
 async function login(page: Page, account: (typeof accounts)[number]) {
   await page.goto(`/${account.role}/login`);

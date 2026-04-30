@@ -34,29 +34,35 @@ const prisma = new PrismaClient();
 const accounts = {
   student: {
     role: "student",
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "student@projtrack.local",
-    password: process.env.SMOKE_STUDENT_PASSWORD || "Student123!ChangeMe",
+    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
+    password: process.env.SMOKE_STUDENT_PASSWORD || "",
     identifierLabel: /Student ID or Email/i,
     buttonName: /Sign In as Student/i,
     dashboardPath: "/student/dashboard",
   },
   teacher: {
     role: "teacher",
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "teacher@projtrack.local",
-    password: process.env.SMOKE_TEACHER_PASSWORD || "Teacher123!ChangeMe",
+    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
+    password: process.env.SMOKE_TEACHER_PASSWORD || "",
     identifierLabel: /Employee ID or School Email/i,
     buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
   },
   admin: {
     role: "admin",
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
+    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
+    password: process.env.SMOKE_ADMIN_PASSWORD || "",
     identifierLabel: /Admin Email/i,
     buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
   },
 } as const;
+
+const hasSmokeCredentials = [accounts.student, accounts.teacher, accounts.admin].every(
+  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
+);
+
+test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e workflow smoke.');
 
 type RuntimeTracker = {
   consoleErrors: string[];

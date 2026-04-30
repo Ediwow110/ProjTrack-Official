@@ -30,13 +30,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - waits for both services to accept connections
 - runs `prisma generate`
 - runs `prisma migrate deploy`
-- seeds reference data and demo accounts
 - starts detached backend and frontend processes with logs in `.local-runtime/`
-
-Local demo sign-in accounts:
-- Admin: `admin@projtrack.local` / `Admin123!ChangeMe`
-- Teacher: `teacher@projtrack.local` / `Teacher123!ChangeMe`
-- Student: `student@projtrack.local` or `STU-2024-00142` / `Student123!ChangeMe`
 
 ## Build validation
 
@@ -60,7 +54,7 @@ Local demo sign-in accounts:
   - `/health/storage`
   - `/health/mail`
   - `/health/configuration`
-- Demo seed data is opt-in via `ALLOW_DEMO_SEED=true`.
+- Automatic demo account/data seeding is disabled by default.
 - Playwright uses bundled Chromium by default. Set `PLAYWRIGHT_BROWSER_CHANNEL` only if you intentionally want a system browser such as Edge.
 - Role-based login identifiers:
   - Student: student number or email
@@ -80,7 +74,7 @@ Local demo sign-in accounts:
   - `APP_URL=https://projtrack.codes`
   - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
-- Full deployment and cutover steps are documented in [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
+- Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md) and [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
   
 
 ## Backend local startup troubleshooting
@@ -91,7 +85,7 @@ Use this local sequence instead:
 
 1. Start Docker Desktop.
 2. Run `npm install` and `npm --prefix backend install` if dependencies are missing.
-3. Run `npm run prepare:local` to start PostgreSQL/MinIO, generate Prisma, migrate, and seed.
+3. Run `npm run prepare:local` to start PostgreSQL/MinIO, generate Prisma, and migrate.
 4. Run `npm run backend:local` for the backend only, or `npm start` for backend + frontend.
 5. Run `npm run backend:doctor` when startup still fails.
 

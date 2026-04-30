@@ -259,6 +259,73 @@ export class AdminOpsRepository {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   }
 
+  private normalizeCourseLabel(value?: string | null) {
+    return String(value ?? '').replace(/\s+/g, ' ').trim();
+  }
+
+  private matchesCourse(left?: string | null, right?: string | null) {
+    const leftValue = this.normalizeCourseLabel(left).toLowerCase();
+    const rightValue = this.normalizeCourseLabel(right).toLowerCase();
+    return Boolean(leftValue) && Boolean(rightValue) && leftValue === rightValue;
+  }
+
+  private sectionMatchesYearLevel(
+    section: {
+      academicYearLevelId?: string | null;
+      yearLevel?: number | null;
+      yearLevelName?: string | null;
+      academicYearLevel?: { id?: string | null; name?: string | null } | null;
+    },
+    input: { academicYearLevelId?: string; yearLevel?: number | null; yearLevelLabel?: string },
+  ) {
+    const requestedLevelId = String(input.academicYearLevelId ?? '').trim();
+    if (requestedLevelId) {
+      return (
+        String(section.academicYearLevelId ?? '').trim() === requestedLevelId ||
+        String(section.academicYearLevel?.id ?? '').trim() === requestedLevelId
+      );
+    }
+
+    if (input.yearLevel !== null && input.yearLevel !== undefined) {
+      if (Number(section.yearLevel ?? 0) === input.yearLevel) {
+        return true;
+      }
+    }
+
+    const requestedLabel = this.normalizeYearLevelLabel(input.yearLevelLabel);
+    if (!requestedLabel) return false;
+
+    const sectionLabels = [
+      section.academicYearLevel?.name,
+      section.yearLevelName,
+      this.formatYearLevel(section.yearLevel),
+    ]
+      .map((value) => this.normalizeYearLevelLabel(value))
+      .filter(Boolean);
+
+    return sectionLabels.includes(requestedLabel);
+  }
+
+  private describePlacementSectionMismatch(input: {
+    academicYear?: string | null;
+    course?: string | null;
+    yearLevel?: string | null;
+    section?: string | null;
+  }) {
+    const sectionName = String(input.section ?? '').trim() || 'The selected section';
+    const parts = [
+      String(input.course ?? '').trim(),
+      String(input.yearLevel ?? '').trim(),
+      String(input.academicYear ?? '').trim(),
+    ].filter(Boolean);
+
+    if (parts.length === 0) {
+      return `${sectionName} does not belong to the selected academic structure.`;
+    }
+
+    return `${sectionName} does not belong to ${parts.join(' / ')}.`;
+  }
+
   private extractYearLevel(sectionName?: string | null) {
     const match = String(sectionName ?? '').match(/\b(\d)\b/);
     return match ? Number(match[1]) : null;
@@ -1251,6 +1318,7 @@ export class AdminOpsRepository {
     sectionId?: string;
     section?: string;
     requireSection?: boolean;
+    allowCourseWithoutExistingSections?: boolean;
   }) {
     await this.syncLegacyAcademicYearLevels();
     const academicYearId = String(payload.academicYearId ?? '').trim();
@@ -1259,7 +1327,7 @@ export class AdminOpsRepository {
     const requestedYearLevelLabel = this.normalizeYearLevelLabel(
       payload.yearLevelName ?? payload.yearLevel,
     );
-    const course = String(payload.course ?? '').trim();
+    const course = this.normalizeCourseLabel(payload.course);
     const yearLevel = this.parseYearLevelNumber(payload.yearLevel ?? payload.yearLevelName);
 
     const academicYear = academicYearId
@@ -1276,10 +1344,57 @@ export class AdminOpsRepository {
         : await this.getActiveAcademicYear();
 
     if ((academicYearId || academicYearName) && !academicYear) {
-      throw new BadRequestException('Academic year not found.');
+      throw new BadRequestException(
+        academicYearName
+          ? `Academic Year ${academicYearName} does not exist.`
+          : 'Academic year not found.',
+      );
     }
 
-    const academicYearLevel = academicYearLevelId
+    const sectionId = String(payload.sectionId ?? '').trim();
+    const sectionName = String(payload.section ?? '').trim();
+    const sectionById = sectionId
+      ? await this.prisma.section.findUnique({
+          where: { id: sectionId },
+          include: { academicYear: true, academicYearLevel: true },
+        })
+      : null;
+    const academicYearSections = academicYear?.id
+      ? await this.prisma.section.findMany({
+          where: { academicYearId: academicYear.id },
+          include: { academicYear: true, academicYearLevel: true },
+        })
+      : [];
+
+    const section = sectionById
+      ? sectionById
+      : sectionName
+        ? academicYearSections.find(
+            (candidate) =>
+              String(candidate.name ?? '').trim().toLowerCase() === sectionName.toLowerCase(),
+          ) ?? null
+        : null;
+
+    const resolvedCourse =
+      course ||
+      this.normalizeCourseLabel(section?.course) ||
+      this.normalizeCourseLabel(sectionById?.course);
+    const courseSections = resolvedCourse
+      ? academicYearSections.filter((candidate) => this.matchesCourse(candidate.course, resolvedCourse))
+      : academicYearSections;
+
+    if (
+      resolvedCourse &&
+      academicYear?.name &&
+      courseSections.length === 0 &&
+      !payload.allowCourseWithoutExistingSections
+    ) {
+      throw new BadRequestException(
+        `Course ${resolvedCourse} does not exist in Academic Year ${academicYear.name}.`,
+      );
+    }
+
+    let academicYearLevel = academicYearLevelId
       ? await this.prisma.academicYearLevel.findUnique({ where: { id: academicYearLevelId } })
       : requestedYearLevelLabel && academicYear?.id
         ? await this.prisma.academicYearLevel.findFirst({
@@ -1293,76 +1408,98 @@ export class AdminOpsRepository {
           })
         : null;
 
+    const requestedYearSections =
+      requestedYearLevelLabel || yearLevel !== null
+        ? courseSections.filter((candidate) =>
+            this.sectionMatchesYearLevel(candidate, {
+              academicYearLevelId,
+              yearLevel,
+              yearLevelLabel: requestedYearLevelLabel,
+            }),
+          )
+        : courseSections;
+
     if ((academicYearLevelId || requestedYearLevelLabel) && academicYear?.id && !academicYearLevel) {
-      throw new BadRequestException('Year level not found for the selected academic year.');
+      const targetCourse = resolvedCourse || 'the selected course';
+      throw new BadRequestException(
+        requestedYearLevelLabel
+          ? `${requestedYearLevelLabel} is not configured for ${targetCourse}.`
+          : 'Year level not found for the selected academic year.',
+      );
     }
 
-    const sectionId = String(payload.sectionId ?? '').trim();
-    const sectionName = String(payload.section ?? '').trim();
-    const sectionById = sectionId
-      ? await this.prisma.section.findUnique({
-          where: { id: sectionId },
-          include: { academicYear: true, academicYearLevel: true },
-        })
-      : null;
-    const section =
-      sectionById ??
-      (sectionName
-        ? await this.prisma.section.findFirst({
-            where: {
-              name: {
-                equals: sectionName,
-                mode: 'insensitive',
-              },
-              academicYearId: academicYear?.id,
-              course: course
-                ? {
-                    equals: course,
-                    mode: 'insensitive',
-                  }
-                : undefined,
-              academicYearLevelId: academicYearLevel?.id ?? undefined,
-              yearLevel:
-                requestedYearLevelLabel && yearLevel === null ? undefined : yearLevel ?? undefined,
-              yearLevelName: requestedYearLevelLabel
-                ? {
-                    equals: requestedYearLevelLabel,
-                    mode: 'insensitive',
-                  }
-                : undefined,
-            },
-            include: { academicYear: true, academicYearLevel: true },
-          })
-        : null);
+    if (
+      (requestedYearLevelLabel || academicYearLevelId) &&
+      resolvedCourse &&
+      requestedYearSections.length === 0 &&
+      !payload.allowCourseWithoutExistingSections
+    ) {
+      throw new BadRequestException(
+        `${requestedYearLevelLabel || academicYearLevel?.name || 'Selected year level'} is not configured for ${resolvedCourse}.`,
+      );
+    }
+
+    if (!academicYearLevel && requestedYearSections.length > 0) {
+      academicYearLevel =
+        requestedYearSections.find((candidate) => candidate.academicYearLevel)?.academicYearLevel ??
+        null;
+    }
+
+    if (
+      section &&
+      academicYear?.id &&
+      section.academicYearId &&
+      String(section.academicYearId).trim() !== academicYear.id
+    ) {
+      throw new BadRequestException(
+        this.describePlacementSectionMismatch({
+          academicYear: academicYear.name,
+          course: resolvedCourse,
+          yearLevel: requestedYearLevelLabel || academicYearLevel?.name,
+          section: section.name,
+        }),
+      );
+    }
+
+    if (section && resolvedCourse && !this.matchesCourse(section.course, resolvedCourse)) {
+      throw new BadRequestException(
+        this.describePlacementSectionMismatch({
+          academicYear: academicYear?.name,
+          course: resolvedCourse,
+          yearLevel: requestedYearLevelLabel || academicYearLevel?.name,
+          section: section.name,
+        }),
+      );
+    }
+
+    if (
+      section &&
+      (requestedYearLevelLabel || academicYearLevelId || yearLevel !== null) &&
+      !this.sectionMatchesYearLevel(section, {
+        academicYearLevelId,
+        yearLevel,
+        yearLevelLabel: requestedYearLevelLabel || academicYearLevel?.name || undefined,
+      })
+    ) {
+      throw new BadRequestException(
+        this.describePlacementSectionMismatch({
+          academicYear: academicYear?.name,
+          course: resolvedCourse,
+          yearLevel: requestedYearLevelLabel || academicYearLevel?.name,
+          section: section.name,
+        }),
+      );
+    }
 
     if (payload.requireSection && !section) {
-      throw new BadRequestException('Section not found for the selected academic structure.');
-    }
-
-    if (section && academicYear?.id && section.academicYearId && section.academicYearId !== academicYear.id) {
-      throw new BadRequestException('Section does not belong to the selected academic year.');
-    }
-
-    if (
-      section &&
-      course &&
-      section.course &&
-      section.course.trim().toLowerCase() !== course.toLowerCase()
-    ) {
-      throw new BadRequestException('Section does not belong to the selected course.');
-    }
-
-    if (section && yearLevel && section.yearLevel && section.yearLevel !== yearLevel) {
-      throw new BadRequestException('Section does not belong to the selected year level.');
-    }
-
-    if (
-      section &&
-      academicYearLevel?.id &&
-      section.academicYearLevelId &&
-      section.academicYearLevelId !== academicYearLevel.id
-    ) {
-      throw new BadRequestException('Section does not belong to the selected year level.');
+      throw new BadRequestException(
+        this.describePlacementSectionMismatch({
+          academicYear: academicYear?.name,
+          course: resolvedCourse,
+          yearLevel: requestedYearLevelLabel || academicYearLevel?.name,
+          section: sectionName,
+        }),
+      );
     }
 
     const resolvedYearLevelLabel =
@@ -1376,7 +1513,7 @@ export class AdminOpsRepository {
       academicYear,
       academicYearLevel,
       section,
-      course: course || section?.course || null,
+      course: resolvedCourse || section?.course || null,
       yearLevel: yearLevel ?? section?.yearLevel ?? null,
       yearLevelName: resolvedYearLevelLabel || null,
     };
@@ -1409,6 +1546,7 @@ export class AdminOpsRepository {
       yearLevelName: payload.yearLevelName,
       course: program,
       yearLevel: payload.yearLevel,
+      allowCourseWithoutExistingSections: true,
     });
 
     const academicYear = placement.academicYear ?? (await this.getActiveAcademicYear());
@@ -1482,6 +1620,7 @@ export class AdminOpsRepository {
         lastName: student.user.lastName,
         firstName: student.user.firstName,
         middleInitial: String(student.middleInitial ?? '').trim(),
+        accountStatus: this.toTitleWords(String(student.user.status ?? '').replace(/_/g, ' ')),
       }))
       .sort((left, right) => {
         const lastNameCompare = left.lastName.localeCompare(right.lastName, 'en', {
@@ -1518,6 +1657,7 @@ export class AdminOpsRepository {
           this.formatYearLevel(section.yearLevel) ||
           'Unassigned',
         course: section.course || '',
+        studentCount: rows.length,
       },
       rows,
     };
@@ -1746,6 +1886,19 @@ export class AdminOpsRepository {
     ]);
     if (!sourceSection || !destSection) throw new NotFoundException('Section not found.');
 
+    const destinationPlacement = await this.resolveSectionPlacement({
+      academicYearId: destSection.academicYearId ?? undefined,
+      academicYear: destSection.academicYear?.name ?? undefined,
+      academicYearLevelId: destSection.academicYearLevelId ?? undefined,
+      yearLevelName:
+        destSection.academicYearLevel?.name ?? destSection.yearLevelName ?? undefined,
+      course: destSection.course ?? undefined,
+      yearLevel: destSection.yearLevel ?? undefined,
+      sectionId: destSection.id,
+      section: destSection.name,
+      requireSection: true,
+    });
+
     const moving = await this.prisma.studentProfile.findMany({
       where: {
         userId: { in: ids },
@@ -1762,12 +1915,17 @@ export class AdminOpsRepository {
           sectionId: sourceSection.id,
         },
         data: {
-          sectionId: destSection.id,
-          academicYearId: destSection.academicYearId,
-          academicYearLevelId: destSection.academicYearLevelId,
-          course: destSection.course,
-          yearLevel: destSection.yearLevel,
+          sectionId: destinationPlacement.section?.id ?? destSection.id,
+          academicYearId:
+            destinationPlacement.academicYear?.id ?? destinationPlacement.section?.academicYearId ?? null,
+          academicYearLevelId:
+            destinationPlacement.academicYearLevel?.id ??
+            destinationPlacement.section?.academicYearLevelId ??
+            null,
+          course: destinationPlacement.course,
+          yearLevel: destinationPlacement.yearLevel,
           yearLevelName:
+            destinationPlacement.yearLevelName ||
             destSection.yearLevelName ||
             destSection.academicYearLevel?.name ||
             null,

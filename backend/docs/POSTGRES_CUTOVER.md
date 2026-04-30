@@ -6,7 +6,7 @@ The source runtime is now Prisma/PostgreSQL-backed, and migration history is che
 
 - `DATABASE_URL` is required at startup.
 - Core backend flows read and write through Prisma repositories/services.
-- The local migrated database is reachable and supports login for admin, teacher, and student accounts.
+- The local migrated database is reachable and ready for role-based login once operator-managed accounts are provisioned.
 - `/health/database` now checks connectivity plus migration-table state and currently reports `ok: true` locally.
 - The checked-in migrations include:
   - `20260422013000_initial_schema`
@@ -17,14 +17,13 @@ The source runtime is now Prisma/PostgreSQL-backed, and migration history is che
 1. `npm ci`
 2. `npm run prisma:generate`
 3. `npm run prisma:migrate:deploy`
-4. `ALLOW_DEMO_SEED=true npm run seed` for non-production demo environments only
-5. `npm run build`
-6. `npm run smoke`
+4. `npm run build`
+5. `npm run smoke`
 
 ## Remaining operational validation
 
 1. Validate `prisma migrate deploy` against a fresh PostgreSQL staging database, not only the existing local database.
-2. Keep demo accounts and sample academic data disabled in production by leaving `ALLOW_DEMO_SEED=false`.
+2. Keep automatic demo/sample data seeding disabled in production.
 3. Reconcile any schema drift discovered by staging or production-like environments.
 
 ## Still outside the cutover

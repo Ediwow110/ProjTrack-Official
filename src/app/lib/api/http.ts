@@ -40,9 +40,10 @@ async function executeFetch(method: string, path: string, body?: unknown, query?
   try {
     return await fetch(url, {
       method,
+      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
         'X-Request-Id': requestId,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -62,14 +63,14 @@ async function tryRefreshToken() {
 
 async function doRefreshToken() {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
 
   let response: Response;
   try {
     response = await fetch(buildApiUrl('/auth/refresh'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
+      headers: refreshToken ? { 'Content-Type': 'application/json' } : undefined,
+      body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
     });
   } catch (error) {
     throw backendUnavailableError(error);
@@ -88,12 +89,58 @@ async function doRefreshToken() {
 async function logout() {
   const refreshToken = getRefreshToken();
   try {
-    if (refreshToken) {
-      await executeFetch('POST', '/auth/logout', { refreshToken }, undefined, getAccessToken());
-    }
+    await executeFetch('POST', '/auth/logout', refreshToken ? { refreshToken } : {}, undefined, getAccessToken());
   } finally {
     clearAuthSession();
   }
+}
+
+async function uploadFile<T>(
+  path: string,
+  file: File,
+  fields?: Record<string, string | number | boolean | undefined | null>,
+): Promise<T> {
+  const formData = new FormData();
+  formData.set('file', file);
+  for (const [key, value] of Object.entries(fields || {})) {
+    if (value === undefined || value === null || value === '') continue;
+    formData.set(key, String(value));
+  }
+
+  const send = async (token?: string | null) => {
+    const requestId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    return fetch(buildApiUrl(path), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-Request-Id': requestId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+  };
+
+  let response = await send(getAccessToken());
+  if (response.status === 401) {
+    const nextToken = await tryRefreshToken();
+    if (nextToken) response = await send(nextToken);
+  }
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const data = await response.json();
+      message = data.message ?? data.error ?? message;
+    } catch {
+      // ignore body parsing issue
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<T>;
 }
 
 async function request<T>(method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined | null>): Promise<T> {
@@ -176,5 +223,6 @@ export const http = {
   patch: <T>(path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined | null>) => request<T>('PATCH', path, body, query),
   delete: <T>(path: string, query?: Record<string, string | number | boolean | undefined | null>) => request<T>('DELETE', path, undefined, query),
   getBlob: (path: string, query?: Record<string, string | number | boolean | undefined | null>) => requestBlob(path, query),
+  uploadFile,
   logout,
 };

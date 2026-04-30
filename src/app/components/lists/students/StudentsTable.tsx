@@ -177,12 +177,19 @@ export function StudentsTable({
         },
         {
           key: "setup",
-          label: student.status === "Pending Setup" ? "Send Setup Email" : "Send Password Reset Email",
+          label:
+            student.status === "Pending Activation"
+              ? "Send Activation Email"
+              : student.status === "Pending Setup"
+                ? "Send Setup Email"
+                : "Send Password Reset Email",
           icon: <Mail size={15} />,
           ariaLabel:
-            student.status === "Pending Setup"
-              ? `Send setup email to ${student.name}`
-              : `Send password reset email to ${student.name}`,
+            student.status === "Pending Activation"
+              ? `Send activation email to ${student.name}`
+              : student.status === "Pending Setup"
+                ? `Send setup email to ${student.name}`
+                : `Send password reset email to ${student.name}`,
           onClick: () => onSendSetupLink(student.id),
           disabled: () =>
             actionBusy ||

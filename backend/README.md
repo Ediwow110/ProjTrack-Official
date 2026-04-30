@@ -5,7 +5,7 @@ The backend runtime is Prisma/PostgreSQL-first and requires a reachable `DATABAS
 ## Current runtime state
 
 - Auth, profiles, subjects, submissions, notifications, reports, and most admin flows are served from Prisma-backed repositories.
-- Login is verified for seeded admin, teacher, and student accounts.
+- Production-ready startup now avoids automatic demo account/data seeding.
 - Public health endpoints now expose only liveness/readiness:
   - `/health/live`
   - `/health/ready`
@@ -32,11 +32,11 @@ Useful commands:
 - `npm run smoke`
 - `npm run prisma:generate`
 - `npm run prisma:migrate:deploy`
-- `ALLOW_DEMO_SEED=true npm run seed`
+- `npm run cleanup:seed-data` (remove known demo/seed records)
 
 ## Current release blockers
 
-- Prisma migration history is now established locally. Deploys should use `npm run prisma:migrate:deploy` before seeding or starting the app.
+- Prisma migration history is now established locally. Deploys should use `npm run prisma:migrate:deploy` before starting the app.
 - File storage now supports local mode for development and S3-compatible object storage for production. Local mode may pass `/health/storage` outside production when writable; production readiness still requires S3-compatible object storage.
 - Production mail should use `MAIL_PROVIDER=mailrelay` with:
   - `MAIL_FROM_ADMIN=admin@projtrack.codes`
@@ -48,13 +48,6 @@ Useful commands:
 - Never upload or share `backend/.env` again.
 - Some admin system tools intentionally remain restricted in production because they write local artifacts or perform destructive maintenance actions.
 - Browser E2E smoke coverage is now present and wired into CI, but it still needs to stay green in a real CI/staging browser environment.
-
-## Seeded local accounts
-
-- Demo users are only created when `ALLOW_DEMO_SEED=true`.
-- `admin@projtrack.local / Admin123!ChangeMe`
-- `teacher@projtrack.local / Teacher123!ChangeMe`
-- `student@projtrack.local / Student123!ChangeMe`
 
 ## Backend startup troubleshooting
 

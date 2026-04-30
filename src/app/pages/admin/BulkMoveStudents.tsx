@@ -10,52 +10,28 @@ import {
 } from "lucide-react";
 
 import { AppModal } from "../../components/ui/app-modal";
+import {
+  getCourseOptions,
+  getSectionOptions,
+  getYearLevelOptions,
+} from "../../lib/academicStructure";
 import { adminOpsService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import type { BulkMoveSectionRecord } from "../../lib/api/contracts";
 
 type StructureSelection = {
   academicYearId: string;
+  course: string;
   yearLevelId: string;
   sectionId: string;
 };
 
 const emptySelection: StructureSelection = {
   academicYearId: "",
+  course: "",
   yearLevelId: "",
   sectionId: "",
 };
-
-function resolveYearLevels(sections: BulkMoveSectionRecord[], academicYearId: string) {
-  const byKey = new Map<string, { id: string; name: string }>();
-
-  sections.forEach((section) => {
-    if (academicYearId && section.academicYearId !== academicYearId) return;
-    const id = String(section.yearLevelId || section.yearLevelName || section.yearLevel || "").trim();
-    const name = String(section.yearLevelName || section.yearLevel || "").trim();
-    if (!id || !name || byKey.has(id)) return;
-    byKey.set(id, { id, name });
-  });
-
-  return Array.from(byKey.values()).sort((left, right) => left.name.localeCompare(right.name));
-}
-
-function resolveSections(
-  sections: BulkMoveSectionRecord[],
-  selection: Pick<StructureSelection, "academicYearId" | "yearLevelId">,
-) {
-  return sections.filter((section) => {
-    if (selection.academicYearId && section.academicYearId !== selection.academicYearId) return false;
-    if (
-      selection.yearLevelId &&
-      section.yearLevelId !== selection.yearLevelId &&
-      String(section.yearLevelName || section.yearLevel || "").trim() !== selection.yearLevelId
-    ) {
-      return false;
-    }
-    return true;
-  });
-}
 
 export default function AdminBulkMoveStudents() {
   const navigate = useNavigate();
@@ -92,6 +68,7 @@ export default function AdminBulkMoveStudents() {
     if (nextSource) {
       setSourceSelection({
         academicYearId: nextSource.academicYearId,
+        course: nextSource.course,
         yearLevelId: nextSource.yearLevelId || nextSource.yearLevelName || nextSource.yearLevel,
         sectionId: nextSource.id,
       });
@@ -100,6 +77,7 @@ export default function AdminBulkMoveStudents() {
     if (nextDest) {
       setDestSelection({
         academicYearId: nextDest.academicYearId,
+        course: nextDest.course,
         yearLevelId: nextDest.yearLevelId || nextDest.yearLevelName || nextDest.yearLevel,
         sectionId: nextDest.id,
       });
@@ -122,17 +100,47 @@ export default function AdminBulkMoveStudents() {
     }
   }
 
-  const sourceYearLevels = useMemo(
-    () => resolveYearLevels(sections, sourceSelection.academicYearId),
+  const sourceCourses = useMemo(
+    () => getCourseOptions(sections, sourceSelection.academicYearId),
     [sections, sourceSelection.academicYearId],
   );
-  const destYearLevels = useMemo(
-    () => resolveYearLevels(sections, destSelection.academicYearId),
+  const destCourses = useMemo(
+    () => getCourseOptions(sections, destSelection.academicYearId),
     [sections, destSelection.academicYearId],
   );
+  const sourceYearLevels = useMemo(
+    () =>
+      getYearLevelOptions(sections, {
+        academicYearId: sourceSelection.academicYearId,
+        course: sourceSelection.course,
+      }),
+    [sections, sourceSelection.academicYearId, sourceSelection.course],
+  );
+  const destYearLevels = useMemo(
+    () =>
+      getYearLevelOptions(sections, {
+        academicYearId: destSelection.academicYearId,
+        course: destSelection.course,
+      }),
+    [sections, destSelection.academicYearId, destSelection.course],
+  );
 
-  const sourceSections = resolveSections(sections, sourceSelection);
-  const destSections = resolveSections(sections, destSelection).filter(
+  const sourceSections = (getSectionOptions(sections, {
+    academicYearId: sourceSelection.academicYearId,
+    course: sourceSelection.course,
+    yearLevelId: sourceSelection.yearLevelId,
+    yearLevelName:
+      sourceYearLevels.find((level) => level.id === sourceSelection.yearLevelId)?.label ??
+      sourceSelection.yearLevelId,
+  }) as BulkMoveSectionRecord[]);
+  const destSections = (getSectionOptions(sections, {
+    academicYearId: destSelection.academicYearId,
+    course: destSelection.course,
+    yearLevelId: destSelection.yearLevelId,
+    yearLevelName:
+      destYearLevels.find((level) => level.id === destSelection.yearLevelId)?.label ??
+      destSelection.yearLevelId,
+  }) as BulkMoveSectionRecord[]).filter(
     (section) => section.id !== sourceSelection.sectionId,
   );
 
@@ -186,7 +194,7 @@ export default function AdminBulkMoveStudents() {
     const updated = await adminOpsService.moveStudents(sourceSection.id, destSection.id, selected);
     setData(updated);
     setDoneMessage(
-      `${selected.length} student(s) moved from ${sourceSection.academicYear} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code} to ${destSection.academicYear} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}.`,
+      `${selected.length} student(s) moved from ${sourceSection.academicYear} / ${sourceSection.course} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code} to ${destSection.academicYear} / ${destSection.course} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}.`,
     );
     setSelected([]);
     setShowModal(false);
@@ -212,7 +220,7 @@ export default function AdminBulkMoveStudents() {
             Bulk Move Students
           </h1>
           <p className="mt-0.5 text-sm text-slate-400 dark:text-slate-300">
-            Promote or reassign students between academic years, year levels, and sections.
+            Promote or reassign students through the same academic hierarchy used for student placement.
           </p>
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-300">
             {loading
@@ -241,11 +249,16 @@ export default function AdminBulkMoveStudents() {
         <StructurePicker
           title="Source"
           academicYears={academicYears}
+          courses={sourceCourses}
           yearLevels={sourceYearLevels}
           sections={sourceSections}
           selection={sourceSelection}
           onAcademicYearChange={(academicYearId) => {
-            setSource({ academicYearId, yearLevelId: "", sectionId: "" });
+            setSource({ academicYearId, course: "", yearLevelId: "", sectionId: "" });
+            setSelected([]);
+          }}
+          onCourseChange={(course) => {
+            setSource({ course, yearLevelId: "", sectionId: "" });
             setSelected([]);
           }}
           onYearLevelChange={(yearLevelId) => {
@@ -265,10 +278,12 @@ export default function AdminBulkMoveStudents() {
         <StructurePicker
           title="Destination"
           academicYears={academicYears}
+          courses={destCourses}
           yearLevels={destYearLevels}
           sections={destSections}
           selection={destSelection}
-          onAcademicYearChange={(academicYearId) => setDestination({ academicYearId, yearLevelId: "", sectionId: "" })}
+          onAcademicYearChange={(academicYearId) => setDestination({ academicYearId, course: "", yearLevelId: "", sectionId: "" })}
+          onCourseChange={(course) => setDestination({ course, yearLevelId: "", sectionId: "" })}
           onYearLevelChange={(yearLevelId) => setDestination({ yearLevelId, sectionId: "" })}
           onSectionChange={(sectionId) => setDestination({ sectionId })}
         />
@@ -292,7 +307,7 @@ export default function AdminBulkMoveStudents() {
 
           {!sourceSection ? (
             <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-300">
-              Select a source academic year, year level, and section to see students.
+              Select a source academic year, course, year level, and section to see students.
             </div>
           ) : sourceStudents.length === 0 ? (
             <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-300">
@@ -371,7 +386,7 @@ export default function AdminBulkMoveStudents() {
                 label="From"
                 value={
                   sourceSection
-                    ? `${sourceSection.academicYear} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code}`
+                    ? `${sourceSection.academicYear} / ${sourceSection.course} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code}`
                     : "—"
                 }
               />
@@ -379,7 +394,7 @@ export default function AdminBulkMoveStudents() {
                 label="To"
                 value={
                   destSection
-                    ? `${destSection.academicYear} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}`
+                    ? `${destSection.academicYear} / ${destSection.course} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}`
                     : "—"
                 }
               />
@@ -411,7 +426,7 @@ export default function AdminBulkMoveStudents() {
               <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 dark:bg-amber-500/15 p-2.5">
                 <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-600" />
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  This updates each selected student&apos;s academic year, year level, section, and course to match the destination section.
+                  This updates each selected student&apos;s academic year, course, year level, and section to match the destination section.
                 </p>
               </div>
             ) : null}
@@ -455,11 +470,11 @@ export default function AdminBulkMoveStudents() {
           <span className="font-bold text-slate-800 dark:text-slate-100">{selected.length} student(s)</span>{" "}
           from{" "}
           <span className="font-bold text-slate-800 dark:text-slate-100">
-            {sourceSection ? `${sourceSection.academicYear} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code}` : "—"}
+            {sourceSection ? `${sourceSection.academicYear} / ${sourceSection.course} / ${sourceSection.yearLevelName || sourceSection.yearLevel} / ${sourceSection.code}` : "—"}
           </span>{" "}
           to{" "}
           <span className="font-bold text-slate-800 dark:text-slate-100">
-            {destSection ? `${destSection.academicYear} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}` : "—"}
+            {destSection ? `${destSection.academicYear} / ${destSection.course} / ${destSection.yearLevelName || destSection.yearLevel} / ${destSection.code}` : "—"}
           </span>.
         </p>
       </AppModal>
@@ -470,26 +485,33 @@ export default function AdminBulkMoveStudents() {
 function StructurePicker({
   title,
   academicYears,
+  courses,
   yearLevels,
   sections,
   selection,
   onAcademicYearChange,
+  onCourseChange,
   onYearLevelChange,
   onSectionChange,
 }: {
   title: string;
   academicYears: Array<{ id: string; name: string; status: string }>;
-  yearLevels: Array<{ id: string; name: string }>;
+  courses: string[];
+  yearLevels: Array<{ id: string; label: string }>;
   sections: BulkMoveSectionRecord[];
   selection: StructureSelection;
   onAcademicYearChange: (value: string) => void;
+  onCourseChange: (value: string) => void;
   onYearLevelChange: (value: string) => void;
   onSectionChange: (value: string) => void;
 }) {
   return (
     <div className="rounded-xl border border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-900/85 p-5 shadow-sm">
       <h2 className="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">{title} Structure</h2>
-      <div className="grid gap-3 md:grid-cols-3">
+      <p className="mb-4 text-xs text-slate-400 dark:text-slate-300">
+        Follow the academic hierarchy: Academic Year, Course / Program, Year Level, then Section.
+      </p>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <LabeledSelect
           label="Academic Year"
           value={selection.academicYearId}
@@ -501,15 +523,26 @@ function StructurePicker({
           placeholder="Select academic year"
         />
         <LabeledSelect
+          label="Course / Program"
+          value={selection.course}
+          onChange={onCourseChange}
+          options={courses.map((course) => ({
+            value: course,
+            label: course,
+          }))}
+          placeholder={selection.academicYearId ? "Select course" : "Select academic year first"}
+          disabled={!selection.academicYearId}
+        />
+        <LabeledSelect
           label="Year Level"
           value={selection.yearLevelId}
           onChange={onYearLevelChange}
           options={yearLevels.map((yearLevel) => ({
             value: yearLevel.id,
-            label: yearLevel.name,
+            label: yearLevel.label,
           }))}
-          placeholder="Select year level"
-          disabled={!selection.academicYearId}
+          placeholder={selection.course ? "Select year level" : "Select course first"}
+          disabled={!selection.academicYearId || !selection.course}
         />
         <LabeledSelect
           label="Section"
@@ -519,7 +552,7 @@ function StructurePicker({
             value: section.id,
             label: `${section.code} · ${section.course}`,
           }))}
-          placeholder="Select section"
+          placeholder={selection.yearLevelId ? "Select section" : "Select year level first"}
           disabled={!selection.yearLevelId}
         />
       </div>

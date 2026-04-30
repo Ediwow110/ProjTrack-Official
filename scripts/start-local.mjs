@@ -17,9 +17,6 @@ import {
 import { withLocalBackendEnv } from "./local-backend-env.mjs";
 const args = new Set(process.argv.slice(2));
 const prepareOnly = args.has("--prepare-only");
-const allowDemoSeed = args.has("--no-demo-seed")
-  ? "false"
-  : String(process.env.ALLOW_DEMO_SEED ?? "true");
 
 const managedChildren = [];
 let shuttingDown = false;
@@ -83,29 +80,23 @@ async function prepareDatabase() {
   console.log("[start-local] Generating Prisma client...");
   await runCommand("prisma generate", npmCommand, ["run", "prisma:generate"], {
     cwd: backendDir,
-    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
+    env: withLocalBackendEnv(),
   });
 
   console.log("[start-local] Applying Prisma migrations...");
   await runCommand("prisma migrate deploy", npmCommand, ["run", "prisma:migrate:deploy"], {
     cwd: backendDir,
-    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
+    env: withLocalBackendEnv(),
   });
 
-  console.log("[start-local] Seeding local data...");
-  await runCommand("seed", npmCommand, ["run", "seed"], {
-    cwd: backendDir,
-    env: withLocalBackendEnv({
-      ALLOW_DEMO_SEED: allowDemoSeed,
-    }),
-  });
+  console.log("[start-local] Skipping automatic data seeding for production-safe local startup.");
 }
 
 async function ensureBackend() {
   console.log("[start-local] Starting backend...");
   const backend = startCommand("backend", nodeCommand, ["-r", "ts-node/register", "src/main.ts"], {
     cwd: backendDir,
-    env: withLocalBackendEnv({ ALLOW_DEMO_SEED: allowDemoSeed }),
+    env: withLocalBackendEnv(),
   });
   registerChild("backend", backend);
   await waitForHttp(`${backendUrl}/health/live`, 120_000);
@@ -129,38 +120,6 @@ async function ensureFrontend() {
   await waitForHttp(`${frontendUrl}/student/login`, 120_000);
 }
 
-async function verifyDemoLogins() {
-  if (allowDemoSeed === "false") {
-    console.log("[start-local] Skipping seeded login verification because demo seed is disabled.");
-    return;
-  }
-
-  const accounts = [
-    { role: "ADMIN", identifier: "admin@projtrack.local", password: "Admin123!ChangeMe" },
-    { role: "TEACHER", identifier: "teacher@projtrack.local", password: "Teacher123!ChangeMe" },
-    { role: "STUDENT", identifier: "student@projtrack.local", password: "Student123!ChangeMe" },
-  ];
-
-  for (const account of accounts) {
-    const response = await fetch(`${backendUrl}/auth/login`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        identifier: account.identifier,
-        password: account.password,
-        expectedRole: account.role,
-      }),
-    });
-
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`Seeded ${account.role} login verification failed: ${detail || response.status}`);
-    }
-  }
-
-  console.log("[start-local] Verified seeded admin, teacher, and student logins.");
-}
-
 async function main() {
   console.log("[start-local] Clearing local app and test ports...");
   clearListeningPorts([3001, 5173, 3101, 4173]);
@@ -176,16 +135,12 @@ async function main() {
 
   await ensureBackend();
   await ensureFrontend();
-  await verifyDemoLogins();
 
   console.log("");
   console.log("[start-local] PROJTRACK is ready.");
   console.log(`[start-local] Frontend: ${frontendUrl}/student/login`);
   console.log(`[start-local] Backend: ${backendUrl}/health/live`);
-  console.log("[start-local] Demo credentials:");
-  console.log("  Admin: admin@projtrack.local / Admin123!ChangeMe");
-  console.log("  Teacher: teacher@projtrack.local / Teacher123!ChangeMe");
-  console.log("  Student: student@projtrack.local or STU-2024-00142 / Student123!ChangeMe");
+  console.log("[start-local] Automatic demo account seeding is disabled.");
   console.log("[start-local] Mail stays pending until SMTP is configured.");
 
   await new Promise(() => {});

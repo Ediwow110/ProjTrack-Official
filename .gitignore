@@ -1,17 +1,23 @@
+# Logs
+*.log
+backend/*.log
+
+# Node modules
 node_modules/
 backend/node_modules/
+
+# Build outputs
 dist/
 backend/dist/
 build/
 backend/build/
-.vite/
 coverage/
-playwright-report/
-test-results/
 
+# Environment files
 .env
 .env.*
 !.env.example
+!*.env.example
 !.env.local.example
 !.env.production.example
 backend/.env
@@ -20,14 +26,33 @@ backend/.env.*
 !backend/.env.local.example
 !backend/.env.production.example
 
-*.log
-*.zip
+# Test reports
+playwright-report/
+test-results/
+
+# Artifacts and diagnostics
+artifacts-*.png
+*-report.json
+*-playwright.json
+.local-runtime/
+diagnostics/
+*.diagnostic.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+
+.github/.DS_Store
+
+# Other
+.vite/
 logs/
 !/src/app/components/lists/logs/
 !/src/app/components/lists/logs/**
 /backups/
 tmp/
-.local-runtime/
 frontend-dev*.log
 backend-dev*.log
 backend-runtime*.log
@@ -46,24 +71,9 @@ uploads/
 *.bak
 *.backup
 *.tsbuildinfo
-artifacts-*.png
-*-report.json
 teacher-playwright.json
 apply_*.py
 patch_*.py
-backend/*.log
 backend/tmp-*.log
 backend/prisma/generated/
 backend/node_modules/.prisma/
-
-# diagnostics
-diagnostics/
-*.diagnostic.json
-
-# OS/editor
-.DS_Store
-Thumbs.db
-.vscode/*
-!.vscode/extensions.json
-
-.github/.DS_Store

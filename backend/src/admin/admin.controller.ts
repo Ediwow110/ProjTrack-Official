@@ -16,6 +16,27 @@ import {
 import { AdminService } from './admin.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import {
+  AcademicSettingsDto,
+  AdminSubmissionCreateDto,
+  AdminSubmissionUpdateDto,
+  AnnouncementDto,
+  AssignGroupLeaderDto,
+  BroadcastDto,
+  BulkMoveDto,
+  CreateAcademicYearDto,
+  CreateAcademicYearLevelDto,
+  CreateAdminDto,
+  CreateSectionDto,
+  IdsDto,
+  ImportSystemToolBackupDto,
+  NoteDto,
+  StudentMutationDto,
+  SubjectMutationDto,
+  SystemSettingsDto,
+  SystemToolRunDto,
+  TeacherMutationDto,
+} from './dto/admin-mutation.dto';
 
 @UseGuards(JwtAuthGuard)
 @Roles('ADMIN')
@@ -45,7 +66,7 @@ export class AdminController {
   }
 
   @Post('users/admins')
-  createAdmin(@Body() body: any, @Req() req: any) {
+  createAdmin(@Body() body: CreateAdminDto, @Req() req: any) {
     return this.admin.createAdmin(body, this.actorContext(req));
   }
 
@@ -114,7 +135,7 @@ export class AdminController {
   }
 
   @Post('sections')
-  createSection(@Body() body: any) {
+  createSection(@Body() body: CreateSectionDto) {
     return this.admin.createSection(body);
   }
 
@@ -140,12 +161,12 @@ export class AdminController {
   }
 
   @Post('academic-years')
-  createAcademicYear(@Body() body: any) {
+  createAcademicYear(@Body() body: CreateAcademicYearDto) {
     return this.admin.createAcademicYear(body);
   }
 
   @Post('academic-years/:id/year-levels')
-  createAcademicYearLevel(@Param('id') id: string, @Body() body: any) {
+  createAcademicYearLevel(@Param('id') id: string, @Body() body: CreateAcademicYearLevelDto) {
     return this.admin.createAcademicYearLevel({ ...body, academicYearId: id });
   }
 
@@ -155,17 +176,17 @@ export class AdminController {
   }
 
   @Post('students')
-  createStudent(@Body() body: any) {
+  createStudent(@Body() body: StudentMutationDto) {
     return this.admin.createStudent(body);
   }
 
   @Post('teachers')
-  createTeacher(@Body() body: any) {
+  createTeacher(@Body() body: TeacherMutationDto) {
     return this.admin.createTeacher(body);
   }
 
   @Post('subjects')
-  createSubject(@Body() body: any) {
+  createSubject(@Body() body: SubjectMutationDto) {
     return this.admin.createSubject(body);
   }
 
@@ -185,7 +206,7 @@ export class AdminController {
   }
 
   @Post('students/:id')
-  updateStudent(@Param('id') id: string, @Body() body: any) {
+  updateStudent(@Param('id') id: string, @Body() body: StudentMutationDto) {
     return this.admin.updateStudent(id, body);
   }
 
@@ -210,7 +231,7 @@ export class AdminController {
   }
 
   @Post('teachers/:id')
-  updateTeacher(@Param('id') id: string, @Body() body: any) {
+  updateTeacher(@Param('id') id: string, @Body() body: TeacherMutationDto) {
     return this.admin.updateTeacher(id, body);
   }
 
@@ -220,7 +241,7 @@ export class AdminController {
   }
 
   @Post('subjects/:id')
-  updateSubject(@Param('id') id: string, @Body() body: any) {
+  updateSubject(@Param('id') id: string, @Body() body: SubjectMutationDto) {
     return this.admin.updateSubject(id, body);
   }
 
@@ -241,12 +262,12 @@ export class AdminController {
   }
 
   @Post('submissions')
-  createSubmission(@Body() body: any, @Req() req: any) {
+  createSubmission(@Body() body: AdminSubmissionCreateDto, @Req() req: any) {
     return this.admin.createSubmission(body, this.actorContext(req));
   }
 
   @Patch('submissions/:id')
-  updateSubmission(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  updateSubmission(@Param('id') id: string, @Body() body: AdminSubmissionUpdateDto, @Req() req: any) {
     return this.admin.updateSubmission(id, body, this.actorContext(req));
   }
 
@@ -260,7 +281,7 @@ export class AdminController {
   }
 
   @Post('submissions/:id/note')
-  saveSubmissionNote(@Param('id') id: string, @Body() body: { note: string }) {
+  saveSubmissionNote(@Param('id') id: string, @Body() body: NoteDto) {
     return this.admin.saveSubmissionNote(id, body?.note ?? '');
   }
 
@@ -285,7 +306,7 @@ export class AdminController {
   }
 
   @Post('settings/academic')
-  saveAcademicSettings(@Body() body: any, @Req() req: any) {
+  saveAcademicSettings(@Body() body: AcademicSettingsDto, @Req() req: any) {
     return this.admin.saveAcademicSettings(body, this.actorContext(req));
   }
 
@@ -295,7 +316,7 @@ export class AdminController {
   }
 
   @Post('settings/system')
-  saveSystemSettings(@Body() body: any, @Req() req: any) {
+  saveSystemSettings(@Body() body: SystemSettingsDto, @Req() req: any) {
     return this.admin.saveSystemSettings(body, this.actorContext(req));
   }
 
@@ -305,7 +326,7 @@ export class AdminController {
   }
 
   @Post('system-tools/:id/run')
-  runSystemTool(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  runSystemTool(@Param('id') id: string, @Body() body: SystemToolRunDto, @Req() req: any) {
     return this.admin.runSystemTool(id, body, this.actorContext(req));
   }
 
@@ -316,7 +337,7 @@ export class AdminController {
   }
 
   @Post('system-tools/backups/import')
-  importSystemToolBackup(@Body() body: { fileName: string; contentBase64: string }) {
+  importSystemToolBackup(@Body() body: ImportSystemToolBackupDto) {
     return this.admin.importSystemToolBackup(body.fileName, body.contentBase64);
   }
 
@@ -326,7 +347,7 @@ export class AdminController {
   }
 
   @Post('bulk-move')
-  moveStudents(@Body() body: { sourceSectionId?: string; destSectionId?: string; source?: string; dest?: string; ids: string[] }) {
+  moveStudents(@Body() body: BulkMoveDto) {
     return this.admin.moveStudents(body.sourceSectionId ?? body.source, body.destSectionId ?? body.dest, body.ids);
   }
 
@@ -376,7 +397,7 @@ export class AdminController {
   }
 
   @Post('groups/:id/leader')
-  assignGroupLeader(@Param('id') id: string, @Body() body: { memberId: string }) {
+  assignGroupLeader(@Param('id') id: string, @Body() body: AssignGroupLeaderDto) {
     return this.admin.assignGroupLeader(id, body?.memberId);
   }
 
@@ -396,7 +417,7 @@ export class AdminController {
   }
 
   @Post('notifications/delete')
-  deleteNotifications(@Body() body: { ids?: string[] }) {
+  deleteNotifications(@Body() body: IdsDto) {
     return this.admin.deleteNotifications(body?.ids ?? []);
   }
 
@@ -406,7 +427,7 @@ export class AdminController {
   }
 
   @Post('notifications/broadcast')
-  broadcast(@Body() body: any) {
+  broadcast(@Body() body: BroadcastDto) {
     return this.admin.broadcast(body);
   }
 
@@ -416,12 +437,12 @@ export class AdminController {
   }
 
   @Post('announcements')
-  createAnnouncement(@Body() body: any) {
+  createAnnouncement(@Body() body: AnnouncementDto) {
     return this.admin.createAnnouncement(body);
   }
 
   @Post('announcements/delete')
-  deleteAnnouncements(@Body() body: { ids?: string[] }) {
+  deleteAnnouncements(@Body() body: IdsDto) {
     return this.admin.deleteAnnouncements(body?.ids ?? []);
   }
 

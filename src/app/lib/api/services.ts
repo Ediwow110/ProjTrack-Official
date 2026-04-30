@@ -45,6 +45,7 @@ import type {
   AdminStudentViewResponse,
   AcademicSettingsResponse,
   SystemSettingsResponse,
+  BrandingResponse,
   SystemToolRecord,
   SystemToolRunResult,
   SystemToolRunResponse,
@@ -223,11 +224,7 @@ async function uploadProfileAvatar(file: File, scope: string) {
   if (file.size > PROFILE_AVATAR_MAX_MB * 1024 * 1024) {
     throw new Error(`Avatar file is too large. Maximum size is ${PROFILE_AVATAR_MAX_MB} MB.`);
   }
-  return http.post<{ relativePath: string }>("/files/upload-base64", {
-    fileName: file.name,
-    contentBase64: await fileToBase64(file),
-    scope,
-  });
+  return http.uploadFile<{ relativePath: string }>("/files/upload", file, { scope });
 }
 
 function isSpreadsheetFile(file: File) {
@@ -552,17 +549,17 @@ function parseDelimitedRows(text: string) {
   return lines.map((line) => line.split(delimiter).map((cell) => cell.trim()));
 }
 
-const allowedSections = ["BSIT 1A", "BSIT 2A", "BSIT 3A", "BSIT 3B", "BSCS 4A"];
 const templateHeaders = [
   "student_id",
-  "last_name",
   "first_name",
   "middle_initial",
+  "last_name",
+  "email",
+  "academic_year",
+  "course_code",
+  "course_name",
   "year_level",
   "section",
-  "course",
-  "academic_year",
-  "email",
 ];
 
 const defaultAcademicSettings: AcademicSettingsResponse = {
@@ -589,6 +586,14 @@ const defaultSystemSettings: SystemSettingsResponse = {
   accountAccessEmailsEnabled: true,
   classroomActivityEmailsEnabled: false,
   classroomActivitySystemNotificationsEnabled: true,
+};
+
+const defaultBrandingResponse: BrandingResponse = {
+  brandName: "ProjTrack",
+  logoUrl: null,
+  iconUrl: null,
+  faviconUrl: "/favicon.svg",
+  updatedAt: null,
 };
 
 function normalizeAcademicSettingsResponse(payload: any): AcademicSettingsResponse {
@@ -637,8 +642,38 @@ function normalizeSystemSettingsResponse(payload: any): SystemSettingsResponse {
   };
 }
 
+function normalizeBrandingResponse(payload: any): BrandingResponse {
+  const updatedAt = payload?.updatedAt ? String(payload.updatedAt) : defaultBrandingResponse.updatedAt;
+
+  return {
+    brandName: String(payload?.brandName ?? defaultBrandingResponse.brandName).trim() || defaultBrandingResponse.brandName,
+    logoUrl: normalizeBrandingAssetUrl(payload?.logoUrl, updatedAt),
+    iconUrl: normalizeBrandingAssetUrl(payload?.iconUrl, updatedAt),
+    faviconUrl:
+      normalizeBrandingAssetUrl(payload?.faviconUrl, updatedAt) ??
+      defaultBrandingResponse.faviconUrl,
+    updatedAt,
+  };
+}
+
+function normalizeBrandingAssetUrl(value: unknown, updatedAt?: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const resolved = raw.startsWith("/branding-assets/")
+    ? buildBackendFileUrl(raw)
+    : raw;
+  if (!updatedAt || !resolved.includes("/branding-assets/")) {
+    return resolved;
+  }
+
+  const separator = resolved.includes("?") ? "&" : "?";
+  return `${resolved}${separator}v=${encodeURIComponent(updatedAt)}`;
+}
+
 const academicSettingsStore: AcademicSettingsResponse = normalizeAcademicSettingsResponse(academicSettingsData);
 const systemSettingsStore: SystemSettingsResponse = normalizeSystemSettingsResponse(systemSettingsData);
+const brandingStore: BrandingResponse = normalizeBrandingResponse(defaultBrandingResponse);
 const bulkMoveStore: BulkMoveDataResponse = JSON.parse(JSON.stringify(bulkMoveData));
 const systemToolsStore: SystemToolRecord[] = JSON.parse(JSON.stringify(systemToolsData));
 let lastStudentImportBatchId: string | null = null;
@@ -820,16 +855,13 @@ export const studentService = {
   },
   async uploadSubmissionFile(file: File, scope = "student-submissions") {
     if (apiRuntime.useBackend) {
-      const contentBase64 = await fileToBase64(file);
-      return http.post<{ id: string; fileName: string; sizeBytes: number; relativePath: string }>("/files/upload-base64", {
-        fileName: file.name,
-        contentBase64,
-        scope,
-      });
+      return http.uploadFile<{ id: string; uploadId: string; fileName: string; sizeBytes: number; relativePath?: string }>("/files/upload", file, { scope });
     }
     await delay(150);
+    const uploadId = `upload_${Date.now()}`;
     return {
-      id: `upload_${Date.now()}`,
+      id: uploadId,
+      uploadId,
       fileName: file.name,
       sizeBytes: file.size,
       relativePath: `${scope}/${file.name}`,
@@ -847,7 +879,7 @@ export const studentService = {
     type?: "individual" | "group";
   }) {
     let uploadedFile:
-      | { id: string; fileName: string; sizeBytes: number; relativePath: string }
+      | { id: string; uploadId: string; fileName: string; sizeBytes: number; relativePath?: string }
       | null = null;
 
     if (input.file) {
@@ -870,9 +902,9 @@ export const studentService = {
         groupId: input.type === "group" ? (input.groupId || activityEntry.item.groupId) : undefined,
         files: uploadedFile
           ? [{
+              uploadId: uploadedFile.uploadId,
               name: uploadedFile.fileName,
               sizeKb: Math.max(1, Math.round(uploadedFile.sizeBytes / 1024)),
-              relativePath: uploadedFile.relativePath,
             }]
           : [],
         description: input.description,
@@ -2117,7 +2149,7 @@ ${sampleRow}
     }
     await delay(120);
     const csv = `${templateHeaders.join(",")}
-STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
+STU-2026-00152,Lia,M,Navarro,lia.n@school.edu.ph,2025-2026,BSIT,Bachelor of Science in Information Technology,3rd Year,BSIT 3991
 `;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -2157,10 +2189,10 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
         middle_initial: item.row.middle_initial ?? "",
         year_level: item.row.year_level ?? "",
         section: item.row.section ?? "",
-        course: item.row.course ?? "",
+        course: item.row.course_code ?? item.row.course ?? "",
         academic_year: item.row.academic_year ?? "",
         email: item.row.email ?? "",
-        status: "Pending Setup" as const,
+        status: "Pending Activation" as const,
         validationErrors: item.issues,
       }));
     }
@@ -2171,13 +2203,12 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
     const headerMap = rows[0].map((header) => header.toLowerCase());
     const requiredHeaders = [
       "student_id",
-      "last_name",
       "first_name",
+      "last_name",
+      "email",
+      "course_code",
       "year_level",
       "section",
-      "course",
-      "academic_year",
-      "email",
     ];
     const missingHeaders = requiredHeaders.filter((header) => !headerMap.includes(header));
     if (missingHeaders.length) throw new Error(`Missing required columns: ${missingHeaders.join(", ")}.`);
@@ -2191,18 +2222,18 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
     return rows.slice(1).map((cells, index) => {
       const getValue = (key: string) => cells[headerMap.indexOf(key)]?.trim() ?? "";
       const student_id = getValue("student_id");
-      const last_name = getValue("last_name");
       const first_name = getValue("first_name");
       const middle_initial = getValue("middle_initial");
+      const last_name = getValue("last_name");
+      const email = getValue("email");
+      const academic_year = getValue("academic_year");
+      const course_code = getValue("course_code") || getValue("course");
+      const course_name = getValue("course_name");
       const year_level = getValue("year_level");
       const section = getValue("section");
-      const course = getValue("course");
-      const academic_year = getValue("academic_year");
-      const email = getValue("email");
       const validationErrors: string[] = [];
-      if (!student_id || !first_name || !last_name || !email || !course || !year_level || !section || !academic_year) validationErrors.push("Missing required value");
+      if (!student_id || !first_name || !last_name || !email || !course_code || !year_level || !section) validationErrors.push("Missing required value");
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) validationErrors.push("Invalid email format");
-      if (section && !allowedSections.includes(section)) validationErrors.push("Unknown section");
       const lowerId = student_id.toLowerCase();
       const lowerEmail = email.toLowerCase();
       if (student_id && (existingIds.has(lowerId) || seenIds.has(lowerId))) validationErrors.push("Duplicate student ID");
@@ -2212,20 +2243,22 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
       return {
         sourceIndex: index,
         student_id,
-        last_name,
         first_name,
         middle_initial,
+        last_name,
+        email,
+        academic_year,
         year_level,
         section,
-        course,
-        academic_year,
-        email,
-        status: "Pending Setup" as const,
+        course: course_code,
+        course_code,
+        course_name,
+        status: "Pending Activation" as const,
         validationErrors,
       };
     });
   },
-  async confirmStudentImport(rows: Array<{ sourceIndex?: number; student_id: string; last_name: string; first_name: string; middle_initial?: string; year_level?: string; section: string; course?: string; academic_year?: string; email: string }>) {
+  async confirmStudentImport(rows: Array<{ sourceIndex?: number; student_id: string; last_name: string; first_name: string; middle_initial?: string; year_level?: string; section: string; course?: string; course_code?: string; academic_year?: string; email: string }>) {
     if (apiRuntime.useBackend && lastStudentImportBatchId) {
       const acceptedRowIndexes = rows.map((row, index) => row.sourceIndex ?? index);
       const response = await http.post<{
@@ -2234,7 +2267,7 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
           created: number;
           updatedOrSkipped: number;
           invalidRows: number;
-          pendingSetup: number;
+          pendingActivation: number;
         };
       }>("/admin/students/import/confirm", {
         batchId: lastStudentImportBatchId,
@@ -2249,20 +2282,24 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
           middleInitial: rows.find((row) => row.student_id === student.studentNumber)?.middle_initial ?? "",
           academicYear: rows.find((row) => row.student_id === student.studentNumber)?.academic_year ?? "—",
           yearLevel: rows.find((row) => row.student_id === student.studentNumber)?.year_level ?? "—",
-          course: rows.find((row) => row.student_id === student.studentNumber)?.course ?? "—",
+          course:
+            rows.find((row) => row.student_id === student.studentNumber)?.course_code ??
+            rows.find((row) => row.student_id === student.studentNumber)?.course ??
+            "—",
           name: student.name,
           email: student.email,
           sectionId: "",
           section: rows.find((row) => row.student_id === student.studentNumber)?.section ?? "—",
-          status: "Pending Setup" as const,
+          status: "Pending Activation" as const,
           createdBy: "Bulk Import",
-          lastActive: "Pending setup",
+          lastActive: "Pending activation",
         })),
         summary: {
           created: response.summary?.created ?? response.students.length,
           updatedOrSkipped: response.summary?.updatedOrSkipped ?? 0,
           invalidRows: response.summary?.invalidRows ?? 0,
-          pendingSetup: response.summary?.pendingSetup ?? response.students.length,
+          pendingActivation:
+            response.summary?.pendingActivation ?? response.students.length,
         },
       };
     }
@@ -2276,20 +2313,20 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
         middleInitial: row.middle_initial ?? "",
         academicYear: row.academic_year ?? "—",
         yearLevel: row.year_level ?? "—",
-        course: row.course ?? "—",
+        course: row.course_code ?? row.course ?? "—",
         name: `${row.first_name} ${row.last_name}`,
         email: row.email,
         sectionId: "",
         section: row.section,
-        status: "Pending Setup" as const,
+        status: "Pending Activation" as const,
         createdBy: "Bulk Import",
-        lastActive: "Pending setup",
+        lastActive: "Pending activation",
       })),
       summary: {
         created: rows.length,
         updatedOrSkipped: 0,
         invalidRows: 0,
-        pendingSetup: rows.length,
+        pendingActivation: rows.length,
       },
     };
   },
@@ -2303,7 +2340,7 @@ STU-2026-00152,Navarro,Lia,M,3rd Year,BSIT 3A,BSIT,2025-2026,lia.n@school.edu.ph
     if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/students/${id}/send-setup-invite`);
     requireBackendApi();
     await delay(180);
-    return { success: true, queued: true, status: "PENDING_SETUP" };
+    return { success: true, queued: true, status: "PENDING_ACTIVATION" };
   },
   async sendStudentResetLink(id: string) {
     if (apiRuntime.useBackend) return http.post<{ success: boolean; queued?: boolean; status?: string; mailJobId?: string; provider?: string; fromEmail?: string }>(`/admin/students/${id}/send-reset-link`);
@@ -3572,6 +3609,52 @@ export const adminOpsService = {
     Object.assign(systemSettingsStore, normalizeSystemSettingsResponse(payload));
     return normalizeSystemSettingsResponse(systemSettingsStore);
   },
+  async getBranding(): Promise<BrandingResponse> {
+    if (apiRuntime.useBackend) {
+      return normalizeBrandingResponse(await http.get<BrandingResponse>("/admin/branding"));
+    }
+    await delay();
+    return normalizeBrandingResponse(brandingStore);
+  },
+  async uploadBrandingAsset(
+    kind: "logo" | "icon" | "favicon",
+    payload: { fileName: string; mimeType: string; contentBase64: string },
+  ): Promise<BrandingResponse> {
+    if (apiRuntime.useBackend) {
+      return normalizeBrandingResponse(await http.post<BrandingResponse>(`/admin/branding/${kind}`, payload));
+    }
+    requireBackendApi();
+    await delay(200);
+    const dataUrl = `data:${payload.mimeType};base64,${payload.contentBase64}`;
+    Object.assign(brandingStore, {
+      ...brandingStore,
+      ...(kind === "logo" ? { logoUrl: dataUrl } : null),
+      ...(kind === "icon" ? { iconUrl: dataUrl } : null),
+      ...(kind === "favicon" ? { faviconUrl: dataUrl } : null),
+      updatedAt: new Date().toISOString(),
+    });
+    return normalizeBrandingResponse(brandingStore);
+  },
+  async saveBranding(payload?: { brandName?: string | null }): Promise<BrandingResponse> {
+    if (apiRuntime.useBackend) {
+      return normalizeBrandingResponse(await http.patch<BrandingResponse>("/admin/branding", payload ?? {}));
+    }
+    await delay(120);
+    Object.assign(brandingStore, {
+      ...brandingStore,
+      brandName: String(payload?.brandName ?? brandingStore.brandName).trim() || brandingStore.brandName,
+      updatedAt: new Date().toISOString(),
+    });
+    return normalizeBrandingResponse(brandingStore);
+  },
+  async resetBranding(): Promise<BrandingResponse> {
+    if (apiRuntime.useBackend) {
+      return normalizeBrandingResponse(await http.delete<BrandingResponse>("/admin/branding/reset"));
+    }
+    await delay(180);
+    Object.assign(brandingStore, normalizeBrandingResponse(defaultBrandingResponse));
+    return normalizeBrandingResponse(brandingStore);
+  },
   async getSystemTools(): Promise<SystemToolRecord[]> {
     if (apiRuntime.useBackend) {
       return http.get<SystemToolRecord[]>("/admin/system-tools");
@@ -3645,5 +3728,15 @@ export const adminOpsService = {
     sourceSection.students = sourceSection.students.filter((s) => !ids.includes(s.id));
     destSection.students = [...destSection.students, ...moving];
     return JSON.parse(JSON.stringify(bulkMoveStore));
+  },
+};
+
+export const brandingService = {
+  async getBranding(): Promise<BrandingResponse> {
+    if (apiRuntime.useBackend) {
+      return normalizeBrandingResponse(await http.get<BrandingResponse>("/branding"));
+    }
+    await delay();
+    return normalizeBrandingResponse(brandingStore);
   },
 };

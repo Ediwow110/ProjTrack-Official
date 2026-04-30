@@ -81,13 +81,35 @@ export class SubmissionsService {
     return this.decorate(record);
   }
 
-  async submit(body: { activityId: string; title?: string; userId?: string; groupId?: string; description?: string; notes?: string; externalLinks?: string[]; files?: { name: string; sizeKb: number; relativePath?: string }[] }) {
+  async submit(body: { activityId: string; title?: string; userId?: string; groupId?: string; description?: string; notes?: string; externalLinks?: string[]; files?: { uploadId: string; name: string; sizeKb: number }[] }) {
     const userId = body.userId;
     if (!userId) throw new ForbiddenException('Authenticated student session is required.');
 
     const activity: any = await this.subjectRepository.findActivityById(body.activityId);
     if (!activity) throw new NotFoundException('Activity not found.');
-    const validation = await this.validateStudentSubmission(body, activity, userId);
+    const requestedFiles = body.files || [];
+    const uploadIds = requestedFiles.map((file) => String(file.uploadId || '').trim()).filter(Boolean);
+    if (requestedFiles.length !== uploadIds.length) {
+      throw new BadRequestException('Each submitted file must reference a pending upload id.');
+    }
+    const pendingUploads = await this.filesService.resolvePendingUploadsForSubmission({
+      uploadIds,
+      userId,
+    });
+    const pendingById = new Map(pendingUploads.map((upload) => [upload.id, upload]));
+    const files = requestedFiles.map((file) => {
+      const pending = pendingById.get(file.uploadId);
+      if (!pending) {
+        throw new BadRequestException('One or more uploads are not available for this submission.');
+      }
+      return {
+        uploadId: pending.id,
+        name: pending.sanitizedFilename,
+        sizeKb: Math.max(1, Math.ceil(pending.sizeBytes / 1024)),
+        relativePath: pending.storageKey,
+      };
+    });
+    const validation = await this.validateStudentSubmission({ ...body, files }, activity, userId);
     body.groupId = validation.groupId;
 
     const existingSubmission: any = validation.groupId
@@ -98,31 +120,16 @@ export class SubmissionsService {
       throw new BadRequestException('This submission can no longer be edited or resubmitted from the student workflow.');
     }
 
-    const linkedPaths = (body.files || [])
-      .map((file) => file.relativePath)
-      .filter(Boolean) as string[];
-    if (linkedPaths.length) {
-      await this.filesService.validateUploadedFileReferences(linkedPaths);
-    }
-
     const previousStatus = existingSubmission?.status ?? null;
     const record: any = await this.submissionRepository.createOrUpdateSubmission({
       ...body,
+      files,
       userId,
       status: validation.status,
     });
     if (!record) throw new NotFoundException('Activity not found.');
     const subject: any = await this.subjectRepository.findSubjectById(activity.subjectId);
     const actor: any = await this.userRepository.findById(userId);
-
-    if (linkedPaths.length) {
-      await this.filesService.ensureFilesAttachedToSubmission({
-        relativePaths: linkedPaths,
-        submissionId: record.id,
-        activityId: body.activityId,
-        subjectId: record.subjectId,
-      });
-    }
 
     await this.auditLogs.record({
       actorUserId: userId,
@@ -152,7 +159,7 @@ export class SubmissionsService {
         actorUserId: userId,
         action: 'FILE_ATTACHED',
         toStatus: record.status,
-        details: { fileId: file.id, fileName: file.fileName, relativePath: file.relativePath },
+        details: { fileId: file.id, fileName: file.fileName },
       });
     }
 
@@ -278,7 +285,7 @@ export class SubmissionsService {
     groupId?: string;
     externalLinks?: string[];
     externalLink?: string;
-    files?: { name: string; sizeKb: number; relativePath?: string }[];
+    files?: { uploadId?: string; name: string; sizeKb: number }[];
   }, activity: any, userId: string) {
     const { subject } = await this.access.requireStudentEnrolledInSubject(userId, activity.subjectId);
     if (!subject.isOpen) {

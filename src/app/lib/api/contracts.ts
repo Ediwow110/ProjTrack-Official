@@ -412,14 +412,16 @@ export interface AdminStudentUpsertInput {
 export interface AdminStudentImportPreviewRow {
   sourceIndex?: number;
   student_id: string;
-  last_name: string;
   first_name: string;
   middle_initial?: string;
+  last_name: string;
+  email: string;
+  academic_year?: string;
+  course_code?: string;
+  course_name?: string;
   year_level?: string;
   section: string;
   course?: string;
-  academic_year?: string;
-  email: string;
   status: StudentStatus;
   validationErrors: string[];
 }
@@ -769,6 +771,7 @@ export interface SectionMasterListStudentRecord {
   lastName: string;
   firstName: string;
   middleInitial?: string;
+  accountStatus?: string;
 }
 
 export interface SectionMasterListResponse {
@@ -929,6 +932,14 @@ export interface SystemSettingsResponse {
   accountAccessEmailsEnabled: boolean;
   classroomActivityEmailsEnabled: boolean;
   classroomActivitySystemNotificationsEnabled: boolean;
+}
+
+export interface BrandingResponse {
+  brandName: string;
+  logoUrl: string | null;
+  iconUrl: string | null;
+  faviconUrl: string | null;
+  updatedAt: string | null;
 }
 
 export interface SystemToolRecord {

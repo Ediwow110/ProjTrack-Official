@@ -110,7 +110,11 @@ export function StudentPreviewDrawer({
                 onClick={() => onSendSetupLink(student.id)}
                 className="bg-[var(--role-accent)] text-white hover:bg-[var(--role-accent-strong)]"
               >
-                {student.status === "Pending Setup" ? "Send setup email" : "Send password reset email"}
+                {student.status === "Pending Activation"
+                  ? "Send activation email"
+                  : student.status === "Pending Setup"
+                    ? "Send setup email"
+                    : "Send password reset email"}
               </Button>
               {student.status !== "Inactive" ? (
                 <Button

@@ -17,6 +17,11 @@ const KEY = "projtrack-auth-session";
 const ACCESS_KEY = "projtrack-access-token";
 const REFRESH_KEY = "projtrack-refresh-token";
 const SESSION_EVENT = "projtrack-auth-session-change";
+let memoryAccessToken: string | null = null;
+
+function productionRuntime() {
+  return import.meta.env.PROD;
+}
 
 const roleNames: Record<AppRole, string> = {
   student: "Student Account",
@@ -43,6 +48,7 @@ function emitAuthSessionChange(session: AuthSession | null) {
 function persistAuthSession(session: AuthSession | null) {
   if (typeof window === "undefined") return;
   if (!session) {
+    memoryAccessToken = null;
     window.localStorage.removeItem(KEY);
     window.localStorage.removeItem(ACCESS_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
@@ -50,13 +56,18 @@ function persistAuthSession(session: AuthSession | null) {
     return;
   }
 
-  window.localStorage.setItem(KEY, JSON.stringify(session));
-  if (session.accessToken) {
+  memoryAccessToken = session.accessToken ?? memoryAccessToken;
+  const persistedSession = productionRuntime()
+    ? { ...session, accessToken: undefined, refreshToken: undefined }
+    : session;
+
+  window.localStorage.setItem(KEY, JSON.stringify(persistedSession));
+  if (!productionRuntime() && session.accessToken) {
     window.localStorage.setItem(ACCESS_KEY, session.accessToken);
   } else {
     window.localStorage.removeItem(ACCESS_KEY);
   }
-  if (session.refreshToken) {
+  if (!productionRuntime() && session.refreshToken) {
     window.localStorage.setItem(REFRESH_KEY, session.refreshToken);
   } else {
     window.localStorage.removeItem(REFRESH_KEY);
@@ -84,16 +95,20 @@ export function setAuthSession(
 
 export function getAccessToken() {
   if (typeof window === "undefined") return null;
+  if (memoryAccessToken) return memoryAccessToken;
+  if (productionRuntime()) return null;
   return window.localStorage.getItem(ACCESS_KEY);
 }
 
 export function getRefreshToken() {
   if (typeof window === "undefined") return null;
+  if (productionRuntime()) return null;
   return window.localStorage.getItem(REFRESH_KEY);
 }
 
 export function updateAuthTokens(tokens: { accessToken?: string; refreshToken?: string }) {
   const current = getAuthSession();
+  memoryAccessToken = tokens.accessToken ?? memoryAccessToken;
   if (!current) return;
   persistAuthSession({
     ...current,

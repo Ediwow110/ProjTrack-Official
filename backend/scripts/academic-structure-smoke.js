@@ -57,15 +57,28 @@ async function main() {
   };
 
   try {
-    const login = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        identifier: process.env.SMOKE_ADMIN_IDENTIFIER || 'admin@projtrack.local',
-        password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
-        expectedRole: 'ADMIN',
-      }),
-    });
-    expect(login.status === 200 || login.status === 201, `Admin login failed: ${JSON.stringify(login.body)}`);
+    const candidateIdentifiers = [process.env.SMOKE_ADMIN_IDENTIFIER].filter(Boolean);
+    const password = process.env.SMOKE_ADMIN_PASSWORD || '';
+    expect(
+      candidateIdentifiers.length > 0 && String(password).trim().length > 0,
+      'Missing SMOKE_ADMIN_IDENTIFIER or SMOKE_ADMIN_PASSWORD for academic-structure smoke.',
+    );
+    let login = null;
+    for (const identifier of candidateIdentifiers) {
+      const attempt = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          identifier,
+          password,
+          expectedRole: 'ADMIN',
+        }),
+      });
+      if (attempt.status === 200 || attempt.status === 201) {
+        login = attempt;
+        break;
+      }
+    }
+    expect(login && (login.status === 200 || login.status === 201), `Admin login failed for ${candidateIdentifiers.join(', ')}.`);
     const authHeader = { authorization: `Bearer ${login.body.accessToken}` };
 
     const academicYearsResponse = await request('/admin/academic-years', {
@@ -223,6 +236,34 @@ async function main() {
       'Destination academic year should summarize sections by year level.',
     );
 
+    const importTemplate = await request('/admin/students/template', {
+      method: 'GET',
+      headers: authHeader,
+    });
+    expect(
+      importTemplate.status === 200,
+      `Student import template failed: ${JSON.stringify(importTemplate.body)}`,
+    );
+    expect(
+      Array.isArray(importTemplate.body?.columns),
+      `Student import template should return columns: ${JSON.stringify(importTemplate.body)}`,
+    );
+    expect(
+      [
+        'student_id',
+        'first_name',
+        'middle_initial',
+        'last_name',
+        'email',
+        'academic_year',
+        'course_code',
+        'course_name',
+        'year_level',
+        'section',
+      ].every((column) => importTemplate.body.columns.includes(column)),
+      `Student import template columns mismatch: ${JSON.stringify(importTemplate.body)}`,
+    );
+
     const createStudent = await request('/admin/students', {
       method: 'POST',
       headers: authHeader,
@@ -252,7 +293,7 @@ async function main() {
     });
     expect(Boolean(createdStudent?.id), 'Created academic-structure student was not found.');
     createdUserIds.push(createdStudent.id);
-    expect(createdStudent.status === 'PENDING_SETUP', `Created student status mismatch: ${createdStudent.status}`);
+    expect(createdStudent.status === 'PENDING_ACTIVATION', `Created student status mismatch: ${createdStudent.status}`);
     expect(
       createdStudent.studentProfile?.sectionId === createSourceSection.body.id,
       `Created student section mismatch: ${createdStudent.studentProfile?.sectionId}`,
@@ -340,9 +381,13 @@ async function main() {
         fileName: 'academic-structure.csv',
         fileType: 'csv',
         csvText: [
-          'student_id,last_name,first_name,middle_initial,year_level,section,course,academic_year,email',
-          `ACY-IMP-${suffix},Structure,Import,M,2nd Year,${destinationSectionCode},BSIT,${createAcademicYear.body.name},${importEmail}`,
-          `ACY-INV-${suffix},Section,Invalid,,2nd Year,NOT-A-REAL-SECTION,BSIT,${createAcademicYear.body.name},invalid.${suffix}@projtrack.local`,
+          'student_id,first_name,middle_initial,last_name,email,academic_year,course_code,course_name,year_level,section',
+          `ACY-IMP-${suffix},Import,M,Structure,${importEmail},${createAcademicYear.body.name},BSIT,Bachelor of Science in Information Technology,2nd Year,${destinationSectionCode}`,
+          `ACY-CRS-${suffix},Invalid,,Course,invalid-course.${suffix}@projtrack.local,${createAcademicYear.body.name},BSBA,Bachelor of Science in Business Administration,2nd Year,${destinationSectionCode}`,
+          `ACY-YRL-${suffix},Invalid,,Year,invalid-year.${suffix}@projtrack.local,${createAcademicYear.body.name},BSIT,Bachelor of Science in Information Technology,3rd Year,${destinationSectionCode}`,
+          `ACY-SEC-${suffix},Invalid,,Section,invalid-section.${suffix}@projtrack.local,${createAcademicYear.body.name},BSIT,Bachelor of Science in Information Technology,2nd Year,NOT-A-REAL-SECTION`,
+          `ACY-${suffix},Duplicate,,StudentId,duplicate-id.${suffix}@projtrack.local,${createAcademicYear.body.name},BSIT,Bachelor of Science in Information Technology,2nd Year,${destinationSectionCode}`,
+          `ACY-EML-${suffix},Duplicate,,Email,${sourceEmail},${createAcademicYear.body.name},BSIT,Bachelor of Science in Information Technology,2nd Year,${destinationSectionCode}`,
         ].join('\n'),
       }),
     });
@@ -351,11 +396,31 @@ async function main() {
       `Academic-structure import preview failed: ${JSON.stringify(previewImport.body)}`,
     );
     expect(previewImport.body?.validRows === 1, `Import preview validRows mismatch: ${JSON.stringify(previewImport.body)}`);
-    expect(previewImport.body?.invalidRows === 1, `Import preview invalidRows mismatch: ${JSON.stringify(previewImport.body)}`);
-    const invalidImportRow = (previewImport.body?.preview || []).find((row) => !row.valid);
+    expect(previewImport.body?.invalidRows === 5, `Import preview invalidRows mismatch: ${JSON.stringify(previewImport.body)}`);
+    const invalidCourseRow = (previewImport.body?.preview || []).find((row) => row.row?.student_id === `ACY-CRS-${suffix}`);
     expect(
-      invalidImportRow?.issues?.some((issue) => issue.includes('does not exist under Academic Year')),
-      `Invalid import row should explain the missing scoped section: ${JSON.stringify(invalidImportRow)}`,
+      invalidCourseRow?.issues?.some((issue) => issue.includes('Course BSBA does not exist in Academic Year')),
+      `Invalid course row should explain the missing course: ${JSON.stringify(invalidCourseRow)}`,
+    );
+    const invalidYearRow = (previewImport.body?.preview || []).find((row) => row.row?.student_id === `ACY-YRL-${suffix}`);
+    expect(
+      invalidYearRow?.issues?.some((issue) => issue.includes('3rd Year is not configured for BSIT')),
+      `Invalid year row should explain the course/year mismatch: ${JSON.stringify(invalidYearRow)}`,
+    );
+    const invalidSectionRow = (previewImport.body?.preview || []).find((row) => row.row?.student_id === `ACY-SEC-${suffix}`);
+    expect(
+      invalidSectionRow?.issues?.some((issue) => issue.includes('does not belong to BSIT / 2nd Year /')),
+      `Invalid section row should explain the scoped section mismatch: ${JSON.stringify(invalidSectionRow)}`,
+    );
+    const duplicateIdRow = (previewImport.body?.preview || []).find((row) => row.row?.student_id === `ACY-${suffix}`);
+    expect(
+      duplicateIdRow?.issues?.includes('Duplicate student_id'),
+      `Duplicate student ID row should be rejected: ${JSON.stringify(duplicateIdRow)}`,
+    );
+    const duplicateEmailRow = (previewImport.body?.preview || []).find((row) => row.row?.student_id === `ACY-EML-${suffix}`);
+    expect(
+      duplicateEmailRow?.issues?.includes('Duplicate email'),
+      `Duplicate email row should be rejected: ${JSON.stringify(duplicateEmailRow)}`,
     );
 
     const confirmImport = await request('/admin/students/import/confirm', {
@@ -373,8 +438,8 @@ async function main() {
       `Academic-structure import confirm failed: ${JSON.stringify(confirmImport.body)}`,
     );
     expect(confirmImport.body?.summary?.created === 1, `Import summary created mismatch: ${JSON.stringify(confirmImport.body)}`);
-    expect(confirmImport.body?.summary?.invalidRows === 1, `Import summary invalid rows mismatch: ${JSON.stringify(confirmImport.body)}`);
-    expect(confirmImport.body?.summary?.pendingSetup === 1, `Import summary pending setup mismatch: ${JSON.stringify(confirmImport.body)}`);
+    expect(confirmImport.body?.summary?.invalidRows === 5, `Import summary invalid rows mismatch: ${JSON.stringify(confirmImport.body)}`);
+    expect(confirmImport.body?.summary?.pendingActivation === 1, `Import summary pending activation mismatch: ${JSON.stringify(confirmImport.body)}`);
 
     const importedStudent = await prisma.user.findUnique({
       where: { email: importEmail },
@@ -382,7 +447,7 @@ async function main() {
     });
     expect(Boolean(importedStudent?.id), 'Imported academic-structure student was not found.');
     createdUserIds.push(importedStudent.id);
-    expect(importedStudent.status === 'PENDING_SETUP', `Imported student status mismatch: ${importedStudent.status}`);
+    expect(importedStudent.status === 'PENDING_ACTIVATION', `Imported student status mismatch: ${importedStudent.status}`);
     expect(
       importedStudent.studentProfile?.academicYearId === createAcademicYear.body.id,
       `Imported student academic year mismatch: ${importedStudent.studentProfile?.academicYearId}`,
@@ -396,6 +461,26 @@ async function main() {
     expect(
       importedStudent.studentProfile?.middleInitial === 'M',
       `Imported student middle initial mismatch: ${importedStudent.studentProfile?.middleInitial}`,
+    );
+
+    const masterList = await request(`/admin/sections/${encodeURIComponent(createDestinationSection.body.id)}/master-list`, {
+      method: 'GET',
+      headers: authHeader,
+    });
+    expect(
+      masterList.status === 200,
+      `Section master list failed: ${JSON.stringify(masterList.body)}`,
+    );
+    const importedMasterListRow = (masterList.body?.rows || []).find(
+      (student) => student.studentId === `ACY-IMP-${suffix}`,
+    );
+    expect(
+      Boolean(importedMasterListRow),
+      `Imported student should appear in section master list: ${JSON.stringify(masterList.body)}`,
+    );
+    expect(
+      importedMasterListRow?.accountStatus === 'Pending Activation',
+      `Imported student master list status mismatch: ${JSON.stringify(importedMasterListRow)}`,
     );
 
     const importEmailJobs = await prisma.emailJob.count({
@@ -415,8 +500,10 @@ async function main() {
             manualStudentPlacement: true,
             middleInitialSupport: true,
             bulkMoveAcrossAcademicYears: true,
+            importTemplateHierarchy: true,
             importScopedValidation: true,
-            importPendingSetup: true,
+            importPendingActivation: true,
+            importMasterListVisibility: true,
             importNoAutoEmail: true,
           },
           sourceAcademicYear: sourceAcademicYear.name,

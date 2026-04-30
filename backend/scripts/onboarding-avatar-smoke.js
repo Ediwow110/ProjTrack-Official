@@ -56,11 +56,18 @@ async function main() {
   };
 
   try {
+    const adminIdentifier = process.env.SMOKE_ADMIN_IDENTIFIER || '';
+    const adminPassword = process.env.SMOKE_ADMIN_PASSWORD || '';
+    expect(
+      String(adminIdentifier).trim().length > 0 && String(adminPassword).trim().length > 0,
+      'Missing SMOKE_ADMIN_IDENTIFIER or SMOKE_ADMIN_PASSWORD for onboarding-avatar smoke.',
+    );
+
     const login = await request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
-        identifier: process.env.SMOKE_ADMIN_IDENTIFIER || 'admin@projtrack.local',
-        password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
+        identifier: adminIdentifier,
+        password: adminPassword,
         expectedRole: 'ADMIN',
       }),
     });

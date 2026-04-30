@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { MailService } from './mail.service';
+import { ArchiveOldMailJobsDto, RetryMailJobDto, RetryMailJobsDto, TestEmailDto } from './dto/mail-job.dto';
 
 @UseGuards(JwtAuthGuard)
 @Roles('ADMIN')
@@ -17,12 +18,12 @@ export class MailController {
   }
 
   @Post(':id/retry')
-  retryJob(@Param('id') id: string, @Body() body?: { force?: boolean }) {
+  retryJob(@Param('id') id: string, @Body() body?: RetryMailJobDto) {
     return this.mail.retryJob(id, { force: Boolean(body?.force) });
   }
 
   @Post('retry')
-  retryJobs(@Body() body: { ids?: string[]; force?: boolean }) {
+  retryJobs(@Body() body: RetryMailJobsDto) {
     return this.mail.retryJobs(Array.isArray(body?.ids) ? body.ids : [], {
       force: Boolean(body?.force),
     });
@@ -39,7 +40,7 @@ export class MailController {
   }
 
   @Post('archive-old')
-  archiveOldJobs(@Body() body?: { olderThanDays?: number }) {
+  archiveOldJobs(@Body() body?: ArchiveOldMailJobsDto) {
     return this.mail.archiveOldJobs({ olderThanDays: body?.olderThanDays });
   }
 
@@ -59,7 +60,7 @@ export class AdminMailOperationsController {
   constructor(private readonly mail: MailService) {}
 
   @Post('test')
-  testEmail(@Body() body: { to?: string }) {
+  testEmail(@Body() body: TestEmailDto) {
     return this.mail.queueAdminTestEmail(String(body?.to || ''));
   }
 }

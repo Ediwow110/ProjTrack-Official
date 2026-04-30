@@ -3,10 +3,10 @@ import { expect, test, type Page } from "@playwright/test";
 const accounts = {
   student: {
     role: "student",
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "student@projtrack.local",
-    password: process.env.SMOKE_STUDENT_PASSWORD || "Student123!ChangeMe",
+    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
+    password: process.env.SMOKE_STUDENT_PASSWORD || "",
     identifierLabel: /Student ID or Email/i,
-    buttonName: /Sign In as Student/i,
+    buttonName: /Continue to Student Portal Login/i,
     dashboardPath: "/student/dashboard",
     routes: [
       "/student/dashboard",
@@ -19,10 +19,10 @@ const accounts = {
   },
   teacher: {
     role: "teacher",
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "teacher@projtrack.local",
-    password: process.env.SMOKE_TEACHER_PASSWORD || "Teacher123!ChangeMe",
+    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
+    password: process.env.SMOKE_TEACHER_PASSWORD || "",
     identifierLabel: /Employee ID or School Email/i,
-    buttonName: /Sign In as Teacher/i,
+    buttonName: /Continue to Teacher Portal Login/i,
     dashboardPath: "/teacher/dashboard",
     routes: [
       "/teacher/dashboard",
@@ -35,10 +35,10 @@ const accounts = {
   },
   admin: {
     role: "admin",
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
+    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
+    password: process.env.SMOKE_ADMIN_PASSWORD || "",
     identifierLabel: /Admin Email/i,
-    buttonName: /Sign In as Admin/i,
+    buttonName: /Continue to Admin Portal Login/i,
     dashboardPath: "/admin/dashboard",
     routes: [
       "/admin/dashboard",
@@ -65,6 +65,12 @@ const accounts = {
     ],
   },
 } as const;
+
+const hasSmokeCredentials = [accounts.student, accounts.teacher, accounts.admin].every(
+  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
+);
+
+test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e portal smoke.');
 
 type RuntimeTracker = {
   consoleErrors: string[];

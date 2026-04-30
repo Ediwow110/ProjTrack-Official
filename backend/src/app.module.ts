@@ -15,8 +15,9 @@ import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
 import { AccessModule } from './access/access.module';
 import { BackupsModule } from './backups/backups.module';
+import { BrandingModule } from './branding/branding.module';
 
 @Module({
-  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule],
+  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule],
 })
 export class AppModule {}

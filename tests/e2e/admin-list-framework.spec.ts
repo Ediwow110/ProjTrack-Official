@@ -2,12 +2,17 @@ import { expect, test, type Page } from "@playwright/test";
 
 const adminAccount = {
   role: "admin",
-  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
-  password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
+  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
+  password: process.env.SMOKE_ADMIN_PASSWORD || "",
   identifierLabel: /Admin Email/i,
   buttonName: /Sign In as Admin/i,
   dashboardPath: "/admin/dashboard",
 };
+
+test.skip(
+  !String(adminAccount.identifier).trim() || !String(adminAccount.password).trim(),
+  "Set SMOKE_ADMIN_IDENTIFIER and SMOKE_ADMIN_PASSWORD before running admin list framework e2e.",
+);
 
 type RuntimeTracker = {
   consoleErrors: string[];

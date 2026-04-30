@@ -530,7 +530,7 @@ export class SubjectsService {
         section: masterList.section.name,
         adviser: masterList.section.adviser,
       }),
-      buffer: buildMasterListWorkbookBuffer(
+      buffer: await buildMasterListWorkbookBuffer(
         {
           academicYear: masterList.section.academicYear,
           yearLevel: masterList.section.yearLevel,

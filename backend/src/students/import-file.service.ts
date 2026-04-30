@@ -1,7 +1,22 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 type ImportRow = Record<string, string>;
+
+function cellToText(value: ExcelJS.CellValue) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    if ('text' in value && value.text !== undefined) return String(value.text ?? '').trim();
+    if ('result' in value && value.result !== undefined) return String(value.result ?? '').trim();
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((item) => item.text || '').join('').trim();
+    }
+    if ('hyperlink' in value && value.hyperlink !== undefined) return String(value.hyperlink ?? '').trim();
+    return '';
+  }
+  return String(value ?? '').trim();
+}
 
 @Injectable()
 export class ImportFileService {
@@ -10,7 +25,7 @@ export class ImportFileService {
   private readonly maxSheets = Number(process.env.STUDENT_IMPORT_MAX_SHEETS || 1);
   private readonly maxFileBytes = Number(process.env.STUDENT_IMPORT_MAX_FILE_MB || 5) * 1024 * 1024;
 
-  parseBase64Spreadsheet(fileBase64: string, fileName?: string): ImportRow[] {
+  async parseBase64Spreadsheet(fileBase64: string, fileName?: string): Promise<ImportRow[]> {
     if (!fileBase64) {
       throw new BadRequestException('No spreadsheet content provided.');
     }
@@ -26,34 +41,39 @@ export class ImportFileService {
     }
 
     try {
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      if (workbook.SheetNames.length > this.maxSheets) {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as any);
+      if (workbook.worksheets.length > this.maxSheets) {
         throw new BadRequestException(`Import file exceeds the ${this.maxSheets} sheet limit.`);
       }
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
+      const sheet = workbook.worksheets[0];
+      if (!sheet) {
         throw new BadRequestException('Spreadsheet has no sheets.');
       }
 
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-        defval: '',
-        raw: false,
-      });
-      if (rows.length > this.maxRows) {
-        throw new BadRequestException(`Import file exceeds the ${this.maxRows} row limit.`);
+      const headerValues = (sheet.getRow(1).values as ExcelJS.CellValue[]).slice(1);
+      const headers = headerValues.map((value) => cellToText(value).trim().toLowerCase());
+      if (!headers.some(Boolean)) return [];
+      if (headers.length > this.maxColumns) {
+        throw new BadRequestException(`Import file exceeds the ${this.maxColumns} column limit.`);
       }
 
-      return rows.map((row) => {
-        if (Object.keys(row).length > this.maxColumns) {
-          throw new BadRequestException(`Import file exceeds the ${this.maxColumns} column limit.`);
+      const rows: ImportRow[] = [];
+      for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber += 1) {
+        const values = (sheet.getRow(rowNumber).values as ExcelJS.CellValue[]).slice(1);
+        if (!values.some((value) => cellToText(value))) continue;
+        if (rows.length >= this.maxRows) {
+          throw new BadRequestException(`Import file exceeds the ${this.maxRows} row limit.`);
         }
-        const normalized: ImportRow = {};
-        for (const [key, value] of Object.entries(row)) {
-          normalized[String(key).trim().toLowerCase()] = String(value ?? '').trim();
-        }
-        return normalized;
-      });
+        const row: ImportRow = {};
+        headers.forEach((header, index) => {
+          if (!header) return;
+          row[header] = cellToText(values[index]);
+        });
+        rows.push(row);
+      }
+
+      return rows;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       const label = fileName ? ` for ${fileName}` : '';

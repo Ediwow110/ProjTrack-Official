@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { SubmissionsService } from './submissions.service';
+import { StudentSubmitDto, TeacherReviewSubmissionDto } from './dto/submission.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -22,7 +23,7 @@ export class SubmissionsController {
 
   @Roles('STUDENT')
   @Post('student/submissions')
-  submit(@Body() body: any, @Req() req: any) {
+  submit(@Body() body: StudentSubmitDto, @Req() req: any) {
     return this.submissions.submit({ ...body, userId: req.user?.sub });
   }
 
@@ -46,7 +47,7 @@ export class SubmissionsController {
 
   @Roles('TEACHER')
   @Patch('teacher/submissions/:id/review')
-  review(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  review(@Param('id') id: string, @Body() body: TeacherReviewSubmissionDto, @Req() req: any) {
     return this.submissions.review(id, { ...body, actorUserId: req.user?.sub });
   }
 }

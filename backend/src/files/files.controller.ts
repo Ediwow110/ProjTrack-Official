@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { FilesService } from './files.service';
+import { UploadBase64Dto, UploadScopeDto } from './dto/upload-file.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -9,8 +11,27 @@ export class FilesController {
   constructor(private readonly files: FilesService) {}
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', {
+    limits: {
+      fileSize: Number(process.env.FILE_UPLOAD_MAX_MB || 20) * 1024 * 1024,
+      files: 1,
+    },
+  }))
+  uploadMultipart(@UploadedFile() file: any, @Body() body: UploadScopeDto, @Req() req: any) {
+    return this.files.uploadBuffer({
+      fileName: file?.originalname,
+      contentType: file?.mimetype,
+      buffer: file?.buffer,
+      scope: body?.scope,
+      uploadedByUserId: req.user?.sub,
+      uploadedByRole: req.user?.role,
+    });
+  }
+
+  @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Post('upload-base64')
-  uploadBase64(@Body() body: { fileName: string; contentBase64: string; scope?: string }, @Req() req: any) {
+  uploadBase64(@Body() body: UploadBase64Dto, @Req() req: any) {
     return this.files.uploadBase64({
       ...body,
       uploadedByUserId: req.user?.sub,

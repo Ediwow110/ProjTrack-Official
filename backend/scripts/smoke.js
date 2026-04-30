@@ -32,23 +32,34 @@ async function main() {
   const roleAccounts = [
     {
       role: 'ADMIN',
-      identifier: process.env.SMOKE_ADMIN_IDENTIFIER || 'admin@projtrack.local',
-      password: process.env.SMOKE_ADMIN_PASSWORD || 'Admin123!ChangeMe',
+      identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
+      password: process.env.SMOKE_ADMIN_PASSWORD || '',
       profilePath: '/admin/profile',
     },
     {
       role: 'TEACHER',
-      identifier: process.env.SMOKE_TEACHER_IDENTIFIER || 'teacher@projtrack.local',
-      password: process.env.SMOKE_TEACHER_PASSWORD || 'Teacher123!ChangeMe',
+      identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
+      password: process.env.SMOKE_TEACHER_PASSWORD || '',
       profilePath: '/teacher/profile',
     },
     {
       role: 'STUDENT',
-      identifier: process.env.SMOKE_STUDENT_IDENTIFIER || 'student@projtrack.local',
-      password: process.env.SMOKE_STUDENT_PASSWORD || 'Student123!ChangeMe',
+      identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
+      password: process.env.SMOKE_STUDENT_PASSWORD || '',
       profilePath: '/student/profile',
     },
   ];
+
+  const missingCredentialRoles = roleAccounts
+    .filter((account) => !String(account.identifier).trim() || !String(account.password).trim())
+    .map((account) => account.role);
+
+  if (missingCredentialRoles.length > 0) {
+    throw new Error(
+      `Missing smoke credentials for role(s): ${missingCredentialRoles.join(', ')}. ` +
+        'Set SMOKE_ADMIN_*, SMOKE_TEACHER_*, and SMOKE_STUDENT_* environment variables.',
+    );
+  }
 
   const request = async (relativeUrl, init = {}) => {
     const response = await fetch(`${baseUrl}${relativeUrl}`, {

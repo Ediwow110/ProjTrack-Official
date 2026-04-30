@@ -1,9 +1,14 @@
 import { expect, test } from "@playwright/test";
 
 const adminAccount = {
-  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
-  password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
+  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
+  password: process.env.SMOKE_ADMIN_PASSWORD || "",
 };
+
+test.skip(
+  !String(adminAccount.identifier).trim() || !String(adminAccount.password).trim(),
+  "Set SMOKE_ADMIN_IDENTIFIER and SMOKE_ADMIN_PASSWORD before running admin backups e2e.",
+);
 
 async function loginAdmin(page: import("@playwright/test").Page) {
   await page.goto("/admin/login");

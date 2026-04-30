@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailLimitService } from './mail-limit.service';
 import { MailProviderRouterService } from './mail-provider-router.service';
 import { MailTransportService } from './mail.transport.service';
+import { validateMailTemplatePayload } from './mail.templates';
 import { isSenderNotConfirmedMessage } from './providers/provider-error-classification';
 
 type QueueMailInput = {
@@ -77,6 +78,11 @@ type ArchiveMailJobsInput = {
 
 function normalizeEmail(value: string) {
   return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeMailSubject(value?: string | null) {
+  const subject = String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+  return subject ? subject.slice(0, 160) : null;
 }
 
 function scheduledDate(value?: Date | string | null) {
@@ -620,12 +626,22 @@ export class MailService {
     if (!userEmail) {
       throw new BadRequestException('Missing email recipient.');
     }
+    const safePayload = validateMailTemplatePayload(
+      input.templateKey,
+      mergePayload(input.payload, {
+        firstName:
+          typeof input.payload?.firstName === 'string' && input.payload.firstName.trim()
+            ? input.payload.firstName
+            : input.recipientName,
+      }),
+    );
 
     await this.transport.ensureReadyForQueue();
 
     const now = new Date();
     const scheduledAt = scheduledDate(input.scheduledAt);
     const idempotencyKey = input.idempotencyKey?.trim() || null;
+    const safeSubject = normalizeMailSubject(input.subject);
     const idempotencyUntil = input.idempotencyUntil
       ? scheduledDate(input.idempotencyUntil)
       : null;
@@ -655,9 +671,9 @@ export class MailService {
             status: EmailJobStatus.QUEUED,
             userEmail,
             recipientName: input.recipientName?.trim() || null,
-            subject: input.subject?.trim() || null,
+            subject: safeSubject,
             templateKey: input.templateKey,
-            payload: input.payload as Prisma.InputJsonValue,
+            payload: safePayload as Prisma.InputJsonValue,
             attempts: 0,
             maxAttempts: input.maxAttempts ?? DEFAULT_MAIL_MAX_ATTEMPTS,
             scheduledAt,
@@ -688,9 +704,9 @@ export class MailService {
         status: EmailJobStatus.QUEUED,
         userEmail,
         recipientName: input.recipientName?.trim() || null,
-        subject: input.subject?.trim() || null,
+        subject: safeSubject,
         templateKey: input.templateKey,
-        payload: input.payload as Prisma.InputJsonValue,
+        payload: safePayload as Prisma.InputJsonValue,
         attempts: 0,
         maxAttempts: input.maxAttempts ?? DEFAULT_MAIL_MAX_ATTEMPTS,
         scheduledAt,

@@ -574,6 +574,7 @@ export class AdminService {
     const masterList = await this.adminOpsRepository.getSectionMasterList(sectionId);
     const fileName = buildMasterListFileName({
       academicYear: masterList.section.academicYear,
+      course: masterList.section.course,
       yearLevel: masterList.section.yearLevel,
       section: masterList.section.name,
       adviser: masterList.section.adviser,
@@ -581,9 +582,10 @@ export class AdminService {
 
     return {
       fileName,
-      buffer: buildMasterListWorkbookBuffer(
+      buffer: await buildMasterListWorkbookBuffer(
         {
           academicYear: masterList.section.academicYear,
+          course: masterList.section.course,
           yearLevel: masterList.section.yearLevel,
           section: masterList.section.name,
           adviser: masterList.section.adviser,
@@ -1182,6 +1184,9 @@ export class AdminService {
     if (!firstName || !lastName || !email || !studentNumber) {
       throw new BadRequestException('First name, last name, email, and student number are required.');
     }
+    if (!sectionValue) {
+      throw new BadRequestException('Section is required when adding a student.');
+    }
 
     const [existingEmail, existingStudentNumber] = await Promise.all([
       this.prisma.user.findUnique({ where: { email } }),
@@ -1207,7 +1212,7 @@ export class AdminService {
       data: {
         email,
         role: 'STUDENT',
-        status: 'PENDING_SETUP',
+        status: 'PENDING_ACTIVATION',
         firstName,
         lastName,
         studentProfile: {
@@ -1235,7 +1240,7 @@ export class AdminService {
       entityId: user.id,
       result: 'Success',
       details: 'Admin created a student account.',
-      afterValue: 'PENDING_SETUP',
+      afterValue: 'PENDING_ACTIVATION',
     });
 
     return { success: true, id: user.id };
@@ -1642,12 +1647,15 @@ export class AdminService {
   async activateStudent(id: string, actor?: AdminActorContext) {
     const user = await this.requireUser(id, 'STUDENT');
     await this.assertAdminRateLimit('activate-user', actor, user.email);
-    return this.queueStudentSetupLink(user, 'ACTIVATE', actor);
+    return this.queueStudentActivationLink(user, actor, 'ACTIVATE');
   }
 
   async sendStudentResetLink(id: string, actor?: AdminActorContext) {
     const user = await this.requireUser(id, 'STUDENT');
     await this.assertAdminRateLimit('send-reset-link', actor, user.email);
+    if (String(user.status ?? '').toUpperCase() === 'PENDING_ACTIVATION') {
+      return this.queueStudentActivationLink(user, actor, 'RESEND_ACTIVATION');
+    }
     return this.queueStudentSetupLink(user, 'RESET', actor);
   }
 
@@ -4322,7 +4330,66 @@ export class AdminService {
   }
 
   private formatStudentStatus(status?: string | null) {
-    return isPendingSetupStatus(status) ? 'Pending Setup' : this.formatUserStatus(status);
+    return this.formatUserStatus(status);
+  }
+
+  private async queueStudentActivationLink(
+    user: any,
+    actor?: AdminActorContext,
+    action: 'ACTIVATE' | 'RESEND_ACTIVATION' = 'ACTIVATE',
+  ) {
+    const session = await this.accountActionTokens.issueActivation(user.id);
+    const activationLink = buildActivationLink({
+      token: session.token,
+      ref: session.publicRef,
+      role: 'student',
+    });
+
+    const mailJob = await this.mail.queueStudentSetupInvitation({
+      to: user.email,
+      recipientName: this.userName(user),
+      firstName: user.firstName,
+      activationLink,
+      publicRef: session.publicRef,
+    });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        status: 'PENDING_SETUP',
+      },
+    });
+
+    await this.notifications.createInAppNotification(
+      user.id,
+      'Account activation ready',
+      'An activation link has been queued for email delivery.',
+    );
+
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: 'ADMIN',
+      action,
+      module: 'Students',
+      target: this.userName(user),
+      entityId: user.id,
+      result: 'Queued',
+      details:
+        action === 'RESEND_ACTIVATION'
+          ? `Admin resent a student activation email${actor?.actorEmail ? ` (${actor.actorEmail})` : ''}.`
+          : `Admin queued a student activation email${actor?.actorEmail ? ` (${actor.actorEmail})` : ''}.`,
+      afterValue: 'PENDING_SETUP',
+      ipAddress: actor?.ipAddress,
+    });
+
+    return {
+      success: true,
+      queued: true,
+      status: 'PENDING_SETUP',
+      firstTimeSetup: true,
+      mailJobId: mailJob.id,
+      ...(this.canExposeAccountActionLinks() ? { activationLink } : {}),
+    };
   }
 
   private async queueStudentSetupLink(user: any, action: 'ACTIVATE' | 'RESET', actor?: AdminActorContext) {

@@ -17,10 +17,7 @@ if not defined BACKEND_RUNNING (
 echo [start-local] Launching local services...
 echo [start-local] Frontend: http://127.0.0.1:5173/student/login
 echo [start-local] Backend: http://127.0.0.1:3001/health/live
-echo [start-local] Demo credentials:
-echo   Admin: admin@projtrack.local / Admin123!ChangeMe
-echo   Teacher: teacher@projtrack.local / Teacher123!ChangeMe
-echo   Student: student@projtrack.local or STU-2024-00142 / Student123!ChangeMe
+echo [start-local] Demo account auto-seeding is disabled.
 
 if defined BACKEND_RUNNING (
   echo [start-local] Reusing backend on port 3001.

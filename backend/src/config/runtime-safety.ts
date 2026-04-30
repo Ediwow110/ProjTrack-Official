@@ -52,7 +52,7 @@ function asBoolean(value: string | undefined) {
 
 function isWeakSecret(value: string | undefined) {
   const normalized = String(value ?? '').trim();
-  return !normalized || normalized.length < 32 || DEFAULT_SECRET_VALUES.has(normalized);
+  return !normalized || normalized.length < 48 || DEFAULT_SECRET_VALUES.has(normalized) || isPlaceholder(normalized);
 }
 
 function envValue(env: NodeJS.ProcessEnv, ...keys: string[]) {
@@ -75,7 +75,15 @@ function isLocalUrl(value: string | undefined) {
 
 function isLocalDatabaseUrl(value: string | undefined) {
   const normalized = String(value ?? '').trim().toLowerCase();
-  return normalized.includes('localhost') || normalized.includes('127.0.0.1') || normalized.includes('@db:') || normalized.includes('@postgres:');
+  return (
+    normalized.startsWith('file:') ||
+    normalized.startsWith('sqlite:') ||
+    normalized.includes('localhost') ||
+    normalized.includes('127.0.0.1') ||
+    normalized.includes('[::1]') ||
+    normalized.includes('@db:') ||
+    normalized.includes('@postgres:')
+  );
 }
 
 function pushUnique(target: string[], value: string) {
@@ -265,26 +273,117 @@ function validateStorage(errors: string[], warnings: string[], isProduction: boo
   if (!hasValue(env.S3_REGION)) target.push('S3_REGION is required when object storage mode is s3.');
   if (!hasValue(env.S3_ACCESS_KEY_ID)) target.push('S3_ACCESS_KEY_ID is required when object storage mode is s3.');
   if (!hasValue(env.S3_SECRET_ACCESS_KEY)) target.push('S3_SECRET_ACCESS_KEY is required when object storage mode is s3.');
+  if (isProduction && isLocalUrl(env.S3_ENDPOINT)) target.push('S3_ENDPOINT cannot point to localhost in production.');
+  const signedUrlTtl = Number(env.S3_SIGNED_URL_TTL_SECONDS || 300);
+  if (!Number.isFinite(signedUrlTtl) || signedUrlTtl < 30 || signedUrlTtl > 900) {
+    target.push('S3_SIGNED_URL_TTL_SECONDS must be between 30 and 900 seconds.');
+  }
+  if (isProduction && asBoolean(env.S3_BUCKET_PUBLIC)) {
+    target.push('S3_BUCKET_PUBLIC must not be true; production buckets must stay private.');
+  }
+}
+
+function isValidAccountActionTokenKey(value: string | undefined) {
+  const configured = String(value ?? '').trim();
+  if (/^[a-f0-9]{64}$/i.test(configured)) return true;
+  try {
+    return Buffer.from(configured, 'base64').length === 32;
+  } catch {
+    return false;
+  }
+}
+
+function validateHttpsUrl(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  label: string,
+  errors: string[],
+  warnings: string[],
+  isProduction: boolean,
+) {
+  const value = String(env[key] ?? '').trim();
+  if (!value) {
+    (isProduction ? errors : warnings).push(
+      isProduction ? `${label} is required in production.` : `${label} is not set.`,
+    );
+    return;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    (isProduction ? errors : warnings).push(`${label} must be a valid absolute URL.`);
+    return;
+  }
+  if (isProduction && (isLocalUrl(value) || parsed.protocol !== 'https:')) {
+    errors.push(`${label} must be an https:// public URL and cannot point to localhost in production.`);
+  }
+}
+
+function validateWorkerSettings(errors: string[], warnings: string[], isProduction: boolean, env: NodeJS.ProcessEnv) {
+  const target = isProduction ? errors : warnings;
+  for (const key of ['MAIL_WORKER_ENABLED', 'BACKUP_WORKER_ENABLED', 'BACKUP_SCHEDULE_ENABLED']) {
+    if (!hasValue(env[key])) target.push(`${key} must be explicitly configured.`);
+  }
+  for (const key of ['MAIL_WORKER_POLL_MS', 'BACKUP_WORKER_POLL_MS']) {
+    const raw = env[key];
+    if (!hasValue(raw)) {
+      target.push(`${key} must be explicitly configured.`);
+      continue;
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 1000) target.push(`${key} must be a number >= 1000.`);
+  }
+}
+
+function validateRateLimit(errors: string[], warnings: string[], isProduction: boolean, env: NodeJS.ProcessEnv) {
+  const store = String(env.HTTP_RATE_LIMIT_STORE || (isProduction ? '' : 'memory')).trim().toLowerCase();
+  if (isProduction && !['database', 'redis', 'gateway'].includes(store)) {
+    errors.push('HTTP_RATE_LIMIT_STORE must be database, redis, or gateway in production; in-memory limits are not production-safe.');
+  } else if (!isProduction && store === 'memory') {
+    warnings.push('HTTP_RATE_LIMIT_STORE=memory is development-only; production must use database, redis, or gateway limits.');
+  }
+}
+
+function validateUploadScanning(errors: string[], warnings: string[], isProduction: boolean, env: NodeJS.ProcessEnv) {
+  const scanner = String(env.FILE_MALWARE_SCANNER || '').trim().toLowerCase();
+  const mode = String(env.FILE_MALWARE_SCAN_MODE || (isProduction ? 'fail-closed' : 'disabled')).trim().toLowerCase();
+  if (isProduction && mode !== 'fail-closed') {
+    errors.push('FILE_MALWARE_SCAN_MODE must be fail-closed in production.');
+  }
+  if (isProduction && scanner !== 'clamav') {
+    errors.push('FILE_MALWARE_SCANNER must be clamav in production until another scanner adapter is implemented.');
+  }
+  if (scanner === 'clamav') {
+    const target = isProduction ? errors : warnings;
+    if (!hasValue(env.CLAMAV_HOST)) target.push('CLAMAV_HOST is required when FILE_MALWARE_SCANNER=clamav.');
+    if (!hasValue(env.CLAMAV_PORT)) target.push('CLAMAV_PORT is required when FILE_MALWARE_SCANNER=clamav.');
+  }
 }
 
 export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env): RuntimeValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
   const isProduction = isProductionEmailEnvironment(env);
-  const environment = isProduction
-    ? 'production'
-    : String(env.APP_ENV ?? env.NODE_ENV ?? 'development').toLowerCase();
+  const nodeEnv = String(env.NODE_ENV ?? '').trim().toLowerCase();
+  const appEnv = String(env.APP_ENV ?? '').trim().toLowerCase();
+  const validEnvValues = new Set(['development', 'test', 'production']);
+  const environment = isProduction ? 'production' : String(appEnv || nodeEnv || 'development').toLowerCase();
+
+  if (!nodeEnv || !validEnvValues.has(nodeEnv)) {
+    (isProduction ? errors : warnings).push('NODE_ENV must be explicitly set to development, test, or production.');
+  }
+  if (!appEnv || !validEnvValues.has(appEnv)) {
+    (isProduction ? errors : warnings).push('APP_ENV must be explicitly set to development, test, or production.');
+  }
+  if ((nodeEnv === 'production' || appEnv === 'production') && (nodeEnv !== 'production' || appEnv !== 'production')) {
+    errors.push('NODE_ENV and APP_ENV must both be production for production runtime; mixed environment values are ambiguous.');
+  }
 
   if (!hasValue(env.DATABASE_URL)) {
     errors.push('DATABASE_URL is required.');
-  } else if (
-    isProduction &&
-    isLocalDatabaseUrl(env.DATABASE_URL) &&
-    !asBoolean(env.ALLOW_LOCAL_DATABASE_IN_PRODUCTION)
-  ) {
-    errors.push(
-      'DATABASE_URL cannot point to localhost or a local-only database in production unless ALLOW_LOCAL_DATABASE_IN_PRODUCTION=true is explicitly set for a private deployment.',
-    );
+  } else if (isProduction && isLocalDatabaseUrl(env.DATABASE_URL)) {
+    errors.push('DATABASE_URL cannot point to localhost, SQLite, or any local-only database in production.');
   }
 
   if (!hasValue(env.JWT_ACCESS_SECRET)) {
@@ -301,6 +400,28 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
     (isProduction ? errors : warnings).push(
       'JWT_REFRESH_SECRET is using a default or weak value; replace it with a long random secret.',
     );
+  }
+  if (hasValue(env.JWT_ACCESS_SECRET) && env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    (isProduction ? errors : warnings).push('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values.');
+  }
+  if (isProduction && !hasValue(env.JWT_ISSUER)) {
+    errors.push('JWT_ISSUER is required in production.');
+  }
+  if (isProduction && !hasValue(env.JWT_AUDIENCE)) {
+    errors.push('JWT_AUDIENCE is required in production.');
+  }
+  if (isProduction && !hasValue(env.JWT_KEY_ID)) {
+    errors.push('JWT_KEY_ID is required in production to support documented key rotation.');
+  }
+
+  if (!hasValue(env.ACCOUNT_ACTION_TOKEN_ENC_KEY)) {
+    (isProduction ? errors : warnings).push(
+      isProduction
+        ? 'ACCOUNT_ACTION_TOKEN_ENC_KEY is required in production.'
+        : 'ACCOUNT_ACTION_TOKEN_ENC_KEY is not set; development will use a local fallback key.',
+    );
+  } else if (!isValidAccountActionTokenKey(env.ACCOUNT_ACTION_TOKEN_ENC_KEY)) {
+    (isProduction ? errors : warnings).push('ACCOUNT_ACTION_TOKEN_ENC_KEY must be a 32-byte base64 value or 64-character hex value.');
   }
 
   if (!hasValue(env.FRONTEND_URL)) {
@@ -323,6 +444,8 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
     errors.push('APP_URL must use https:// in production.');
   }
 
+  validateHttpsUrl(env, 'BACKEND_URL', 'BACKEND_URL', errors, warnings, isProduction);
+
   if (!hasValue(env.CORS_ORIGINS)) {
     (isProduction ? errors : warnings).push(
       isProduction
@@ -344,6 +467,13 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
 
   validateMailProvider(errors, warnings, isProduction, env);
   validateStorage(errors, warnings, isProduction, env);
+  validateWorkerSettings(errors, warnings, isProduction, env);
+  validateRateLimit(errors, warnings, isProduction, env);
+  validateUploadScanning(errors, warnings, isProduction, env);
+
+  if (isProduction && !asBoolean(env.TRUST_PROXY)) {
+    errors.push('TRUST_PROXY=true is required in production so rate limiting and secure-cookie logic use proxy-aware client addresses.');
+  }
 
   if (asBoolean(env.ALLOW_DEMO_SEED)) {
     (isProduction ? errors : warnings).push(

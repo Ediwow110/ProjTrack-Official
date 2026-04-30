@@ -4,9 +4,19 @@ import { ChevronLeft, PencilLine, RefreshCcw, ShieldOff } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
 import { BootstrapIcon } from "../../components/ui/bootstrap-icon";
 import { StatusChip } from "../../components/ui/StatusChip";
+import {
+  getCourseOptions,
+  getSectionOptions,
+  getYearLevelOptions,
+} from "../../lib/academicStructure";
 import { adminCatalogService, adminDetailService, adminService } from "../../lib/api/services";
 import { assertConfirmedMailJob } from "../../lib/mailActionSafety";
-import type { AdminSectionRecord, AdminStudentUpsertInput, AdminStudentViewResponse } from "../../lib/api/contracts";
+import type {
+  AdminAcademicYearRecord,
+  AdminSectionRecord,
+  AdminStudentUpsertInput,
+  AdminStudentViewResponse,
+} from "../../lib/api/contracts";
 
 const modalFieldClassName =
   "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20";
@@ -19,6 +29,7 @@ export default function AdminStudentView() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [sections, setSections] = useState<AdminSectionRecord[]>([]);
+  const [academicYears, setAcademicYears] = useState<AdminAcademicYearRecord[]>([]);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<AdminStudentUpsertInput | null>(null);
   const [actionState, setActionState] = useState<{ busy: boolean; error: string | null; note: string | null }>({
@@ -46,22 +57,52 @@ export default function AdminStudentView() {
 
   useEffect(() => {
     let active = true;
-    adminCatalogService.getSections().then((rows) => {
+    Promise.all([
+      adminCatalogService.getSections(),
+      adminCatalogService.getAcademicYears(),
+    ]).then(([rows, years]) => {
       if (!active) return;
       setSections(rows);
+      setAcademicYears(years);
       setSectionsError(null);
     }).catch((sectionsLoadError) => {
       if (!active) return;
       setSectionsError(
         sectionsLoadError instanceof Error
           ? sectionsLoadError.message
-          : "Unable to load sections for this student form.",
+          : "Unable to load academic structure for this student form.",
       );
     });
     return () => {
       active = false;
     };
   }, []);
+
+  const editSectionRecord =
+    editForm
+      ? sections.find((section) => section.id === editForm.section) ?? null
+      : null;
+  const editAcademicYearId =
+    editForm?.academicYearId ||
+    editSectionRecord?.academicYearId ||
+    academicYears.find((year) => String(year.status).toLowerCase() === "active")?.id ||
+    "";
+  const editCourseOptions = getCourseOptions(sections, editAcademicYearId);
+  const editYearLevelOptions = getYearLevelOptions(sections, {
+    academicYearId: editAcademicYearId,
+    course: editForm?.course ?? "",
+  });
+  const editYearLevelLabel =
+    editYearLevelOptions.find((option) => option.id === editForm?.yearLevelId)?.label ??
+    editForm?.yearLevelName ??
+    editForm?.yearLevel ??
+    "";
+  const editSectionOptions = getSectionOptions(sections, {
+    academicYearId: editAcademicYearId,
+    course: editForm?.course ?? "",
+    yearLevelId: editForm?.yearLevelId,
+    yearLevelName: editYearLevelLabel,
+  }) as AdminSectionRecord[];
 
   const handleSendSetupLink = async () => {
     if (!id || actionState.busy) return;
@@ -98,7 +139,30 @@ export default function AdminStudentView() {
 
   const handleOpenEdit = () => {
     if (!data) return;
-    setEditForm(data.form);
+    const selectedSection = sections.find((section) => section.id === data.form.section) ?? null;
+    setEditForm({
+      ...data.form,
+      academicYearId: data.form.academicYearId || selectedSection?.academicYearId || "",
+      academicYear:
+        data.form.academicYear ||
+        selectedSection?.academicYear ||
+        selectedSection?.ay ||
+        "",
+      course: data.form.course || selectedSection?.program || "",
+      yearLevelId: data.form.yearLevelId || selectedSection?.yearLevelId || "",
+      yearLevelName:
+        data.form.yearLevelName ||
+        selectedSection?.yearLevelName ||
+        selectedSection?.yearLevelLabel ||
+        selectedSection?.yearLevel ||
+        "",
+      yearLevel:
+        data.form.yearLevel ||
+        selectedSection?.yearLevelName ||
+        selectedSection?.yearLevelLabel ||
+        selectedSection?.yearLevel ||
+        "",
+    });
     setEditOpen(true);
   };
 
@@ -187,7 +251,7 @@ export default function AdminStudentView() {
               onClick={handleSendSetupLink}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
             >
-              <ShieldOff size={13} /> {data.status === "Pending Setup" ? "Send Setup Link" : "Send Reset Link"}
+              <ShieldOff size={13} /> {data.status === "Pending Activation" ? "Send Activation Link" : data.status === "Pending Setup" ? "Send Setup Link" : "Send Reset Link"}
             </button>
             <button disabled={actionState.busy} onClick={handleDeactivate} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50">
               <ShieldOff size={13} /> Deactivate
@@ -286,17 +350,119 @@ export default function AdminStudentView() {
             <Field label="Email" type="email" value={editForm.email} onChange={(value) => setEditForm((current) => current ? { ...current, email: value } : current)} />
             <Field label="Student Number / Student ID" value={editForm.studentNumber} onChange={(value) => setEditForm((current) => current ? { ...current, studentNumber: value } : current)} />
             <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">Academic Year</label>
+              <select
+                value={editAcademicYearId}
+                onChange={(event) =>
+                  setEditForm((current) => {
+                    if (!current) return current;
+                    const selectedAcademicYear = academicYears.find(
+                      (year) => year.id === event.target.value,
+                    );
+                    return {
+                      ...current,
+                      academicYearId: event.target.value,
+                      academicYear: selectedAcademicYear?.name ?? "",
+                      course: "",
+                      yearLevelId: "",
+                      yearLevelName: "",
+                      yearLevel: "",
+                      section: "",
+                    };
+                  })
+                }
+                className={modalFieldClassName}
+              >
+                <option value="">Select academic year</option>
+                {academicYears.map((year) => (
+                  <option key={year.id} value={year.id}>
+                    {year.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">Course / Program</label>
+              <select
+                value={editForm.course ?? ""}
+                onChange={(event) =>
+                  setEditForm((current) =>
+                    current
+                      ? {
+                          ...current,
+                          course: event.target.value,
+                          yearLevelId: "",
+                          yearLevelName: "",
+                          yearLevel: "",
+                          section: "",
+                        }
+                      : current,
+                  )
+                }
+                disabled={!editAcademicYearId}
+                className={modalFieldClassName}
+              >
+                <option value="">
+                  {editAcademicYearId ? "Select course" : "Select academic year first"}
+                </option>
+                {editCourseOptions.map((course) => (
+                  <option key={course} value={course}>
+                    {course}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">Year Level</label>
+              <select
+                value={editForm.yearLevelId ?? ""}
+                onChange={(event) =>
+                  setEditForm((current) => {
+                    if (!current) return current;
+                    const selectedYearLevel = editYearLevelOptions.find(
+                      (option) => option.id === event.target.value,
+                    );
+                    return {
+                      ...current,
+                      yearLevelId: event.target.value,
+                      yearLevelName: selectedYearLevel?.label ?? "",
+                      yearLevel: selectedYearLevel?.label ?? "",
+                      section: "",
+                    };
+                  })
+                }
+                disabled={!editAcademicYearId || !editForm.course?.trim()}
+                className={modalFieldClassName}
+              >
+                <option value="">
+                  {editForm.course?.trim() ? "Select year level" : "Select course first"}
+                </option>
+                {editYearLevelOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-300">Section</label>
               <select
                 value={editForm.section}
                 onChange={(event) =>
                   setEditForm((current) => {
                     if (!current) return current;
-                    const selectedSection = sections.find((section) => section.id === event.target.value);
+                    const selectedSection = editSectionOptions.find(
+                      (section) => section.id === event.target.value,
+                    );
                     return {
                       ...current,
                       section: event.target.value,
                       course: selectedSection?.program ?? current.course,
+                      academicYearId: selectedSection?.academicYearId ?? current.academicYearId,
+                      academicYear:
+                        selectedSection?.academicYear ??
+                        selectedSection?.ay ??
+                        current.academicYear,
                       yearLevelId: selectedSection?.yearLevelId ?? current.yearLevelId,
                       yearLevelName:
                         selectedSection?.yearLevelName ??
@@ -310,18 +476,22 @@ export default function AdminStudentView() {
                     };
                   })
                 }
+                disabled={!editForm.yearLevelId}
                 className={modalFieldClassName}
               >
-                <option value="">Unassigned</option>
-                {sections.map((section) => (
+                <option value="">
+                  {editForm.yearLevelId ? "Select section" : "Select year level first"}
+                </option>
+                {editSectionOptions.map((section) => (
                   <option key={section.id} value={section.id}>
                     {section.code} · {section.program} · {section.yearLevelName ?? section.yearLevelLabel ?? section.yearLevel} · {section.academicYear ?? section.ay}
                   </option>
                 ))}
               </select>
             </div>
-            <Field label="Course" value={editForm.course ?? ""} onChange={(value) => setEditForm((current) => current ? { ...current, course: value } : current)} />
-            <Field label="Year Level" value={editForm.yearLevel ?? ""} onChange={(value) => setEditForm((current) => current ? { ...current, yearLevel: value } : current)} />
+            <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-800 md:col-span-2 dark:text-blue-100">
+              Placement changes follow the same academic hierarchy as manual add, bulk import, and bulk move.
+            </div>
           </div>
         ) : null}
       </AppModal>
