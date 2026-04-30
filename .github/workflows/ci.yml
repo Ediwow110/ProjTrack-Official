@@ -8,11 +8,6 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     env:
-      APP_ENV: production
-      CI_PRODUCTION_BUILD: "true"
-      VITE_USE_BACKEND: "true"
-      VITE_API_BASE_URL: https://api.projtrack.codes
-      VITE_PUBLIC_APP_URL: https://www.projtrack.codes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,11 +57,11 @@ jobs:
       OBJECT_STORAGE_MODE: local
       HTTP_RATE_LIMIT_STORE: memory
       FILE_MALWARE_SCAN_MODE: disabled
+      NODE_ENV: test
+      APP_ENV: test
       BACKUP_WORKER_ENABLED: "false"
       BACKUP_SCHEDULE_ENABLED: "false"
       BACKUP_WORKER_POLL_MS: "60000"
-      NODE_ENV: test
-      APP_ENV: test
       VITE_API_BASE_URL: https://api.projtrack.codes
     defaults:
       run:
