@@ -4,10 +4,10 @@ process.env.VITE_USE_BACKEND = 'true';
 process.env.VITE_API_BASE_URL = 'https://api.projtrack.codes';
 process.env.VITE_PUBLIC_APP_URL = 'https://www.projtrack.codes';
 
-const { build } = require('vite');
-const { fileURLToPath } = require('url');
-const { dirname, join } = require('path');
-const { createRequire } = require('module');
+import { build } from 'vite';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
@@ -30,4 +30,7 @@ async function run() {
   console.log('Build completed for production fixture.');
 }
 
-run();
+run().catch(err => {
+  console.error('Build failed:', err);
+  process.exit(1);
+});
