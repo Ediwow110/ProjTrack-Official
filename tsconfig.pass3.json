@@ -9,7 +9,7 @@
     "noEmit": true,
     "lib": ["ES2022", "DOM"],
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "vite"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
 }
