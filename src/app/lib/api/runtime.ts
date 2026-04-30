@@ -8,7 +8,7 @@ function parseBooleanEnv(value: unknown, fallback: boolean) {
 
 const rawConfiguredBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 const useBackend = parseBooleanEnv(import.meta.env.VITE_USE_BACKEND, true);
-const publicAppUrl = String(import.meta.env.VITE_PUBLIC_APP_URL ?? import.meta.env.VITE_APP_URL ?? "").trim();
+const publicAppUrl = normalizePublicAppUrl(import.meta.env.VITE_PUBLIC_APP_URL ?? import.meta.env.VITE_APP_URL);
 
 function normalizeBaseUrl(value: unknown) {
   const fallback = "http://127.0.0.1:3001";
@@ -18,23 +18,48 @@ function normalizeBaseUrl(value: unknown) {
   try {
     const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
 
-    if (import.meta.env.PROD && useBackend && !rawConfiguredBaseUrl) {
+    if (import.meta.env.MODE === 'production' && useBackend && !rawConfiguredBaseUrl) {
       throw new Error("VITE_API_BASE_URL is required for production builds when VITE_USE_BACKEND=true.");
     }
 
-    if (import.meta.env.PROD && useBackend && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(normalized)) {
+    if (import.meta.env.MODE === 'production' && useBackend && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(normalized)) {
       throw new Error("VITE_API_BASE_URL cannot point to localhost in production builds.");
     }
 
-    if (import.meta.env.PROD && useBackend && /^http:\/\//i.test(normalized)) {
+    if (import.meta.env.MODE === 'production' && useBackend && /^http:\/\//i.test(normalized)) {
       throw new Error("VITE_API_BASE_URL must use https:// in production builds.");
     }
 
     return normalized;
   } catch (error) {
-    if (import.meta.env.PROD && useBackend) {
-      if (error instanceof Error) throw error;
-      throw new Error("VITE_API_BASE_URL must be a valid absolute URL for production builds.");
+    if (import.meta.env.MODE === 'production' && useBackend) {
+      throw new Error(`Invalid VITE_API_BASE_URL: ${String(error)}`);
+    }
+
+    return fallback;
+  }
+}
+
+function normalizePublicAppUrl(value: unknown) {
+  const fallback = "http://127.0.0.1:5173";
+  const candidate = String(value ?? "").trim() || fallback;
+  const sanitized = candidate.replace(/\/+$/, "");
+
+  try {
+    const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
+
+    if (import.meta.env.MODE === 'production' && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(normalized)) {
+      throw new Error("VITE_PUBLIC_APP_URL cannot point to localhost in production builds.");
+    }
+
+    if (import.meta.env.MODE === 'production' && /^http:\/\//i.test(normalized)) {
+      throw new Error("VITE_PUBLIC_APP_URL must use https:// in production builds.");
+    }
+
+    return normalized;
+  } catch (error) {
+    if (import.meta.env.MODE === 'production') {
+      throw new Error(`Invalid VITE_PUBLIC_APP_URL: ${String(error)}`);
     }
 
     return fallback;
@@ -47,20 +72,12 @@ function normalizeApiPath(path: string) {
   return candidate.startsWith("/") ? candidate : `/${candidate}`;
 }
 
-if (import.meta.env.PROD && !useBackend) {
+if (import.meta.env.MODE === 'production' && !useBackend) {
   throw new Error("VITE_USE_BACKEND=false is not allowed in production builds.");
 }
 
-if (import.meta.env.PROD && !publicAppUrl) {
+if (import.meta.env.MODE === 'production' && !publicAppUrl) {
   throw new Error("VITE_PUBLIC_APP_URL is required for production builds.");
-}
-
-if (import.meta.env.PROD && /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(publicAppUrl)) {
-  throw new Error("VITE_PUBLIC_APP_URL cannot point to localhost in production builds.");
-}
-
-if (import.meta.env.PROD && /^http:\/\//i.test(publicAppUrl)) {
-  throw new Error("VITE_PUBLIC_APP_URL must use https:// in production builds.");
 }
 
 const configuredBaseUrl = normalizeBaseUrl(rawConfiguredBaseUrl || undefined);
