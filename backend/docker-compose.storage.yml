@@ -6,7 +6,7 @@ services:
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: projtrackminio
-      MINIO_ROOT_PASSWORD: projtrackminiosecret
+      MINIO_ROOT_PASSWORD: REPLACE_WITH_LOCAL_MINIO_PASSWORD
     ports:
       - "9000:9000"
       - "9001:9001"
