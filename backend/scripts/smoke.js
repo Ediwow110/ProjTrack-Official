@@ -47,7 +47,7 @@ async function main() {
     : argSet.has('--local-accounts')
       ? false
       : isEnabled(process.env.SMOKE_USE_REAL_ACCOUNTS, false);
-  const roleAccounts = [
+  const configuredRoleAccounts = [
     {
       role: 'ADMIN',
       identifier: resolveSmokeIdentifier('SMOKE_ADMIN'),
@@ -68,6 +68,14 @@ async function main() {
     },
   ];
 
+  const roleAccounts = useRealAccounts
+    ? configuredRoleAccounts.filter(
+        (account) =>
+          account.role === 'ADMIN' ||
+          (String(account.identifier).trim() && String(account.password).trim()),
+      )
+    : configuredRoleAccounts;
+
   const missingCredentialRoles = roleAccounts
     .filter((account) => !String(account.identifier).trim() || !String(account.password).trim())
     .map((account) => account.role);
@@ -75,7 +83,9 @@ async function main() {
   if (missingCredentialRoles.length > 0) {
     throw new Error(
       `Missing smoke credentials for role(s): ${missingCredentialRoles.join(', ')}. ` +
-        'Set SMOKE_ADMIN_*, SMOKE_TEACHER_*, and SMOKE_STUDENT_* environment variables. ' +
+        (useRealAccounts
+          ? 'Set SMOKE_ADMIN_* environment variables. Optional SMOKE_TEACHER_* and SMOKE_STUDENT_* variables are verified when present. '
+          : 'Set SMOKE_ADMIN_*, SMOKE_TEACHER_*, and SMOKE_STUDENT_* environment variables. ') +
         'Use either *_IDENTIFIER or *_EMAIL together with *_PASSWORD.',
     );
   }

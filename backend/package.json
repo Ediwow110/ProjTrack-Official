@@ -14,6 +14,7 @@
     "security:secrets": "node ../scripts/secret-scan.mjs",
     "check:release-hygiene": "node ../scripts/release-hygiene-check.mjs",
     "smoke": "node scripts/smoke.js",
+    "smoke:admin:ensure": "node scripts/ensure-smoke-admin.js",
     "smoke:local": "node scripts/smoke.js --local-accounts",
     "smoke:real": "node scripts/smoke.js --real-accounts",
     "smoke:storage": "node scripts/object-storage-smoke.js",
