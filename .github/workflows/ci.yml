@@ -158,6 +158,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
+      - run: npm --prefix backend run build
       - name: E2E smoke secrets status
         if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
         run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account E2E preflight."
