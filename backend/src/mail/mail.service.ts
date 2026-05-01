@@ -597,10 +597,23 @@ export class MailService {
             previousAttempts: job.attempts ?? 0,
             retriedAt,
           })
-        : mergePayload(previousPayload, {
-            previousAttempts: job.attempts ?? 0,
-            retriedAt,
-          });
+      : mergePayload(previousPayload, {
+          previousAttempts: job.attempts ?? 0,
+          retriedAt,
+        });
+
+    const currentSubject = String(job.subject ?? '').trim();
+    let restoredSubject: string | undefined;
+
+    if (!currentSubject) {
+      // Restore subjects for legacy dead jobs created before template guardrails so retries do not requeue permanently unsendable mail.
+      const subjectByTemplateKey: Record<string, string> = {
+        'account-activation': 'Activate your ProjTrack account',
+        'password-reset': 'Reset your ProjTrack password',
+      };
+
+      restoredSubject = subjectByTemplateKey[String(job.templateKey ?? '')];
+    }
 
     return this.prisma.emailJob.update({
       where: { id: job.id },
@@ -619,6 +632,7 @@ export class MailService {
         sentAt: null,
         archivedAt: null,
         provider: this.transport.getProviderName(),
+        ...(restoredSubject ? { subject: restoredSubject } : {}),
       },
     });
   }
