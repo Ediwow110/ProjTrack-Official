@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ActivateAccountDto } from './dto/activate-account.dto';
+import { ValidateAccountActionDto } from './dto/validate-account-action.dto';
 import { RequestResetDto } from './dto/request-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LogoutDto } from './dto/logout.dto';
@@ -63,6 +64,11 @@ export class AuthController {
   @Post('activate')
   activate(@Body() body: ActivateAccountDto) {
     return this.authService.activate(body);
+  }
+
+  @Post('activate/validate')
+  validateActivation(@Body() body: ValidateAccountActionDto) {
+    return this.authService.validateActivation(body);
   }
 
   @Post('forgot-password')

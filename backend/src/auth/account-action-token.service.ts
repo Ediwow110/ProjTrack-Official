@@ -14,6 +14,7 @@ import {
 type IssueInput = {
   userId: string;
   type: AccountActionTokenType;
+  alwaysFresh?: boolean;
 };
 
 function tokenPrefix(type: AccountActionTokenType) {
@@ -39,7 +40,11 @@ export class AccountActionTokenService {
   }
 
   async issueActivation(userId: string) {
-    return this.issue({ userId, type: AccountActionTokenType.ACCOUNT_ACTIVATION });
+    return this.issue({
+      userId,
+      type: AccountActionTokenType.ACCOUNT_ACTIVATION,
+      alwaysFresh: true,
+    });
   }
 
   async consumePasswordReset(ref: string, token: string) {
@@ -48,6 +53,11 @@ export class AccountActionTokenService {
 
   async consumeActivation(ref: string, token: string) {
     return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token);
+  }
+
+  async validateActivation(ref: string, token: string) {
+    await this.validate(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token);
+    return { valid: true };
   }
 
   async consumePasswordResetTx(tx: any, ref: string, token: string) {
@@ -59,18 +69,19 @@ export class AccountActionTokenService {
   }
 
   private async issue(input: IssueInput) {
+    const now = new Date();
     const active = await this.prisma.accountActionToken.findFirst({
       where: {
         userId: input.userId,
         type: input.type,
         usedAt: null,
         revokedAt: null,
-        expiresAt: { gt: new Date() },
+        expiresAt: { gt: now },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    if (active) {
+    if (active && !input.alwaysFresh) {
       try {
         return {
           token: decryptAccountActionToken(active.encryptedToken),
@@ -81,9 +92,21 @@ export class AccountActionTokenService {
       } catch {
         await this.prisma.accountActionToken.update({
           where: { id: active.id },
-          data: { revokedAt: new Date() },
+          data: { revokedAt: now },
         });
       }
+    }
+
+    if (input.alwaysFresh) {
+      await this.prisma.accountActionToken.updateMany({
+        where: {
+          userId: input.userId,
+          type: input.type,
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: now },
+      });
     }
 
     const token = createRawAccountActionToken(tokenPrefix(input.type));
@@ -105,33 +128,7 @@ export class AccountActionTokenService {
   }
 
   private async consume(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
-    const client = tx ?? this.prisma;
-    const publicRef = String(ref || '').trim();
-    const rawToken = String(token || '').trim();
-    if (!publicRef || !rawToken) {
-      throw new BadRequestException('Token reference and token are required.');
-    }
-
-    const record = await client.accountActionToken.findUnique({
-      where: { publicRef },
-      include: { user: { include: { studentProfile: true, teacherProfile: true } } },
-    });
-
-    if (!record || record.type !== type) {
-      throw new NotFoundException('Account action token not found.');
-    }
-    if (record.usedAt || record.revokedAt) {
-      throw new BadRequestException('Account action token has already been used.');
-    }
-    const now = new Date();
-    if (record.expiresAt.getTime() < now.getTime()) {
-      throw new BadRequestException('Account action token has expired.');
-    }
-
-    const suppliedHash = accountActionTokenHash(rawToken);
-    if (!safeCompareTokenHash(record.tokenHash, suppliedHash)) {
-      throw new NotFoundException('Account action token not found.');
-    }
+    const { client, record, now } = await this.resolveValidRecord(type, ref, token, tx);
 
     const consumed = await client.accountActionToken.updateMany({
       where: {
@@ -148,17 +145,57 @@ export class AccountActionTokenService {
         select: { usedAt: true, revokedAt: true, expiresAt: true },
       });
       if (!current || current.revokedAt) {
-        throw new BadRequestException('Account action token has already been used.');
+        throw new BadRequestException('SETUP_LINK_ALREADY_USED: This setup link has already been used.');
       }
       if (current.usedAt) {
-        throw new BadRequestException('Account action token has already been used.');
+        throw new BadRequestException('SETUP_LINK_ALREADY_USED: This setup link has already been used.');
       }
       if (current.expiresAt.getTime() <= now.getTime()) {
-        throw new BadRequestException('Account action token has expired.');
+        throw new BadRequestException('SETUP_LINK_EXPIRED: This setup link has expired. Please request a new activation email from your administrator.');
       }
-      throw new BadRequestException('Account action token has already been used.');
+      throw new BadRequestException('SETUP_LINK_ALREADY_USED: This setup link has already been used.');
     }
 
     return record.user;
+  }
+
+  private async validate(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+    const { record } = await this.resolveValidRecord(type, ref, token, tx);
+    return record.user;
+  }
+
+  private async resolveValidRecord(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+    const client = tx ?? this.prisma;
+    const publicRef = String(ref || '').trim();
+    const rawToken = String(token || '').trim();
+    if (!publicRef || !rawToken) {
+      throw new BadRequestException('Token reference and token are required.');
+    }
+
+    const record = await client.accountActionToken.findUnique({
+      where: { publicRef },
+      include: { user: { include: { studentProfile: true, teacherProfile: true } } },
+    });
+
+    if (!record || record.type !== type) {
+      throw new NotFoundException('Account action token not found.');
+    }
+    if (record.usedAt || record.revokedAt) {
+      throw new BadRequestException('SETUP_LINK_ALREADY_USED: This setup link has already been used.');
+    }
+    const now = new Date();
+    if (record.expiresAt.getTime() < now.getTime()) {
+      throw new BadRequestException('SETUP_LINK_EXPIRED: This setup link has expired. Please request a new activation email from your administrator.');
+    }
+
+    if (record.user.status === 'ACTIVE') {
+      throw new BadRequestException('ACCOUNT_ALREADY_ACTIVE: This account is already active. Please log in.');
+    }
+
+    const suppliedHash = accountActionTokenHash(rawToken);
+    if (!safeCompareTokenHash(record.tokenHash, suppliedHash)) {
+      throw new NotFoundException('Account action token not found.');
+    }
+    return { client, record, now };
   }
 }

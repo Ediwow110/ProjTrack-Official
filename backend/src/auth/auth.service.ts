@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { ActivateAccountDto } from './dto/activate-account.dto';
+import { ValidateAccountActionDto } from './dto/validate-account-action.dto';
 import { RequestResetDto } from './dto/request-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -178,6 +179,10 @@ export class AuthService {
     });
 
     return { success: true, message: 'Account activated successfully.' };
+  }
+
+  async validateActivation(body: ValidateAccountActionDto) {
+    return this.accountActionTokens.validateActivation(body.ref, body.token);
   }
 
   async forgotPassword(body: RequestResetDto, requestMeta?: RequestMeta) {

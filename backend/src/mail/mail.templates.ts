@@ -14,10 +14,11 @@ export type RenderedMailTemplate = {
 
 const KNOWN_TEMPLATE_KEYS = new Set<string>(Object.values(MAIL_TEMPLATE_KEYS));
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const ACCOUNT_ACTIVATION_SUBJECT = 'Activate your ProjTrack account';
 
 const TEMPLATE_ALLOWED_FIELDS: Record<string, readonly string[]> = {
-  [MAIL_TEMPLATE_KEYS.ACCOUNT_ACTIVATION]: ['firstName', 'name', 'activationLink', 'mailCategory', 'subject'],
-  [MAIL_TEMPLATE_KEYS.EMAIL_VERIFICATION]: ['firstName', 'name', 'verificationLink', 'activationLink', 'mailCategory', 'subject'],
+  [MAIL_TEMPLATE_KEYS.ACCOUNT_ACTIVATION]: ['firstName', 'name', 'activationUrl', 'activationLink', 'mailCategory', 'subject'],
+  [MAIL_TEMPLATE_KEYS.EMAIL_VERIFICATION]: ['firstName', 'name', 'verificationLink', 'activationUrl', 'activationLink', 'mailCategory', 'subject'],
   [MAIL_TEMPLATE_KEYS.PASSWORD_RESET]: ['firstName', 'name', 'resetLink', 'expiresAt', 'isFirstTimeSetup', 'mailCategory', 'subject'],
   [MAIL_TEMPLATE_KEYS.TEACHER_ACTIVITY_NOTICE]: ['firstName', 'name', 'activityTitle', 'title', 'body', 'subjectName', 'teacherName', 'activityLink', 'link', 'mailCategory', 'subject'],
   [MAIL_TEMPLATE_KEYS.BULK_INVITATION]: ['firstName', 'name', 'inviteLink', 'activationLink', 'role', 'title', 'body', 'unsubscribeUrl', 'mailCategory', 'subject'],
@@ -147,13 +148,13 @@ export function validateMailTemplatePayload(templateKey: string, payload: MailTe
       return {
         ...base,
         firstName: requiredText(base, ['firstName', 'name'], 'firstName', 120),
-        activationLink: requiredUrl(base, ['activationLink'], 'activationLink'),
+        activationUrl: requiredUrl(base, ['activationUrl', 'activationLink'], 'activationUrl'),
       };
     case MAIL_TEMPLATE_KEYS.EMAIL_VERIFICATION:
       return {
         ...base,
         firstName: requiredText(base, ['firstName', 'name'], 'firstName', 120),
-        activationLink: requiredUrl(base, ['verificationLink', 'activationLink'], 'verificationLink'),
+        activationUrl: requiredUrl(base, ['verificationLink', 'activationUrl', 'activationLink'], 'verificationLink'),
       };
     case MAIL_TEMPLATE_KEYS.PASSWORD_RESET:
       return {
@@ -212,7 +213,7 @@ export function renderMailTemplate(templateKey: string, payload: MailTemplatePay
   const subject = asText(safePayload.subject);
   const title = asText(safePayload.title, `${appName()} Notification`);
   const body = asText(safePayload.body, 'You have a new notification in ProjTrack.');
-  const activationLink = asText(safePayload.activationLink);
+  const activationLink = asText(safePayload.activationUrl ?? safePayload.activationLink);
   const resetLink = asText(safePayload.resetLink);
   const activityLink = asText(safePayload.activityLink);
   const inviteLink = asText(safePayload.inviteLink);
@@ -226,7 +227,10 @@ export function renderMailTemplate(templateKey: string, payload: MailTemplatePay
     case MAIL_TEMPLATE_KEYS.ACCOUNT_ACTIVATION:
     case MAIL_TEMPLATE_KEYS.EMAIL_VERIFICATION: {
       const isVerification = key === MAIL_TEMPLATE_KEYS.EMAIL_VERIFICATION;
-      const resolvedSubject = normalizeSubject(subject, `${appName()} ${isVerification ? 'Email Verification' : 'Account Activation'}`);
+      const resolvedSubject = normalizeSubject(
+        subject,
+        isVerification ? `${appName()} Email Verification` : ACCOUNT_ACTIVATION_SUBJECT,
+      );
       const actionLabel = isVerification ? 'Verify your email' : 'Activate your account';
       const text = [
         `Hello ${name},`,
@@ -243,7 +247,11 @@ export function renderMailTemplate(templateKey: string, payload: MailTemplatePay
           `<p style="color:#475569">If the button does not work, use this link:</p><p><a href="${escapeHtml(activationLink)}">${escapeHtml(activationLink)}</a></p>`,
         ].join(''),
       );
-      return { subject: resolvedSubject, text, html };
+      return {
+        subject: isVerification ? resolvedSubject : ACCOUNT_ACTIVATION_SUBJECT,
+        text,
+        html,
+      };
     }
     case MAIL_TEMPLATE_KEYS.PASSWORD_RESET: {
       const expiryNotice = `This link expires on ${expiresAt}.`;

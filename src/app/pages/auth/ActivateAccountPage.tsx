@@ -1,8 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, CheckCircle2, Lock } from "lucide-react";
 import { ProjTrackLogo } from "../../components/brand/ProjTrackLogo";
 import { authService } from "../../lib/api/services";
+
+function normalizeActivationError(message: string) {
+  const clean = String(message || "").replace(/\s*\[request [^\]]+\]\s*$/i, "").trim();
+  if (clean.startsWith("SETUP_LINK_EXPIRED:")) {
+    return "This setup link has expired. Please request a new activation email from your administrator.";
+  }
+  if (clean.startsWith("SETUP_LINK_ALREADY_USED:")) {
+    return "This setup link has already been used.";
+  }
+  if (clean.startsWith("ACCOUNT_ALREADY_ACTIVE:")) {
+    return "This account is already active. Please log in.";
+  }
+  return clean || "Unable to activate the account.";
+}
 
 export default function ActivateAccountPage() {
   const navigate = useNavigate();
@@ -15,9 +29,38 @@ export default function ActivateAccountPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [linkReady, setLinkReady] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const disabled = useMemo(() => !ref || !token || !password || !confirmPassword, [ref, token, password, confirmPassword]);
+
+  useEffect(() => {
+    let active = true;
+    if (!ref || !token) {
+      setLinkReady(false);
+      return;
+    }
+    setValidating(true);
+    setError("");
+    authService
+      .validateActivation(ref, token)
+      .then(() => {
+        if (!active) return;
+        setLinkReady(true);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setLinkReady(false);
+        setError(normalizeActivationError(err instanceof Error ? err.message : ""));
+      })
+      .finally(() => {
+        if (active) setValidating(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [ref, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +72,7 @@ export default function ActivateAccountPage() {
       setMessage(response.message || "Account activated successfully.");
       window.setTimeout(() => navigate(backTarget), 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to activate the account.");
+      setError(normalizeActivationError(err instanceof Error ? err.message : ""));
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +91,9 @@ export default function ActivateAccountPage() {
         </div>
         {(!ref || !token) && <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Missing activation reference or token. Open the full activation link from your email.</div>}
         {error && <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">{error}</div>}
+        {validating && <div className="rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">Checking your activation link…</div>}
         {message && <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-2"><CheckCircle2 size={15} /> {message}</div>}
+        {!error ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
             <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 mb-2">New password</span>
@@ -64,10 +109,11 @@ export default function ActivateAccountPage() {
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800 dark:text-slate-100" placeholder="Confirm your new password" />
             </div>
           </label>
-          <button disabled={disabled || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
+          <button disabled={disabled || submitting || validating || !linkReady} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
             {submitting ? "Activating..." : "Activate account"}
           </button>
         </form>
+        ) : null}
       </div>
     </div>
   );

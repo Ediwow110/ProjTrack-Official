@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EmailJobStatus, EmailJobType, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { MAIL_FAILURE_REASONS, MAIL_TAGS } from '../common/constants/mail.constants';
@@ -276,13 +276,35 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      const resolvedSubject = String(job.subject || rendered.subject || '').trim();
+      const resolvedHtml = String(rendered.html || '').trim();
+      const resolvedText = String(rendered.text || '').trim();
+      if (!resolvedSubject) {
+        throw new BadRequestException(
+          `Mail subject is required before provider send. jobId=${job.id} templateKey=${job.templateKey}`,
+        );
+      }
+      if (!resolvedHtml && !resolvedText) {
+        throw new BadRequestException(
+          `Rendered mail body is empty before provider send. jobId=${job.id} templateKey=${job.templateKey}`,
+        );
+      }
+      this.logger.log(
+        JSON.stringify({
+          event: 'mail.job_rendered',
+          jobId: job.id,
+          templateKey: job.templateKey,
+          workerId: this.workerId,
+        }),
+      );
+
       const delivery = await this.transport.sendRenderedMessage({
         to: job.userEmail,
         originalTo: job.userEmail,
         recipientName: job.recipientName,
-        subject: job.subject || rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
+        subject: resolvedSubject,
+        html: resolvedHtml,
+        text: resolvedText,
         templateKey: job.templateKey,
         mailCategory:
           typeof payload.mailCategory === 'string'
@@ -300,7 +322,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         where: { id: job.id },
         data: {
           status: EmailJobStatus.SENT,
-          subject: job.subject || rendered.subject,
+          subject: resolvedSubject,
           payload: payload as Prisma.InputJsonValue,
           provider: delivery.provider,
           providerMessageId: delivery.messageId,

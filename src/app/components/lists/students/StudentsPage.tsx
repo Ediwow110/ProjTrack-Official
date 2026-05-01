@@ -27,6 +27,7 @@ import {
   getSectionOptions,
   getYearLevelOptions,
 } from "../../../lib/academicStructure";
+import { assertConfirmedMailJob } from "../../../lib/mailActionSafety";
 import { adminCatalogService, adminService } from "../../../lib/api/services";
 import { useAsyncData } from "../../../lib/hooks/useAsyncData";
 import type {
@@ -119,6 +120,10 @@ export default function StudentsPage() {
   const [deactivateTarget, setDeactivateTarget] = useState<AdminStudentRecord | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [downloadOption, setDownloadOption] = useState("all");
+  const [downloadYear, setDownloadYear] = useState("");
+  const [downloadSection, setDownloadSection] = useState("");
   const [createForm, setCreateForm] = useState<AdminStudentUpsertInput>({
     ...initialCreateForm,
     section: sectionFromUrl,
@@ -143,6 +148,7 @@ export default function StudentsPage() {
     busy: boolean;
     error: string | null;
   }>({ busy: false, error: null });
+  const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   const { data, loading, error, setData, reload } = useAsyncData(
@@ -231,7 +237,12 @@ export default function StudentsPage() {
     null;
   const activeCount = students.filter((student) => student.status === "Active").length;
   const pendingActivationCount = students.filter(
-    (student) => student.status === "Pending Activation",
+    (student) =>
+      student.status === "Pending Activation" ||
+      student.status === "Pending Setup" ||
+      student.status === "Activation Email Sent" ||
+      student.status === "Activation Email Failed" ||
+      student.status === "Setup Expired",
   ).length;
   const createAcademicYearId = createForm.academicYearId || activeAcademicYearId;
   const createCourseOptions = getCourseOptions(sectionOptions, createAcademicYearId);
@@ -329,6 +340,13 @@ export default function StudentsPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      reload();
+    }, 30000); // Auto-refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [reload]);
 
   const activeFilterItems = [
     search.trim()
@@ -445,49 +463,58 @@ export default function StudentsPage() {
     }
   }
 
+  function openDownload() {
+    setDownloadOpen(true);
+    setDownloadOption("all");
+    setDownloadYear("");
+    setDownloadSection("");
+  }
+
   function openStudentPage(studentId: string) {
     navigate(`/admin/students/${studentId}`);
   }
 
   async function sendSetupLink(student: AdminStudentRecord) {
+    const needsActivationEmail =
+      student.status === "Pending Setup" ||
+      student.status === "Pending Activation" ||
+      student.status === "Activation Email Failed" ||
+      student.status === "Setup Expired" ||
+      student.status === "Needs Resend";
     const response =
-      student.status === "Pending Setup" || student.status === "Pending Activation"
+      needsActivationEmail
         ? await adminService.sendStudentSetupInvite(student.id)
         : await adminService.sendStudentResetLink(student.id);
-    if (!response.mailJobId) {
-      throw new Error("The backend did not confirm a queued mail job.");
-    }
+    const mailJobId = assertConfirmedMailJob(
+      response,
+      needsActivationEmail ? "student activation email" : "student password reset email",
+    );
     updateStudentPatch(student.id, {
-      status:
-        student.status === "Pending Setup" || student.status === "Pending Activation"
-          ? "Pending Setup"
-          : student.status,
-      lastActive:
-        student.status === "Pending Setup" || student.status === "Pending Activation"
-          ? "Activation email queued"
-          : "Reset email queued",
+      status: needsActivationEmail ? "Activation Email Sent" : student.status,
+      activationEmailStatus: needsActivationEmail ? "Sent" : student.activationEmailStatus,
+      activationEmailFailureReason: needsActivationEmail ? "" : student.activationEmailFailureReason,
     });
-    return response;
+    return { mailJobId, needsActivationEmail };
   }
 
   async function handleSendSetupLink(studentId: string) {
     if (actionState.busy) return;
     setActionState({ busy: true, error: null });
+    setBusyStudentId(studentId);
     try {
       const student = allStudents.find((item) => item.id === studentId);
       if (!student) {
         throw new Error("Unable to find the selected student.");
       }
-      const response = await sendSetupLink(student);
+      const { mailJobId, needsActivationEmail } = await sendSetupLink(student);
       await reload();
       setActionState({ busy: false, error: null });
+      setBusyStudentId(null);
       showFeedback(
         "success",
-        `${
-          student.status === "Pending Setup" || student.status === "Pending Activation"
-            ? "Activation email"
-            : "Password reset"
-        } mail job queued for ${student.name}${response.mailJobId ? ` (${response.mailJobId})` : ""}. Open Mail Jobs to watch delivery.`,
+        needsActivationEmail
+          ? `Activation email queued. MailJob ${mailJobId} is ready for delivery.`
+          : `Password reset email queued. MailJob ${mailJobId} is ready for delivery.`,
       );
     } catch (setupError) {
       const message =
@@ -495,6 +522,7 @@ export default function StudentsPage() {
           ? setupError.message
           : "Unable to send the setup link.";
       setActionState({ busy: false, error: message });
+      setBusyStudentId(null);
       showFeedback("error", message);
     }
   }
@@ -655,6 +683,72 @@ export default function StudentsPage() {
     }
   }
 
+  async function handleDownload() {
+    let studentsToDownload: AdminStudentRecord[] = [];
+    if (downloadOption === "all") {
+      studentsToDownload = allStudents;
+    } else if (downloadOption === "filtered") {
+      studentsToDownload = students;
+    } else if (downloadOption === "year") {
+      studentsToDownload = allStudents.filter((s) => s.yearLevel === downloadYear);
+    } else if (downloadOption === "section") {
+      studentsToDownload = allStudents.filter((s) => s.section === downloadSection);
+    } else if (downloadOption === "yearSection") {
+      studentsToDownload = allStudents.filter(
+        (s) => s.yearLevel === downloadYear && s.section === downloadSection,
+      );
+    }
+
+    studentsToDownload.sort((a, b) => {
+      if (a.yearLevel !== b.yearLevel) return String(a.yearLevel || "").localeCompare(String(b.yearLevel || ""));
+      if (a.section !== b.section) return String(a.section || "").localeCompare(String(b.section || ""));
+      if (a.lastName !== b.lastName) return String(a.lastName || "").localeCompare(String(b.lastName || ""));
+      if (a.firstName !== b.firstName) return String(a.firstName || "").localeCompare(String(b.firstName || ""));
+      return (a.middleInitial || "").localeCompare(b.middleInitial || "");
+    });
+
+    const csvHeaders = ["Student ID", "Last Name", "First Name", "Middle Name", "Year Level", "Section", "Course", "Academic Year", "Email", "Status", "Activation Status", "Activation Email Status", "Activation Email Last Sent", "Activation Email Failure Reason", "Setup Token Expires At", "Last Login", "Created Date"];
+    const csvRows = [csvHeaders];
+    studentsToDownload.forEach(student => {
+      csvRows.push([
+        student.studentId || student.id,
+        student.lastName,
+        student.firstName,
+        student.middleInitial || "",
+        student.yearLevel || "",
+        student.section || "",
+        student.course || "",
+        student.academicYear || "",
+        student.email,
+        student.status,
+        student.activationStatus || student.status,
+        student.activationEmailStatus || "Not Sent",
+        student.activationEmailLastSentAt || "",
+        student.activationEmailFailureReason || "",
+        student.setupTokenExpiresAt || "",
+        student.lastLoginAt || "",
+        student.createdAt || ""
+      ].map(field => `"${field.replace(/"/g, '""')}"`));
+    });
+
+    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const timestamp = new Date().toISOString().slice(0, 10);
+    let filename = `projtrack-students-all-${timestamp}.csv`;
+    if (downloadOption === "filtered") filename = `projtrack-students-filtered-${timestamp}.csv`;
+    else if (downloadOption === "year") filename = `projtrack-students-year-${downloadYear.replace(/\s+/g, "-").toLowerCase()}-${timestamp}.csv`;
+    else if (downloadOption === "section") filename = `projtrack-students-section-${downloadSection.replace(/\s+/g, "-").toLowerCase()}-${timestamp}.csv`;
+    else if (downloadOption === "yearSection") filename = `projtrack-students-year-${downloadYear.replace(/\s+/g, "-").toLowerCase()}-section-${downloadSection.replace(/\s+/g, "-").toLowerCase()}-${timestamp}.csv`;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setDownloadOpen(false);
+    showFeedback("success", `Downloaded ${studentsToDownload.length} student records as ${filename}.`);
+  }
+
   const notices = (
     <div className="space-y-3">
       {error ? (
@@ -700,7 +794,7 @@ export default function StudentsPage() {
           <span className="font-semibold">{activeSectionRecord?.code ?? activeSection}</span>.
         </PortalNotice>
       ) : null}
-      {statusFilter === "Pending Activation" ? (
+      {statusFilter === "Pending Activation" || statusFilter === "Pending Setup" ? (
         <PortalNotice tone="warning">
           Showing students who still need an activation email or first-time setup.
         </PortalNotice>
@@ -749,15 +843,15 @@ export default function StudentsPage() {
           },
         ]}
         actions={(
-          <>
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
+              variant="outline"
               disabled={loading || actionState.busy}
               onClick={() => {
                 setSelected([]);
                 reload();
               }}
-              variant="outline"
               className="border-white/18 bg-white/8 text-white hover:bg-white/15 hover:text-white"
             >
               <RefreshCcw size={14} />
@@ -765,15 +859,25 @@ export default function StudentsPage() {
             </Button>
             <Button
               type="button"
+              variant="outline"
               disabled={loading || actionState.busy}
               onClick={() => adminService.downloadStudentTemplate()}
-              variant="outline"
               className="border-white/18 bg-white/8 text-white hover:bg-white/15 hover:text-white"
             >
               <Download size={14} />
               Download Template
             </Button>
-          </>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || actionState.busy || allStudents.length === 0}
+              onClick={openDownload}
+              className="border-white/18 bg-white/8 text-white hover:bg-white/15 hover:text-white"
+            >
+              <Download size={14} />
+              Download Records
+            </Button>
+          </div>
         )}
         toolbar={(
           <FilterToolbar
@@ -837,8 +941,11 @@ export default function StudentsPage() {
                     { value: "Disabled", label: "Disabled" },
                     { value: "Archived", label: "Archived" },
                     { value: "Graduated", label: "Graduated" },
-                    { value: "Pending Activation", label: "Pending Activation" },
                     { value: "Pending Setup", label: "Pending Setup" },
+                    { value: "Pending Activation", label: "Pending Activation" },
+                    { value: "Activation Email Sent", label: "Activation Email Sent" },
+                    { value: "Setup Expired", label: "Setup Expired" },
+                    { value: "Activation Email Failed", label: "Activation Email Failed" },
                   ]}
                 />
               </>
@@ -919,6 +1026,7 @@ export default function StudentsPage() {
           }
           onDeactivate={(student) => setDeactivateTarget(student)}
           actionBusy={actionState.busy}
+          busyStudentId={busyStudentId}
           sortState={sortState}
           onSortChange={(columnKey) =>
             setSortState((current) => {
@@ -1338,6 +1446,76 @@ export default function StudentsPage() {
                 </table>
               </div>
             </>
+          ) : null}
+        </div>
+      </AppModal>
+
+      <AppModal
+        open={downloadOpen}
+        onOpenChange={setDownloadOpen}
+        title="Download Student Records"
+        description="Select the scope of student records to export as CSV."
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDownloadOpen(false)} disabled={actionState.busy}>
+              Cancel
+            </Button>
+            <Button onClick={handleDownload} disabled={actionState.busy || (downloadOption === "year" && !downloadYear) || (downloadOption === "section" && !downloadSection) || (downloadOption === "yearSection" && (!downloadYear || !downloadSection))}>
+              Download
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Download Scope</label>
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+              value={downloadOption}
+              onChange={(e) => setDownloadOption(e.target.value)}
+            >
+              <option value="all">All Students ({allStudents.length})</option>
+              <option value="filtered">Current Filtered Results ({students.length})</option>
+              <option value="year">Students by Year</option>
+              <option value="section">Students by Section</option>
+              <option value="yearSection">Students by Year and Section</option>
+            </select>
+          </div>
+          {downloadOption === "year" || downloadOption === "yearSection" ? (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Year Level</label>
+              <select
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+                value={downloadYear}
+                onChange={(e) => setDownloadYear(e.target.value)}
+              >
+                <option value="">Select Year Level</option>
+                {Array.from(
+                  new Set(
+                    allStudents
+                      .map((student) => String(student.yearLevel || "").trim())
+                      .filter(Boolean),
+                  ),
+                ).map((yearLevel) => (
+                  <option key={yearLevel} value={yearLevel}>{yearLevel}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          {downloadOption === "section" || downloadOption === "yearSection" ? (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Section</label>
+              <select
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+                value={downloadSection}
+                onChange={(e) => setDownloadSection(e.target.value)}
+              >
+                <option value="">Select Section</option>
+                {availableSectionFilters.map(section => (
+                  <option key={section.id} value={section.code}>{describeSectionOption(section)}</option>
+                ))}
+              </select>
+            </div>
           ) : null}
         </div>
       </AppModal>

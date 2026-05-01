@@ -1,6 +1,7 @@
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
-import { UseGuards, Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Controller, Post, Param, Body, Req, Get, UseGuards } from '@nestjs/common';
+// import { ApiOperation } from '@nestjs/swagger';
 import { AdminStudentsService } from './admin-students.service';
 import { ImportStudentsDto } from './dto/import-students.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
@@ -27,17 +28,20 @@ export class AdminStudentsController {
   }
 
   @Post(':id/activate')
-  activate(@Param('id') id: string, @Req() req: any) {
+  // @ApiOperation({ summary: 'Activate a student account' })
+  async activate(@Param('id') id: string, @Req() req: any) {
     return this.studentsService.activateStudent(id, req.user?.sub);
   }
 
   @Post(':id/send-setup-invite')
-  sendSetupInvite(@Param('id') id: string, @Req() req: any) {
+  // @ApiOperation({ summary: 'Send setup invitation email to student' })
+  async sendSetupInvite(@Param('id') id: string, @Req() req: any) {
     return this.studentsService.sendSetupInvite(id, req.user?.sub);
   }
 
   @Post(':id/send-reset-link')
-  sendResetLink(@Param('id') id: string, @Req() req: any) {
+  // @ApiOperation({ summary: 'Send password reset link to student' })
+  async sendResetLink(@Param('id') id: string, @Req() req: any) {
     return this.studentsService.sendResetLink(id, req.user?.sub);
   }
 }

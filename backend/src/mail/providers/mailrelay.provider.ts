@@ -182,6 +182,15 @@ export class MailrelayMailProvider implements MailProvider {
     }
 
     const { fromName, fromEmail } = resolveFromIdentity(input);
+    const subject = String(input.subject ?? '').trim();
+    const html = String(input.html ?? '').trim();
+    const text = String(input.text ?? '').trim();
+    if (!subject) {
+      throw new MailrelayApiError('Mail subject is required before Mailrelay send.');
+    }
+    if (!html && !text) {
+      throw new MailrelayApiError('Mail HTML or text body is required before Mailrelay send.');
+    }
     const payload: Record<string, unknown> = {
       from: {
         email: fromEmail,
@@ -193,12 +202,12 @@ export class MailrelayMailProvider implements MailProvider {
           name: input.recipientName || input.to,
         },
       ],
-      subject: input.subject,
-      html_part: input.html,
+      subject,
+      html_part: html,
     };
 
-    if (String(input.text ?? '').trim()) {
-      payload.text_part = input.text;
+    if (text) {
+      payload.text_part = text;
     }
 
     const controller = new AbortController();

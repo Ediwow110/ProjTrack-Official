@@ -194,7 +194,7 @@ export class AdminService {
       activationJob = await this.mail.queueAccountActivation({
         to: user.email,
         recipientName: this.userName(user),
-        activationLink,
+        activationUrl: activationLink,
         firstName: user.firstName,
         publicRef: session.publicRef,
       });
@@ -1089,9 +1089,35 @@ export class AdminService {
             academicYearLevel: true,
           },
         },
+        authSessions: {
+          where: { revokedAt: null },
+          orderBy: { lastUsedAt: 'desc' },
+          take: 1,
+        },
+        accountActionTokens: {
+          where: { type: 'ACCOUNT_ACTIVATION' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { createdAt: 'asc' }],
     });
+    const emailJobs = rows.length
+      ? await this.prisma.emailJob.findMany({
+          where: {
+            userEmail: { in: rows.map((row) => row.email) },
+            templateKey: 'account-activation',
+          },
+          orderBy: [{ createdAt: 'desc' }],
+        })
+      : [];
+    const latestMailJobByEmail = new Map<string, (typeof emailJobs)[number]>();
+    for (const job of emailJobs) {
+      const key = String(job.userEmail || '').trim().toLowerCase();
+      if (key && !latestMailJobByEmail.has(key)) {
+        latestMailJobByEmail.set(key, job);
+      }
+    }
 
     return rows
       .map((user) => ({
@@ -1115,9 +1141,16 @@ export class AdminService {
         course: user.studentProfile?.course ?? user.studentProfile?.section?.course ?? '—',
         section: user.studentProfile?.section?.name ?? '—',
         sectionId: user.studentProfile?.section?.id ?? '',
-        status: this.formatStudentStatus(user.status),
+        ...this.buildStudentActivationSummary(
+          user,
+          user.accountActionTokens[0] ?? null,
+          latestMailJobByEmail.get(String(user.email || '').trim().toLowerCase()) ?? null,
+          user.authSessions[0]?.lastUsedAt ?? null,
+        ),
         createdBy: 'Admin',
-        lastActive: user.updatedAt.toISOString(),
+        createdAt: user.createdAt.toISOString(),
+        lastActive: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '',
+        lastLoginAt: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '',
       }))
       .filter((row) => {
         const matchesSearch =
@@ -1842,7 +1875,7 @@ export class AdminService {
     const mailJob = await this.mail.queueAccountActivation({
       to: user.email,
       recipientName: this.userName(user),
-      activationLink,
+      activationUrl: activationLink,
       firstName: user.firstName,
       publicRef: session.publicRef,
     });
@@ -4157,7 +4190,7 @@ export class AdminService {
     const mailJob = await this.mail.queueAccountActivation({
       to: user.email,
       recipientName: this.userName(user),
-      activationLink,
+      activationUrl: activationLink,
       firstName: user.firstName,
       publicRef: session.publicRef,
     });
@@ -4333,6 +4366,88 @@ export class AdminService {
     return this.formatUserStatus(status);
   }
 
+  private buildStudentActivationSummary(
+    user: {
+      status?: string | null;
+      updatedAt?: Date | null;
+    },
+    latestToken:
+      | {
+          expiresAt: Date;
+          usedAt: Date | null;
+          revokedAt: Date | null;
+          createdAt: Date;
+        }
+      | null
+      | undefined,
+    latestMailJob:
+      | {
+          status: string;
+          sentAt: Date | null;
+          createdAt: Date;
+          lastError: string | null;
+          failureReason: string | null;
+        }
+      | null
+      | undefined,
+    lastLoginAt?: Date | null,
+  ) {
+    const now = Date.now();
+    const rawStatus = String(user.status ?? '').trim().toUpperCase();
+    const active = rawStatus === 'ACTIVE';
+    const tokenExpired =
+      Boolean(latestToken) &&
+      !latestToken?.usedAt &&
+      !latestToken?.revokedAt &&
+      latestToken.expiresAt.getTime() <= now;
+    const mailStatus = String(latestMailJob?.status ?? '').trim().toLowerCase();
+    const mailFailed = mailStatus === 'failed' || mailStatus === 'dead';
+    const mailSent = mailStatus === 'sent' || mailStatus === 'processing' || mailStatus === 'queued';
+    const displayStatus = active
+      ? 'Active'
+      : tokenExpired
+        ? 'Setup Expired'
+        : mailFailed
+          ? 'Activation Email Failed'
+          : mailSent && latestToken && latestToken.expiresAt.getTime() > now
+            ? 'Activation Email Sent'
+            : rawStatus === 'PENDING_ACTIVATION'
+              ? 'Pending Setup'
+              : this.formatStudentStatus(user.status);
+
+    const activationEmailStatus = mailFailed
+      ? 'Failed'
+      : mailSent
+        ? 'Sent'
+        : 'Not Sent';
+
+    return {
+      status: displayStatus,
+      activationStatus: this.formatStudentStatus(user.status),
+      activationEmailStatus,
+      activationEmailLastSentAt:
+        latestMailJob?.sentAt?.toISOString() ??
+        latestMailJob?.createdAt?.toISOString() ??
+        '',
+      activationEmailFailureReason:
+        mailFailed
+          ? this.sanitizeStudentMailFailureReason(
+              latestMailJob?.lastError ?? latestMailJob?.failureReason ?? '',
+            )
+          : '',
+      setupTokenExpiresAt: latestToken?.expiresAt?.toISOString() ?? '',
+      lastLoginAt: lastLoginAt?.toISOString() ?? '',
+    };
+  }
+
+  private sanitizeStudentMailFailureReason(value: string) {
+    return String(value || '')
+      .replace(/\s*\[request [^\]]+\]\s*/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 240);
+  }
+
   private async queueStudentActivationLink(
     user: any,
     actor?: AdminActorContext,
@@ -4349,7 +4464,7 @@ export class AdminService {
       to: user.email,
       recipientName: this.userName(user),
       firstName: user.firstName,
-      activationLink,
+      activationUrl: activationLink,
       publicRef: session.publicRef,
     });
 
@@ -4388,7 +4503,7 @@ export class AdminService {
       status: 'PENDING_SETUP',
       firstTimeSetup: true,
       mailJobId: mailJob.id,
-      ...(this.canExposeAccountActionLinks() ? { activationLink } : {}),
+      ...(this.canExposeAccountActionLinks() ? { activationUrl: activationLink } : {}),
     };
   }
 

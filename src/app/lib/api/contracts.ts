@@ -9,7 +9,11 @@ export type StudentStatus =
   | "Graduated"
   | "Pending Setup"
   | "Pending Activation"
-  | "Pending Password Setup";
+  | "Pending Password Setup"
+  | "Activation Email Sent"
+  | "Activation Email Failed"
+  | "Setup Expired"
+  | "Needs Resend";
 
 export interface StudentDashboardKpi {
   label: string;
@@ -164,8 +168,6 @@ export interface AdminReportsResponse {
   turnaroundData: TrendPoint[];
   tableRows: ReportTableRow[];
 }
-
-
 
 export interface AdminDashboardKpi {
   label: string;
@@ -375,7 +377,6 @@ export interface AdminCreateUserInput {
   sendActivationEmail?: boolean;
 }
 
-
 export interface AdminStudentRecord {
   id: string;
   studentId?: string;
@@ -392,6 +393,13 @@ export interface AdminStudentRecord {
   status: StudentStatus;
   createdBy: string;
   lastActive: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+  activationStatus?: string;
+  activationEmailStatus?: string;
+  activationEmailLastSentAt?: string;
+  activationEmailFailureReason?: string;
+  setupTokenExpiresAt?: string;
 }
 
 export interface AdminStudentUpsertInput {
@@ -436,8 +444,6 @@ export interface AdminSubjectRecord {
   students: number;
   status: string;
 }
-
-
 
 export interface AdminGroupRecord {
   id: string;
@@ -592,7 +598,6 @@ export interface StudentSubjectResponse {
   members: StudentSubjectMemberItem[];
   recentActivity: string[];
 }
-
 
 export interface TeacherDashboardKpi {
   label: string;
@@ -812,7 +817,6 @@ export interface SignInResponse {
   redirectTo: string;
 }
 
-
 export interface StudentProfileResponse {
   initials: string;
   fullName: string;
@@ -908,7 +912,6 @@ export interface AdminSubmissionViewResponse {
   feedback: string;
   adminNote?: string;
 }
-
 
 export interface AcademicSettingsResponse {
   schoolYear: string;
@@ -1103,7 +1106,6 @@ export interface TeacherAssignedSectionRecord {
   adviser?: string;
 }
 
-
 export interface MailJobRecipient {
   email: string;
   userId?: string;
@@ -1191,7 +1193,6 @@ export interface MailRuntimeStatus {
   }>;
   detail?: string;
 }
-
 
 export interface SystemHealthRecord {
   key: string;
@@ -1282,13 +1283,11 @@ export interface BackupHistoryResponse {
   rows: BackupRunRecord[];
 }
 
-
 export interface ReleaseStatusItem {
   area: string;
   status: "done" | "in_progress" | "pending";
   detail: string;
 }
-
 
 export interface BootstrapStepItem {
   title: string;

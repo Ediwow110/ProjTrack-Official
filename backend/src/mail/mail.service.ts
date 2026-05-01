@@ -193,15 +193,16 @@ export class MailService {
     to: string;
     recipientName?: string;
     firstName?: string;
-    activationLink: string;
+    activationUrl: string;
     publicRef: string;
   }) {
     return this.queueTransactional({
       to: input.to,
       recipientName: input.recipientName,
       templateKey: MAIL_TEMPLATE_KEYS.ACCOUNT_ACTIVATION,
+      subject: "Activate your ProjTrack account",
       payload: {
-        activationLink: input.activationLink,
+        activationUrl: input.activationUrl,
         firstName: input.firstName,
         mailCategory: MAIL_CATEGORY_KEYS.AUTH,
       },
@@ -214,15 +215,16 @@ export class MailService {
     to: string;
     recipientName?: string;
     firstName?: string;
-    activationLink: string;
+    activationUrl: string;
     publicRef: string;
   }) {
     return this.queueTransactional({
       to: input.to,
       recipientName: input.recipientName,
       templateKey: MAIL_TEMPLATE_KEYS.ACCOUNT_ACTIVATION,
+      subject: "Activate your ProjTrack account",
       payload: {
-        activationLink: input.activationLink,
+        activationUrl: input.activationUrl,
         firstName: input.firstName,
         mailCategory: MAIL_CATEGORY_KEYS.INVITE,
       },

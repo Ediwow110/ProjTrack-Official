@@ -236,9 +236,6 @@ function isCsvLikeFile(file: File) {
   return /\.(csv|tsv)$/i.test(file.name) || file.type.includes("csv") || file.type.includes("tab-separated-values");
 }
 
-
-
-
 function requireBackendApi() {
   throw new Error("Backend API access is required.");
 }
@@ -367,7 +364,6 @@ function syncAuthSessionFromProfile(profile?: {
   });
 }
 
-
 function toSubmissionModeLabel(modeOrGroupId: unknown): "Individual" | "Group" {
   const normalized = String(modeOrGroupId || "").trim().toUpperCase();
   if (normalized === "GROUP") return "Group";
@@ -415,11 +411,9 @@ function toTeacherNotificationType(type: unknown): TeacherPortalNotification['ty
   return normalizeNotificationType(normalized, ['deadline', 'grade', 'info'] as const, 'info');
 }
 
-
 function toAuditRole(role: unknown): AuditLogRecord['role'] {
   return role === 'ADMIN' ? 'Admin' : role === 'TEACHER' ? 'Teacher' : 'Student';
 }
-
 
 function formatPersonName(value: any, fallback = "Unknown") {
   if (typeof value === "string") {
@@ -735,6 +729,9 @@ export const authService = {
   async activate(ref: string, token: string, password: string, confirmPassword: string) {
     return http.post<{ success: boolean; message: string }>("/auth/activate", { ref, token, password, confirmPassword });
   },
+  async validateActivation(ref: string, token: string) {
+    return http.post<{ valid: boolean }>("/auth/activate/validate", { ref, token });
+  },
   async forgotPassword(email: string, role?: AppRole | string) {
     return http.post<{ success: boolean; message: string }>("/auth/forgot-password", { email, role });
   },
@@ -833,7 +830,7 @@ export const studentService = {
           date: dateValue ? dateValue.toISOString().slice(0, 10) : '',
           displayDate: dateValue ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
           title: row.title,
-          subject: row.subjectName || row.subject || row.subjectName || row.subject || String(row.subjectId || 'Subject'),
+          subject: row.subjectName || row.subject || row.subjectId?.replace(/^subj_/, '').replace(/_/g, ' ').replace(/\b\w/g, (m: string) => m.toUpperCase()) || 'Subject',
           type: String(row.submissionMode || '').toUpperCase() === 'GROUP' ? 'Group' : 'Individual',
           window: row.windowStatus || 'Open',
           status: formatSubmissionStatus(row.submissionStatus || row.status || 'NOT_STARTED'),
@@ -1640,9 +1637,9 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
         label: "Backend Service",
         ok: Boolean(live?.ok),
         detail: !live?.ok
-          ? "Backend liveness check failed."
+          ? "Backend did not report healthy status."
           : failingReadinessChecks.length
-            ? `Backend is live, but readiness is failing for ${failingReadinessChecks.join(", ")}.`
+            ? `Backend liveness is healthy. Remaining blockers: ${failingReadinessChecks.join(", ") || "one or more subsystems"}.`
             : "Backend liveness and readiness checks passed.",
         checkedAt: ready?.timestamp || live?.timestamp || new Date().toISOString(),
       },
@@ -1650,14 +1647,14 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
         key: "storage",
         label: "Object Storage",
         ok: Boolean(storage?.ok),
-        detail: storage?.detail || (storage?.uploadsPath || "uploads"),
+        detail: storage?.detail || `Storage path: ${storage?.uploadsPath || "uploads"}`,
         checkedAt: storage?.timestamp || new Date().toISOString(),
       },
       {
         key: "mail",
         label: "Mail Delivery",
         ok: Boolean(mail?.ok),
-        detail: mail?.detail || `${mail?.provider || "stub"} · ${mail?.from || "noreply"}`,
+        detail: mail?.detail || `Mail provider: ${mail?.provider || "configured"} · From: ${mail?.from || "noreply"}`,
         checkedAt: mail?.timestamp || new Date().toISOString(),
       },
       {
@@ -1808,7 +1805,7 @@ async getBootstrapGuide(): Promise<BootstrapStepItem[]> {
       {
         title: "Mail configuration",
         status: mail?.ok ? "ready" : "action_needed",
-        detail: mail?.detail || `Mail provider: ${mail?.provider || "configured"} · From: ${mail?.from || "noreply@projtrack.local"}`,
+        detail: mail?.detail || `Mail provider: ${mail?.provider || "configured"} · From: ${mail?.from || "noreply"}`,
       },
       {
         title: "Database configuration",
@@ -2108,7 +2105,14 @@ async deleteNotifications(ids: string[]) {
         section: String(s.section || "—"),
         status: s.status,
         createdBy: s.createdBy || "Admin",
-        lastActive: s.lastActive ? new Date(s.lastActive).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—",
+        createdAt: String(s.createdAt || ""),
+        lastLoginAt: String(s.lastLoginAt || ""),
+        lastActive: s.lastLoginAt ? new Date(s.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—",
+        activationStatus: s.activationStatus || s.status,
+        activationEmailStatus: s.activationEmailStatus || "Not Sent",
+        activationEmailLastSentAt: s.activationEmailLastSentAt || "",
+        activationEmailFailureReason: s.activationEmailFailureReason || "",
+        setupTokenExpiresAt: s.setupTokenExpiresAt || "",
       }));
     }
     await delay();
@@ -2311,6 +2315,11 @@ STU-2026-00152,Lia,M,Navarro,lia.n@school.edu.ph,2025-2026,BSIT,Bachelor of Scie
           status: "Pending Activation" as const,
           createdBy: "Bulk Import",
           lastActive: "Pending activation",
+          activationStatus: student.status,
+          activationEmailStatus: "Not Sent",
+          activationEmailLastSentAt: "",
+          activationEmailFailureReason: "",
+          setupTokenExpiresAt: "",
         })),
         summary: {
           created: response.summary?.created ?? response.students.length,
@@ -2339,6 +2348,11 @@ STU-2026-00152,Lia,M,Navarro,lia.n@school.edu.ph,2025-2026,BSIT,Bachelor of Scie
         status: "Pending Activation" as const,
         createdBy: "Bulk Import",
         lastActive: "Pending activation",
+        activationStatus: "Pending Activation",
+        activationEmailStatus: "Not Sent",
+        activationEmailLastSentAt: "",
+        activationEmailFailureReason: "",
+        setupTokenExpiresAt: "",
       })),
       summary: {
         created: rows.length,
@@ -2643,7 +2657,7 @@ export const teacherSubjectService = {
       const subject = await http.get<any>(`/teacher/subjects/${id}`);
       const teacherName = getTeacherDisplayName(subject);
       const students = (subject.students || []).map((s: any) => ({
-        name: [s.firstName, s.lastName].filter(Boolean).join(' ') || s.name || 'Student',
+        name: [s.firstName, s.lastName].filter(Boolean).join(" ") || s.name || 'Student',
         id: s.studentProfile?.studentNumber || s.studentNumber || s.id,
         status: s.status === 'ACTIVE' ? 'Active' : String(s.status || 'Active').replace(/_/g, ' '),
         submitted: 0,
@@ -2842,7 +2856,6 @@ export const studentSubjectService = {
     return JSON.parse(JSON.stringify(studentSubjectData));
   },
 };
-
 
 export const teacherDashboardService = {
   async getDashboard(): Promise<TeacherDashboardResponse> {
@@ -3332,7 +3345,6 @@ export const adminCatalogService = {
   },
 };
 
-
 export const profileService = {
   async getAvatarObjectUrl(relativePath?: string, cacheBust?: string | number) {
     return getProtectedFileObjectUrlWithCacheBust(relativePath, cacheBust);
@@ -3580,7 +3592,6 @@ export const adminDetailService = {
     return JSON.parse(JSON.stringify(adminSubmissionViewData));
   },
 };
-
 
 export const adminOpsService = {
   async getAcademicSettings(): Promise<AcademicSettingsResponse> {

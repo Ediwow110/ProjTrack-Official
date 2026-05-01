@@ -5,6 +5,7 @@ import { StatusChip } from "../../ui/StatusChip";
 import { DataTableCard } from "../shared/DataTableCard";
 import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminStudentRecord } from "../../../lib/api/contracts";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../../ui/tooltip";
 
 type StudentsTableProps = {
   rows: AdminStudentRecord[];
@@ -20,6 +21,7 @@ type StudentsTableProps = {
   onMove: (student: AdminStudentRecord) => void;
   onDeactivate: (student: AdminStudentRecord) => void;
   actionBusy?: boolean;
+  busyStudentId?: string | null;
   sortState?: {
     columnKey: string;
     direction: "asc" | "desc";
@@ -41,6 +43,7 @@ export function StudentsTable({
   onMove,
   onDeactivate,
   actionBusy = false,
+  busyStudentId = null,
   sortState,
   onSortChange,
 }: StudentsTableProps) {
@@ -54,14 +57,7 @@ export function StudentsTable({
           key: "studentId",
           header: "Student ID",
           sortable: true,
-          renderCell: (student) => (
-            <div className="space-y-1">
-              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 dark:text-slate-300">
-                {student.studentId || "—"}
-              </span>
-              <CopyableIdChip value={student.id} label="Copy User ID" className="bg-transparent px-0" />
-            </div>
-          ),
+          renderCell: (student) => student.studentId || student.id.slice(0, 8),
         },
         {
           key: "lastName",
@@ -89,7 +85,7 @@ export function StudentsTable({
           sortable: true,
           renderCell: (student) => (
             <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">
-              {student.middleInitial || ""}
+              {student.middleInitial || "—"}
             </span>
           ),
         },
@@ -135,14 +131,48 @@ export function StudentsTable({
           key: "email",
           header: "Email",
           renderCell: (student) => (
-            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-300">{student.email}</span>
+            <span className="font-medium text-slate-500 dark:text-slate-400 dark:text-slate-300">{student.email}</span>
           ),
         },
         {
           key: "status",
-          header: "Status",
+          header: "Activation / Status",
           sortable: true,
-          renderCell: (student) => <StatusChip status={student.status} size="xs" />,
+          renderCell: (student) => {
+            let tooltipContent = "";
+            if (student.status === "Activation Email Failed") {
+              tooltipContent = student.activationEmailFailureReason || "Email delivery failed.";
+            } else if (student.status === "Setup Expired") {
+              tooltipContent = "Activation link expired. Send a new setup email.";
+            }
+            return (
+              <div className="space-y-1">
+                <Tooltip>
+                  <TooltipTrigger>
+                    <StatusChip status={student.status} size="xs" />
+                  </TooltipTrigger>
+                  {tooltipContent && <TooltipContent>{tooltipContent}</TooltipContent>}
+                </Tooltip>
+                {busyStudentId === student.id ? (
+                  <p className="text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                    Queueing activation email...
+                  </p>
+                ) : null}
+              </div>
+            );
+          },
+        },
+        {
+          key: "createdAt",
+          header: "Created",
+          renderCell: (student) =>
+            student.createdAt
+              ? new Date(student.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "—",
         },
       ]}
       rows={rows}
@@ -177,17 +207,23 @@ export function StudentsTable({
         },
         {
           key: "setup",
-          label:
-            student.status === "Pending Activation"
-              ? "Send Activation Email"
-              : student.status === "Pending Setup"
-                ? "Send Setup Email"
-                : "Send Password Reset Email",
+          label: () =>
+            busyStudentId === student.id
+              ? "Queueing..."
+              : student.status === "Pending Activation"
+                ? "Send Activation Email"
+                : student.status === "Pending Setup" ||
+                    student.status === "Activation Email Failed" ||
+                    student.status === "Setup Expired"
+                  ? "Resend Activation Email"
+                  : "Send Password Reset Email",
           icon: <Mail size={15} />,
           ariaLabel:
             student.status === "Pending Activation"
               ? `Send activation email to ${student.name}`
-              : student.status === "Pending Setup"
+              : student.status === "Pending Setup" ||
+                  student.status === "Activation Email Failed" ||
+                  student.status === "Setup Expired"
                 ? `Send setup email to ${student.name}`
                 : `Send password reset email to ${student.name}`,
           onClick: () => onSendSetupLink(student.id),
