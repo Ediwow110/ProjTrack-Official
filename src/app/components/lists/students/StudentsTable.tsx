@@ -7,6 +7,109 @@ import { CopyableIdChip } from "../shared/CopyableIdChip";
 import type { AdminStudentRecord } from "../../../lib/api/contracts";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../../ui/tooltip";
 
+type SetupLinkTimePresentation = {
+  label: string;
+  className: string;
+  tooltip: string;
+};
+
+function formatRemainingTime(msRemaining: number) {
+  const totalMinutes = Math.max(0, Math.floor(msRemaining / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m remaining`;
+  }
+
+  return "Less than 1m remaining";
+}
+
+export function getSetupLinkTimePresentation(
+  student: AdminStudentRecord,
+  currentTimeMs = Date.now(),
+): SetupLinkTimePresentation {
+  const status = String(student.status || "").trim();
+  const activationStatus = String(student.activationStatus || "").trim();
+  const activationEmailStatus = String(student.activationEmailStatus || "").trim().toLowerCase();
+  const expiresAtRaw = String(student.setupTokenExpiresAt || "").trim();
+
+  if (status === "Active" || activationStatus === "Active") {
+    return {
+      label: "Activated",
+      className:
+        "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/25",
+      tooltip: "The student account is already active.",
+    };
+  }
+
+  if (status === "Activation Email Failed" || activationEmailStatus === "failed") {
+    return {
+      label: "Needs resend",
+      className:
+        "bg-amber-50 text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/25",
+      tooltip: "Latest activation email failed. Resend activation.",
+    };
+  }
+
+  if (!expiresAtRaw) {
+    if (status === "Needs Resend") {
+      return {
+        label: "Needs resend",
+        className:
+          "bg-amber-50 text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/25",
+        tooltip: "No active setup link is available. Resend activation.",
+      };
+    }
+
+    if (activationEmailStatus === "not sent" || status === "Pending Setup" || status === "Pending Activation") {
+      return {
+        label: "No setup link",
+        className:
+          "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:ring-slate-500/35",
+        tooltip: "No active setup link is available for this student.",
+      };
+    }
+
+    return {
+      label: "—",
+      className:
+        "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:ring-slate-500/35",
+      tooltip: "Setup link timing is unavailable.",
+    };
+  }
+
+  const expiresAt = new Date(expiresAtRaw);
+  if (Number.isNaN(expiresAt.getTime())) {
+    return {
+      label: "—",
+      className:
+        "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:ring-slate-500/35",
+      tooltip: "Setup link timing is unavailable.",
+    };
+  }
+
+  if (expiresAt.getTime() <= currentTimeMs) {
+    return {
+      label: "Expired",
+      className:
+        "bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/25",
+      tooltip: "Activation link expired. Send a new setup email.",
+    };
+  }
+
+  return {
+    label: formatRemainingTime(expiresAt.getTime() - currentTimeMs),
+    className:
+      "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/25",
+    tooltip: `Setup link expires at ${expiresAt.toLocaleString()}`,
+  };
+}
+
 type StudentsTableProps = {
   rows: AdminStudentRecord[];
   loading?: boolean;
@@ -27,6 +130,7 @@ type StudentsTableProps = {
     direction: "asc" | "desc";
   } | null;
   onSortChange?: (columnKey: string) => void;
+  currentTimeMs?: number;
 };
 
 export function StudentsTable({
@@ -46,6 +150,7 @@ export function StudentsTable({
   busyStudentId = null,
   sortState,
   onSortChange,
+  currentTimeMs = Date.now(),
 }: StudentsTableProps) {
   return (
     <DataTableCard
@@ -163,6 +268,25 @@ export function StudentsTable({
           },
         },
         {
+          key: "setupLinkTime",
+          header: "Setup Link Time",
+          renderCell: (student) => {
+            const presentation = getSetupLinkTimePresentation(student, currentTimeMs);
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${presentation.className}`}
+                  >
+                    {presentation.label}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{presentation.tooltip}</TooltipContent>
+              </Tooltip>
+            );
+          },
+        },
+        {
           key: "createdAt",
           header: "Created",
           renderCell: (student) =>
@@ -187,7 +311,7 @@ export function StudentsTable({
       onRowClick={(student) => onPreview(student.id)}
       sortState={sortState}
       onSortChange={onSortChange}
-      tableClassName="min-w-[1380px]"
+      tableClassName="min-w-[1500px]"
       rowActions={(student) => [
         {
           key: "preview",
@@ -213,6 +337,7 @@ export function StudentsTable({
               : student.status === "Pending Activation"
                 ? "Send Activation Email"
                 : student.status === "Pending Setup" ||
+                    student.status === "Needs Resend" ||
                     student.status === "Activation Email Failed" ||
                     student.status === "Setup Expired"
                   ? "Resend Activation Email"
@@ -222,6 +347,7 @@ export function StudentsTable({
             student.status === "Pending Activation"
               ? `Send activation email to ${student.name}`
               : student.status === "Pending Setup" ||
+                  student.status === "Needs Resend" ||
                   student.status === "Activation Email Failed" ||
                   student.status === "Setup Expired"
                 ? `Send setup email to ${student.name}`

@@ -4395,6 +4395,11 @@ export class AdminService {
     const now = Date.now();
     const rawStatus = String(user.status ?? '').trim().toUpperCase();
     const active = rawStatus === 'ACTIVE';
+    const hasValidToken =
+      Boolean(latestToken) &&
+      !latestToken?.usedAt &&
+      !latestToken?.revokedAt &&
+      latestToken.expiresAt.getTime() > now;
     const tokenExpired =
       Boolean(latestToken) &&
       !latestToken?.usedAt &&
@@ -4405,14 +4410,16 @@ export class AdminService {
     const mailSent = mailStatus === 'sent' || mailStatus === 'processing' || mailStatus === 'queued';
     const displayStatus = active
       ? 'Active'
-      : tokenExpired
-        ? 'Setup Expired'
-        : mailFailed
-          ? 'Activation Email Failed'
-          : mailSent && latestToken && latestToken.expiresAt.getTime() > now
-            ? 'Activation Email Sent'
-            : rawStatus === 'PENDING_ACTIVATION'
-              ? 'Pending Setup'
+      : mailFailed
+        ? 'Activation Email Failed'
+        : tokenExpired
+          ? 'Setup Expired'
+          : hasValidToken
+            ? mailSent
+              ? 'Activation Email Sent'
+              : 'Pending Setup'
+            : rawStatus === 'PENDING_ACTIVATION' || rawStatus === 'PENDING_SETUP' || rawStatus === 'PENDING_PASSWORD_SETUP'
+              ? 'Needs Resend'
               : this.formatStudentStatus(user.status);
 
     const activationEmailStatus = mailFailed

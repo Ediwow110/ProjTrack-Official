@@ -15,7 +15,7 @@ import { FilterToolbar } from "../shared/FilterToolbar";
 import { ActiveFilterChips } from "../shared/ActiveFilterChips";
 import { BulkActionBar } from "../shared/BulkActionBar";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
-import { StudentsTable } from "./StudentsTable";
+import { getSetupLinkTimePresentation, StudentsTable } from "./StudentsTable";
 import { StudentPreviewDrawer } from "./StudentPreviewDrawer";
 import { PortalNotice } from "../../portal/PortalListPage";
 import { Button } from "../../ui/button";
@@ -150,6 +150,7 @@ export default function StudentsPage() {
   }>({ busy: false, error: null });
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now());
 
   const { data, loading, error, setData, reload } = useAsyncData(
     () => adminService.getStudents({ search, status: statusFilter }),
@@ -242,7 +243,8 @@ export default function StudentsPage() {
       student.status === "Pending Setup" ||
       student.status === "Activation Email Sent" ||
       student.status === "Activation Email Failed" ||
-      student.status === "Setup Expired",
+      student.status === "Setup Expired" ||
+      student.status === "Needs Resend",
   ).length;
   const createAcademicYearId = createForm.academicYearId || activeAcademicYearId;
   const createCourseOptions = getCourseOptions(sectionOptions, createAcademicYearId);
@@ -347,6 +349,13 @@ export default function StudentsPage() {
     }, 30000); // Auto-refresh every 30 seconds
     return () => clearInterval(interval);
   }, [reload]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTimeMs(Date.now());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeFilterItems = [
     search.trim()
@@ -707,9 +716,11 @@ export default function StudentsPage() {
       return (a.middleInitial || "").localeCompare(b.middleInitial || "");
     });
 
-    const csvHeaders = ["Student ID", "Last Name", "First Name", "Middle Name", "Year Level", "Section", "Course", "Academic Year", "Email", "Status", "Activation Status", "Activation Email Status", "Activation Email Last Sent", "Activation Email Failure Reason", "Setup Token Expires At", "Last Login", "Created Date"];
+    const exportTimeMs = Date.now();
+    const csvHeaders = ["Student ID", "Last Name", "First Name", "Middle Name", "Year Level", "Section", "Course", "Academic Year", "Email", "Status", "Activation Status", "Activation Email Status", "Activation Email Last Sent", "Activation Email Failure Reason", "Setup Token Expires At", "Setup Link Time", "Last Login", "Created Date"];
     const csvRows = [csvHeaders];
     studentsToDownload.forEach(student => {
+      const setupLinkTime = getSetupLinkTimePresentation(student, exportTimeMs).label;
       csvRows.push([
         student.studentId || student.id,
         student.lastName,
@@ -726,6 +737,7 @@ export default function StudentsPage() {
         student.activationEmailLastSentAt || "",
         student.activationEmailFailureReason || "",
         student.setupTokenExpiresAt || "",
+        setupLinkTime,
         student.lastLoginAt || "",
         student.createdAt || ""
       ].map(field => `"${field.replace(/"/g, '""')}"`));
@@ -946,6 +958,7 @@ export default function StudentsPage() {
                     { value: "Activation Email Sent", label: "Activation Email Sent" },
                     { value: "Setup Expired", label: "Setup Expired" },
                     { value: "Activation Email Failed", label: "Activation Email Failed" },
+                    { value: "Needs Resend", label: "Needs Resend" },
                   ]}
                 />
               </>
@@ -1028,6 +1041,7 @@ export default function StudentsPage() {
           actionBusy={actionState.busy}
           busyStudentId={busyStudentId}
           sortState={sortState}
+          currentTimeMs={currentTimeMs}
           onSortChange={(columnKey) =>
             setSortState((current) => {
               if (!current || current.columnKey !== columnKey) {
