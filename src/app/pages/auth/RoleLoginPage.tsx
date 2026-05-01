@@ -83,7 +83,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     formState: { errors },
   } = useForm<{
     identifier: string;
@@ -120,9 +120,14 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
       navigate(requestedTarget || response.redirectTo, { replace: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to sign in.";
+      const userMessage =
+        /service is temporarily unavailable|unable to reach the backend/i.test(message)
+          ? "ProjTrack could not reach the sign-in service. Check your connection and try again."
+          : message;
+
       setError(message);
-      setValue("password", "");
-      toast.error(message);
+      reset({ identifier: "", password: "" });
+      toast.error(userMessage);
     } finally {
       setLoading(false);
     }

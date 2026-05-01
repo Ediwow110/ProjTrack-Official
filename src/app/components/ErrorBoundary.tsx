@@ -69,6 +69,12 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
+  private reportToSupport = () => {
+    if (this.state.error) {
+      void this.reportError(this.state.error, { componentStack: "" });
+    }
+  }
+
   private retry = () => {
     this.setState({
       hasError: false,
@@ -121,6 +127,16 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="rounded-xl bg-blue-600 px-6 font-medium hover:bg-blue-500"
               >
                 Reload Application
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={this.reportToSupport}
+                disabled={this.state.reportStatus === "sending"}
+                className="rounded-xl border-white/15 bg-transparent px-6 text-white hover:bg-white/8"
+              >
+                {this.state.reportStatus === "sending" ? "Reporting..." : "Report to Support"}
               </Button>
             </div>
             <p className="mt-6 text-xs text-slate-500">Error ID: {this.state.errorId ?? "unavailable"}</p>

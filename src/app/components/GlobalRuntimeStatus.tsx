@@ -34,9 +34,25 @@ export function GlobalRuntimeStatus() {
     getNetworkActivitySnapshot,
     getNetworkActivitySnapshot,
   );
+  const [showOverlay, setShowOverlay] = useState(false);
+
+  useEffect(() => {
+    if (!featureFlags.globalNetworkOverlay || !isOnline) {
+      setShowOverlay(false);
+      return undefined;
+    }
+
+    if (networkState.activeRequests === 0) {
+      setShowOverlay(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setShowOverlay(true), 180);
+    return () => window.clearTimeout(timer);
+  }, [isOnline, networkState.activeRequests]);
 
   const showBusyOverlay =
-    featureFlags.globalNetworkOverlay && isOnline && networkState.activeRequests > 0;
+    featureFlags.globalNetworkOverlay && isOnline && showOverlay && networkState.activeRequests > 0;
   const showOfflineBanner = featureFlags.globalOfflineBanner && !isOnline;
 
   return (
@@ -56,16 +72,18 @@ export function GlobalRuntimeStatus() {
       ) : null}
 
       {showBusyOverlay ? (
-        <div className="pointer-events-none fixed right-4 top-4 z-[110]">
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/92 px-4 py-3 text-sm font-medium text-white shadow-2xl shadow-slate-950/30 backdrop-blur">
-            <LoaderCircle size={18} className="animate-spin text-sky-300" />
-            <div className="flex flex-col">
-              <span>Syncing live data</span>
-              <span className="text-xs text-slate-400">
-                {networkState.activeRequests} request{networkState.activeRequests === 1 ? "" : "s"} in flight
-              </span>
+        <div className="pointer-events-none fixed inset-0 z-[110] bg-slate-950/16 backdrop-blur-[1.5px]">
+          <div className="flex min-h-screen items-start justify-center px-4 pt-24">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/92 px-4 py-3 text-sm font-medium text-white shadow-2xl shadow-slate-950/30 backdrop-blur">
+              <LoaderCircle size={18} className="animate-spin text-sky-300" />
+              <div className="flex flex-col">
+                <span>Syncing live data</span>
+                <span className="text-xs text-slate-400">
+                  {networkState.activeRequests} request{networkState.activeRequests === 1 ? "" : "s"} in flight
+                </span>
+              </div>
+              <CloudOff size={16} className="text-slate-500" />
             </div>
-            <CloudOff size={16} className="text-slate-500" />
           </div>
         </div>
       ) : null}
