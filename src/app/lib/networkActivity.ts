@@ -6,15 +6,21 @@ type NetworkActivityDetail = {
 };
 
 let activeRequests = 0;
+let snapshot: NetworkActivityDetail = {
+  activeRequests,
+  lastUpdatedAt: Date.now(),
+};
 
 function emit() {
+  snapshot = {
+    activeRequests,
+    lastUpdatedAt: Date.now(),
+  };
+
   if (typeof window === "undefined") return;
   window.dispatchEvent(
     new CustomEvent<NetworkActivityDetail>(NETWORK_ACTIVITY_EVENT, {
-      detail: {
-        activeRequests,
-        lastUpdatedAt: Date.now(),
-      },
+      detail: snapshot,
     }),
   );
 }
@@ -30,10 +36,7 @@ export function endNetworkActivity() {
 }
 
 export function getNetworkActivitySnapshot(): NetworkActivityDetail {
-  return {
-    activeRequests,
-    lastUpdatedAt: Date.now(),
-  };
+  return snapshot;
 }
 
 export function subscribeToNetworkActivity(listener: () => void) {
