@@ -1,4 +1,3 @@
-
 # PROJTRACK
 
 PROJTRACK uses a React frontend and a NestJS + Prisma backend backed by PostgreSQL.
@@ -75,7 +74,9 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
 - Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md) and [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
-  
+
+# Dummy Commit
+This line is added to trigger a new CI run.
 
 ## Backend local startup troubleshooting
 

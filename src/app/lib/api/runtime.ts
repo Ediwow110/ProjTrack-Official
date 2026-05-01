@@ -19,7 +19,7 @@ function normalizeBaseUrl(value: unknown) {
     const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
 
     if (import.meta.env.MODE === 'production' && useBackend && !rawConfiguredBaseUrl) {
-      throw new Error("VITE_API_BASE_URL is required for production builds when VITE_USE_BACKEND=true.");
+      throw new Error("VITE_API_BASE_URL is required for production builds.");
     }
 
     if (import.meta.env.MODE === 'production' && useBackend && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(normalized)) {
