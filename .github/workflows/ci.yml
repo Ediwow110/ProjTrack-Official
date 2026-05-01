@@ -56,7 +56,6 @@ jobs:
       OBJECT_STORAGE_MODE: local
       HTTP_RATE_LIMIT_STORE: memory
       FILE_MALWARE_SCAN_MODE: disabled
-      NODE_ENV: test
       APP_ENV: test
       BACKUP_WORKER_ENABLED: "false"
       BACKUP_SCHEDULE_ENABLED: "false"
