@@ -27,6 +27,7 @@ BEGIN
 END $$;
 
 ALTER TABLE "StudentProfile" ADD COLUMN IF NOT EXISTS "academicYearLevelId" TEXT;
+ALTER TABLE "StudentProfile" ADD COLUMN IF NOT EXISTS "yearLevelName" TEXT;
 
 CREATE INDEX IF NOT EXISTS "StudentProfile_academicYearLevelId_idx" ON "StudentProfile"("academicYearLevelId");
 
