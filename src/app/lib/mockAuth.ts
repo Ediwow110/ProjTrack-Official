@@ -82,6 +82,13 @@ export function setAuthSession(
   displayName?: string,
   extras?: Partial<Omit<AuthSession, "role" | "identifier" | "displayName" | "accessToken" | "refreshToken">>,
 ) {
+  // PRODUCTION SAFETY: In production, we NEVER allow pure client-side session creation.
+  // Real login must come through authService.login() which calls the backend.
+  if (productionRuntime() && !tokens?.accessToken) {
+    console.error("[SECURITY] Blocked client-only session creation in production. Use real login API.");
+    return;
+  }
+
   const session: AuthSession = {
     role,
     identifier,

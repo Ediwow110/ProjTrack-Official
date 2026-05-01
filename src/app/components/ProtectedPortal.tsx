@@ -56,11 +56,18 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
         }
 
         if (apiRuntime.useBackend) {
-          setVerificationError("Session verification is temporarily unavailable. Please retry when the backend is reachable.");
+          setVerificationError("Session verification failed. Please log in again.");
           setAllowed(false);
           return;
         }
 
+        // SECURITY: In non-backend mode (local dev only), still require valid session structure
+        // but log a warning. Never allow role spoofing without any token in production builds.
+        if (productionRuntime()) {
+          console.error("[SECURITY] Production build with no backend — rejecting session.");
+          setAllowed(false);
+          return;
+        }
         setAllowed(sessionRole === role);
       } finally {
         if (mounted) setChecked(true);

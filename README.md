@@ -75,9 +75,6 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
 - Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md) and [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
 
-# Dummy Commit
-This line is added to trigger a new CI run.
-
 ## Backend local startup troubleshooting
 
 The backend was previously easy to start with the wrong environment: copied production-like values could leave it pointing at `localhost:5432` without a running database, or could enable the mail worker inside the HTTP process. That usually showed up as repeated Prisma errors such as `Can't reach database server at localhost:5432` or a Windows process exit like `3221225477`.

@@ -88,6 +88,7 @@ function manualVendorChunks(id: string) {
   return 'vendor'
 }
 
+// figmaAssetResolver disabled — was a Figma export artifact. Re-enable only if you have real figma:asset/ imports.
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
@@ -102,9 +103,7 @@ function figmaAssetResolver() {
 
 export default defineConfig({
   plugins: [
-    figmaAssetResolver(),
-    // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
+    // figmaAssetResolver(), // disabled — cleanup artifact
     react(),
     tailwindcss(),
   ],
