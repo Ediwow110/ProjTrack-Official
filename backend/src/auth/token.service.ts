@@ -8,6 +8,7 @@ export class TokenService {
   private readonly refreshSecret = process.env.JWT_REFRESH_SECRET;
   private readonly accessTtlMs = Number(process.env.JWT_ACCESS_TTL_MS || 15 * 60 * 1000);
   private readonly refreshTtlMs = Number(process.env.JWT_REFRESH_TTL_MS || 7 * 24 * 60 * 60 * 1000);
+  private readonly rememberRefreshTtlMs = Number(process.env.JWT_REMEMBER_REFRESH_TTL_MS || 30 * 24 * 60 * 60 * 1000);
   private readonly issuer = String(process.env.JWT_ISSUER || 'projtrack-api').trim();
   private readonly audience = String(process.env.JWT_AUDIENCE || 'projtrack-web').trim();
   private readonly keyId = String(process.env.JWT_KEY_ID || 'primary').trim();
@@ -63,6 +64,10 @@ export class TokenService {
     return this.refreshTtlMs;
   }
 
+  getRememberRefreshTtlMs() {
+    return this.rememberRefreshTtlMs;
+  }
+
   createAccessToken(user: { id: string; role: string; email: string }) {
     const issuedAt = Math.floor(Date.now() / 1000);
     return this.encode(
@@ -80,7 +85,7 @@ export class TokenService {
     );
   }
 
-  createRefreshToken(user: { id: string; role: string; email: string }, sessionId: string) {
+  createRefreshToken(user: { id: string; role: string; email: string }, sessionId: string, ttlMs = this.refreshTtlMs, remember = false) {
     const issuedAt = Math.floor(Date.now() / 1000);
     return this.encode(
       {
@@ -89,10 +94,11 @@ export class TokenService {
         email: user.email,
         type: 'refresh',
         sid: sessionId,
+        remember,
         iss: this.issuer,
         aud: this.audience,
         iat: issuedAt,
-        exp: issuedAt + Math.floor(this.refreshTtlMs / 1000),
+        exp: issuedAt + Math.floor(ttlMs / 1000),
       },
       this.refreshSecret,
     );

@@ -19,16 +19,17 @@ export class AuthSessionService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  async createRefreshSession(user: SessionUser, meta?: RequestMeta) {
+  async createRefreshSession(user: SessionUser, meta?: RequestMeta, remember = false) {
     const sessionId = randomUUID();
-    const refreshToken = this.tokenService.createRefreshToken(user, sessionId);
+    const refreshTtlMs = remember ? this.tokenService.getRememberRefreshTtlMs() : this.tokenService.getRefreshTtlMs();
+    const refreshToken = this.tokenService.createRefreshToken(user, sessionId, refreshTtlMs, remember);
 
     await this.prisma.authSession.create({
       data: {
         id: sessionId,
         userId: user.id,
         tokenHash: this.hashToken(refreshToken),
-        expiresAt: new Date(Date.now() + this.tokenService.getRefreshTtlMs()),
+        expiresAt: new Date(Date.now() + refreshTtlMs),
         lastUsedAt: new Date(),
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
@@ -46,6 +47,8 @@ export class AuthSessionService {
 
     const sessionId = String(payload.sid);
     const userId = String(payload.sub);
+    const remember = payload.remember === true;
+    const refreshTtlMs = remember ? this.tokenService.getRememberRefreshTtlMs() : this.tokenService.getRefreshTtlMs();
     const tokenHash = this.hashToken(refreshToken);
     const now = new Date();
     const session = await this.prisma.authSession.findUnique({
@@ -89,6 +92,8 @@ export class AuthSessionService {
     const nextRefreshToken = this.tokenService.createRefreshToken(
       { id: user.id, role: user.role, email: user.email },
       nextSessionId,
+      refreshTtlMs,
+      remember,
     );
 
     const rotation = await this.prisma.$transaction(async (tx) => {
@@ -126,7 +131,7 @@ export class AuthSessionService {
           id: nextSessionId,
           userId: user.id,
           tokenHash: this.hashToken(nextRefreshToken),
-          expiresAt: new Date(now.getTime() + this.tokenService.getRefreshTtlMs()),
+          expiresAt: new Date(now.getTime() + refreshTtlMs),
           lastUsedAt: now,
           ipAddress: meta?.ipAddress,
           userAgent: meta?.userAgent,

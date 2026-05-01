@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class LoginDto {
   @IsString()
@@ -12,4 +12,8 @@ export class LoginDto {
   @IsString()
   @IsIn(['ADMIN', 'TEACHER', 'STUDENT'])
   expectedRole!: 'ADMIN' | 'TEACHER' | 'STUDENT';
+
+  @IsOptional()
+  @IsBoolean()
+  remember?: boolean;
 }

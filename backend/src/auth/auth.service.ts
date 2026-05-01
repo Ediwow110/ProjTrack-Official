@@ -71,6 +71,7 @@ export class AuthService {
     const refreshSession = await this.authSessions.createRefreshSession(
       { id: user.id, role: user.role, email: user.email },
       requestMeta,
+      body.remember === true,
     );
 
     await this.auditLogs.record({
