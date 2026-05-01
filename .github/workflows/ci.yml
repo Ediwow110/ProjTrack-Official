@@ -61,6 +61,8 @@ jobs:
       BACKUP_SCHEDULE_ENABLED: "false"
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_API_BASE_URL: http://localhost:3001
+      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     defaults:
       run:
         working-directory: backend
@@ -79,17 +81,17 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run build
       - run: npm run test
+      - name: Smoke secrets status
+        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
+        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
       - name: Ensure CI Smoke Admin
+        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:admin:ensure
-        env:
-          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
       - name: Backend Smoke (Real Accounts)
+        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
-          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
       - run: npm audit --audit-level=high
 
   e2e:
@@ -131,6 +133,8 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_USE_BACKEND: "true"
       VITE_API_BASE_URL: http://127.0.0.1:3001
+      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -154,17 +158,17 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
+      - name: E2E smoke secrets status
+        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
+        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account E2E preflight."
       - name: Ensure CI Smoke Admin
+        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm --prefix backend run smoke:admin:ensure
-        env:
-          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
       - name: E2E database health preflight
+        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm --prefix backend run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
-          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
-          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
       - name: Run E2E Smoke
         run: npm run e2e:smoke
         timeout-minutes: 15
