@@ -19,7 +19,7 @@ const REFRESH_KEY = "projtrack-refresh-token";
 const SESSION_EVENT = "projtrack-auth-session-change";
 let memoryAccessToken: string | null = null;
 
-function productionRuntime() {
+export function productionRuntime() {
   return import.meta.env.PROD;
 }
 

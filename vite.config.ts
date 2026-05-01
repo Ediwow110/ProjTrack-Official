@@ -89,17 +89,6 @@ function manualVendorChunks(id: string) {
 }
 
 // figmaAssetResolver disabled — was a Figma export artifact. Re-enable only if you have real figma:asset/ imports.
-function figmaAssetResolver() {
-  return {
-    name: 'figma-asset-resolver',
-    resolveId(id: string) {
-      if (id.startsWith('figma:asset/')) {
-        const filename = id.replace('figma:asset/', '')
-        return path.resolve(__dirname, 'src/assets', filename)
-      }
-    },
-  }
-}
 
 export default defineConfig({
   plugins: [
