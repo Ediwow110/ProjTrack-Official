@@ -66,6 +66,7 @@ import type {
   TeacherSubmissionRow,
   MailJobRecord,
   SystemHealthRecord,
+  ClientErrorTelemetryResponse,
   BackupDetailResponse,
   BackupHistoryResponse,
   BackupRunRecord,
@@ -1699,6 +1700,18 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
     { key: "mail", label: "Mail Provider", ok: true, detail: "stub", checkedAt: new Date().toISOString() },
     { key: "database", label: "Database Config", ok: false, detail: "not configured", checkedAt: new Date().toISOString() },
   ];
+},
+
+async getClientErrorTelemetry(): Promise<ClientErrorTelemetryResponse> {
+  if (apiRuntime.useBackend) {
+    return http.get<ClientErrorTelemetryResponse>("/monitoring/client-errors");
+  }
+
+  await delay(80);
+  return {
+    count: 0,
+    items: [],
+  };
 },
 
 async getReleaseStatus(): Promise<ReleaseStatusItem[]> {

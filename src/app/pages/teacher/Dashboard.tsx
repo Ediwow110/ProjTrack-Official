@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { BookOpen, Clock, FileCheck2 } from "lucide-react";
-import { BarChart, Bar, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { StatusChip } from "../../components/ui/StatusChip";
 import {
   PortalEmptyState,
@@ -15,6 +14,8 @@ import type {
   TeacherDeadlineItem,
   TeacherPendingReviewItem,
 } from "../../lib/api/contracts";
+
+const TeacherDashboardChart = lazy(() => import("./components/TeacherDashboardChart"));
 
 function buildDeadlineTarget(item: TeacherDeadlineItem) {
   if (item.subjectId) {
@@ -98,41 +99,19 @@ export default function TeacherDashboard() {
         </div>
       ) : null}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <PortalPanel
-          title="Submission Status Overview"
-          description="A quick view of where the review queue and class progress stand."
-          className="xl:col-span-2"
+        <Suspense
+          fallback={
+            <PortalPanel
+              title="Submission Status Overview"
+              description="Loading chart module..."
+              className="xl:col-span-2"
+            >
+              <div className="h-[280px] animate-pulse rounded-[22px] bg-slate-100 dark:bg-slate-800/70" />
+            </PortalPanel>
+          }
         >
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data?.chartData ?? []}>
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 11, fill: "#64748b" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#64748b" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "#0f172a",
-                  border: "none",
-                  borderRadius: 16,
-                  color: "#f8fafc",
-                  fontSize: 12,
-                }}
-              />
-              <Bar dataKey="value" radius={[10, 10, 0, 0]}>
-                {(data?.chartData ?? []).map((entry) => (
-                  <Cell key={entry.name} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </PortalPanel>
+          <TeacherDashboardChart chartData={data?.chartData ?? []} />
+        </Suspense>
 
         <PortalPanel
           title="Upcoming Deadlines"

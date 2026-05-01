@@ -11,22 +11,46 @@ export interface ClientErrorReport {
   context?: Record<string, unknown>;
 }
 
+export interface RecentClientErrorReport extends ClientErrorReport {
+  receivedAt: string;
+}
+
 @Injectable()
 export class MonitoringService {
   private readonly logger = new Logger(MonitoringService.name);
+  private readonly recentClientErrors: RecentClientErrorReport[] = [];
+  private readonly recentClientErrorLimit = 25;
 
   reportClientError(payload: ClientErrorReport) {
+    const receivedAt = new Date().toISOString();
+    const report: RecentClientErrorReport = {
+      ...payload,
+      receivedAt,
+    };
+
+    this.recentClientErrors.unshift(report);
+    if (this.recentClientErrors.length > this.recentClientErrorLimit) {
+      this.recentClientErrors.length = this.recentClientErrorLimit;
+    }
+
     this.logger.error(
       JSON.stringify({
         event: 'client.error',
-        ...payload,
+        ...report,
       }),
     );
 
     return {
       ok: true,
       errorId: payload.errorId,
-      receivedAt: new Date().toISOString(),
+      receivedAt,
+    };
+  }
+
+  getRecentClientErrors() {
+    return {
+      count: this.recentClientErrors.length,
+      items: [...this.recentClientErrors],
     };
   }
 }

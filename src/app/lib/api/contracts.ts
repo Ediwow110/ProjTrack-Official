@@ -1199,6 +1199,23 @@ export interface SystemHealthRecord {
   checkedAt: string;
 }
 
+export interface ClientErrorTelemetryRecord {
+  errorId: string;
+  message: string;
+  stack?: string;
+  route?: string;
+  userAgent?: string;
+  online?: boolean;
+  timestamp?: string;
+  receivedAt: string;
+  context?: Record<string, unknown>;
+}
+
+export interface ClientErrorTelemetryResponse {
+  count: number;
+  items: ClientErrorTelemetryRecord[];
+}
+
 export interface BackupRunRecord {
   id: string;
   status: string;

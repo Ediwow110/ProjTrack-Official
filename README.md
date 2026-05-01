@@ -51,6 +51,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 ## Runtime notes
 
 - Frontend backend mode is environment-driven via `VITE_USE_BACKEND`.
+- Frontend runtime UX and monitoring toggles are documented in `.env.example` via `VITE_ENABLE_CLIENT_ERROR_REPORTING`, `VITE_ENABLE_OFFLINE_BANNER`, `VITE_ENABLE_NETWORK_OVERLAY`, and `VITE_ENABLE_REAL_ACCOUNT_SMOKE_DOCS`.
 - Frontend API URL building now trims malformed whitespace and normalizes the final backend URL before each request.
 - Backend startup requires `DATABASE_URL`.
 - Backend startup now fails fast in production if weak/default secrets, stub mail, or local file storage are still configured.
@@ -68,6 +69,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - Student: student number or email
   - Teacher: employee ID or email
   - Admin: email
+- Role access expectations are documented in [docs/ROLE_ACCESS_RULES.md](/docs/ROLE_ACCESS_RULES.md).
 
 ## Production safety notes
 
@@ -82,7 +84,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - `APP_URL=https://projtrack.codes`
   - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
-- Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md), [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md), and [docs/DEPLOYMENT_CHECKLIST.md](/docs/DEPLOYMENT_CHECKLIST.md).
+- Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md), [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md), [docs/DEPLOYMENT_CHECKLIST.md](/docs/DEPLOYMENT_CHECKLIST.md), and [docs/ROLE_ACCESS_RULES.md](/docs/ROLE_ACCESS_RULES.md).
 
 ## Backend local startup troubleshooting
 

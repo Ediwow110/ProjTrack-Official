@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { Download, RefreshCcw } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
+
+const AdminReportsCharts = lazy(() => import("./components/AdminReportsCharts"));
 
 export default function AdminReports() {
   const [schoolYear, setSchoolYear] = useState("2025–2026");
@@ -129,45 +130,29 @@ export default function AdminReports() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-5">
-              <p className="text-slate-800 dark:text-slate-100 text-sm font-bold mb-4">Completion Rate by Subject</p>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={data.completionData} barCategoryGap="40%" layout="vertical">
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={140} />
-                  <Tooltip contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#f8fafc", fontSize: 11 }} />
-                  <Bar dataKey="rate" fill="#1e40af" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-5">
-              <p className="text-slate-800 dark:text-slate-100 text-sm font-bold mb-4">Late Submissions Trend</p>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={data.lateData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#f8fafc", fontSize: 11 }} />
-                  <Line type="monotone" dataKey="late" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3, fill: "#f43f5e" }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-5">
-            <p className="text-slate-800 dark:text-slate-100 text-sm font-bold mb-4">Average Review Turnaround</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={data.turnaroundData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "#1e293b", border: "none", borderRadius: 8, color: "#f8fafc", fontSize: 11 }} />
-                <Line type="monotone" dataKey="days" stroke="#0f766e" strokeWidth={2} dot={{ r: 3, fill: "#0f766e" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense
+            fallback={
+              <>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                  <div className="lg:col-span-2 rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/85">
+                    <div className="h-[200px] animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/70" />
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/85">
+                    <div className="h-[200px] animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/70" />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/85">
+                  <div className="h-[200px] animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/70" />
+                </div>
+              </>
+            }
+          >
+            <AdminReportsCharts
+              completionData={data.completionData}
+              lateData={data.lateData}
+              turnaroundData={data.turnaroundData}
+            />
+          </Suspense>
 
           <div className={`bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm overflow-hidden ${loading ? "opacity-80" : ""}`}>
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700/70 flex items-center justify-between">
