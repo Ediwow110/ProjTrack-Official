@@ -7,7 +7,6 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
-    env:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,7 +61,7 @@ jobs:
       BACKUP_WORKER_ENABLED: "false"
       BACKUP_SCHEDULE_ENABLED: "false"
       BACKUP_WORKER_POLL_MS: "60000"
-      VITE_API_BASE_URL: https://api.projtrack.codes
+      VITE_API_BASE_URL: "https://api.projtrack.codes"
     defaults:
       run:
         working-directory: backend
