@@ -1,5 +1,6 @@
 import { apiRuntime, buildApiUrl } from './runtime';
 import { clearAuthSession, getAccessToken, getRefreshToken, updateAuthTokens } from '../mockAuth';
+import { beginNetworkActivity, endNetworkActivity } from '../networkActivity';
 
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -38,6 +39,7 @@ async function executeFetch(method: string, path: string, body?: unknown, query?
   const url = `${buildApiUrl(path)}${toQueryString(query)}`;
 
   try {
+    beginNetworkActivity();
     return await fetch(url, {
       method,
       credentials: 'include',
@@ -50,6 +52,8 @@ async function executeFetch(method: string, path: string, body?: unknown, query?
     });
   } catch (error) {
     throw backendUnavailableError(error);
+  } finally {
+    endNetworkActivity();
   }
 }
 
@@ -112,15 +116,22 @@ async function uploadFile<T>(
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    return fetch(buildApiUrl(path), {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'X-Request-Id': requestId,
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
+    try {
+      beginNetworkActivity();
+      return await fetch(buildApiUrl(path), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Request-Id': requestId,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+    } catch (error) {
+      throw backendUnavailableError(error);
+    } finally {
+      endNetworkActivity();
+    }
   };
 
   let response = await send(getAccessToken());

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BookOpen, Eye, EyeOff, GraduationCap, Hash, Lock, Mail, ShieldCheck } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { AuthField, AuthLayout } from "../../components/auth/AuthLayout";
 import { Button } from "../../components/ui/button";
@@ -74,12 +76,24 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
   const Icon = cfg.icon;
   const identifierInputId = `${role}-identifier`;
   const passwordInputId = `${role}-password`;
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const reducedMotion = useReducedMotion() ?? false;
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<{
+    identifier: string;
+    password: string;
+  }>({
+    defaultValues: {
+      identifier: "",
+      password: "",
+    },
+  });
 
   const FieldIcon = role === "student" ? Hash : Mail;
   const requestedTarget = typeof location.state === "object" && location.state && "from" in location.state
@@ -93,15 +107,22 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: { identifier: string; password: string }) => {
     setError("");
     setLoading(true);
     try {
-      const response = await authService.signIn({ role, identifier, password });
+      const response = await authService.signIn({
+        role,
+        identifier: values.identifier.trim(),
+        password: values.password,
+      });
+      toast.success("Signed in successfully.");
       navigate(requestedTarget || response.redirectTo, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to sign in.");
+      const message = err instanceof Error ? err.message : "Unable to sign in.";
+      setError(message);
+      setValue("password", "");
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -127,22 +148,29 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
         </div>
       )}
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <AuthField label={cfg.fieldLabel} htmlFor={identifierInputId} icon={FieldIcon}>
           <input
             id={identifierInputId}
-            name="username"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
             placeholder={cfg.fieldPlaceholder}
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="username"
             spellCheck={false}
-            required
+            aria-invalid={errors.identifier ? "true" : "false"}
+            {...register("identifier", {
+              required: `${cfg.fieldLabel} is required.`,
+              minLength: {
+                value: 3,
+                message: "Enter a valid identifier before continuing.",
+              },
+            })}
             className="auth-input w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
           />
         </AuthField>
+        {errors.identifier ? (
+          <p className="text-sm font-medium text-amber-300">{errors.identifier.message}</p>
+        ) : null}
 
         <AuthField
           label="Password"
@@ -161,16 +189,23 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
         >
           <input
             id={passwordInputId}
-            name="password"
             type={showPass ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
             autoComplete="current-password"
-            required
+            aria-invalid={errors.password ? "true" : "false"}
+            {...register("password", {
+              required: "Password is required.",
+              minLength: {
+                value: 8,
+                message: "Password must be at least 8 characters.",
+              },
+            })}
             className="auth-input w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
           />
         </AuthField>
+        {errors.password ? (
+          <p className="text-sm font-medium text-amber-300">{errors.password.message}</p>
+        ) : null}
 
         <div className="flex items-center justify-between gap-4 text-sm">
           <BodyText tone="muted" className="auth-support-text">

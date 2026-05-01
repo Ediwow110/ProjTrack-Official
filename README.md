@@ -37,7 +37,16 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - Frontend production build: `npm run build`
 - Backend build: `npm --prefix backend run build`
 - Backend smoke suite: `npm --prefix backend run smoke`
+- Backend smoke suite (local mutation-safe): `npm --prefix backend run smoke:local`
+- Backend smoke suite (real accounts, non-destructive): `npm --prefix backend run smoke:real`
 - Browser auth smoke suite: `npm run e2e:smoke`
+
+## Smoke modes
+
+- `npm --prefix backend run smoke:local` is intended for local or disposable environments. It exercises forgot-password persistence, admin profile updates, avatar uploads, and storage roundtrips.
+- `npm --prefix backend run smoke:real` is intended for staging or production-like environments with real accounts. It verifies health, login, refresh, logout, and throttling while skipping destructive checks.
+- Real-account smoke credentials can use either `SMOKE_*_IDENTIFIER` or `SMOKE_*_EMAIL`, plus the matching `SMOKE_*_PASSWORD`.
+- The full Phase 7 operator prompt lives in [PHASE7_SMOKE_REAL_ACCOUNTS_PROMPT.md](/PHASE7_SMOKE_REAL_ACCOUNTS_PROMPT.md).
 
 ## Runtime notes
 
@@ -73,7 +82,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - `APP_URL=https://projtrack.codes`
   - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
-- Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md) and [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md).
+- Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md), [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md), and [docs/DEPLOYMENT_CHECKLIST.md](/docs/DEPLOYMENT_CHECKLIST.md).
 
 ## Backend local startup troubleshooting
 

@@ -56,7 +56,7 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
         }
 
         if (apiRuntime.useBackend) {
-          setVerificationError("Session verification failed. Please log in again.");
+          setVerificationError("Session verification is temporarily unavailable. Please log in again.");
           setAllowed(false);
           return;
         }

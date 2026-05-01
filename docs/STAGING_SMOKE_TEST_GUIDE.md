@@ -13,9 +13,14 @@ This guide provides the commands and steps necessary to validate the staging env
 Run these commands from the project root to validate various components of the system. Adjust environment variables as needed for your staging setup.
 
 ### Backend General Smoke Test
-- **Command**: `npm --prefix backend run smoke`
-- **Purpose**: Validates basic backend functionality, API endpoints, and database connectivity.
-- **Expected Output**: Should report success if all checks pass. Look for any error messages indicating connection issues or misconfigurations.
+- **Command**: `npm --prefix backend run smoke:real`
+- **Purpose**: Validates health checks, role login, token refresh, logout, and throttling against real staging accounts without mutating live data.
+- **Expected Output**: Should report success with `smokeMode: "real-accounts"` and a `skippedChecks` list describing the destructive checks intentionally omitted.
+
+### Backend Local Mutation-Safe Smoke Test
+- **Command**: `npm --prefix backend run smoke:local`
+- **Purpose**: Runs the full smoke suite, including forgot-password persistence, admin profile mutations, avatar uploads, and object-storage roundtrips.
+- **Expected Output**: Should report success with `smokeMode: "local-mutation-safe"`. Use only on disposable environments.
 
 ### Mail Service Smoke Test
 - **Command**: `MAIL_SMOKE_TO=your-test-email@example.com npm --prefix backend run smoke:mail`
@@ -38,7 +43,7 @@ Run these commands from the project root to validate various components of the s
 - **Command**: `npm run e2e:smoke`
 - **Purpose**: Runs automated browser tests to simulate user interactions across critical workflows (login, submission, review).
 - **Expected Output**: All tests should pass. Failures will detail which workflow or component failed (e.g., login, file upload).
-- **Troubleshooting**: Ensure test accounts are set (`SMOKE_*_EMAIL`, `SMOKE_*_PASSWORD`). Check for frontend-backend URL mismatches (`VITE_API_BASE_URL`, `CORS_ORIGINS`).
+- **Troubleshooting**: Ensure test accounts are set (`SMOKE_*_EMAIL` or `SMOKE_*_IDENTIFIER`, plus `SMOKE_*_PASSWORD`). Check for frontend-backend URL mismatches (`VITE_API_BASE_URL`, `CORS_ORIGINS`).
 
 ## Manual Validation Steps
 
@@ -58,7 +63,7 @@ Ensure these are set for staging smoke tests to run correctly:
 - **Authentication**: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ACCOUNT_ACTION_TOKEN_ENC_KEY`
 - **Mail**: `MAIL_PROVIDER=mailrelay`, `MAILRELAY_API_KEY`, `MAILRELAY_API_URL`, `MAIL_SMOKE_TO`, `MAIL_FROM_*`
 - **Storage**: `OBJECT_STORAGE_MODE=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `FILE_MALWARE_SCAN_MODE=fail-closed`, `CLAMAV_HOST`, `CLAMAV_PORT`
-- **Smoke Test Accounts**: `SMOKE_ADMIN_EMAIL`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_EMAIL`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_EMAIL`, `SMOKE_STUDENT_PASSWORD`
+- **Smoke Test Accounts**: `SMOKE_ADMIN_EMAIL` or `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_EMAIL` or `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_EMAIL` or `SMOKE_STUDENT_IDENTIFIER`, `SMOKE_STUDENT_PASSWORD`
 - **Frontend**: `VITE_USE_BACKEND=true`, `VITE_API_BASE_URL=https://api-staging.projtrack.codes`
 
 ## Troubleshooting Common Issues
