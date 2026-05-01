@@ -4,6 +4,18 @@ import { beginNetworkActivity, endNetworkActivity } from '../networkActivity';
 
 let refreshPromise: Promise<string | null> | null = null;
 
+export class ApiError extends Error {
+  status: number;
+  retryAfter?: number;
+
+  constructor(message: string, status: number, retryAfter?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.retryAfter = retryAfter;
+  }
+}
+
 function toQueryString(query?: Record<string, string | number | boolean | undefined | null>) {
   if (!query) return '';
   const params = new URLSearchParams();
@@ -168,6 +180,8 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     let requestId = response.headers.get('x-request-id');
+    const retryAfterHeader = response.headers.get('retry-after');
+    const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : undefined;
     try {
       const data = await response.json();
       message = data.message ?? data.error ?? message;
@@ -178,7 +192,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
     if (requestId && shouldExposeRequestId(path, response.status, message)) {
       message = `${message} [request ${requestId}]`;
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status, Number.isFinite(retryAfter) ? retryAfter : undefined);
   }
 
   if (response.status === 204) return undefined as T;

@@ -680,7 +680,7 @@ const systemToolsStore: SystemToolRecord[] = JSON.parse(JSON.stringify(systemToo
 let lastStudentImportBatchId: string | null = null;
 
 export const authService = {
-  async signIn(payload: SignInPayload) {
+  async login(payload: SignInPayload) {
     const response = await http.post<{
       user: {
         id: string;
@@ -694,9 +694,10 @@ export const authService = {
       accessToken: string;
       refreshToken: string;
     }>("/auth/login", {
-      identifier: payload.identifier,
+      identifier: payload.emailOrId ?? payload.identifier,
       password: payload.password,
       expectedRole: payload.role.toUpperCase(),
+      remember: payload.remember === true,
     });
     const role = payload.role as AppRole;
     const avatarVersion = Date.now();
@@ -727,6 +728,10 @@ export const authService = {
       redirectTo: `/${role}/dashboard`,
     };
   },
+  async signIn(payload: SignInPayload) {
+    return this.login(payload);
+  },
+
   async activate(ref: string, token: string, password: string, confirmPassword: string) {
     return http.post<{ success: boolean; message: string }>("/auth/activate", { ref, token, password, confirmPassword });
   },

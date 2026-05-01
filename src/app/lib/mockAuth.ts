@@ -16,8 +16,10 @@ export interface AuthSession {
 const KEY = "projtrack-auth-session";
 const ACCESS_KEY = "projtrack-access-token";
 const REFRESH_KEY = "projtrack-refresh-token";
+const REMEMBER_KEY = "projtrack-remember-me";
 const SESSION_EVENT = "projtrack-auth-session-change";
 let memoryAccessToken: string | null = null;
+let memoryRefreshToken: string | null = null;
 
 export function productionRuntime() {
   return import.meta.env.PROD;
@@ -49,14 +51,17 @@ function persistAuthSession(session: AuthSession | null) {
   if (typeof window === "undefined") return;
   if (!session) {
     memoryAccessToken = null;
+    memoryRefreshToken = null;
     window.localStorage.removeItem(KEY);
     window.localStorage.removeItem(ACCESS_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
+    window.localStorage.removeItem(REMEMBER_KEY);
     emitAuthSessionChange(null);
     return;
   }
 
   memoryAccessToken = session.accessToken ?? memoryAccessToken;
+  memoryRefreshToken = session.refreshToken ?? memoryRefreshToken;
   const persistedSession = productionRuntime()
     ? { ...session, accessToken: undefined, refreshToken: undefined }
     : session;
@@ -67,7 +72,7 @@ function persistAuthSession(session: AuthSession | null) {
   } else {
     window.localStorage.removeItem(ACCESS_KEY);
   }
-  if (!productionRuntime() && session.refreshToken) {
+  if ((getRememberMePreference() || !productionRuntime()) && session.refreshToken) {
     window.localStorage.setItem(REFRESH_KEY, session.refreshToken);
   } else {
     window.localStorage.removeItem(REFRESH_KEY);
@@ -109,13 +114,31 @@ export function getAccessToken() {
 
 export function getRefreshToken() {
   if (typeof window === "undefined") return null;
-  if (productionRuntime()) return null;
+  if (memoryRefreshToken) return memoryRefreshToken;
+  if (productionRuntime() && !getRememberMePreference()) return null;
   return window.localStorage.getItem(REFRESH_KEY);
+}
+
+export function getRememberMePreference() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(REMEMBER_KEY) === "true";
+}
+
+export function setRememberMePreference(remember: boolean) {
+  if (typeof window === "undefined") return;
+  if (remember) {
+    window.localStorage.setItem(REMEMBER_KEY, "true");
+  } else {
+    window.localStorage.removeItem(REMEMBER_KEY);
+    window.localStorage.removeItem(REFRESH_KEY);
+  }
 }
 
 export function updateAuthTokens(tokens: { accessToken?: string; refreshToken?: string }) {
   const current = getAuthSession();
   memoryAccessToken = tokens.accessToken ?? memoryAccessToken;
+  memoryRefreshToken = tokens.refreshToken ?? memoryRefreshToken;
+
   if (!current) return;
   persistAuthSession({
     ...current,

@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { AuthField, AuthLayout } from "../../components/auth/AuthLayout";
 import { Button } from "../../components/ui/button";
 import { BodyText } from "../../components/ui/typography";
-import { getAuthSession, type AppRole } from "../../lib/mockAuth";
+import { getAuthSession, getRememberMePreference, setRememberMePreference, type AppRole } from "../../lib/mockAuth";
+import { ApiError } from "../../lib/api/http";
 import { authService } from "../../lib/api/services";
 import { fadeUpVariants } from "../../lib/motion";
 
@@ -79,6 +80,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [retryAfter, setRetryAfter] = useState(0);
   const reducedMotion = useReducedMotion() ?? false;
   const {
     register,
@@ -88,10 +90,12 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
   } = useForm<{
     identifier: string;
     password: string;
+    remember: boolean;
   }>({
     defaultValues: {
       identifier: "",
       password: "",
+      remember: getRememberMePreference(),
     },
   });
 
@@ -107,26 +111,49 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
     }
   }, [navigate]);
 
-  const onSubmit = async (values: { identifier: string; password: string }) => {
+  useEffect(() => {
+    if (retryAfter <= 0) return;
+    const timer = window.setInterval(() => {
+      setRetryAfter((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAfter]);
+
+  const formatRateLimitMessage = (seconds: number) => {
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    return `Too many login attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  };
+
+  const onSubmit = async (values: { identifier: string; password: string; remember: boolean }) => {
     setError("");
     setLoading(true);
+    setRetryAfter(0);
     try {
-      const response = await authService.signIn({
+      setRememberMePreference(values.remember);
+      const response = await authService.login({
         role,
+        emailOrId: values.identifier.trim(),
         identifier: values.identifier.trim(),
         password: values.password,
+        remember: values.remember,
       });
       toast.success("Signed in successfully.");
       navigate(requestedTarget || response.redirectTo, { replace: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to sign in.";
-      const userMessage =
-        /service is temporarily unavailable|unable to reach the backend/i.test(message)
+      const isRateLimited =
+        (err instanceof ApiError && err.status === 429) ||
+        /too many|rate limit|attempts/i.test(message);
+      const nextRetryAfter = err instanceof ApiError && err.retryAfter ? err.retryAfter : 0;
+      const userMessage = isRateLimited
+        ? formatRateLimitMessage(nextRetryAfter || 60)
+        : /service is temporarily unavailable|unable to reach the backend/i.test(message)
           ? "ProjTrack could not reach the sign-in service. Check your connection and try again."
           : message;
 
-      setError(message);
-      reset({ identifier: "", password: "" });
+      if (nextRetryAfter > 0) setRetryAfter(nextRetryAfter);
+      setError(userMessage);
+      reset({ identifier: values.identifier, password: "", remember: values.remember });
       toast.error(userMessage);
     } finally {
       setLoading(false);
@@ -223,6 +250,21 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
             Forgot password?
           </Link>
         </div>
+
+        <label className="flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-500 bg-transparent"
+            {...register("remember")}
+          />
+          <span>Remember me on this device</span>
+        </label>
+
+        {retryAfter > 0 ? (
+          <p className="text-sm font-medium text-amber-300">
+            Retry available in {Math.ceil(retryAfter / 60)} minute{Math.ceil(retryAfter / 60) === 1 ? "" : "s"}.
+          </p>
+        ) : null}
 
         <AnimatePresence>
           {error ? (

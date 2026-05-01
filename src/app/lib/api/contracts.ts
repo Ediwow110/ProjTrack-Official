@@ -802,7 +802,9 @@ export interface AdminRequestRecord {
 export interface SignInPayload {
   role: AppRole;
   identifier: string;
+  emailOrId?: string;
   password: string;
+  remember?: boolean;
 }
 
 export interface SignInResponse {
