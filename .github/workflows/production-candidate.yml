@@ -14,7 +14,6 @@ jobs:
       APP_ENV: production
       CI_PRODUCTION_BUILD: "true"
       VITE_USE_BACKEND: "true"
-      VITE_API_BASE_URL: https://api-staging.projtrack.codes
       VITE_PUBLIC_APP_URL: https://staging.projtrack.codes
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +22,7 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: npm ci
+      - run: npm ci --include=dev
       - run: npm run security:secrets
       - run: npm run check:release-hygiene
       - run: npm run check:frontend-env:production
@@ -37,18 +36,18 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: projtrack_test
+          POSTGRES_DB: projtrack
           POSTGRES_USER: projtrack
           POSTGRES_PASSWORD: projtrack
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U projtrack -d projtrack_test"
+          --health-cmd "pg_isready -U projtrack -d projtrack"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack_test
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       NODE_ENV: test
       APP_ENV: test
       JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
@@ -61,10 +60,15 @@ jobs:
       MAIL_PROVIDER: stub
       MAIL_FROM: noreply@projtrack.local
       MAIL_WORKER_ENABLED: "false"
+      MAIL_WORKER_POLL_MS: "60000"
       FILE_STORAGE_MODE: local
       OBJECT_STORAGE_MODE: local
       HTTP_RATE_LIMIT_STORE: memory
       FILE_MALWARE_SCAN_MODE: disabled
+      BACKUP_WORKER_ENABLED: "false"
+      BACKUP_SCHEDULE_ENABLED: "false"
+      BACKUP_WORKER_POLL_MS: "60000"
+      VITE_API_BASE_URL: http://localhost:3001
     defaults:
       run:
         working-directory: backend
