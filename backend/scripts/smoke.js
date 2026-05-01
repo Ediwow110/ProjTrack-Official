@@ -34,7 +34,9 @@ async function main() {
   const argSet = new Set(process.argv.slice(2));
 
   const { AppModule } = require(path.join(backendDir, 'dist', 'app.module'));
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create(AppModule, {
+    logger: isEnabled(process.env.SMOKE_DEBUG_ERRORS, false) ? ['error', 'warn'] : false,
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.enableCors({ origin: true });
   await app.listen(0);

@@ -92,6 +92,7 @@ jobs:
         run: npm run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
+          SMOKE_DEBUG_ERRORS: true
       - run: npm audit --audit-level=high
 
   e2e:
@@ -170,6 +171,7 @@ jobs:
         run: npm --prefix backend run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
+          SMOKE_DEBUG_ERRORS: true
       - name: Run E2E Smoke
         run: npm run e2e:smoke
         timeout-minutes: 15
