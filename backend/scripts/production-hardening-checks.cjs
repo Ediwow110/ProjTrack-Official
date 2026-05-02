@@ -659,10 +659,12 @@ function assertProviderClassification(label, error, expected) {
   assert(result.retryable === expected.retryable, `${label} retryable must be ${expected.retryable}.`);
 }
 
+// SENDER_NOT_CONFIRMED is intentionally retryable (30m/1h/2h/4h delays) so jobs
+// auto-recover once the sender is confirmed in Mailrelay — no manual force-retry needed.
 assertProviderClassification(
   'Sender-not-confirmed errors',
   providerError(422, "Sender email isn't confirmed in your account."),
-  { failureReason: MAIL_FAILURE_REASONS.SENDER_NOT_CONFIRMED, retryable: false },
+  { failureReason: MAIL_FAILURE_REASONS.SENDER_NOT_CONFIRMED, retryable: true },
 );
 assertProviderClassification(
   'Rate-limited errors',
