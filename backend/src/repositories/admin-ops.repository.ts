@@ -16,8 +16,8 @@ const TOOL_META: Record<string, { btn: string; tone: string; danger: boolean }> 
 
 const DEFAULT_SYSTEM_SETTINGS = {
   schoolName: 'PROJTRACK Academy Portal',
-  email: 'admin@projtrack.edu.ph',
-  notifEmail: 'noreply@projtrack.edu.ph',
+  email: 'admin@projtrack.codes',
+  notifEmail: 'noreply@projtrack.codes',
   minPassLen: '8',
   maxFailedLogins: '5',
   sessionTimeout: '60',
