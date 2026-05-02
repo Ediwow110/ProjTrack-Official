@@ -185,7 +185,7 @@ export function UsersTable({
           ariaLabel: `Resend activation to ${user.email}`,
           onClick: () => onResendActivation(user),
           disabled: () => actionBusy,
-          hidden: () => user.status === "Active",
+          hidden: () => ["Active", "Restricted", "Disabled"].includes(user.status),
         },
         {
           key: "delete",
