@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const adminAccount = {
-  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.local",
+  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "admin@projtrack.codes",
   password: process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe",
 };
 
