@@ -11,6 +11,13 @@ export const MAIL_IDEMPOTENCY_WINDOWS_MS = {
 
 export const MAIL_RETRY_DELAYS_MS = [60_000, 300_000, 900_000, 3_600_000] as const;
 
+export const MAIL_SENDER_CONFIRMATION_RETRY_DELAYS_MS = [
+  30 * 60_000,
+  60 * 60_000,
+  2 * 60 * 60_000,
+  4 * 60 * 60_000,
+] as const;
+
 export const DEFAULT_MAIL_MAX_ATTEMPTS = 5;
 
 export const MAIL_LIMIT_DEFAULTS = {
