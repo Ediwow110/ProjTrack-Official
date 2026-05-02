@@ -1,5 +1,22 @@
 export type AppRole = "student" | "teacher" | "admin";
 
+const BROKEN_NAME_PATTERNS = new Set([
+  "undefined undefined",
+  "null null",
+  "undefined",
+  "null",
+  "undefined null",
+  "null undefined",
+]);
+
+function sanitizeDisplayName(value: string | undefined | null): string | undefined {
+  const cleaned = String(value ?? "").trim();
+  if (!cleaned || BROKEN_NAME_PATTERNS.has(cleaned.toLowerCase())) {
+    return undefined;
+  }
+  return cleaned;
+}
+
 export interface AuthSession {
   role: AppRole;
   identifier: string;
@@ -97,7 +114,7 @@ export function setAuthSession(
   const session: AuthSession = {
     role,
     identifier,
-    displayName: displayName ?? roleNames[role],
+    displayName: sanitizeDisplayName(displayName) ?? roleNames[role],
     accessToken: tokens?.accessToken,
     refreshToken: tokens?.refreshToken,
     ...extras,
@@ -155,7 +172,7 @@ export function updateAuthSession(patch: Partial<AuthSession>) {
     ...patch,
     role: patch.role ?? current.role,
     identifier: patch.identifier ?? current.identifier,
-    displayName: patch.displayName ?? current.displayName,
+    displayName: sanitizeDisplayName(patch.displayName) ?? current.displayName,
   });
 }
 

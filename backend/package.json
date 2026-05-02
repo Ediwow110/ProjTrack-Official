@@ -11,6 +11,7 @@
     "start:worker": "node dist/worker.js",
     "build": "tsc -p tsconfig.json",
     "test": "node scripts/production-hardening-checks.cjs",
+    "test:unit": "jest",
     "security:secrets": "node ../scripts/secret-scan.mjs",
     "check:release-hygiene": "node ../scripts/release-hygiene-check.mjs",
     "smoke": "node scripts/smoke.js",
@@ -23,6 +24,7 @@
     "cleanup:seed-data": "node scripts/cleanup-seed-data.js",
     "data:hygiene": "node scripts/local-data-hygiene.js",
     "mail:testmail": "node scripts/testmail-inbox.js",
+    "mail:preview": "node scripts/mail-preview.cjs",
     "duplicates:scan": "tsx -r dotenv/config scripts/scan-duplicates.ts",
     "backfill:subject-sections": "node scripts/backfill-subject-sections.cjs",
     "backfill:submission-events": "node scripts/backfill-submission-events.cjs",
@@ -66,7 +68,10 @@
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.3.0",
     "prisma": "^5.0.0",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.0.0"

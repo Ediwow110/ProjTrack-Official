@@ -234,6 +234,18 @@ async function bootstrap() {
     exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });
   await app.listen(Number(process.env.PORT ?? 3001));
+  const apiLogger = new Logger('Bootstrap');
+  apiLogger.log('API server listening on port ' + (process.env.PORT ?? 3001));
+
+  const shutdown = async (signal) => {
+    const shutdownLogger = new Logger('Bootstrap');
+    shutdownLogger.log('Received ' + signal + '; closing HTTP server gracefully.');
+    await app.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');

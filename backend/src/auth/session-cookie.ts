@@ -9,7 +9,7 @@ export function isProductionRuntime(env: NodeJS.ProcessEnv = process.env) {
 
 export function refreshCookieName(env: NodeJS.ProcessEnv = process.env) {
   return isProductionRuntime(env)
-    ? String(env.AUTH_REFRESH_COOKIE_NAME || '__Host-projtrack_refresh')
+    ? String(env.AUTH_REFRESH_COOKIE_NAME || '__Secure-projtrack_refresh')
     : String(env.AUTH_REFRESH_COOKIE_NAME || 'projtrack_refresh');
 }
 
