@@ -201,7 +201,7 @@ export function classifyProviderError(error: unknown): MailProviderErrorClassifi
 
   if (isSenderNotConfirmedMessage(normalized)) {
     return classification(MAIL_FAILURE_REASONS.SENDER_NOT_CONFIRMED, {
-      retryable: false,
+      retryable: true,
       reason: buildSafeReason(SENDER_NOT_CONFIRMED_SAFE_MESSAGE, providerDetail),
       statusCode,
     });
