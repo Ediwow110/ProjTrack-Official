@@ -41,13 +41,11 @@ export { mailWorkerPollMs };
 
 export function buildDueEmailJobWhere(input: {
   type: EmailJobType;
-  provider: string;
   now: Date;
 }): Prisma.EmailJobWhereInput {
   return {
     archivedAt: null,
     type: input.type,
-    provider: input.provider,
     status: { in: [EmailJobStatus.QUEUED, EmailJobStatus.FAILED] },
     OR: [{ scheduledAt: null }, { scheduledAt: { lte: input.now } }],
   };
@@ -167,7 +165,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
     const now = new Date();
     const activeProvider = this.transport.getProviderName();
     const rows = await this.prisma.emailJob.findMany({
-      where: buildDueEmailJobWhere({ type, provider: activeProvider, now }),
+      where: buildDueEmailJobWhere({ type, now }),
       orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
       take: Math.max(take, take * 4),
     });
@@ -180,7 +178,6 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
           id: row.id,
           archivedAt: null,
           type,
-          provider: activeProvider,
           status: { in: [EmailJobStatus.QUEUED, EmailJobStatus.FAILED] },
           OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }],
           attempts: row.attempts,
@@ -188,6 +185,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         },
         data: {
           status: EmailJobStatus.PROCESSING,
+          provider: activeProvider,
           lockedAt: new Date(),
           lockedBy: this.workerId,
           attempts: row.attempts + 1,
