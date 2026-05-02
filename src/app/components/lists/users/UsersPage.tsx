@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { RefreshCcw, ShieldPlus, Users } from "lucide-react";
+import { useNavigate } from "react-router";
+import { ExternalLink, RefreshCcw, ShieldPlus, Users } from "lucide-react";
 
 import { RoleListShell } from "../shared/RoleListShell";
 import { FilterToolbar } from "../shared/FilterToolbar";
@@ -70,6 +71,7 @@ function filterUsers(rows: AdminUserRecord[], filters: AdminUserFilters) {
 }
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<AdminUserFilters>({
     search: "",
     role: "All",
@@ -455,11 +457,38 @@ export default function UsersPage() {
         title="User Details"
         description="Operational details for support, reset, and activation work."
         size="md"
-        footer={
-          <Button type="button" variant="outline" onClick={() => setSelectedUser(null)}>
-            Close
-          </Button>
-        }
+        footer={(
+          <div className="flex items-center gap-2">
+            {selectedUser && selectedUser.profileId && selectedUser.role === "STUDENT" ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSelectedUser(null);
+                  navigate(`/admin/students/${selectedUser.profileId}`);
+                }}
+              >
+                <ExternalLink size={14} />
+                View Student Profile
+              </Button>
+            ) : selectedUser && selectedUser.profileId && selectedUser.role === "TEACHER" ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSelectedUser(null);
+                  navigate(`/admin/teachers/${selectedUser.profileId}`);
+                }}
+              >
+                <ExternalLink size={14} />
+                View Teacher Profile
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" onClick={() => setSelectedUser(null)}>
+              Close
+            </Button>
+          </div>
+        )}
       >
         {selectedUser ? (
           <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
