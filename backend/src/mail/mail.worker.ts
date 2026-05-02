@@ -5,6 +5,7 @@ import { MAIL_FAILURE_REASONS, MAIL_TAGS } from '../common/constants/mail.consta
 import {
   MAIL_LIMIT_DEFAULTS,
   MAIL_RETRY_DELAYS_MS,
+  MAIL_SENDER_CONFIRMATION_RETRY_DELAYS_MS,
 } from '../common/constants/mail-policy.constants';
 import {
   MAIL_QUEUE_DEFAULTS,
@@ -368,7 +369,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
           lockedAt: null,
           lockedBy: null,
           scheduledAt: shouldRetry
-            ? new Date(Date.now() + this.retryDelayMs(job.attempts))
+            ? new Date(Date.now() + this.retryDelayMs(job.attempts, failureReason))
             : null,
         },
       });
@@ -499,10 +500,12 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
     return Math.max(1, Math.floor(perMinute / 4));
   }
 
-  private retryDelayMs(attempt: number) {
-    return MAIL_RETRY_DELAYS_MS[
-      Math.max(0, Math.min(attempt - 1, MAIL_RETRY_DELAYS_MS.length - 1))
-    ];
+  private retryDelayMs(attempt: number, failureReason?: string) {
+    const delays =
+      failureReason === MAIL_FAILURE_REASONS.SENDER_NOT_CONFIRMED
+        ? MAIL_SENDER_CONFIRMATION_RETRY_DELAYS_MS
+        : MAIL_RETRY_DELAYS_MS;
+    return delays[Math.max(0, Math.min(attempt - 1, delays.length - 1))];
   }
 
   private truncate(value: string, max = 600) {
