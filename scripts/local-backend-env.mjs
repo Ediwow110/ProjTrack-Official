@@ -1,3 +1,7 @@
+const resolvedMailProvider =
+  process.env.MAIL_PROVIDER ||
+  (process.env.MAILRELAY_API_KEY && process.env.MAILRELAY_API_URL ? 'mailrelay' : 'stub');
+
 export const localBackendEnv = {
   NODE_ENV: 'development',
   APP_ENV: 'development',
@@ -13,7 +17,7 @@ export const localBackendEnv = {
   JWT_AUDIENCE: 'projtrack-web-local',
   JWT_KEY_ID: 'local-dev',
   ACCOUNT_ACTION_TOKEN_ENC_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
-  MAIL_PROVIDER: 'stub',
+  MAIL_PROVIDER: resolvedMailProvider,
   MAIL_WORKER_ENABLED: 'false',
   MAIL_WORKER_POLL_MS: '60000',
   TESTMAIL_ENABLED: 'false',

@@ -13,7 +13,15 @@ $env:JWT_ACCESS_SECRET = "local-dev-access-secret-change-before-production-12345
 $env:JWT_REFRESH_SECRET = "local-dev-refresh-secret-change-before-production-1234567890"
 $env:MAIL_WORKER_ENABLED = "true"
 $env:BACKUP_WORKER_ENABLED = "false"
-$env:MAIL_PROVIDER = if ($env:PROJTRACK_WORKER_MAIL_PROVIDER) { $env:PROJTRACK_WORKER_MAIL_PROVIDER } else { "stub" }
+$env:MAIL_PROVIDER = if ($env:PROJTRACK_WORKER_MAIL_PROVIDER) {
+  $env:PROJTRACK_WORKER_MAIL_PROVIDER
+} elseif ($env:MAIL_PROVIDER) {
+  $env:MAIL_PROVIDER
+} elseif ($env:MAILRELAY_API_KEY -and $env:MAILRELAY_API_URL) {
+  "mailrelay"
+} else {
+  "stub"
+}
 $env:TESTMAIL_ENABLED = "false"
 $env:MAIL_FROM_NAME = "ProjTrack"
 $env:MAIL_FROM_ADMIN = "admin@projtrack.codes"

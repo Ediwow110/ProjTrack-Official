@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { MAIL_PROVIDER_NAMES } from '../../common/constants/mail.constants';
+import { MAIL_FAILURE_REASONS } from '../../common/constants/mail.constants';
 import { VERIFIED_PRODUCTION_SENDERS } from '../mail-sender-config';
 import { classifyProviderError } from './provider-error-classification';
 import type { MailProvider, MailSendInput } from './mail-provider.interface';
@@ -67,6 +68,25 @@ export class StubMailProvider implements MailProvider {
   }
 
   classifyError(error: unknown) {
+    const statusCode =
+      Number(
+        (error as any)?.statusCode ??
+          (error as any)?.status ??
+          (error as any)?.response?.statusCode ??
+          0,
+      ) || undefined;
+    const message = error instanceof Error ? error.message : String(error || 'Mail delivery failed.');
+
+    if (statusCode && statusCode >= 400 && statusCode < 500) {
+      return {
+        retryable: false,
+        permanent: true,
+        reason: message,
+        failureReason: MAIL_FAILURE_REASONS.PROVIDER_REJECTED,
+        statusCode,
+      };
+    }
+
     return classifyProviderError(error);
   }
 }
