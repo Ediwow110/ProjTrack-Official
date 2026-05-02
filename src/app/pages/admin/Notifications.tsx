@@ -111,7 +111,7 @@ export default function AdminNotifications() {
   };
 
   return (
-    <div className="portal-surface p-6 max-w-[88rem] mx-auto space-y-6">
+    <div className="p-6 max-w-[88rem] mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-slate-900 dark:text-slate-100 font-bold" style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>Notifications</h1>
