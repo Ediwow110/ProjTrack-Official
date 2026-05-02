@@ -23,6 +23,7 @@
     "cleanup:seed-data": "node scripts/cleanup-seed-data.js",
     "data:hygiene": "node scripts/local-data-hygiene.js",
     "mail:testmail": "node scripts/testmail-inbox.js",
+    "mail:preview": "node scripts/mail-preview.cjs",
     "duplicates:scan": "tsx -r dotenv/config scripts/scan-duplicates.ts",
     "backfill:subject-sections": "node scripts/backfill-subject-sections.cjs",
     "backfill:submission-events": "node scripts/backfill-submission-events.cjs",
