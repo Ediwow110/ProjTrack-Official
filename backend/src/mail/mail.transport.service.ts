@@ -130,16 +130,11 @@ export class MailTransportService implements OnModuleInit {
 
     if (
       this.providerName &&
-      this.providerName !== MAIL_PROVIDER_NAMES.STUB &&
-      this.providerName !== MAIL_PROVIDER_NAMES.SMTP
+      this.providerName !== MAIL_PROVIDER_NAMES.STUB
     ) {
       this.logger.warn(
-        `Unsupported MAIL_PROVIDER="${this.providerName}". Falling back to stub provider.`,
+        `Unsupported MAIL_PROVIDER="${this.providerName}". Falling back to stub provider. Supported values: mailrelay, resend, sender, stub.`,
       );
-    }
-
-    if (this.providerName === MAIL_PROVIDER_NAMES.SMTP) {
-      this.logger.warn('SMTP provider is deprecated. Falling back to stub provider.');
     }
 
     return this.stubProvider;
