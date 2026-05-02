@@ -23,6 +23,7 @@ import {
   buildMasterListFileName,
   buildMasterListWorkbookBuffer,
 } from '../common/utils/master-list-export';
+import { buildStudentSubjectLink } from '../common/utils/frontend-links';
 
 function normalizedText(value: unknown, fallback = '') {
   return String(value ?? fallback).trim();
@@ -37,11 +38,7 @@ function requiredText(value: unknown, fieldLabel: string) {
 }
 
 function studentSubjectLink(subjectId: string) {
-  const appUrl = String(process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173').replace(
-    /\/+$/,
-    '',
-  );
-  return `${appUrl}/student/subjects/${encodeURIComponent(subjectId)}`;
+  return buildStudentSubjectLink(subjectId);
 }
 
 @Injectable()
