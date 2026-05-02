@@ -919,7 +919,7 @@ export class MailService {
       reason === MAIL_FAILURE_REASONS.SENDER_NOT_CONFIRMED ||
       isSenderNotConfirmedMessage(message)
     ) {
-      return 'Sender not confirmed in Mailrelay. Confirm support@projtrack.codes, notification@projtrack.codes, and admin@projtrack.codes in Mailrelay, then retry the job.';
+      return 'Sender not confirmed in Mailrelay. Confirm support@projtrack.codes, notification@projtrack.codes, and admin@projtrack.codes in Mailrelay. The job will retry automatically every 30–60 minutes once confirmed.';
     }
 
     if (reason === MAIL_FAILURE_REASONS.ACCOUNT_RESTRICTED || message.includes('under review')) {
