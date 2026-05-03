@@ -154,12 +154,30 @@ model Section {
   @@index([academicYearId, course, yearLevel])
 }
 
+
+model Course {
+  id             String              @id @default(cuid())
+  academicYearId String
+  name           String
+  code           String?
+  description    String?
+  sortOrder      Int?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  academicYear   AcademicYear        @relation(fields: [academicYearId], references: [id])
+  levels         AcademicYearLevel[]
+
+  @@unique([academicYearId, name])
+  @@index([academicYearId, sortOrder])
+}
+
 model AcademicYear {
   id          String             @id @default(cuid())
   name        String             @unique
   status      AcademicYearStatus @default(UPCOMING)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+  courses     Course[]
   levels      AcademicYearLevel[]
   sections    Section[]
   students    StudentProfile[]
@@ -168,11 +186,13 @@ model AcademicYear {
 model AcademicYearLevel {
   id             String          @id @default(cuid())
   academicYearId String
+  courseId       String?
   name           String
   sortOrder      Int?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id])
+  course         Course?         @relation(fields: [courseId], references: [id])
   sections       Section[]
   students       StudentProfile[]
 
