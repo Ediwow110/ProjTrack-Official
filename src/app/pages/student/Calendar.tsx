@@ -250,7 +250,12 @@ export default function StudentCalendar() {
               </div>
             </>
           ) : loading && !data ? (
-            <div className="px-6 py-6 text-sm text-slate-500 dark:text-slate-400">Loading agenda...</div>
+            <div className="px-6 py-6 space-y-2" aria-busy="true" aria-live="polite">
+              <span className="sr-only">Loading agenda…</span>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} aria-hidden="true" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+              ))}
+            </div>
           ) : upcoming.length ? (
             <div className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
               {upcoming.map((event) => (
