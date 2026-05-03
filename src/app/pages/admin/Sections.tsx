@@ -936,7 +936,7 @@ export default function AdminSections() {
               ? `Permanently delete year level "${deleteTarget.name}" and all its sections. This cannot be undone.`
               : `Permanently delete section "${deleteTarget.name}". This cannot be undone.`
           }
-          size="sm"
+          size="md"
           footer={(
             <>
               <button
