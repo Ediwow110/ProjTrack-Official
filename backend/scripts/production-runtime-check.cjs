@@ -88,6 +88,7 @@ function goodProdEnv(overrides = {}) {
     FILE_MALWARE_SCANNER: 'clamav',
     CLAMAV_HOST: 'clamav.runtime-check.local',
     CLAMAV_PORT: '3310',
+    RUNTIME_SAFETY_ALLOW_LOCALHOST_DB: 'true',
     BACKUP_WORKER_ENABLED: 'false',
     BACKUP_SCHEDULE_ENABLED: 'false',
     BACKUP_WORKER_POLL_MS: '3600000',
