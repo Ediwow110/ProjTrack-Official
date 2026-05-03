@@ -548,6 +548,61 @@ export class AdminService {
     return result;
   }
 
+  
+  async deleteAcademicYear(id: string, actor?: AdminActorContext) {
+    const year = await this.prisma.academicYear.findUnique({ where: { id } });
+    if (!year) throw new NotFoundException('Academic year not found.');
+    const result = await this.adminOpsRepository.deleteAcademicYear(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Academic Years',
+      target: year.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Academic year deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
+  async deleteAcademicYearLevel(id: string, actor?: AdminActorContext) {
+    const level = await this.prisma.academicYearLevel.findUnique({ where: { id } });
+    if (!level) throw new NotFoundException('Year level not found.');
+    const result = await this.adminOpsRepository.deleteAcademicYearLevel(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Academic Years',
+      target: level.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Academic year level deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
+  async deleteSection(id: string, actor?: AdminActorContext) {
+    const section = await this.prisma.section.findUnique({ where: { id } });
+    if (!section) throw new NotFoundException('Section not found.');
+    const result = await this.adminOpsRepository.deleteSection(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Sections',
+      target: section.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Section deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
   async createAcademicYearLevel(payload: {
     academicYearId?: string;
     name?: string;
