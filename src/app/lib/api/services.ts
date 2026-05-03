@@ -3301,6 +3301,31 @@ export const adminCatalogService = {
       academicYear: payload.academicYearId,
     };
   },
+
+  async deleteAcademicYear(id: string): Promise<{ success: boolean; id: string }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; id: string }>(`/admin/academic-years/${id}`);
+    }
+    requireBackendApi();
+    return { success: true, id };
+  },
+
+  async deleteAcademicYearLevel(yearId: string, levelId: string): Promise<{ success: boolean; id: string }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; id: string }>(`/admin/academic-years/${yearId}/year-levels/${levelId}`);
+    }
+    requireBackendApi();
+    return { success: true, id: levelId };
+  },
+
+  async deleteSection(id: string): Promise<{ success: boolean; id: string }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; id: string }>(`/admin/sections/${id}`);
+    }
+    requireBackendApi();
+    return { success: true, id };
+  },
+
   async createSection(payload: AdminSectionCreateInput): Promise<{ success: boolean; id?: string; code: string; academicYear?: string }> {
     if (apiRuntime.useBackend) {
       return http.post<{ success: boolean; id?: string; code: string; academicYear?: string }>("/admin/sections", payload);
