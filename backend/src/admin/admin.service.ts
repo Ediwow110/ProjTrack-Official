@@ -585,6 +585,48 @@ export class AdminService {
     return result;
   }
 
+
+  async listCourses(academicYearId: string) {
+    return this.adminOpsRepository.listCourses(academicYearId);
+  }
+
+  async createCourse(
+    payload: { academicYearId: string; name?: string; code?: string; description?: string; sortOrder?: number },
+    actor?: AdminActorContext,
+  ) {
+    const created = await this.adminOpsRepository.createCourse(payload);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'CREATE',
+      module: 'Courses',
+      target: created.name,
+      entityId: created.id,
+      result: 'Success',
+      details: 'Course created.',
+      ipAddress: actor?.ipAddress,
+    });
+    return created;
+  }
+
+  async deleteCourse(id: string, actor?: AdminActorContext) {
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found.');
+    const result = await this.adminOpsRepository.deleteCourse(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Courses',
+      target: course.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Course deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
   async deleteSection(id: string, actor?: AdminActorContext) {
     const section = await this.prisma.section.findUnique({ where: { id } });
     if (!section) throw new NotFoundException('Section not found.');
