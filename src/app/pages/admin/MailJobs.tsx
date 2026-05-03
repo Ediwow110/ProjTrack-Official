@@ -789,7 +789,9 @@ export default function AdminMailJobs() {
             </button>
           </>
         }
-      />
+      >
+        <></>
+      </AppModal>
     </PortalPage>
   );
 }
