@@ -381,3 +381,127 @@ health-service coverage remain in the explicit deferred list. The verdict does
 not change until the staged CI workflow patch is applied and the manual
 DigitalOcean / staging / backup / monitoring items in
 `FINAL_READINESS_CHECKLIST.md` are real-verified.
+
+---
+
+## Phase E — Upload-security and readiness regression coverage (2026-05-03)
+
+**Scope.** Two of the deferred Track M items: `files.service.ts` upload-security
+behaviour and `health.service.ts` DB-down / readiness composition.
+
+**Spec files added (2).**
+
+| Path | Cases |
+|---|---|
+| `backend/src/files/files.service.spec.ts` | 38 |
+| `backend/src/health/health.service.spec.ts` | 21 |
+
+**files.service.spec.ts coverage.**
+
+- Extension policy
+  - Rejects `.exe .sh .js .mjs .php .html .htm .bat .cmd .ps1 .vbs .scr .jar .msi`
+    (14 parameterised cases) — confirms the executable / active-content blocklist
+  - Rejects archives (`.zip`) when `FILE_UPLOAD_ALLOW_ARCHIVES` is unset / not "true"
+  - Allows archives when explicitly enabled and content is a valid ZIP
+  - Rejects extensions outside `FILE_UPLOAD_ALLOWED_EXTENSIONS`
+  - Rejects files with no extension
+- MIME ↔ extension matching
+  - Rejects `.pdf` declared as `text/plain`
+  - Rejects `.png` declared as `image/jpeg`
+  - Permits empty `contentType` (downstream magic-byte check is the gate)
+- Magic-byte content enforcement (extension-spoofing defence)
+  - Rejects `.pdf` without `%PDF` prefix
+  - Rejects `.png` without the `89 50 4E 47 0D 0A 1A 0A` signature
+  - Rejects `.jpg` without `FF D8 FF`
+  - Rejects `.docx` without ZIP `PK 03 04`
+  - Rejects `.doc` without OLE `D0 CF 11 E0 A1 B1 1A E1`
+  - Accepts a real OLE-compound `.doc`
+  - Rejects `.txt` containing a NUL byte (binary masquerading as text)
+  - Accepts a clean ASCII `.txt`
+- Size and empty-body checks
+  - Rejects an empty buffer
+  - Rejects a buffer that exceeds `FILE_UPLOAD_MAX_MB` after the magic-byte prefix
+- Scope validation
+  - Rejects scopes containing `..` or other invalid characters
+  - Rejects scopes with whitespace
+- Filename sanitization (path-traversal defence)
+  - `../../etc/passwd.pdf` → `basename` strips path, regex strips remaining
+    non-alphanumerics; the resulting `relativePath` cannot escape the scope
+- Malware scan mode
+  - **Production with `FILE_MALWARE_SCAN_MODE` unset → fail-closed** (default)
+  - `FILE_MALWARE_SCAN_MODE=fail-closed` with a non-clamav scanner → fail-closed
+  - `FILE_MALWARE_SCAN_MODE=fail-open` without a scanner → upload allowed with warning
+  - `FILE_MALWARE_SCAN_MODE=disabled` → scan skipped
+- Base64 production gate
+  - `NODE_ENV=production` blocks base64 JSON uploads by default
+  - `ALLOW_BASE64_UPLOADS_IN_PRODUCTION=true` re-enables them in production
+  - Malformed base64 rejected
+  - Internal whitespace in base64 rejected
+  - `data:` URL prefix is stripped before decoding
+- Happy path
+  - Valid PDF buffer in `submissions` scope writes to local disk and returns
+    `relativePath`, sha256, sizeBytes
+
+**health.service.spec.ts coverage.**
+
+- `live()` returns `ok=true` with service name, uptime, timestamp
+- `database()`
+  - `DATABASE_URL` missing → `ok=false`, `configured=false`, `reachable=false`
+  - **Prisma throws (DB-down simulation)** → `ok=false`, `reachable=false`,
+    `detail` includes the underlying error message
+  - Migrations table missing → `ok=false`, `migrationTablePresent=false`
+  - `pendingMigrations > 0` → `ok=false` with the "still need attention" detail
+  - Migrations table present and zero pending → `ok=true`, applied count surfaced
+- `backupStatus()`
+  - Latest successful backup exists → `ok=true` even if older failures present
+  - Fresh install (no backups, no failures) → `ok=true` with the "No successful
+    backup has been recorded yet" detail
+  - Failures with no successful backup on record → `ok=false`
+- `ready()` (composition)
+  - `ok=false` when database is unreachable
+  - `ok=false` when storage check fails
+  - `ok=false` when configuration check fails
+  - `ok=false` when mail status fails
+  - `ok=false` when backup status fails
+  - `ok=true` only when all five sub-checks pass
+
+**Doubles.** Faithful only at external boundaries. Prisma `$queryRawUnsafe`
+returns shaped result rows or throws an `Error`; `FilesService.healthCheck`,
+`BackupsService.listHistory`, and `BackupWorkerService.status` are stubbed
+with the exact return shapes consumed by `HealthService`. No SUT internals
+are mocked. The malware-scan tests do not call ClamAV — they exercise the
+configuration branches that decide whether to scan. The S3 path is not
+exercised — see Deferred section.
+
+**Local verification.**
+
+```
+$ cd backend && npx jest
+Test Suites: 13 passed, 13 total
+Tests:       242 passed, 242 total
+
+$ cd backend && npm run build
+> tsc -p tsconfig.json     (clean)
+
+$ cd backend && npm audit --audit-level=high --omit=dev
+found 0 vulnerabilities
+```
+
+Suite went from 11 / 183 (Phase D) to **13 / 242** (+2 suites, +59 cases).
+
+**Bugs found.** None. Every assertion matched the implementation on first run.
+
+**Still deferred (require live infrastructure or large-surface mocks).**
+
+| Concern | Why deferred |
+|---|---|
+| ClamAV INSTREAM streaming | Needs a live (or recorded-fixture) ClamAV TCP server. Stubbing `net.Socket.connect` would test only the stub, not the wire protocol. Will be covered by the staging smoke against a real ClamAV sidecar. |
+| S3 happy path / signed-URL generation / `HeadBucket` probe | Needs LocalStack or a real S3 bucket. AWS SDK v3 client mocking is brittle and tends to lock in the mock contract instead of the real one. Will be covered by the staging smoke against the DigitalOcean Spaces bucket. |
+| `mailStatus()` (17 parallel Prisma queries + alert composition) | Faithful unit-level coverage requires a fully shaped EmailJob + WorkerHeartbeat fixture set; risk of fake-implementation testing is high. Will be covered by the staging smoke and by the dedicated worker smoke (`npm run smoke:worker`) against staging Postgres. |
+| Audit-log call-site coverage | Spans submission / admin / files services. Out of scope for a security-focused regression pass; needs an audit-coverage sweep against the real services. |
+| Backup stale detection in `health.service` | Covered structurally above; the time-based stale threshold is tested by `backup-worker.service.spec.ts` (Phase D) and is exercised end-to-end by the backup-restore drill against a disposable target. |
+| Mail transport fallback warnings | Partially covered by `mail-environment.guard.spec.ts` (Phase D); transport-service stub-fallback path needs provider doubles and is covered by `npm run smoke:worker`. |
+
+**Verdict.** CONDITIONAL GO — unchanged. CI gating still requires
+`docs/phase-b/ci-workflow.patch` to be applied by a maintainer with workflow
+PAT scope; the new specs are landed but not yet gating.
