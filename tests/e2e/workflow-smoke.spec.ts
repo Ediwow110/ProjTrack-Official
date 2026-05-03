@@ -37,7 +37,7 @@ const accounts = {
     identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
     password: process.env.SMOKE_STUDENT_PASSWORD || "",
     identifierLabel: /Student ID or Email/i,
-    buttonName: /Sign In as Student/i,
+    buttonName: /^Sign In$/i,
     dashboardPath: "/student/dashboard",
   },
   teacher: {
