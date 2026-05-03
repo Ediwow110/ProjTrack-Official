@@ -81,9 +81,22 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run build
       - run: npm run test
+      
+      
+
+      - name: Runtime safety unit tests (jest)
+        run: npm run test:unit
+
+      - name: Production runtime boot check (NODE_ENV=production)
+        run: npm run check:runtime:prod
+
+      - name: Worker boot smoke (mail + backup workers)
+        run: npm run smoke:worker
+
       - name: Smoke secrets status
         if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
         run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
+
       - name: Ensure CI Smoke Admin
         if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:admin:ensure
