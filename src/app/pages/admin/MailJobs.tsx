@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { CopyableIdChip } from "../../components/lists/shared/CopyableIdChip";
 import { PortalPage } from "../../components/portal/PortalPage";
+import { AppModal } from "../../components/ui/app-modal";
 import type { MailJobRecord, MailRuntimeStatus } from "../../lib/api/contracts";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
@@ -114,6 +115,7 @@ export default function AdminMailJobs() {
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [pageVisible, setPageVisible] = useState(
     typeof document === "undefined" ? true : document.visibilityState === "visible",
   );
@@ -203,65 +205,79 @@ export default function AdminMailJobs() {
     { label: "Latest safe error", value: status?.latestSafeProviderError || status?.recentFailureSafeMessage || "None", tone: status?.latestSafeProviderError || status?.recentFailureSafeMessage ? "text-rose-700 dark:text-rose-300" : "text-slate-700 dark:text-slate-200" },
   ];
 
-  const handleRetry = async (row: MailJobRecord) => {
+  const handleRetry = (row: MailJobRecord) => {
     const force = needsForceRetry(row);
-    if (force) {
-      const confirmed = window.confirm(
-        "This job is marked non-retryable. Confirm the provider or recipient issue is fixed before forcing a retry.",
-      );
-      if (!confirmed) return;
-    }
-
-    setRetryingId(row.id);
-    setError(null);
-    try {
-      await adminService.retryMailJob(row.id, force);
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to retry the selected mail job.");
-    } finally {
-      setRetryingId(null);
-    }
-  };
-
-  const handleRetrySelected = async () => {
-    if (!selectedIds.length) return;
-    if (selectedNeedForce) {
-      const confirmed = window.confirm(
-        "At least one selected job is marked non-retryable. Confirm the provider or recipient issue is fixed before forcing these retries.",
-      );
-      if (!confirmed) return;
-    }
-
-    setError(null);
-    try {
-      const result = (await adminService.retryMailJobs(selectedIds, selectedNeedForce)) as {
-        blockedCount: number;
-      };
-      if (result.blockedCount) {
-        setError(`${result.blockedCount} selected job(s) were blocked from retrying.`);
-      } else {
-        setSelectedIds([]);
+    const execute = async () => {
+      setRetryingId(row.id);
+      setError(null);
+      try {
+        await adminService.retryMailJob(row.id, force);
+        await reload();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to retry the selected mail job.");
+      } finally {
+        setRetryingId(null);
       }
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to retry the selected mail jobs.");
+    };
+    if (force) {
+      setPendingConfirm({
+        title: "Confirm Force Retry",
+        message: "This job is marked non-retryable. Confirm the provider or recipient issue is fixed before forcing a retry.",
+        onConfirm: () => { void execute(); },
+      });
+      return;
     }
+    void execute();
   };
 
-  const handleCancel = async (row: MailJobRecord) => {
-    const confirmed = window.confirm("Cancel this queued mail job?");
-    if (!confirmed) return;
-    setActingId(row.id);
-    setError(null);
-    try {
-      await adminService.cancelMailJob(row.id);
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to cancel the selected mail job.");
-    } finally {
-      setActingId(null);
+  const handleRetrySelected = () => {
+    if (!selectedIds.length) return;
+    const execute = async () => {
+      setError(null);
+      try {
+        const result = (await adminService.retryMailJobs(selectedIds, selectedNeedForce)) as {
+          blockedCount: number;
+        };
+        if (result.blockedCount) {
+          setError(`${result.blockedCount} selected job(s) were blocked from retrying.`);
+        } else {
+          setSelectedIds([]);
+        }
+        await reload();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to retry the selected mail jobs.");
+      }
+    };
+    if (selectedNeedForce) {
+      setPendingConfirm({
+        title: "Confirm Force Retry",
+        message: "At least one selected job is marked non-retryable. Confirm the provider or recipient issue is fixed before forcing these retries.",
+        onConfirm: () => { void execute(); },
+      });
+      return;
     }
+    void execute();
+  };
+
+  const handleCancel = (row: MailJobRecord) => {
+    setPendingConfirm({
+      title: "Cancel Mail Job",
+      message: "Cancel this queued mail job?",
+      onConfirm: () => {
+        void (async () => {
+          setActingId(row.id);
+          setError(null);
+          try {
+            await adminService.cancelMailJob(row.id);
+            await reload();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Unable to cancel the selected mail job.");
+          } finally {
+            setActingId(null);
+          }
+        })();
+      },
+    });
   };
 
   const handleArchive = async (row: MailJobRecord) => {
@@ -277,18 +293,22 @@ export default function AdminMailJobs() {
     }
   };
 
-  const handleArchiveOld = async () => {
-    const confirmed = window.confirm(
-      "Archive sent/dead/cancelled mail jobs older than 30 days? This only hides jobs from the default view; it does not remove recipients from Mailrelay bounce or suppression lists.",
-    );
-    if (!confirmed) return;
-    setError(null);
-    try {
-      await adminService.archiveOldMailJobs(30);
-      await reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to archive older mail jobs.");
-    }
+  const handleArchiveOld = () => {
+    setPendingConfirm({
+      title: "Archive Old Mail Jobs",
+      message: "Archive sent, dead, and cancelled mail jobs older than 30 days? This only hides jobs from the default view; it does not remove recipients from Mailrelay bounce or suppression lists.",
+      onConfirm: () => {
+        void (async () => {
+          setError(null);
+          try {
+            await adminService.archiveOldMailJobs(30);
+            await reload();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Unable to archive older mail jobs.");
+          }
+        })();
+      },
+    });
   };
 
   const handleSendTest = async (event: FormEvent) => {
@@ -742,6 +762,34 @@ export default function AdminMailJobs() {
           </tbody>
         </table>
       </div>
+      <AppModal
+        open={Boolean(pendingConfirm)}
+        onOpenChange={(open) => { if (!open) setPendingConfirm(null); }}
+        title={pendingConfirm?.title ?? "Confirm"}
+        description={pendingConfirm?.message ?? ""}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setPendingConfirm(null)}
+              className="portal-action-secondary rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                pendingConfirm?.onConfirm();
+                setPendingConfirm(null);
+              }}
+              className="rounded-xl bg-blue-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-900"
+            >
+              Confirm
+            </button>
+          </>
+        }
+      />
     </PortalPage>
   );
 }

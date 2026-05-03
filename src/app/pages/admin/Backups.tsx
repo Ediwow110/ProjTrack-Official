@@ -66,7 +66,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unavailable";
-  return date.toLocaleString();
+  return date.toLocaleString("en-US", { timeZoneName: "short" });
 }
 
 function statusClass(status: string) {

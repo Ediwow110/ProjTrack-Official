@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Activity,
   Database,
@@ -74,6 +75,7 @@ function blockedReasons(preview: SeedCleanupPreview | null) {
 }
 
 export default function AdminSystemTools() {
+  const navigate = useNavigate();
   const { data, loading, error, setData, reload } = useAsyncData(() => adminOpsService.getSystemTools(), []);
   const tools = data ?? [];
   const [confirmTool, setConfirmTool] = useState<SystemToolRecord | null>(null);
@@ -230,51 +232,6 @@ export default function AdminSystemTools() {
       {runState.error && <div className="portal-danger-card rounded-xl border px-4 py-3 text-sm font-medium">{runState.error}</div>}
       {importState.error && <div className="portal-danger-card rounded-xl border px-4 py-3 text-sm font-medium">{importState.error}</div>}
 
-      {lastResult && (
-        <div className={`space-y-3 rounded-2xl border p-5 ${resultCardClassName(lastResult)}`}>
-          <div className="flex items-start gap-3">
-            {isSeedPreviewResult(lastResult) && !lastResult.preview?.safeToExecute ? (
-              <BootstrapIcon name="exclamation-triangle-fill" tone="danger" size={18} className="mt-0.5 shrink-0" />
-            ) : (
-              <BootstrapIcon name="check-circle-fill" tone="success" size={18} className="mt-0.5 shrink-0" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{lastResult.title}</p>
-              <p className="mt-1 text-sm">{lastResult.summary}</p>
-              <p className="mt-1 text-xs opacity-80">
-                {isSeedPreviewResult(lastResult) ? "Last scan" : "Run at"} {new Date(lastResult.ranAt).toLocaleString()}
-              </p>
-            </div>
-          </div>
-
-          {lastResult.toolId === "seed-cleanup" ? (
-            <SeedCleanupResultSummary result={lastResult} />
-          ) : null}
-
-          {lastResult.details.length > 0 && (
-            <ul className="space-y-1 pl-6 text-sm list-disc">
-              {lastResult.details.map((detail) => (
-                <li key={detail}>{detail}</li>
-              ))}
-            </ul>
-          )}
-          {lastResult.artifactPath && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="portal-action-secondary inline-flex max-w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium">
-                <FileText size={14} /> <span className="break-all">Artifact: {lastResult.artifactPath}</span>
-              </div>
-              <button
-                type="button"
-                disabled={artifactBusy}
-                onClick={() => handleDownloadArtifact(lastResult.artifactPath)}
-                className="portal-action-secondary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
-              >
-                <Download size={14} /> {artifactBusy ? "Downloading…" : "Download Artifact"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="portal-card rounded-2xl border p-5">
         <h2 className="text-sm font-bold text-[var(--text-strong)]">Backup and restore flow</h2>
@@ -517,7 +474,7 @@ export default function AdminSystemTools() {
                 type="button"
                 className={secondaryButtonClassName}
                 onClick={() => {
-                  window.location.href = "/admin/backups";
+                  navigate("/admin/backups");
                 }}
               >
                 <Database size={14} /> View Backup History

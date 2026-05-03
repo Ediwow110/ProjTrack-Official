@@ -87,7 +87,7 @@ export default function AdminProfile() {
     }
     setBusy(true);
     setError(null);
-    try { await profileService.changeAdminPassword(currentPassword, newPassword); setCurrentPassword(''); setNewPassword(''); setSaved(true); }
+    try { await profileService.changeAdminPassword(currentPassword, newPassword); setCurrentPassword(''); setNewPassword(''); setSaved(true); window.setTimeout(() => setSaved(false), 2500); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to update password.'); }
     finally { setBusy(false); }
   };
