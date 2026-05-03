@@ -22,6 +22,7 @@ export default function TeacherSubmissionReview() {
   const [saved, setSaved] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [hydratedSubmissionId, setHydratedSubmissionId] = useState<string | null>(null);
+  const [actionInFlight, setActionInFlight] = useState<null | 'grade' | 'review' | 'return' | 'reopen'>(null);
 
   useEffect(() => {
     if (!data || !submissionId || hydratedSubmissionId === submissionId) return;
@@ -74,6 +75,8 @@ export default function TeacherSubmissionReview() {
       setActionError('Submission ID is missing, so no review action was saved.');
       return;
     }
+    if (actionInFlight) return;
+    setActionInFlight(action);
 
     try {
       await teacherService.reviewSubmission(submissionId, {
@@ -88,6 +91,8 @@ export default function TeacherSubmissionReview() {
     } catch (err) {
       setSaved(false);
       setActionError(err instanceof Error ? err.message : 'Unable to save the review action.');
+    } finally {
+      setActionInFlight(null);
     }
   };
 
@@ -167,10 +172,10 @@ export default function TeacherSubmissionReview() {
               <div className="flex items-start gap-2"><AlertCircle size={14} className="mt-0.5 text-slate-500 dark:text-slate-400 shrink-0" /><p>Only valid actions are enabled for the current submission state. Finalized submissions must be reopened before they can be changed again.</p></div>
             </div>
             <div className="space-y-2">
-              <button disabled={loading || !formReady || !actionState?.canGrade} onClick={() => handleAction('grade')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"><Star size={14} /> Mark as Graded</button>
-              <button disabled={loading || !formReady || !actionState?.canMarkReviewed} onClick={() => handleAction('review')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-colors disabled:opacity-50"><CheckCircle2 size={14} /> Mark as Reviewed</button>
-              <button disabled={loading || !formReady || !actionState?.canRequestRevision} onClick={() => handleAction('return')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-orange-200 text-orange-600 text-sm font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"><RotateCcw size={14} /> Return for Revision</button>
-              <button disabled={loading || !formReady || !actionState?.canReopen} onClick={() => handleAction('reopen')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors disabled:opacity-50"><RotateCcw size={14} /> Reopen Submission</button>
+              <button disabled={loading || !formReady || !actionState?.canGrade || actionInFlight !== null} onClick={() => handleAction('grade')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"><Star size={14} /> {actionInFlight === 'grade' ? 'Saving...' : 'Mark as Graded'}</button>
+              <button disabled={loading || !formReady || !actionState?.canMarkReviewed || actionInFlight !== null} onClick={() => handleAction('review')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-colors disabled:opacity-50"><CheckCircle2 size={14} /> {actionInFlight === 'review' ? 'Saving...' : 'Mark as Reviewed'}</button>
+              <button disabled={loading || !formReady || !actionState?.canRequestRevision || actionInFlight !== null} onClick={() => handleAction('return')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-orange-200 text-orange-600 text-sm font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"><RotateCcw size={14} /> {actionInFlight === 'return' ? 'Saving...' : 'Return for Revision'}</button>
+              <button disabled={loading || !formReady || !actionState?.canReopen || actionInFlight !== null} onClick={() => handleAction('reopen')} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors disabled:opacity-50"><RotateCcw size={14} /> {actionInFlight === 'reopen' ? 'Saving...' : 'Reopen Submission'}</button>
             </div>
           </div>
         </div>
