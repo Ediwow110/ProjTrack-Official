@@ -31,7 +31,8 @@ import { useEffect, useState } from "react";
   type RoleConfig = {
     portalEyebrow: string;
     cardKicker: string;
-    headlinePre: string;
+    headlineL1: string;
+    headlineL2Pre: string;
     headlineAccent: string;
     description: string;
     icon: typeof GraduationCap;
@@ -60,7 +61,8 @@ import { useEffect, useState } from "react";
     student: {
       portalEyebrow: "STUDENT PORTAL",
       cardKicker: "Student Portal Login",
-      headlinePre: "Manage. Submit. Achieve. ",
+      headlineL1: "Manage. Submit.",
+      headlineL2Pre: "Achieve. ",
       headlineAccent: "Together.",
       description:
         "ProjTrack helps students stay organized, submit projects on time, and collaborate seamlessly with their teachers.",
@@ -73,7 +75,8 @@ import { useEffect, useState } from "react";
     teacher: {
       portalEyebrow: "TEACHER PORTAL",
       cardKicker: "Teacher Portal Login",
-      headlinePre: "Manage. Review. Guide. ",
+      headlineL1: "Manage. Review.",
+      headlineL2Pre: "Guide. ",
       headlineAccent: "Together.",
       description:
         "ProjTrack helps teachers review submissions, manage classes, and provide feedback faster and easier.",
@@ -86,7 +89,8 @@ import { useEffect, useState } from "react";
     admin: {
       portalEyebrow: "ADMIN PORTAL",
       cardKicker: "Admin Portal Login",
-      headlinePre: "Manage. Monitor. Secure. ",
+      headlineL1: "Manage. Monitor.",
+      headlineL2Pre: "Secure. ",
       headlineAccent: "Together.",
       description:
         "ProjTrack helps administrators manage users, departments, reports, and system access in one secure platform.",
@@ -193,7 +197,8 @@ import { useEffect, useState } from "react";
         role={role}
         portalEyebrow={cfg.portalEyebrow}
         cardKicker={cfg.cardKicker}
-        headlinePre={cfg.headlinePre}
+        headlineL1={cfg.headlineL1}
+        headlineL2Pre={cfg.headlineL2Pre}
         headlineAccent={cfg.headlineAccent}
         description={cfg.description}
         icon={Icon}

@@ -33,7 +33,8 @@ import type { ComponentType, ReactNode } from "react";
     role,
     portalEyebrow,
     cardKicker,
-    headlinePre,
+    headlineL1,
+    headlineL2Pre,
     headlineAccent,
     description,
     icon: Icon,
@@ -45,7 +46,8 @@ import type { ComponentType, ReactNode } from "react";
     role: PortalRole;
     portalEyebrow: string;
     cardKicker: string;
-    headlinePre: string;
+    headlineL1: string;
+    headlineL2Pre: string;
     headlineAccent: string;
     description: string;
     icon: AuthIcon;
@@ -68,27 +70,35 @@ import type { ComponentType, ReactNode } from "react";
         style={roleThemeStyle(role)}
         data-auth-role={role}
       >
+        {/* Background layers: campus silhouette + starfield + dots framed to composition */}
+        <div className="auth-campus-bg" aria-hidden="true" />
+        <div className="auth-campus-skyline" aria-hidden="true" />
+        <div className="auth-campus-glow" aria-hidden="true" />
         <div className="auth-starfield" aria-hidden="true" />
         <div className="auth-dot-grid" aria-hidden="true" />
         <motion.div
           className="auth-space-glow auth-space-glow-primary"
           aria-hidden="true"
-          animate={reducedMotion ? { opacity: 0.72 } : { opacity: [0.62, 0.82, 0.62], scale: [1, 1.035, 1] }}
+          animate={reducedMotion ? { opacity: 0.7 } : { opacity: [0.6, 0.82, 0.6], scale: [1, 1.03, 1] }}
           transition={reducedMotion ? { duration: 0 } : { duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="auth-space-glow auth-space-glow-secondary"
           aria-hidden="true"
-          animate={reducedMotion ? { opacity: 0.48 } : { opacity: [0.42, 0.6, 0.42], scale: [1, 1.025, 1] }}
+          animate={reducedMotion ? { opacity: 0.5 } : { opacity: [0.42, 0.6, 0.42], scale: [1, 1.025, 1] }}
           transition={reducedMotion ? { duration: 0 } : { duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="auth-leaf auth-leaf-bl" aria-hidden="true" />
         <div className="auth-leaf auth-leaf-br" aria-hidden="true" />
 
-        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1240px] flex-col px-4 py-6 sm:px-6 lg:px-8">
-          <div className="grid flex-1 items-center gap-8 py-6 md:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(27rem,35rem)] lg:gap-14">
+        <div className="auth-shell relative z-10 mx-auto flex min-h-screen w-full max-w-[1240px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+          {/* Curved glowing arc divider — visible only at lg+ */}
+          <span className="auth-arc" aria-hidden="true" />
+          <span className="auth-arc auth-arc-soft" aria-hidden="true" />
+
+          <div className="auth-grid relative grid flex-1 items-center gap-10 py-4 md:py-6 lg:gap-14">
             <motion.aside
-              className="auth-login-hero"
+              className="auth-login-hero relative z-[2]"
               initial="hidden"
               animate="visible"
               variants={staggerContainer(reducedMotion, {
@@ -102,7 +112,7 @@ import type { ComponentType, ReactNode } from "react";
                   inverse
                   subtitle="PROJECT SUBMISSION MANAGEMENT SYSTEM"
                   className="auth-hero-logo"
-                  markClassName="h-[4.25rem] w-[4.25rem] rounded-[1.45rem]"
+                  markClassName="h-[4.6rem] w-[4.6rem] rounded-[1.5rem]"
                   textClassName="auth-hero-logo-text"
                 />
               </motion.div>
@@ -110,8 +120,11 @@ import type { ComponentType, ReactNode } from "react";
               <motion.div className="auth-hero-copy" variants={fadeUpVariants(reducedMotion, { delay: 0.04 })}>
                 <span className="auth-hero-eyebrow">{portalEyebrow}</span>
                 <h1 className="auth-hero-headline">
-                  {headlinePre}
-                  <span className="auth-hero-headline-accent">{headlineAccent}</span>
+                  <span className="auth-hero-headline-line">{headlineL1}</span>
+                  <span className="auth-hero-headline-line">
+                    {headlineL2Pre}
+                    <span className="auth-hero-headline-accent">{headlineAccent}</span>
+                  </span>
                 </h1>
                 <p className="auth-hero-description">{description}</p>
                 <span className="auth-hero-rule" aria-hidden="true" />
@@ -134,7 +147,7 @@ import type { ComponentType, ReactNode } from "react";
                         variants={fadeUpVariants(reducedMotion, { distance: 12 })}
                       >
                         <div className="auth-feature-icon" aria-hidden="true">
-                          <FeatureIcon size={22} strokeWidth={1.9} />
+                          <FeatureIcon size={26} strokeWidth={1.85} />
                         </div>
                         <p className="auth-feature-label">
                           <span>{feature.label}</span>
@@ -148,7 +161,7 @@ import type { ComponentType, ReactNode } from "react";
             </motion.aside>
 
             <motion.main
-              className="auth-login-card"
+              className="auth-login-card relative z-[3]"
               variants={scaleInVariants(reducedMotion, { scale: 0.982 })}
               initial="hidden"
               animate="visible"
@@ -158,7 +171,7 @@ import type { ComponentType, ReactNode } from "react";
                 className="auth-card-icon"
                 variants={scaleInVariants(reducedMotion, { delay: 0.08, scale: 0.92 })}
               >
-                <Icon size={42} strokeWidth={1.8} />
+                <Icon size={46} strokeWidth={1.8} />
               </motion.div>
 
               <motion.div variants={fadeUpVariants(reducedMotion, { delay: 0.1 })}>
@@ -237,9 +250,9 @@ import type { ComponentType, ReactNode } from "react";
         <span className="auth-field-label mb-2 block text-sm font-semibold text-white">
           {label}
         </span>
-        <div className="auth-field-control auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.06] px-4 py-3.5 shadow-[0_18px_46px_-38px_rgba(2,6,23,0.95)]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-slate-300">
-            <Icon size={16} />
+        <div className="auth-field-control auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.06] px-4 py-4 shadow-[0_18px_46px_-38px_rgba(2,6,23,0.95)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-slate-300">
+            <Icon size={18} />
           </div>
           <div className="min-w-0 flex-1">{children}</div>
           {trailing ? <div className="shrink-0">{trailing}</div> : null}
