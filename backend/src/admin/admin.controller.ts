@@ -26,6 +26,7 @@ import {
   BulkMoveDto,
   CreateAcademicYearDto,
   CreateAcademicYearLevelDto,
+  CreateCourseDto,
   CreateAdminDto,
   CreateSectionDto,
   IdsDto,
@@ -167,7 +168,7 @@ export class AdminController {
 
   @Post('academic-years/:id/year-levels')
   createAcademicYearLevel(@Param('id') id: string, @Body() body: CreateAcademicYearLevelDto) {
-    return this.admin.createAcademicYearLevel({ ...body, academicYearId: id });
+    return this.admin.createAcademicYearLevel({ ...body, academicYearId: id, courseId: body.courseId });
   }
 
 
@@ -183,6 +184,26 @@ export class AdminController {
     @Req() req?: any,
   ) {
     return this.admin.deleteAcademicYearLevel(levelId, this.actorContext(req));
+  }
+
+
+  @Get('academic-years/:yearId/courses')
+  listCourses(@Param('yearId') yearId: string) {
+    return this.admin.listCourses(yearId);
+  }
+
+  @Post('academic-years/:yearId/courses')
+  createCourse(@Param('yearId') yearId: string, @Body() body: CreateCourseDto, @Req() req?: any) {
+    return this.admin.createCourse({ ...body, academicYearId: yearId }, this.actorContext(req));
+  }
+
+  @Delete('academic-years/:yearId/courses/:courseId')
+  deleteCourse(
+    @Param('yearId') yearId: string,
+    @Param('courseId') courseId: string,
+    @Req() req?: any,
+  ) {
+    return this.admin.deleteCourse(courseId, this.actorContext(req));
   }
 
   @Delete('sections/:id')
