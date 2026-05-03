@@ -92,8 +92,8 @@ export default function StudentDashboard() {
         icon={BookOpen}
         meta={[
           { label: "Portal", value: "Student workspace" },
-          { label: "Deadlines", value: String(data?.deadlines.length ?? 0) },
-          { label: "Notifications", value: String(data?.notifications.length ?? 0) },
+          { label: "Deadlines", value: data ? String(data.deadlines.length) : "—" },
+          { label: "Notifications", value: data ? String(data.notifications.length) : "—" },
         ]}
         stats={heroStats}
         actions={
@@ -234,7 +234,23 @@ export default function StudentDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 dark:divide-slate-800">
-                  {visibleRecentSubmissions.map((row) => (
+                  {loading && !data ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <tr key={`skeleton-${index}`} aria-hidden="true">
+                        {Array.from({ length: 5 }).map((__, col) => (
+                          <td key={col} className="px-6 py-4">
+                            <div className="h-3 w-full max-w-[160px] animate-pulse rounded bg-slate-100 dark:bg-slate-800/70" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : visibleRecentSubmissions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-xs font-medium text-slate-400 dark:text-slate-500">
+                        No submissions yet. Your recent work will show up here once you submit a project.
+                      </td>
+                    </tr>
+                  ) : visibleRecentSubmissions.map((row) => (
                     <tr
                       key={row.id}
                       className="cursor-pointer bg-white/70 transition hover:bg-blue-50/45 dark:bg-slate-900/38 dark:hover:bg-blue-500/12"
@@ -384,7 +400,22 @@ export default function StudentDashboard() {
             }
           >
             <div className="space-y-3">
-              {(data?.notifications ?? []).map((notification) => (
+              {loading && !data ? (
+                Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`notif-skeleton-${index}`}
+                    aria-hidden="true"
+                    className="h-20 animate-pulse rounded-[22px] bg-slate-100 dark:bg-slate-800/70"
+                  />
+                ))
+              ) : (data?.notifications ?? []).length === 0 ? (
+                <PortalEmptyState
+                  title="No new notifications"
+                  description="Updates from your teachers and graded submissions will appear here."
+                  icon={Bell}
+                  className="border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70"
+                />
+              ) : (data?.notifications ?? []).map((notification) => (
                 <div
                   key={notification.id}
                   className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/80 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
