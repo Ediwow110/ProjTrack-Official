@@ -150,9 +150,9 @@ async function bootAndProbe(env, { expectOk, label, expectStderrIncludes }) {
           try {
             const r = await fetchHealth();
             if (r.status === 200) {
-              try { child.kill('SIGTERM'); } catch (_) {}
-              await sleep(2000);
+              // Resolve healthy BEFORE SIGTERM so the 'exit' event cannot win the race.
               finish({ phase: 'healthy', code: 0, stdout, stderr });
+              try { child.kill('SIGTERM'); } catch (_) {}
               return;
             }
           } catch (_) { /* keep trying */ }
