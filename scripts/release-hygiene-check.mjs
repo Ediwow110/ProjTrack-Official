@@ -32,6 +32,9 @@ const allowed = [
   /(^|\/)backend\/\.env\.example$/,
   /(^|\/)backend\/\.env\.local\.example$/,
   /(^|\/)backend\/\.env\.production\.example$/,
+    /(^|\/)backend\/\.env\.worker\.example$/,
+    /(^|\/)backend\/\.env\.worker\.local\.example$/,
+    /(^|\/)backend\/\.env\.worker\.production\.example$/,
   /(^|\/)src\/app\/components\/lists\/logs(\/|$)/,
   /(^|\/)backend\/src\/auth\/dto\/refresh-token\.dto\.ts$/,
 ];
