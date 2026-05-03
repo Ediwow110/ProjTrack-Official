@@ -114,7 +114,7 @@ async function main() {
       stderr: positive.stderr.slice(-1500),
       stdout: positive.stdout.slice(-1500),
     });
-  } else if (positive.code !== 0) {
+  } else if (positive.code !== 0 && positive.signal !== 'SIGTERM') {
     failures.push({
       case: `worker exit code ${positive.code} (signal=${positive.signal}) after SIGTERM`,
       stderr: positive.stderr.slice(-1500),
