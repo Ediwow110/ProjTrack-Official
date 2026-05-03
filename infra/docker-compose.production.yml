@@ -73,7 +73,7 @@ services:
       - projtrack
 
   clamav:
-    image: clamav/clamav:1.3
+    image: clamav/clamav:stable
     container_name: projtrack-clamav
     restart: unless-stopped
     healthcheck:
