@@ -184,8 +184,12 @@ export default function AdminCalendar() {
       </div>
 
       {loading ? (
-        <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white/82 p-5 text-sm text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-400">
-          Loading calendar events…
+        <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-white/82 p-5 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/80" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading calendar events…</span>
+          <div aria-hidden="true" className="space-y-2">
+            <div className="h-4 w-40 rounded bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+            <div className="h-3 w-64 rounded bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          </div>
         </div>
       ) : null}
       {error ? (

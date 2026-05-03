@@ -84,7 +84,14 @@ export default function AdminGroups() {
       </div>
 
       <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm overflow-x-auto">
-        {loading && groups.length === 0 ? <div className="p-6 text-sm text-slate-400 dark:text-slate-300">Loading groups…</div> : groups.length === 0 ? <div className="p-6 text-sm text-slate-400 dark:text-slate-300">No groups matched the current filters.</div> : (
+        {loading && groups.length === 0 ? (
+          <div className="p-6 space-y-2" aria-busy="true" aria-live="polite">
+            <span className="sr-only">Loading groups…</span>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} aria-hidden="true" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+            ))}
+          </div>
+        ) : groups.length === 0 ? <div className="p-6 text-sm text-slate-400 dark:text-slate-300">No groups matched the current filters.</div> : (
           <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-100 dark:border-slate-700/70">{['Group', 'Subject', 'Section', 'Leader', 'Members', 'Mode', 'Status', ''].map((h) => <th key={h} className="text-left px-5 py-3 text-[11px] text-slate-400 dark:text-slate-300 font-semibold uppercase tracking-wider">{h}</th>)}</tr>
