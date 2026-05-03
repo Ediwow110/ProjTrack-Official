@@ -117,7 +117,14 @@ export default function AdminProfile() {
     finally { setBusy(false); }
   };
 
-  if (loading) return <div className="p-6 max-w-5xl mx-auto text-sm text-slate-400 dark:text-slate-300">Loading profile…</div>;
+  if (loading) return (
+    <div className="p-6 max-w-5xl mx-auto space-y-4" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading admin profile…</span>
+      <div aria-hidden="true" className="h-24 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+      <div aria-hidden="true" className="h-64 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+      <div aria-hidden="true" className="h-48 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+    </div>
+  );
   if (!profile) return <div className="p-6 max-w-5xl mx-auto text-sm text-rose-600">{error || 'Profile unavailable.'}</div>;
 
   return <div className="p-6 max-w-5xl mx-auto space-y-6">

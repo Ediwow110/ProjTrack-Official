@@ -200,7 +200,17 @@ export default function AdminStudentView() {
   }
 
   if (loading || !data) {
-    return <div className="p-6 max-w-7xl mx-auto text-sm text-slate-400 dark:text-slate-300">Loading student record…</div>;
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-4" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading student record…</span>
+        <div aria-hidden="true" className="h-10 w-40 rounded-lg bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+        <div aria-hidden="true" className="h-32 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div aria-hidden="true" className="h-64 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse lg:col-span-2" />
+          <div aria-hidden="true" className="h-64 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   return (
