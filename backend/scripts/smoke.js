@@ -107,7 +107,27 @@ async function main() {
     } catch {
       body = text;
     }
-    return { status: response.status, body };
+    let setCookie = [];
+    if (typeof response.headers.getSetCookie === 'function') {
+      setCookie = response.headers.getSetCookie();
+    } else {
+      const raw = response.headers.get('set-cookie');
+      if (raw) setCookie = [raw];
+    }
+    return { status: response.status, body, setCookie };
+  };
+
+  const REFRESH_COOKIE_NAME = '__Secure-projtrack_refresh';
+  const extractRefreshToken = (response) => {
+    if (response && response.body && typeof response.body === 'object' && response.body.refreshToken) {
+      return response.body.refreshToken;
+    }
+    const cookies = (response && response.setCookie) || [];
+    for (const cookie of cookies) {
+      const match = cookie.match(new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE_NAME}=([^;]+)`));
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return '';
   };
 
   let adminAccessToken = '';
@@ -157,7 +177,10 @@ async function main() {
       });
       expect(isSuccess(login.status), `${account.role} login failed: ${JSON.stringify(login.body)}`);
       expect(Boolean(login.body?.accessToken), `${account.role} login did not return an access token.`);
-      expect(Boolean(login.body?.refreshToken), `${account.role} login did not return a refresh token.`);
+      expect(
+        Boolean(extractRefreshToken(login)),
+        `${account.role} login did not return a refresh token (checked body and ${REFRESH_COOKIE_NAME} cookie).`,
+      );
 
       if (account.role === 'ADMIN') {
         adminAccessToken = login.body.accessToken;
@@ -175,7 +198,11 @@ async function main() {
     expect(isSuccess(adminLogin.status), `Admin verification login failed: ${JSON.stringify(adminLogin.body)}`);
 
     adminAccessToken = adminLogin.body.accessToken;
-    const adminRefreshToken = adminLogin.body.refreshToken;
+    const adminRefreshToken = extractRefreshToken(adminLogin);
+    expect(
+      Boolean(adminRefreshToken),
+      `Admin verification login did not return a refresh token (checked body and ${REFRESH_COOKIE_NAME} cookie).`,
+    );
 
     const databaseHealth = await request('/health/database', {
       method: 'GET',
@@ -196,17 +223,21 @@ async function main() {
     });
     expect(isSuccess(refresh.status), `Refresh failed: ${JSON.stringify(refresh.body)}`);
     expect(Boolean(refresh.body?.accessToken), 'Refresh did not return an access token.');
-    expect(Boolean(refresh.body?.refreshToken), 'Refresh did not return a refresh token.');
+    const rotatedRefreshToken = extractRefreshToken(refresh);
+    expect(
+      Boolean(rotatedRefreshToken),
+      `Refresh did not return a refresh token (checked body and ${REFRESH_COOKIE_NAME} cookie).`,
+    );
 
     const logout = await request('/auth/logout', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken: refresh.body.refreshToken }),
+      body: JSON.stringify({ refreshToken: rotatedRefreshToken }),
     });
     expect(isSuccess(logout.status), `Logout failed: ${JSON.stringify(logout.body)}`);
 
     const refreshAfterLogout = await request('/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken: refresh.body.refreshToken }),
+      body: JSON.stringify({ refreshToken: rotatedRefreshToken }),
     });
     expect(refreshAfterLogout.status === 401, `Refresh token should be revoked after logout: ${JSON.stringify(refreshAfterLogout.body)}`);
 
