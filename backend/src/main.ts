@@ -159,6 +159,9 @@ async function bootstrap() {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
     const path = String(req?.originalUrl ?? req?.url ?? '');
+    if (path.startsWith('/health')) {
+      return next(); // liveness/readiness must never be rate-limited or DB-dependent
+    }
     if (path.startsWith('/auth/')) {
       res.setHeader('Cache-Control', 'no-store');
     }
