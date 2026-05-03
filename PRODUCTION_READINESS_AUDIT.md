@@ -505,3 +505,98 @@ Suite went from 11 / 183 (Phase D) to **13 / 242** (+2 suites, +59 cases).
 **Verdict.** CONDITIONAL GO — unchanged. CI gating still requires
 `docs/phase-b/ci-workflow.patch` to be applied by a maintainer with workflow
 PAT scope; the new specs are landed but not yet gating.
+
+---
+
+## Phase F — DigitalOcean staging operator runbook (2026-05-03)
+
+**Scope.** Convert the 11-step DevOps mission into a runnable operator
+runbook with all repo-derived values pre-resolved, and stage the empty
+release-evidence directory per the Phase D `O1` contract.
+
+**What was added.**
+
+| Path | Purpose |
+|---|---|
+| `docs/release-evidence/2026-05-03/00-phase-f-runbook.md` | Step-by-step operator runbook with verified commands |
+| `docs/release-evidence/2026-05-03/README.md` | Placeholder index naming the 14 evidence files each runbook step will produce |
+
+**No CI workflow patch was applied.** The PAT used by build automation has
+`contents:write` only; `.github/workflows/*.yml` requires `workflow` scope.
+The runbook documents both PR-based and web-UI paths a maintainer can use.
+
+**No DigitalOcean / DNS / SSH actions were executed.** Build automation has
+no DO API token, no Name.com API token, no SSH key on a Droplet, and is not
+authorised to provision paid infrastructure or alter DNS. Faking any
+output here would violate the brief's hard rules.
+
+**What the runbook is grounded in (every command and value derived from real
+files in the repo at commit `9a710a83`).**
+
+- `infra/digitalocean-bootstrap.sh` — Docker CE + Compose + Caddy + ufw
+  (22/80/443 only) + repo clone at `/opt/projtrack/repo` + Caddyfile copy
+  + compose-file copy. Idempotent.
+- `infra/docker-compose.production.yml` — `backend` (3001), `mail-worker`,
+  `backup-worker`, `clamav` (with `clamdcheck.sh` healthcheck). Backend
+  has `wget`-based healthcheck against `/health`.
+- `infra/Caddyfile.example` — `staging.projtrack.codes` ⇒ static SPA at
+  `/var/www/projtrack-staging`; `api-staging.projtrack.codes` ⇒ reverse
+  proxy to `127.0.0.1:3002`. HSTS + `X-Robots-Tag: noindex,nofollow` on
+  staging blocks. (The compose file ships with the prod port `3001`; the
+  runbook calls out the one-line edit operators must make for staging.)
+- `docs/env/staging.env.example` — `NODE_ENV=production`, `APP_ENV=staging`,
+  `FILE_MALWARE_SCAN_MODE=fail-closed`, `FILE_MALWARE_SCANNER=clamav`,
+  `OBJECT_STORAGE_MODE=s3`, `S3_BUCKET_PUBLIC=false`,
+  `HTTP_RATE_LIMIT_STORE=database`. Backup workers default to `false` —
+  flipped on only after the staging-backups bucket is provisioned.
+- `backend/scripts/staging-smoke-summary.mjs` — refuses prod-shaped
+  `DATABASE_URL`; refuses `NODE_ENV=production` without
+  `STAGING_SMOKE_OVERRIDE`; spawns `scripts/smoke.js --real-accounts`;
+  prints `overall: PASS|FAIL`.
+- `backend/scripts/backup-restore-drill.mjs` — multi-pattern prod-URL
+  refusal, disposable-hint requirement, requires
+  `BACKUP_DRILL_CONFIRM_DISPOSABLE=YES_I_UNDERSTAND`, `pg_dump --no-owner
+  --no-privileges --clean --if-exists` then `psql --single-transaction -v
+  ON_ERROR_STOP=1`, verifies `User StudentProfile TeacherProfile
+  Submission SubjectSection EmailJob BackupRun` non-empty.
+- `MONITORING_RUNBOOK.md` — five Uptime probes, alert thresholds, and the
+  `/health/ready` JSON synthetic-check pattern for application-level
+  signals (mail backlog, backup staleness) that DO Monitoring cannot
+  natively parse.
+
+**No bugs found.** Every script and infra file matched what the brief
+expected.
+
+**What this commit does NOT do (deliberately, per the hard rules).**
+
+- Does NOT create DO Droplet / Postgres / Spaces.
+- Does NOT add Name.com DNS records.
+- Does NOT SSH into a Droplet or run any of the bootstrap / smoke /
+  drill commands.
+- Does NOT configure DO Monitoring alerts.
+- Does NOT apply `docs/phase-b/ci-workflow.patch`.
+- Does NOT tick any box in `FINAL_READINESS_CHECKLIST.md` whose evidence
+  was not actually produced. The checklist is therefore unchanged.
+
+**Verdict.** **CONDITIONAL GO** — unchanged from Phases A-E.
+
+The repo-side preparation that *can* be done from automation has been done
+(audit + tests + runbook + release-evidence skeleton). Every remaining gate
+is a human-only action. The runbook now reduces operator decisions to
+copy-paste; it does not reduce the count of remaining gates, which are:
+
+| Gate | Owner | Where |
+|---|---|---|
+| Apply CI workflow patch | maintainer w/ `workflow` PAT scope | `docs/phase-b/ci-workflow.patch` |
+| Provision DO staging | release commander | runbook §1 |
+| Stage 1 DNS | release commander | runbook §2 |
+| Bootstrap + deploy | release commander | runbook §3-§5 |
+| HTTPS + readiness verified | release commander | runbook §6 |
+| Real staging smoke PASSED | release commander | runbook §7 |
+| Real backup-restore drill PASSED | release commander | runbook §8 |
+| DO monitoring wired + alerts test-fired | release commander | runbook §9 |
+| Stages 2 + 3 cutover with documented watch periods | release commander | `VERCEL_CUTOVER_PLAN.md` |
+| Stakeholder sign-off | stakeholder | `FINAL_READINESS_CHECKLIST.md` |
+
+`FULL GO` becomes possible only after every row above is signed off with
+real evidence files in `docs/release-evidence/<YYYY-MM-DD>/`.
