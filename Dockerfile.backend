@@ -47,7 +47,7 @@ FROM node:20-alpine AS runner
 # tini gives us proper PID 1 signal handling so SIGTERM reaches Node and
 # in-flight requests / worker jobs can drain.
 # wget is already in busybox; used for the HEALTHCHECK below.
-RUN apk add --no-cache tini \
+RUN apk add --no-cache tini openssl \
     && addgroup -S projtrack \
     && adduser -S -G projtrack -u 10001 -h /home/projtrack projtrack
 
@@ -66,6 +66,11 @@ COPY --chown=projtrack:projtrack backend/prisma       ./prisma
 # Writable directories the API/worker may use.
 # In production these should be backed by mounted volumes or remote storage
 # (S3 for uploads, network volume for backups).
+# Alpine 3.17+ ships OpenSSL 3 only; the plain linux-musl Prisma engine needs
+# libssl.so.1.1 (OpenSSL 1.1) which is absent. Remove it so the runtime loads
+# linux-musl-openssl-3.0.x instead.
+RUN find /app/node_modules/.prisma -name "libquery_engine-linux-musl.so.node" -delete 2>/dev/null || true
+
 RUN mkdir -p uploads data/system-tools/backups \
     && chown -R projtrack:projtrack /app \
     && chmod -R u=rwX,g=rX,o= /app
