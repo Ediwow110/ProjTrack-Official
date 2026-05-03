@@ -1033,6 +1033,7 @@ export class AdminOpsRepository {
 
   async createAcademicYearLevel(payload: {
     academicYearId?: string;
+    courseId?: string;
     name?: string;
     sortOrder?: number | string;
   }) {
@@ -1066,9 +1067,15 @@ export class AdminOpsRepository {
     }
 
     const numericSort = this.parseYearLevelNumber(name);
+    const courseId = payload.courseId ? String(payload.courseId).trim() : undefined;
+    if (courseId) {
+      const course = await this.prisma.course.findFirst({ where: { id: courseId, academicYearId } });
+      if (!course) throw new BadRequestException('Course not found in this academic year.');
+    }
     const created = await this.prisma.academicYearLevel.create({
       data: {
         academicYearId,
+        courseId: courseId || null,
         name,
         sortOrder:
           payload.sortOrder === undefined || payload.sortOrder === null || payload.sortOrder === ''
@@ -1175,6 +1182,9 @@ export class AdminOpsRepository {
     const [years, sections] = await Promise.all([
       this.prisma.academicYear.findMany({
         include: {
+          courses: {
+            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          },
           levels: {
             orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
           },
@@ -1211,15 +1221,38 @@ export class AdminOpsRepository {
           yearSections.map((section) => String(section.program || '').trim()).filter(Boolean),
         ).size;
 
+        const courseSummaries = (year as any).courses.map((course: any) => {
+          const courseLevels = year.levels.filter((l: any) => l.courseId === course.id);
+          const courseSections = yearSections.filter((s) =>
+            courseLevels.some((l: any) => l.id === s.yearLevelId),
+          );
+          return {
+            id: course.id,
+            name: course.name,
+            code: course.code ?? null,
+            description: course.description ?? null,
+            sortOrder: course.sortOrder ?? null,
+            yearLevelCount: courseLevels.length,
+            sectionCount: courseSections.length,
+            studentCount: courseSections.reduce((t, s) => t + Number(s.students || 0), 0),
+          };
+        });
+
+        const courseLevelSummaries = levelSummaries.map((level) => {
+          const rawLevel = year.levels.find((l: any) => l.id === level.id);
+          return { ...level, courseId: (rawLevel as any)?.courseId ?? null };
+        });
+
         return {
           id: year.id,
           name: year.name,
           status: this.formatAcademicYearStatus(year.status),
           sectionCount: yearSections.length,
           studentCount: yearSections.reduce((total, section) => total + Number(section.students || 0), 0),
-          courseCount,
-          yearLevelCount: levelSummaries.length,
-          yearLevels: levelSummaries,
+          courseCount: courseSummaries.length || courseCount,
+          yearLevelCount: courseLevelSummaries.length,
+          yearLevels: courseLevelSummaries,
+          courses: courseSummaries,
         };
       })
       .filter((year) => {
@@ -2047,6 +2080,84 @@ export class AdminOpsRepository {
       data: { notes: note },
     });
   }
+
+  async listCourses(academicYearId: string) {
+    const courses = await this.prisma.course.findMany({
+      where: { academicYearId },
+      include: { _count: { select: { levels: true } } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    return courses.map((course) => ({
+      id: course.id,
+      name: course.name,
+      code: course.code ?? null,
+      description: course.description ?? null,
+      sortOrder: course.sortOrder ?? null,
+      yearLevelCount: course._count.levels,
+    }));
+  }
+
+  async createCourse(payload: {
+    academicYearId?: string;
+    name?: string;
+    code?: string;
+    description?: string;
+    sortOrder?: number;
+  }) {
+    const academicYearId = String(payload.academicYearId ?? '').trim();
+    const name = String(payload.name ?? '').trim();
+    if (!academicYearId) throw new BadRequestException('Academic year is required.');
+    if (!name) throw new BadRequestException('Course name is required.');
+
+    const year = await this.prisma.academicYear.findUnique({ where: { id: academicYearId } });
+    if (!year) throw new BadRequestException('Academic year not found.');
+
+    const existing = await this.prisma.course.findFirst({
+      where: { academicYearId, name: { equals: name, mode: 'insensitive' } },
+    });
+    if (existing) throw new ConflictException('That course already exists for this academic year.');
+
+    const created = await this.prisma.course.create({
+      data: {
+        academicYearId,
+        name,
+        code: payload.code ? String(payload.code).trim() || null : null,
+        description: payload.description ? String(payload.description).trim() || null : null,
+        sortOrder: payload.sortOrder !== undefined ? Number(payload.sortOrder) : null,
+      },
+    });
+
+    return { success: true, id: created.id, name: created.name, academicYearId };
+  }
+
+  async deleteCourse(id: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id },
+      include: { _count: { select: { levels: true } } },
+    });
+    if (!course) throw new NotFoundException('Course not found.');
+
+    // Check for students in any level under this course
+    const levels = await this.prisma.academicYearLevel.findMany({
+      where: { courseId: id },
+      include: { _count: { select: { students: true } } },
+    });
+    const totalStudents = levels.reduce((t, l) => t + l._count.students, 0);
+    if (totalStudents > 0) {
+      throw new ConflictException(
+        `Cannot delete course "${course.name}" — ${totalStudents} student(s) are enrolled in its year levels.`,
+      );
+    }
+
+    // Cascade: null out courseId on levels, then delete course
+    await this.prisma.academicYearLevel.updateMany({
+      where: { courseId: id },
+      data: { courseId: null },
+    });
+    await this.prisma.course.delete({ where: { id } });
+    return { success: true, id };
+  }
+
   async deleteAcademicYear(id: string) {
     const year = await this.prisma.academicYear.findUnique({
       where: { id },
