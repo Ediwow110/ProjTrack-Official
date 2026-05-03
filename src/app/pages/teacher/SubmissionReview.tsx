@@ -96,6 +96,46 @@ export default function TeacherSubmissionReview() {
     }
   };
 
+  if (loading && !data) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate(backTarget)} className="flex items-center gap-1.5 text-slate-400 dark:text-slate-300 hover:text-slate-700 text-sm">
+            <ChevronLeft size={15} /> {backLabel}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-4">
+            <div aria-hidden="true" className="h-72 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+            <div aria-hidden="true" className="h-40 rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div aria-hidden="true" className="h-[420px] rounded-xl border border-slate-100 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate(backTarget)} className="flex items-center gap-1.5 text-slate-400 dark:text-slate-300 hover:text-slate-700 text-sm">
+            <ChevronLeft size={15} /> {backLabel}
+          </button>
+        </div>
+        <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-6 text-center">
+          <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Unable to load this submission.</p>
+          <p className="mt-1 text-xs text-rose-600 dark:text-rose-300/80">{error}</p>
+          <button onClick={() => reload()} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-300 dark:border-rose-500/40 bg-white dark:bg-slate-900/60 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+            <RotateCcw size={12} /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -106,7 +146,7 @@ export default function TeacherSubmissionReview() {
       </div>
 
       {saved && <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30"><CheckCircle2 size={16} className="text-emerald-600 shrink-0" /><p className="text-emerald-700 dark:text-emerald-300 text-sm font-semibold">Review action saved successfully.</p></div>}
-      {error && <div className="px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-sm font-medium text-rose-700 dark:text-rose-300">Unable to load this submission.</div>}
+      {error && <div className="px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-sm font-medium text-rose-700 dark:text-rose-300">Unable to refresh this submission. Showing the last known data. {error}</div>}
       {actionError && <div className="px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-sm font-medium text-rose-700 dark:text-rose-300">{actionError}</div>}
       {actionState?.reason && !actionError && <div className="px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 text-sm font-medium text-amber-800">{actionState.reason}</div>}
 
