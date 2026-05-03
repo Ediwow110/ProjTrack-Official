@@ -57,11 +57,15 @@ TRUST_PROXY=true
 TRUST_PROXY_HOPS=1
 ```
 
-Only enable this behind a trusted reverse proxy.
+Only enable this behind a trusted reverse proxy. `runtime-safety.ts` requires `TRUST_PROXY=true` in production so rate limiting and secure-cookie logic use proxy-aware client addresses.
+
+The production rate-limit store is database-backed (`HTTP_RATE_LIMIT_STORE=database`). In-memory limits are rejected at startup in production.
 
 ## Upload and Import Risk
 
-Student imports enforce file size, row, column, and sheet limits. The `xlsx` library still has npm audit advisories with no safe package fix; keep import admin-only and prefer CSV for high-volume imports. Follow-up options are replacing `xlsx` with a maintained parser or disabling XLSX import in production and accepting CSV only.
+Student imports enforce file size, row, column, and sheet limits. Spreadsheet parsing uses `exceljs`, not the `xlsx` package. As of the most recent audit, `npm audit --audit-level=high` reports zero vulnerabilities on both root and backend, including spreadsheet handling. Imports remain admin-only and CSV is preferred for high-volume imports as an operational, not a security, recommendation.
+
+File uploads are scanned in production with `FILE_MALWARE_SCAN_MODE=fail-closed` and `FILE_MALWARE_SCANNER=clamav`. Boot is rejected if either is misconfigured.
 
 ## Backup Sensitivity
 
@@ -71,10 +75,15 @@ Backup artifacts are admin-only but contain production data, including account d
 
 Backup delete is blocked for latest successful, protected, and running backups. Restore/purge behavior should remain outside routine UI unless a stronger multi-step operator workflow is implemented.
 
-## Remaining Dependency Findings
+## Dependency Posture
 
-- Nest 10 and transitive `file-type` advisories require a Nest 11 upgrade.
-- `xlsx` advisories have no safe npm audit fix; mitigated with admin-only access and strict import limits.
+`npm audit --audit-level=high` is clean on both root and backend at the current `main` SHA. The CI workflows (`ci.yml` and `production-candidate.yml`) run `npm audit --audit-level=high` on every push for both packages, so any newly disclosed advisory will fail CI.
+
+If a future advisory cannot be cleared by an upgrade, document the mitigation here, link to the CI run that caught it, and either pin a safe version, replace the dependency, or ship a compensating control before merging.
+
+## Container Hardening
+
+`Dockerfile.backend` builds a non-root image (`projtrack` uid 10001), uses `tini` as PID 1 for clean SIGTERM handling, exposes a `/health` HEALTHCHECK, and copies only the production node_modules and built `dist/` into the runtime stage. The same image is used for the API and worker services; the worker service overrides the entrypoint to `node dist/worker.js` at deploy time. See `Dockerfile.backend` and `.dockerignore` for the full surface.
 
 ## Destructive Action and Mail Success Safety
 

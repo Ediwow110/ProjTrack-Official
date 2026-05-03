@@ -1,0 +1,176 @@
+# ProjTrack Production Readiness Audit
+
+Date: 2026-05-03
+Auditor: AI Production Review (Phase A — verifiable changes; Phase B — ranked report)
+Repo: `Ediwow110/ProjTrack-Official` @ branch `main`
+Baseline commit: `5e16b4b9` (CI green: ci.yml + production-candidate.yml)
+
+This document is the deliverable for the 13-prompt production-readiness pack.
+It is split into:
+
+1. **Executive Summary** — go/no-go signal.
+2. **Findings by Severity** — every observation with evidence.
+3. **Phase A Changes** — what this audit landed on `main` (CI-verifiable).
+4. **Phase B Backlog** — ranked remaining work the team should schedule.
+5. **Verification Matrix** — how each prompt in the pack maps to evidence.
+
+---
+
+## 1. Executive Summary
+
+**Overall posture: Strong.** ProjTrack already implements most production hardening expected of a NestJS + Prisma + React stack:
+
+- Centralized backend access layer (`backend/src/access`) with role/role-rule guards.
+- A real runtime-config validator (`backend/src/config/runtime-safety.ts`) that fails closed in production for: missing/weak secrets, non-HTTPS or localhost URLs, in-memory rate limiting, non-fail-closed malware scanning, public S3 buckets, mixed `NODE_ENV`/`APP_ENV`, missing `TRUST_PROXY`, mail provider placeholders, and shared access/refresh secrets.
+- `production-hardening-checks.cjs` already exercises `inspectRuntimeConfiguration` against a synthetic production env in CI on every push.
+- API/worker process split is documented per-service (`backend/.env.production.example`, `backend/.env.worker.production.example`) and the runtime validator enforces explicit configuration of `MAIL_WORKER_ENABLED`, `BACKUP_WORKER_ENABLED`, `BACKUP_SCHEDULE_ENABLED`.
+- Helmet, compression, CSP, request IDs, async-context logging, per-route rate limiting (database-backed in production), and a no-store auth header policy are all present in `backend/src/main.ts`.
+- `npm audit --audit-level=high` is **clean** on both root and backend (0 vulnerabilities of any severity at audit time).
+- CI matrix runs frontend, backend (with Postgres + Prisma migrate deploy), and Playwright E2E on every push; production-candidate workflow additionally builds the frontend in `NODE_ENV=production`.
+
+**Material gaps closed in this audit (Phase A):**
+
+- Container image hardening (root user → unprivileged, missing HEALTHCHECK, missing `.dockerignore`, no documented worker entrypoint).
+- Stale claims in `SECURITY_NOTES.md` and `FINAL_READINESS_CHECKLIST.md` corrected so the published readiness story matches what the code and CI actually verify.
+
+**Recommendation:** Approve for staging cutover. A small list of Phase B items (below) should be scheduled before public production launch but does not block staging.
+
+---
+
+## 2. Findings by Severity
+
+### P0 — Block release
+
+None. No P0 issue was identified.
+
+### P1 — Resolve before production
+
+| ID | Finding | Evidence | Status |
+|---|---|---|---|
+| P1-1 | `Dockerfile.backend` ran as `root`, had no HEALTHCHECK, no `.dockerignore`, and no documented worker entrypoint. Container could write anywhere it bound to a volume; orchestrators had no reliable liveness probe. | Old `Dockerfile.backend`: no `USER`, no `HEALTHCHECK`, single `CMD ["node","dist/main.js"]`; no `.dockerignore` at repo root. | **Fixed** in Phase A. New multi-stage build, non-root `projtrack` user (uid 10001), tini PID 1, `wget`-based HEALTHCHECK on `/health`, separate `prod-deps` stage so dev deps never enter the runtime image, and an explicit dual-CMD comment so the worker service can override entrypoint without rebuilding. |
+| P1-2 | `SECURITY_NOTES.md` and `FINAL_READINESS_CHECKLIST.md` both claim that the `xlsx` package has unfixed npm audit advisories. The repo no longer depends on `xlsx`; spreadsheet I/O is done with `exceljs`. The published security narrative did not match reality. | `backend/package.json` deps: `exceljs`, no `xlsx`. `npm audit --json` reports `{info:0, low:0, moderate:0, high:0, critical:0}` on both root and backend. | **Fixed** in Phase A. SECURITY_NOTES.md updated; FINAL_READINESS_CHECKLIST.md re-aligned with current CI status. |
+| P1-3 | `FINAL_READINESS_CHECKLIST.md` left several items unchecked that are in fact CI-green on `main` (frontend typecheck, frontend production build, backend test, Prisma migrate deploy in CI, npm audit). The doc was authored mid-rollout and never reconciled. | Compare unchecked items against passing jobs in `ci.yml` and `production-candidate.yml` at SHA `5e16b4b9`. | **Fixed** in Phase A. |
+
+### P2 — Schedule, do not block
+
+| ID | Finding | Evidence | Recommendation |
+|---|---|---|---|
+| P2-1 | Backend unit-test coverage is thin: only three `.spec.ts` files (`mail.templates.spec.ts`, `frontend-links.spec.ts`, `user-display-name.spec.ts`). The most security-critical code (`runtime-safety.ts`, `account-action-token.service.ts`, access guards, `auth-throttle.service.ts`) is covered indirectly by `production-hardening-checks.cjs` and Playwright but has no dedicated unit-level tests. | `find backend -name '*.spec.ts'` returns 3 files. | Add jest unit tests for: (a) `inspectRuntimeConfiguration` positive + 6+ negative cases, (b) account-action token encrypt/decrypt round-trip and tamper rejection, (c) JWT auth guard role mismatch and inactive-account paths, (d) auth throttle window math. Target ~70% statement coverage on `auth/`, `access/`, and `config/`. |
+| P2-2 | Worker process is documented and configured but has no separate Docker image and no dedicated CI smoke. `Dockerfile.backend` now supports it via CMD override (Phase A), but there is no automated check that `node dist/worker.js` boots cleanly under the worker env. | `.github/workflows/*.yml` only build the API. | Add a CI step that runs `node dist/worker.js` for ~10 seconds with `MAIL_WORKER_ENABLED=true` and asserts the worker logs the heartbeat and exits cleanly on SIGTERM. |
+| P2-3 | `production-candidate.yml` runs the *frontend* with `NODE_ENV=production` but the *backend* job in the same workflow still runs with `NODE_ENV=test`. Because `MAIL_PROVIDER=stub` is rejected in production by `runtime-safety.ts`, a true `NODE_ENV=production` backend boot is not exercised in CI. | `.github/workflows/production-candidate.yml` backend env: `NODE_ENV: test`. | Add a small CI step that runs a Node script which constructs a synthetic production env (mailrelay + S3 placeholders) and asserts `inspectRuntimeConfiguration` returns `ok: true`, plus a negative pass that asserts it returns `ok: false` when `MAIL_PROVIDER=stub`. This already exists inside `production-hardening-checks.cjs`; surface it as a named CI step so regressions are obvious in the workflow log. |
+| P2-4 | GitHub Actions cache key for Playwright uses only `package-lock.json`. If `package-lock.json` changes for unrelated reasons, the browser cache is busted. | `.github/workflows/ci.yml` Playwright cache key. | Pin to `playwright` package version (e.g. `hashFiles('**/package-lock.json') + matrix.playwright-version`) once Playwright version is centralized. Low value. |
+| P2-5 | Backend Docker image bakes `prisma/` and runs `npx prisma migrate deploy` only at deploy time (operator step). There is no init-container pattern. | `Dockerfile.backend` no migrate step. | Acceptable; document the operator runbook step in `DEPLOYMENT.md` (already covered) and consider an init-container variant if/when moving to k8s. |
+| P2-6 | `S3_SIGNED_URL_TTL_SECONDS` is range-validated [30, 900] but bucket-level lifecycle / object lock is not enforced by the app. | `runtime-safety.ts` validateStorage. | Out of scope for code; document the bucket policy expectation in `BACKUP_RUNBOOK.md`. |
+
+### P3 — Nice to have
+
+- Bump GitHub Actions Node from 20 to 22 LTS once all transitive deps confirm support.
+- Centralize Playwright version via `pnpm-workspace`-style catalog (would require migrating from npm to pnpm; high cost, low value right now).
+- Add Renovate / Dependabot config for grouped patch updates.
+
+---
+
+## 3. Phase A Changes (this audit, landed on `main`)
+
+All changes are **additive or doc-only** and are independently CI-verifiable.
+
+1. **`Dockerfile.backend` — hardened multi-stage build.**
+   - Three stages: `builder` (TS compile + Prisma generate), `prod-deps` (omit dev), `runner` (final).
+   - Final image runs as `projtrack` (uid 10001, no shell login).
+   - `tini` as PID 1 for correct SIGTERM propagation to NestJS / worker pollers.
+   - `HEALTHCHECK` calls `/health` (the unauthenticated `health.live()` route).
+   - Entry point is documented for both API (`node dist/main.js`) and worker (`node dist/worker.js`); the worker service overrides CMD at deploy time.
+   - Permissions on `/app` set to `u=rwX,g=rX,o=` so accidental world-write is impossible.
+
+2. **`.dockerignore` (repo root) and `backend/.dockerignore`.**
+   - Excludes `node_modules`, build outputs, test artifacts, `.env*` (except examples), local docker-compose files, and OS/IDE noise.
+   - Cuts the build context from ~hundreds of MB to ~tens of MB, which also reduces the chance of accidentally baking secrets into a layer.
+
+3. **`SECURITY_NOTES.md` corrected.**
+   - Removed claims that `xlsx` has unfixed advisories; replaced with current state (`exceljs`, npm audit clean) and kept the admin-only / CSV-preferred operational guidance because that is still good practice independent of the package choice.
+   - Removed stale "Nest 10 / `file-type` advisories pending Nest 11 upgrade" line; npm audit is clean at audit time.
+
+4. **`FINAL_READINESS_CHECKLIST.md` updated.**
+   - Items now reflect what is verifiably green at SHA `5e16b4b9`.
+   - Items that genuinely require a human staging run (smoke with real accounts, backup/restore drill, monitoring thresholds) are still unchecked because no machine evidence exists for them.
+
+5. **This document (`PRODUCTION_READINESS_AUDIT.md`).**
+
+Phase A intentionally does **not**:
+
+- Modify `ci.yml` or `production-candidate.yml`. Both are green; touching them adds risk for negligible benefit.
+- Bump dependency versions. `npm audit` is clean; bumping for cosmetic reasons risks breaking the green CI.
+- Add new application code paths. The audit's job is to verify, not to expand surface area.
+
+---
+
+## 4. Phase B Backlog (ranked)
+
+In recommended order:
+
+1. **Add P2-1 unit tests.** Highest leverage. ~1 day of work raises confidence in the most security-critical code paths and replaces the implicit coverage from `production-hardening-checks.cjs` with named jest assertions that fail loudly.
+2. **Add P2-3 CI step that boots the backend in true `NODE_ENV=production` against runtime-safety.ts.** ~30 minutes. Produces a green "production runtime guard verified" badge per push.
+3. **Add P2-2 worker boot smoke.** ~1 hour. Catches regressions where the worker entrypoint silently fails to start.
+4. Schedule a real staging run of `npm run smoke:real` and `npm run smoke:storage` against the deployed staging stack to flip the last unchecked items in `FINAL_READINESS_CHECKLIST.md`.
+5. Schedule a backup/restore drill against staging using the procedure in `BACKUP_RUNBOOK.md`; record results.
+6. Configure uptime + error-rate alerts at the chosen hosting provider; document thresholds in `PRODUCTION_DEPLOYMENT_GUIDE.md`.
+
+---
+
+## 5. Verification Matrix (prompt pack → evidence)
+
+| Pack prompt | Topic | Evidence in repo |
+|---|---|---|
+| #1 Master readiness | Overall posture | This document. |
+| #2 Security | Auth/secrets/scanning/CSP/cors | `runtime-safety.ts`, `main.ts` (helmet+CSP+rate limit), `secret-scan.mjs`, `npm audit` clean. |
+| #3 DevOps | Docker/CI/env split | `Dockerfile.backend` (Phase A hardened), `ci.yml`, `production-candidate.yml`, per-service env templates. |
+| #4 Backend | Tests, validation, error paths | DTO `class-validator`, `JwtAuthGuard`, access layer, `production-hardening-checks.cjs`. P2-1 backlog item flagged. |
+| #5 Frontend | Build/typecheck/audit | `npm run typecheck`, `npm run build:production-fixture`, `check:frontend-env:production` — all CI-green. |
+| #6 DB / Prisma | Schema, migrations, indexes | 10 migrations under `backend/prisma/migrations`, `prisma migrate deploy` in CI, `prisma validate` in CI. |
+| #7 Testing | Unit + e2e | 3 backend `.spec.ts`, 8 Playwright specs, `e2e:smoke` in CI. P2-1 raises this. |
+| #8 Deps audit | xlsx flagged in pack | **Resolved**: project uses `exceljs`, npm audit clean. Doc claims corrected. |
+| #9 Checklist | Final readiness checklist | `FINAL_READINESS_CHECKLIST.md` updated to reflect actual CI state. |
+| #10 Make production ready now | Ship-blockers | Phase A landed P1-1, P1-2, P1-3. No P0. |
+| #11 Fix blockers | What's in the way | None blocking staging; Phase B items listed for pre-public-launch. |
+| #12 PM release plan | Sequencing | See Phase B order above. |
+| #13 Master prompt | Wide audit | This document. |
+
+---
+
+## Appendix A — How to verify locally
+
+```bash
+# Repo root
+npm ci --prefer-offline
+npm run security:secrets
+npm run check:release-hygiene
+npm run typecheck
+npm run build
+npm audit --audit-level=high
+
+# Backend
+cd backend
+npm ci --prefer-offline
+npx prisma validate
+npx prisma generate
+npm run build
+npm run test       # production-hardening-checks.cjs
+npm audit --audit-level=high
+
+# Container
+docker build -f Dockerfile.backend -t projtrack-backend:audit .
+docker run --rm -e PORT=3001 -p 3001:3001 \
+  -e NODE_ENV=production -e APP_ENV=production \
+  --read-only --tmpfs /app/uploads --tmpfs /app/data \
+  projtrack-backend:audit
+# Expect runtime-safety to refuse boot until full prod env is provided.
+```
+
+## Appendix B — Files changed by this audit
+
+- `Dockerfile.backend` (hardened, multi-stage, non-root, healthcheck, tini)
+- `.dockerignore` (new)
+- `backend/.dockerignore` (new)
+- `SECURITY_NOTES.md` (xlsx + Nest 10 stale claims removed)
+- `FINAL_READINESS_CHECKLIST.md` (re-reconciled with actual CI state)
+- `PRODUCTION_READINESS_AUDIT.md` (this file, new)

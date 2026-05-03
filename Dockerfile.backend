@@ -1,34 +1,85 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
+# Multi-stage build for the ProjTrack backend.
+# Produces a single image used by both the API service and the dedicated worker service.
+# Switch entrypoints at deploy time by overriding the CMD:
+#   API service:    CMD ["node", "dist/main.js"]      (default)
+#   Worker service: CMD ["node", "dist/worker.js"]
+#
+# Per backend/.env.production.example and backend/.env.worker.production.example,
+# the API and worker use the same build but different env (MAIL_WORKER_ENABLED,
+# BACKUP_WORKER_ENABLED, BACKUP_SCHEDULE_ENABLED).
+
+# ---------- Stage 1: install + build ----------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install dependencies (full install for the build).
 COPY backend/package*.json ./
-RUN npm ci --prefer-offline
+RUN npm ci --prefer-offline --no-audit --no-fund
 
+# Generate Prisma client. Schema must exist before this step.
 COPY backend/prisma ./prisma
 RUN npx prisma generate
 
+# Compile TypeScript.
 COPY backend/tsconfig.json ./
 COPY backend/src ./src
 RUN npm run build
 
-# ---- Production image ----
-FROM node:20-alpine AS runner
+# ---------- Stage 2: production deps only ----------
+FROM node:20-alpine AS prod-deps
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
 COPY backend/package*.json ./
-RUN npm ci --omit=dev --prefer-offline
+RUN npm ci --omit=dev --prefer-offline --no-audit --no-fund
 
-COPY --from=builder /app/dist ./dist
+# Copy generated Prisma client into the production node_modules.
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY backend/prisma ./prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-RUN mkdir -p uploads data/system-tools/backups
+# ---------- Stage 3: runtime image ----------
+FROM node:20-alpine AS runner
+
+# tini gives us proper PID 1 signal handling so SIGTERM reaches Node and
+# in-flight requests / worker jobs can drain.
+# wget is already in busybox; used for the HEALTHCHECK below.
+RUN apk add --no-cache tini \
+    && addgroup -S projtrack \
+    && adduser -S -G projtrack -u 10001 -h /home/projtrack projtrack
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    PORT=3001 \
+    NPM_CONFIG_UPDATE_NOTIFIER=false
+
+# Copy production node_modules and built artifacts from prior stages.
+COPY --from=prod-deps --chown=projtrack:projtrack /app/node_modules ./node_modules
+COPY --from=builder   --chown=projtrack:projtrack /app/dist          ./dist
+COPY --chown=projtrack:projtrack backend/package*.json ./
+COPY --chown=projtrack:projtrack backend/prisma       ./prisma
+
+# Writable directories the API/worker may use.
+# In production these should be backed by mounted volumes or remote storage
+# (S3 for uploads, network volume for backups).
+RUN mkdir -p uploads data/system-tools/backups \
+    && chown -R projtrack:projtrack /app \
+    && chmod -R u=rwX,g=rX,o= /app
+
+USER projtrack:projtrack
 
 EXPOSE 3001
 
+# Liveness probe hits the public /health endpoint exposed by both API and worker.
+# Worker also runs an HTTP listener for health checks; see backend/src/worker.ts.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --quiet --tries=1 --spider "http://127.0.0.1:${PORT:-3001}/health" || exit 1
+
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Default to API. Override with `node dist/worker.js` for the worker service.
 CMD ["node", "dist/main.js"]
