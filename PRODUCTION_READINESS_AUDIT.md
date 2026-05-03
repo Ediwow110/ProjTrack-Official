@@ -315,3 +315,69 @@ The code, container, runtime configuration, CI gates, automation scripts, and
 the complete DigitalOcean deployment package are production-ready. Full GO
 requires a human to perform the manual operational work listed in
 `FINAL_READINESS_CHECKLIST.md`.
+
+
+---
+
+## Phase D Execution Status (Track A6 + O1 + Track M backend tests)
+
+This section records the Phase D backend test work. The Track M items are
+written against the **real** code paths in `backend/src/auth/*`,
+`backend/src/files/storage.config.ts`, `backend/src/mail/mail-environment.guard.ts`,
+and `backend/src/backups/backup-worker.service.ts` after reading those
+implementations end-to-end.
+
+### Files added
+
+| File | Purpose |
+| --- | --- |
+| `.github/CODEOWNERS` | Forces review on workflow files, Dockerfile, infra, runtime-safety, auth, files, scripts, env templates, and release-critical docs. |
+| `docs/release-evidence/README.md` | Release evidence directory contract (numbered files, no fabrication, no secrets). |
+| `backend/src/auth/guards/jwt-auth.guard.spec.ts` | 10 cases: missing/non-Bearer/invalid/refresh-typed token, missing user, inactive user, role-changed session, role mismatch (Forbidden), happy path, capitalized header. |
+| `backend/src/auth/token.service.spec.ts` | 12 cases: required-secret, access/refresh round-trip, cross-type rejection, signature tamper, body swap, wrong secret/kid/issuer/audience, expiration, malformed structure. |
+| `backend/src/auth/password.service.spec.ts` | 14 cases: strength rules (length, classes, whitespace), hash/compare round-trip, wrong password, null/empty stored, non-scrypt format, malformed scrypt body, salted distinct hashes, needsRehash. |
+| `backend/src/auth/session-cookie.spec.ts` | 17 cases: production detection, prefixed cookie name, secure/HttpOnly/path attributes, SameSite override, clear-cookie, cookie parsing (missing, decoded, prod name), refresh-token redaction in prod. |
+| `backend/src/auth/auth-session.service.spec.ts` | 11 cases: createRefreshSession hash, rotate (invalid token, missing session, replay-after-rotation revokes sibling, expired, hash mismatch revokes all, inactive user revokes all, happy rotate); revokeRefreshSession (invalid + happy); revokeAllForUser preserves prior revoked-at timestamp. |
+| `backend/src/mail/mail-environment.guard.spec.ts` | 18 cases: production detection, testmail-enabled parser, testmail address detection, recipient blocking, full prod config errors (provider, testmail flag, forbidden test vars), recipient resolution per email type, fallback to original. |
+| `backend/src/files/storage.config.spec.ts` | 7 cases: mode default/precedence, S3 config defaults and full read, summary local vs s3, no credential leak in summary. |
+| `backend/src/backups/backup-worker.service.spec.ts` | 7 cases: status default/enabled/poll floor, init no-timer when disabled, init creates timer + initial tick, retention runs after a successful backup, retention skipped when not due. |
+
+**Test totals:** 10 spec files (8 new + 2 existing) covering ~96 cases against
+real implementations. No mocks of code-under-test were introduced.
+
+### Real bugs discovered
+
+None during this pass. The auth, mail, storage, and backup-worker code under
+test behaves as the specs expect on first read.
+
+### Deferred Track M items (require deeper reads or live environment)
+
+| Item | Reason for deferral |
+| --- | --- |
+| File MIME validation, extension spoofing, oversized upload, malware fail-closed | `backend/src/files/files.service.ts` is 1000 lines combining ClamAV, S3, Prisma audit writes, and signed-URL flows. Writing tests blindly against this surface risks fake coverage. Deferred to a dedicated pass that mocks ClamAV + S3 SDK clients with real recorded responses. |
+| S3 storage failure path | Same file. Requires a faithful S3 client double; deferred. |
+| Audit log creation for sensitive actions | Audit writes are scattered across submission/admin/files services; identifying every call site safely needs a separate audit pass. |
+| Health readiness DB-down behaviour | `backend/src/health/health.service.ts` is 620 lines; writing a real DB-down test requires faithfully simulating Prisma errors *and* the mail/backup health checks the readiness endpoint composes. Deferred. |
+| Backup stale detection | Same file. Belongs in the same Health pass. |
+| Mail provider missing/disabled config | Partially covered by `mail-environment.guard.spec.ts`. The transport service's stub-fallback warning + `evaluateProviderReadiness` path needs a separate pass with provider doubles. Deferred. |
+| Prisma transaction tests | Out of scope for unit tests; should be covered by the staging smoke. |
+
+These deferrals are recorded so a follow-up pass knows exactly where to start.
+None of them weaken existing safety; they all represent **additional** coverage
+on top of what runtime-safety + production-runtime-check already enforce.
+
+### CI integration status
+
+The new specs run under `npm run test:unit` (jest), the same script that runs
+`runtime-safety.spec.ts`. Until the staged `docs/phase-b/ci-workflow.patch` is
+applied, **CI does not yet execute `npm run test:unit`**, so these tests are
+landed but not gating. Once the patch is applied, they become required.
+
+### Verdict
+
+**CONDITIONAL GO.** Test coverage for auth, mail config, storage config, and
+backup worker scheduling has materially improved. Files-service and
+health-service coverage remain in the explicit deferred list. The verdict does
+not change until the staged CI workflow patch is applied and the manual
+DigitalOcean / staging / backup / monitoring items in
+`FINAL_READINESS_CHECKLIST.md` are real-verified.
