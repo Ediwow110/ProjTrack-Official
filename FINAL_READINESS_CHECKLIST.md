@@ -12,7 +12,8 @@ manual section are NOT marked complete unless a real run was performed.
 ## CI Workflow on Linux
 - [X] `.github/workflows/ci.yml` runs frontend, backend, and e2e jobs on Ubuntu with Node 20 and Postgres 16.
 - [X] `.github/workflows/production-candidate.yml` runs the production-candidate verification on Linux.
-- [X] Both workflows are green on `main` (commit `59b77997` and successors).
+- [X] Both workflows are green on `main` (commit `4144b25d` and successors).
+- [ ] **CI workflow patch applied** — `docs/phase-b/ci-workflow.patch` adds three Phase B steps (`runtime-safety` jest, `check:runtime:prod`, `smoke:worker`). The PAT used by build automation lacks `workflow` scope and cannot push to `.github/workflows/*.yml`. *Action:* a maintainer must apply the patch via PR or edit `ci.yml` in the GitHub web UI.
 
 ## Frontend Build and Validation (CI verified)
 - [X] Frontend typecheck (`npm run typecheck`) passes in CI.
@@ -25,47 +26,75 @@ manual section are NOT marked complete unless a real run was performed.
 - [X] `npx prisma migrate deploy` applies all 10 migrations against the CI Postgres service.
 - [X] Backend build (`npm run build`) succeeds in CI.
 - [X] `npm test` (production-hardening-checks.cjs) passes in CI.
-- [X] **Phase B**: `npm run test:unit` (jest) — covers `runtime-safety.spec.ts` with 15+ negative production cases. *Evidence:* `backend/src/config/runtime-safety.spec.ts`.
-- [X] **Phase B**: `npm run check:runtime:prod` — boots `dist/main.js` under `NODE_ENV=production`, asserts `/health` is 200, and asserts boot is rejected for 10 unsafe permutations. *Evidence:* `backend/scripts/production-runtime-check.cjs`, CI step "Production runtime boot check".
-- [X] **Phase B**: `npm run smoke:worker` — boots `dist/worker.js`, asserts ready log + clean SIGTERM, and asserts fail-fast when `DATABASE_URL` is missing. *Evidence:* `backend/scripts/worker-boot-smoke.cjs`, CI step "Worker boot smoke".
+- [X] **Phase B**: `npm run test:unit` jest specs landed (`backend/src/config/runtime-safety.spec.ts`, 16 cases).
+- [X] **Phase B**: `npm run check:runtime:prod` script landed (`backend/scripts/production-runtime-check.cjs`).
+- [X] **Phase B**: `npm run smoke:worker` script landed (`backend/scripts/worker-boot-smoke.cjs`).
+- [ ] **Phase B**: the three scripts above wired into CI as required steps. Blocked on the workflow patch above.
 
 ## Security Audits and Checks (CI verified)
 - [X] `npm run security:secrets` (root + backend) is clean in CI.
 - [X] `npm audit --audit-level=high` (root + backend) is clean in CI.
-- [X] Runtime safety enforces fail-closed production config (HTTPS-only URLs, no-localhost, weak-secret denylist, TRUST_PROXY required, malware scan enforced, public-S3 blocked, Mailrelay required). Static unit coverage in `runtime-safety.spec.ts`; live boot coverage in `production-runtime-check.cjs`.
-- [X] Container hardening: `Dockerfile.backend` uses multi-stage build, non-root uid 10001, `tini` as PID 1, `HEALTHCHECK` against `/health`. Documented in `PRODUCTION_READINESS_AUDIT.md`.
+- [X] Runtime safety enforces fail-closed production config. Static unit coverage in `runtime-safety.spec.ts`; live boot coverage in `production-runtime-check.cjs`.
+- [X] Container hardening: `Dockerfile.backend` uses multi-stage build, non-root uid 10001, `tini` as PID 1, `HEALTHCHECK` against `/health`.
 
-## Phase B Automation Scripts (delivered, ready to run)
-- [X] `backend/scripts/production-runtime-check.cjs` — exercised in CI on every push.
-- [X] `backend/scripts/worker-boot-smoke.cjs` — exercised in CI on every push.
-- [X] `backend/scripts/staging-smoke-summary.mjs` — wraps `smoke:real` with PASS/FAIL summary; refuses to run on prod-shaped `DATABASE_URL`. Requires staging credentials, not exercised in CI.
-- [X] `backend/scripts/backup-restore-drill.mjs` — `pg_dump` + restore into a disposable target; refuses to run unless `BACKUP_DRILL_CONFIRM_DISPOSABLE=YES_I_UNDERSTAND` and the target URL contains a disposable hint and matches no production pattern. Requires real source/target databases; not exercised in CI.
+## DigitalOcean Deployment Preparation (Phase C)
+- [X] `DEPLOY_DIGITALOCEAN.md` — full Droplet + Caddy guide with App Platform variant.
+- [X] `MONITORING_RUNBOOK.md` — probe targets, alert policies, dashboards, DO setup steps.
+- [X] `VERCEL_CUTOVER_PLAN.md` — three-stage cutover with rollback, 7-day watch, 14-day Vercel grace period.
+- [X] `infra/digitalocean-bootstrap.sh` — idempotent Droplet bootstrap (Docker, Caddy, ufw, repo clone).
+- [X] `infra/Caddyfile.example` — reverse proxy for all 5 hostnames with HSTS.
+- [X] `infra/docker-compose.production.yml` — backend + mail-worker + backup-worker + clamav, healthchecked.
+- [X] `docs/env/production.env.example` — full prod env template.
+- [X] `docs/env/staging.env.example` — full staging env template (`APP_ENV=staging`, all hardening active).
+- [X] Name.com DNS records documented (5 A records); existing MX/SPF/DKIM/DMARC explicitly preserved.
 
-## Documentation
-- [X] `DEPLOYMENT.md` — deployment commands; updated with Phase B verification commands.
-- [X] `PRODUCTION_READINESS_AUDIT.md` — Phase A + Phase B execution status and evidence map.
-- [X] `SECURITY_NOTES.md` — current dependency/security posture (npm audit clean; no xlsx; Nest 11; exceljs).
-- [X] `BACKUP_RUNBOOK.md` — backup and restore procedures.
-- [X] `MAILRELAY_RUNBOOK.md` — Mailrelay setup and troubleshooting.
+## Phase B Operator Scripts (delivered, ready to run)
+- [X] `backend/scripts/staging-smoke-summary.mjs` — wraps `smoke:real`; refuses prod-shaped `DATABASE_URL`.
+- [X] `backend/scripts/backup-restore-drill.mjs` — disposable-target guard + multi-layer prod-URL refusal.
 
 ## Manual / Human-Required (NOT marked complete unless actually performed)
-- [ ] **Real staging smoke run** with `npm run smoke:staging:summary` against the staging backend, with real staging accounts. *Status:* not yet performed.
-- [ ] **Real backup-restore drill** with `npm run drill:backup-restore` from a recent staging backup into a disposable target. *Status:* not yet performed.
-- [ ] **Hosting-provider monitoring active** with alert thresholds for: API unavailable, DB unavailable, queue backlog, mail/backup worker stopped, backup stale, disk high, 5xx rate, auth-failure rate. *Status:* runbook documented, alerts not yet wired.
+- [ ] **Apply `docs/phase-b/ci-workflow.patch`** via PR (PAT with `workflow` scope or a manual edit on github.com).
+- [ ] **DigitalOcean Droplet provisioned** and bootstrap script run successfully.
+- [ ] **DO Managed Postgres** created (production + staging clusters) and reachable from the Droplet.
+- [ ] **DO Spaces** buckets created (uploads-prod, uploads-staging, backups-prod) and access keys minted.
+- [ ] **Name.com DNS records** added (`api`, `staging`, `api-staging` first; `@` and `www` only after Stage 3 of the cutover plan).
+- [ ] **Caddy certs** issued by Let's Encrypt for all 5 hostnames.
+- [ ] **`docker compose up -d`** successful with all four services healthy.
+- [ ] **Real staging smoke run** with `npm run smoke:staging:summary` against `api-staging.projtrack.codes`. *Status:* not yet performed.
+- [ ] **Real backup-restore drill** with `node backend/scripts/backup-restore-drill.mjs` from a recent staging backup into a disposable target. *Status:* not yet performed.
+- [ ] **Hosting-provider monitoring active** with every alert in `MONITORING_RUNBOOK.md` configured AND test-fired at least once. *Status:* runbook documented, alerts not yet wired.
+- [ ] **Stage 2 cutover** (api → DO) completed with 24-hour healthy watch. *Status:* not yet performed.
+- [ ] **Stage 3 cutover** (frontend → DO) completed with 7-day healthy watch. *Status:* not yet performed.
+- [ ] **Vercel grace period** (14 days post-7-day-healthy) elapsed before deletion. *Status:* not yet started.
 - [ ] **Stakeholder review and sign-off** of this checklist and `PRODUCTION_READINESS_AUDIT.md`. *Status:* pending.
 
 ## Go / No-Go Criteria
 - [X] All CI checks pass on `main`.
 - [X] Frontend and backend `npm audit --audit-level=high` clean.
-- [X] Runtime-safety unit + live boot coverage in CI.
-- [X] Worker boot smoke in CI.
+- [X] Runtime-safety unit + live boot coverage scripts landed (CI wiring blocked on workflow patch).
+- [X] Worker boot smoke script landed (CI wiring blocked on workflow patch).
+- [X] DigitalOcean deployment package complete (docs, infra files, env templates, cutover plan).
+- [ ] CI workflow patch applied.
+- [ ] DigitalOcean services provisioned and healthy.
 - [ ] Real staging smoke executed.
 - [ ] Real backup/restore drill executed.
-- [ ] Monitoring & alerts active in production.
+- [ ] Monitoring & alerts active and test-fired.
 - [ ] Stakeholder approval recorded.
 
 ## Verdict
 
-**CONDITIONAL GO**, conditional on the four "Manual / Human-Required" items above.
+**CONDITIONAL GO**, conditional on every "Manual / Human-Required" item above.
 
-The codebase, container, runtime configuration, and CI gates are production-ready and exercised on every push. Full GO requires a real human to run the staging smoke wrapper, run the backup-restore drill against a disposable database, wire alerts to the documented thresholds, and sign off.
+The codebase, container, runtime configuration, automation scripts, and the
+full DigitalOcean deployment package are production-ready. Full GO requires a
+real human to:
+
+1. Apply the staged CI workflow patch.
+2. Provision DigitalOcean (Droplet + Postgres + Spaces).
+3. Run the bootstrap script and `docker compose up -d`.
+4. Wire DNS and watch certs issue.
+5. Run the staging smoke script against the live staging.
+6. Run the backup-restore drill against a real disposable database.
+7. Configure every monitoring alert in the runbook and test-fire each one.
+8. Execute Stages 2 and 3 of the Vercel cutover plan with the documented watch periods.
+9. Sign off.

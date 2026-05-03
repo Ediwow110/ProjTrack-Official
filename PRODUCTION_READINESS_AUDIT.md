@@ -240,3 +240,78 @@ is merged. Full GO requires a human to:
 3. Run `backend/scripts/backup-restore-drill.mjs` against a disposable database.
 4. Wire the documented monitoring thresholds into the hosting provider.
 5. Sign off.
+
+---
+
+## Phase C Execution Status (DigitalOcean deployment package)
+
+This section records the DigitalOcean deployment work added in commit
+following Phase B. Manual / human-only items remain explicitly outstanding.
+
+### Documentation delivered
+
+| Doc | Purpose |
+| --- | --- |
+| `DEPLOY_DIGITALOCEAN.md` | Complete Droplet + Caddy deployment guide with App Platform variant. Covers DO services list, domain layout, Name.com DNS records (5 A records, MX/SPF/DKIM/DMARC preserved), env vars for prod and staging, bootstrap, reverse proxy, workers, frontend, verification gate. |
+| `MONITORING_RUNBOOK.md` | Probe targets (5), alert policies (15), DO Monitoring/Uptime setup steps, dashboards, application-level health JSON contract. |
+| `VERCEL_CUTOVER_PLAN.md` | Three-stage cutover (staging → API → frontend) with 24-hour and 7-day watch periods, rollback procedure, and 14-day Vercel grace period before deletion. |
+| `docs/env/production.env.example` | Full production env template with every variable required by `runtime-safety.ts`. |
+| `docs/env/staging.env.example` | Full staging env template (`APP_ENV=staging`, all hardening active). |
+
+### Infra files delivered
+
+| File | Purpose |
+| --- | --- |
+| `infra/digitalocean-bootstrap.sh` | Idempotent Droplet bootstrap: Docker CE + Compose plugin, Caddy, ufw (22/80/443 only), unattended-upgrades, repo clone, Caddyfile + compose installation, next-step instructions. |
+| `infra/Caddyfile.example` | Reverse proxy for `projtrack.codes`, `www.projtrack.codes`, `api.projtrack.codes`, `staging.projtrack.codes`, `api-staging.projtrack.codes` with auto-Let's-Encrypt, HSTS, compression. |
+| `infra/docker-compose.production.yml` | Four services: `backend` (HTTP), `mail-worker`, `backup-worker`, `clamav`. Single image, env-flag-driven roles, healthchecks, restart policies. |
+
+### Domain layout (Name.com DNS, kept at Name.com)
+
+| Host | Type | Target | Purpose |
+| --- | --- | --- | --- |
+| `@` | A | Droplet IP | Production frontend (cutover stage 3) |
+| `www` | A | Droplet IP | Production frontend alias (cutover stage 3) |
+| `api` | A | Droplet IP | Production backend API (cutover stage 2) |
+| `staging` | A | Droplet IP | Staging frontend (cutover stage 1) |
+| `api-staging` | A | Droplet IP | Staging backend API (cutover stage 1) |
+
+Existing `MX`, `SPF`, `DKIM`, `DMARC`, and TXT verification records are
+explicitly preserved.
+
+### What is automated and what isn't
+
+| Capability | State |
+| --- | --- |
+| Production runtime boot probe | Script delivered (`backend/scripts/production-runtime-check.cjs`); CI wiring blocked on workflow patch. |
+| Worker boot smoke | Script delivered (`backend/scripts/worker-boot-smoke.cjs`); CI wiring blocked on workflow patch. |
+| Runtime-safety jest negatives | Spec delivered; CI wiring blocked on workflow patch. |
+| DO Droplet bootstrap | Script delivered; not yet executed against a real Droplet. |
+| Caddy + compose | Configs delivered; not yet running on a real Droplet. |
+| Staging smoke | Script delivered; staging environment does not yet exist. |
+| Backup/restore drill | Script delivered; disposable target DB does not yet exist. |
+| Monitoring alerts | Runbook delivered; alerts not yet wired in DigitalOcean. |
+| Vercel cutover | Plan delivered; cutover not yet executed. |
+
+### Remaining backlog (honest, not in this commit)
+
+These require deep code reads and/or a real environment:
+
+- Auth/RBAC jest tests (inactive user blocked, role-changed session blocked, missing token blocked, non-admin blocked from admin route, refresh-token rotation, logout/session revocation, audit-log written for sensitive actions).
+- Upload security jest tests (invalid MIME rejected, oversized file rejected, malware-scan fail-closed path, path-traversal rejected).
+- Frontend regression tests (auth-expired UX, role-based nav, upload error display, destructive-action confirmation, dark-mode critical layout).
+- Apply `docs/phase-b/ci-workflow.patch` (workflow-scope PAT or manual GitHub web UI edit).
+- Provision DigitalOcean services and run the bootstrap script.
+- Real staging smoke run.
+- Real backup/restore drill.
+- Wire monitoring alerts and test-fire each one.
+- Execute the three-stage Vercel cutover.
+
+### Verdict
+
+**CONDITIONAL GO.**
+
+The code, container, runtime configuration, CI gates, automation scripts, and
+the complete DigitalOcean deployment package are production-ready. Full GO
+requires a human to perform the manual operational work listed in
+`FINAL_READINESS_CHECKLIST.md`.
