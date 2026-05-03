@@ -2047,4 +2047,52 @@ export class AdminOpsRepository {
       data: { notes: note },
     });
   }
+  async deleteAcademicYear(id: string) {
+    const year = await this.prisma.academicYear.findUnique({
+      where: { id },
+      include: { _count: { select: { students: true } } },
+    });
+    if (!year) throw new NotFoundException('Academic year not found.');
+    if (year._count.students > 0) {
+      throw new ConflictException(
+        `Cannot delete academic year "${year.name}" — it still has ${year._count.students} enrolled student(s). Remove or move students first.`,
+      );
+    }
+    await this.prisma.section.deleteMany({ where: { academicYearId: id } });
+    await this.prisma.academicYearLevel.deleteMany({ where: { academicYearId: id } });
+    await this.prisma.academicYear.delete({ where: { id } });
+    return { success: true, id };
+  }
+
+  async deleteAcademicYearLevel(id: string) {
+    const level = await this.prisma.academicYearLevel.findUnique({
+      where: { id },
+      include: { _count: { select: { students: true } } },
+    });
+    if (!level) throw new NotFoundException('Year level not found.');
+    if (level._count.students > 0) {
+      throw new ConflictException(
+        `Cannot delete year level "${level.name}" — it still has ${level._count.students} enrolled student(s). Remove or move students first.`,
+      );
+    }
+    await this.prisma.section.deleteMany({ where: { academicYearLevelId: id } });
+    await this.prisma.academicYearLevel.delete({ where: { id } });
+    return { success: true, id };
+  }
+
+  async deleteSection(id: string) {
+    const section = await this.prisma.section.findUnique({
+      where: { id },
+      include: { _count: { select: { students: true } } },
+    });
+    if (!section) throw new NotFoundException('Section not found.');
+    if (section._count.students > 0) {
+      throw new ConflictException(
+        `Cannot delete section "${section.name}" — it still has ${section._count.students} enrolled student(s). Remove or move students first.`,
+      );
+    }
+    await this.prisma.section.delete({ where: { id } });
+    return { success: true, id };
+  }
+
 }
