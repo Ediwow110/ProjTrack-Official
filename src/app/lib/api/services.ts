@@ -74,6 +74,7 @@ import type {
   ReleaseStatusItem,
   BootstrapStepItem,
   MailRuntimeStatus,
+  AdminCourseRecord,
 } from "./contracts";
 
 const delay = (ms = 320) => {
@@ -3285,7 +3286,7 @@ export const adminCatalogService = {
     await delay(180);
     return { success: true, id: `ay_${Date.now()}`, name: payload.name, status: payload.status || "Upcoming" };
   },
-  async createAcademicYearLevel(payload: { academicYearId: string; name: string; sortOrder?: number }) {
+  async createAcademicYearLevel(payload: { academicYearId: string; courseId?: string; name: string; sortOrder?: number }) {
     if (apiRuntime.useBackend) {
       return http.post<{ success: boolean; id: string; name: string; academicYear: string }>(
         `/admin/academic-years/${payload.academicYearId}/year-levels`,
@@ -3300,6 +3301,38 @@ export const adminCatalogService = {
       name: payload.name,
       academicYear: payload.academicYearId,
     };
+  },
+
+
+  async listCourses(yearId: string): Promise<AdminCourseRecord[]> {
+    if (apiRuntime.useBackend) {
+      return http.get<AdminCourseRecord[]>(`/admin/academic-years/${yearId}/courses`);
+    }
+    return [];
+  },
+
+  async createCourse(
+    yearId: string,
+    payload: { name: string; code?: string; description?: string; sortOrder?: number },
+  ): Promise<{ success: boolean; id: string; name: string }> {
+    if (apiRuntime.useBackend) {
+      return http.post<{ success: boolean; id: string; name: string }>(
+        `/admin/academic-years/${yearId}/courses`,
+        payload,
+      );
+    }
+    requireBackendApi();
+    return { success: true, id: '', name: payload.name };
+  },
+
+  async deleteCourse(yearId: string, courseId: string): Promise<{ success: boolean; id: string }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean; id: string }>(
+        `/admin/academic-years/${yearId}/courses/${courseId}`,
+      );
+    }
+    requireBackendApi();
+    return { success: true, id: courseId };
   },
 
   async deleteAcademicYear(id: string): Promise<{ success: boolean; id: string }> {
