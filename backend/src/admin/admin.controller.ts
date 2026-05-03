@@ -170,6 +170,26 @@ export class AdminController {
     return this.admin.createAcademicYearLevel({ ...body, academicYearId: id });
   }
 
+
+  @Delete('academic-years/:id')
+  deleteAcademicYear(@Param('id') id: string, @Req() req?: any) {
+    return this.admin.deleteAcademicYear(id, this.actorContext(req));
+  }
+
+  @Delete('academic-years/:yearId/year-levels/:levelId')
+  deleteAcademicYearLevel(
+    @Param('yearId') yearId: string,
+    @Param('levelId') levelId: string,
+    @Req() req?: any,
+  ) {
+    return this.admin.deleteAcademicYearLevel(levelId, this.actorContext(req));
+  }
+
+  @Delete('sections/:id')
+  deleteSection(@Param('id') id: string, @Req() req?: any) {
+    return this.admin.deleteSection(id, this.actorContext(req));
+  }
+
   @Get('students')
   students(@Query('search') search?: string, @Query('status') status?: string) {
     return this.admin.students(search, status);
