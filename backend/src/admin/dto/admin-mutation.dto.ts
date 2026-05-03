@@ -43,6 +43,14 @@ export class CreateAdminDto {
   sendActivationEmail?: boolean;
 }
 
+
+export class CreateCourseDto {
+  @IsString() @IsNotEmpty() name!: string;
+  @IsString() @IsOptional() code?: string;
+  @IsString() @IsOptional() description?: string;
+  @IsNumber() @IsOptional() sortOrder?: number;
+}
+
 export class CreateAcademicYearDto {
   @IsString()
   @MaxLength(80)
@@ -69,6 +77,7 @@ export class CreateAcademicYearLevelDto {
   @Min(1)
   @Max(20)
   sortOrder?: number;
+  @IsString() @IsOptional() courseId?: string;
 }
 
 export class CreateSectionDto {
