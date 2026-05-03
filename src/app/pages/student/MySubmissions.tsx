@@ -19,6 +19,7 @@ import {
 } from "../../components/portal/PortalPage";
 import { studentService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
+import { useDebouncedValue } from "../../lib/hooks/useDebouncedValue";
 
 export default function StudentMySubmissions() {
   const navigate = useNavigate();
@@ -28,9 +29,11 @@ export default function StudentMySubmissions() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const fetchSubmissions = useMemo(
-    () => () => studentService.getSubmissions({ search, status: statusFilter }),
-    [search, statusFilter],
+    () => () => studentService.getSubmissions({ search: debouncedSearch, status: statusFilter }),
+    [debouncedSearch, statusFilter],
   );
   const { data, loading, error } = useAsyncData(fetchSubmissions, [fetchSubmissions]);
   const submissions = data ?? [];

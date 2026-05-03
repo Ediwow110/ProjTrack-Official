@@ -17,6 +17,7 @@ import {
 } from "../../components/portal/PortalPage";
 import { teacherService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
+import { useDebouncedValue } from "../../lib/hooks/useDebouncedValue";
 
 const statuses = [
   "All",
@@ -45,18 +46,22 @@ export default function TeacherSubmissions() {
   const [typeF, setTypeF] = useState(searchParams.get("type") || "All Types");
   const [currentPage, setCurrentPage] = useState(1);
   const [downloadNote, setDownloadNote] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const { data, loading, error, reload } = useAsyncData(
     () =>
       teacherService.getSubmissions({
-        search,
+        search: debouncedSearch,
         status: statusF,
         section: sectionF,
         subject: subjectF,
         subjectId: subjectIdF || undefined,
         type: typeF,
       }),
-    [search, statusF, sectionF, subjectF, subjectIdF, typeF],
+    [debouncedSearch, statusF, sectionF, subjectF, subjectIdF, typeF],
   );
 
   const filtered = useMemo(() => data ?? [], [data]);
@@ -80,7 +85,7 @@ export default function TeacherSubmissions() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusF, sectionF, subjectF, subjectIdF, typeF]);
+  }, [debouncedSearch, statusF, sectionF, subjectF, subjectIdF, typeF]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -89,14 +94,23 @@ export default function TeacherSubmissions() {
   }, [currentPage, totalPages]);
 
   const exportFiltered = async () => {
-    await teacherService.exportSubmissionsCsv(
-      filtered,
-      sectionF === "All Sections" ? "all" : sectionF,
-    );
-    setDownloadNote(
-      `Downloaded ${filtered.length} filtered records${sectionF !== "All Sections" ? ` for ${sectionF}` : ""}.`,
-    );
-    window.setTimeout(() => setDownloadNote(null), 2500);
+    if (exporting) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      await teacherService.exportSubmissionsCsv(
+        filtered,
+        sectionF === "All Sections" ? "all" : sectionF,
+      );
+      setDownloadNote(
+        `Downloaded ${filtered.length} filtered records${sectionF !== "All Sections" ? ` for ${sectionF}` : ""}.`,
+      );
+      window.setTimeout(() => setDownloadNote(null), 2500);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Unable to export submissions to CSV.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const activeFilters = useMemo(
@@ -155,17 +169,19 @@ export default function TeacherSubmissions() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-teal-800 dark:text-teal-200 shadow-lg shadow-slate-950/10 transition hover:bg-teal-50"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-teal-800 dark:text-teal-200 shadow-lg shadow-slate-950/10 transition hover:bg-teal-50 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <RefreshCcw size={16} />
-              Refresh
+              {loading ? "Refreshing..." : "Refresh"}
             </button>
             <button
               onClick={exportFiltered}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/16"
+              disabled={exporting || filtered.length === 0}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/16 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Download size={16} />
-              Download Records
+              {exporting ? "Exporting..." : "Download Records"}
             </button>
           </div>
         }
@@ -174,6 +190,11 @@ export default function TeacherSubmissions() {
       {error ? (
         <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
           {error}
+        </div>
+      ) : null}
+      {exportError ? (
+        <div className="rounded-[24px] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
+          {exportError}
         </div>
       ) : null}
 
