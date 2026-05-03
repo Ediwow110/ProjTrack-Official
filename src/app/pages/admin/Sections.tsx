@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
+  Trash2,
   CalendarRange,
   ChevronRight,
   Download,
@@ -80,6 +81,17 @@ export default function AdminSections() {
   const [academicYearForm, setAcademicYearForm] = useState(initialAcademicYearForm);
   const [yearLevelForm, setYearLevelForm] = useState(initialYearLevelForm);
   const [sectionForm, setSectionForm] = useState<AdminSectionCreateInput>(initialSectionForm);
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'year' | 'yearLevel' | 'section';
+    id: string;
+    yearId?: string;
+    name: string;
+  } | null>(null);
+  const [deleteState, setDeleteState] = useState<{ deleting: boolean; error: string | null }>({
+    deleting: false,
+    error: null,
+  });
   const [submitState, setSubmitState] = useState<{
     saving: boolean;
     error: string | null;
@@ -258,6 +270,51 @@ export default function AdminSections() {
     }
   }
 
+
+  function openDeleteYear(year: AdminAcademicYearRecord, event: React.MouseEvent) {
+    event.stopPropagation();
+    setDeleteTarget({ type: 'year', id: year.id, name: year.name });
+    setDeleteState({ deleting: false, error: null });
+  }
+
+  function openDeleteYearLevel(level: AdminAcademicYearLevelRecord, event: React.MouseEvent) {
+    event.stopPropagation();
+    if (!selectedYear) return;
+    setDeleteTarget({ type: 'yearLevel', id: level.id, yearId: selectedYear.id, name: level.name });
+    setDeleteState({ deleting: false, error: null });
+  }
+
+  function openDeleteSection(section: AdminSectionRecord, event: React.MouseEvent) {
+    event.stopPropagation();
+    setDeleteTarget({ type: 'section', id: section.id, name: section.code });
+    setDeleteState({ deleting: false, error: null });
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeleteState({ deleting: true, error: null });
+    try {
+      if (deleteTarget.type === 'year') {
+        await adminCatalogService.deleteAcademicYear(deleteTarget.id);
+        setView(emptyView);
+      } else if (deleteTarget.type === 'yearLevel') {
+        await adminCatalogService.deleteAcademicYearLevel(deleteTarget.yearId!, deleteTarget.id);
+        setView((current) => ({ ...current, yearLevelId: '', sectionId: '' }));
+      } else {
+        await adminCatalogService.deleteSection(deleteTarget.id);
+        setView((current) => ({ ...current, sectionId: '' }));
+      }
+      await reload();
+      setDeleteTarget(null);
+      setDeleteState({ deleting: false, error: null });
+    } catch (deleteError) {
+      setDeleteState({
+        deleting: false,
+        error: deleteError instanceof Error ? deleteError.message : 'Delete failed.',
+      });
+    }
+  }
+
   const showAcademicYears = !view.academicYearId;
   const showYearLevels = Boolean(view.academicYearId) && !view.yearLevelId;
   const showSections = Boolean(view.academicYearId && view.yearLevelId) && !view.sectionId;
@@ -381,7 +438,17 @@ export default function AdminSections() {
                         {year.yearLevelCount} year level{year.yearLevelCount === 1 ? "" : "s"}
                       </p>
                     </div>
-                    <StatusChip status={year.status} size="xs" />
+                    <div className="flex items-center gap-2">
+                      <StatusChip status={year.status} size="xs" />
+                      <button
+                        type="button"
+                        onClick={(e) => openDeleteYear(year, e)}
+                        className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+                        title="Delete academic year"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <Metric label="Year Levels" value={year.yearLevelCount} />
@@ -442,7 +509,17 @@ export default function AdminSections() {
                           {level.sectionCount} section{level.sectionCount === 1 ? "" : "s"}
                         </p>
                       </div>
-                      <FolderTree size={16} className="text-blue-600 dark:text-blue-300" />
+                      <div className="flex items-center gap-2">
+                        <FolderTree size={16} className="text-blue-600 dark:text-blue-300" />
+                        <button
+                          type="button"
+                          onClick={(e) => openDeleteYearLevel(level, e)}
+                          className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+                          title="Delete year level"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Metric label="Sections" value={level.sectionCount} />
@@ -840,6 +917,55 @@ export default function AdminSections() {
           ) : null}
         </div>
       </AppModal>
+      {/* Delete confirmation modal */}
+      {deleteTarget ? (
+        <AppModal
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => { if (!deleteState.deleting && !open) setDeleteTarget(null); }}
+          title={
+            deleteTarget.type === 'year'
+              ? 'Delete Academic Year'
+              : deleteTarget.type === 'yearLevel'
+              ? 'Delete Year Level'
+              : 'Delete Section'
+          }
+          description={
+            deleteTarget.type === 'year'
+              ? `Permanently delete "${deleteTarget.name}" and all its year levels and sections. This cannot be undone.`
+              : deleteTarget.type === 'yearLevel'
+              ? `Permanently delete year level "${deleteTarget.name}" and all its sections. This cannot be undone.`
+              : `Permanently delete section "${deleteTarget.name}". This cannot be undone.`
+          }
+          size="sm"
+          footer={(
+            <>
+              <button
+                type="button"
+                disabled={deleteState.deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-[20px] border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteState.deleting}
+                onClick={handleConfirmDelete}
+                className="rounded-[20px] bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
+              >
+                {deleteState.deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </>
+          )}
+        >
+          {deleteState.error ? (
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+              {deleteState.error}
+            </div>
+          ) : null}
+        </AppModal>
+      ) : null}
+
     </>
   );
 }
