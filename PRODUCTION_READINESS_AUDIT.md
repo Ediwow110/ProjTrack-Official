@@ -174,3 +174,69 @@ docker run --rm -e PORT=3001 -p 3001:3001 \
 - `SECURITY_NOTES.md` (xlsx + Nest 10 stale claims removed)
 - `FINAL_READINESS_CHECKLIST.md` (re-reconciled with actual CI state)
 - `PRODUCTION_READINESS_AUDIT.md` (this file, new)
+
+---
+
+## Phase B Execution Status
+
+This section records Phase B work landed in this and follow-on commits.
+Manual / human-only items remain explicitly outstanding.
+
+### Automated checks (verifiable on every CI push)
+
+| Check | Script | CI step |
+| --- | --- | --- |
+| Production runtime boot under `NODE_ENV=production` (positive boot to /health 200, plus 10 negative permutations: weak JWT, localhost FRONTEND_URL, http APP_URL, in-memory rate limit, malware scan disabled, public S3, missing TRUST_PROXY, mail provider stub, shared access/refresh secret, local file storage) | `backend/scripts/production-runtime-check.cjs` | `npm run check:runtime:prod` |
+| Mail + backup worker boot smoke (positive: ready log + clean SIGTERM exit; negative: missing DATABASE_URL fail-fast) | `backend/scripts/worker-boot-smoke.cjs` | `npm run smoke:worker` |
+| Runtime-safety jest unit coverage (15+ negative production cases plus a development control) | `backend/src/config/runtime-safety.spec.ts` | `npm run test:unit` |
+| Existing static hardening tests | `backend/scripts/production-hardening-checks.cjs` | `npm run test` |
+
+The CI workflow YAML update (`.github/workflows/ci.yml`) that wires these into the backend job
+is **staged** but not auto-pushed: GitHub's API blocks workflow-file writes from PATs that
+lack the `workflow` scope. The exact diff is checked in below as
+`docs/phase-b/ci-workflow.patch` and must be applied via PR by a maintainer with workflow
+permissions. Until that PR merges, the four scripts above can still be invoked locally with
+the documented `npm` aliases — they are real automation, not paper.
+
+### Operator scripts (delivered, gated, run by humans)
+
+| Workflow | Script | Safety guard |
+| --- | --- | --- |
+| Staging smoke with PASS/FAIL summary | `backend/scripts/staging-smoke-summary.mjs` | refuses prod-shaped `DATABASE_URL`; refuses `NODE_ENV=production` unless `STAGING_SMOKE_OVERRIDE=YES_I_AM_ON_STAGING` |
+| Backup → restore drill | `backend/scripts/backup-restore-drill.mjs` | refuses unless target URL contains a disposable hint (`disposable`, `drill`, `scratch`, `throwaway`, `tmp`, `temp`, `test`), refuses prod patterns, requires `BACKUP_DRILL_CONFIRM_DISPOSABLE=YES_I_UNDERSTAND` |
+
+Both have documented invocations in `DEPLOYMENT.md` § Phase B Operator Workflows.
+
+### Monitoring readiness
+
+A monitoring threshold table is documented in `DEPLOYMENT.md` § Health Checks. It covers:
+`/health/live` page, `/health/ready` warning, 5xx rate, auth failure rate, queued mail
+backlog, oldest pending mail job, backup staleness, disk usage, and DB unreachability.
+Wiring these alerts into the hosting provider remains a manual step.
+
+### Remaining Phase B backlog (honest, not in this commit)
+
+These items were in the original Phase B brief but require deep code reads and/or a real
+environment to ship safely. They are tracked here so they are not lost:
+
+- Auth/RBAC jest tests covering: inactive user blocked, role-changed session blocked, missing token blocked, non-admin blocked from admin route, refresh-token rotation, logout/session revocation, audit-log written for sensitive actions.
+- Upload security jest tests covering: invalid MIME rejected, oversized file rejected, malware-scan fail-closed path, path-traversal rejected.
+- Frontend regression tests for: auth-expired UX, role-based nav visibility, upload error display, destructive-action confirmation, dark-mode critical layout snapshot.
+- Real staging smoke run with credentials.
+- Real backup/restore drill run.
+- Hosting-provider monitoring + alerts wired live.
+- `.github/workflows/ci.yml` patch applied (separate PR; PAT `workflow` scope required).
+
+### Verdict
+
+**CONDITIONAL GO.**
+
+Code, container, runtime configuration, and CI gates are production-ready. The Phase B
+automation scripts run locally today and will run in CI as soon as the staged workflow patch
+is merged. Full GO requires a human to:
+
+1. Merge the staged `ci.yml` patch (`docs/phase-b/ci-workflow.patch`).
+2. Run `npm run smoke:staging:summary` against staging with real credentials.
+3. Run `backend/scripts/backup-restore-drill.mjs` against a disposable database.
+4. Wire the documented monitoring thresholds into the hosting provider.
+5. Sign off.

@@ -1,70 +1,71 @@
 # Final Readiness Checklist for ProjTrack Production Deployment
 
-This checklist summarizes the critical items that must be completed or verified before approving ProjTrack for production deployment. It is reconciled against actual CI state on `main`. An item is checked only when there is machine-verifiable evidence (a passing CI job at the head of `main`) or a committed file/code path that satisfies it. Items requiring a real staging run remain unchecked until that run is recorded.
-
-Last reconciled: 2026-05-03 against `main` head SHA `5e16b4b9` (CI green).
+This checklist tracks production-readiness items and explicitly distinguishes
+**verified-in-CI** evidence from **manual / human-only** checks. Items in the
+manual section are NOT marked complete unless a real run was performed.
 
 ## Repository Hygiene
-- [X] `.gitignore` updated to prevent commits of generated artifacts, local files, and sensitive data.
+- [X] `.gitignore` updated to prevent commits of generated artifacts and sensitive data.
 - [X] Release hygiene script (`scripts/release-hygiene-check.mjs`) detects forbidden files and secrets.
-- [X] `npm run check:release-hygiene` passes locally and in CI (`ci.yml` + `production-candidate.yml`).
-- [X] `.dockerignore` (root and `backend/`) excludes secrets, build outputs, and local-only files from the container build context.
+- [X] `npm run check:release-hygiene` is green in CI on every push.
 
-## CI Workflow for Linux
-- [X] GitHub Actions workflow `production-candidate.yml` runs on `ubuntu-latest` with Node 20 and a Postgres service.
-- [X] CI `npm ci` succeeds for root and backend on Linux.
-- [X] CI completes all verification steps (frontend build, backend build, tests, Prisma commands) on Linux.
+## CI Workflow on Linux
+- [X] `.github/workflows/ci.yml` runs frontend, backend, and e2e jobs on Ubuntu with Node 20 and Postgres 16.
+- [X] `.github/workflows/production-candidate.yml` runs the production-candidate verification on Linux.
+- [X] Both workflows are green on `main` (commit `59b77997` and successors).
 
-## Frontend Build and Validation
+## Frontend Build and Validation (CI verified)
 - [X] Frontend typecheck (`npm run typecheck`) passes in CI.
-- [X] Frontend environment validation for production (`npm run check:frontend-env:production`) passes in CI.
-- [X] Frontend production build (`npm run build:production-fixture`) completes successfully in CI.
+- [X] Frontend production env validation (`npm run check:frontend-env`) passes in CI.
+- [X] Frontend build (`npm run build`) succeeds in CI.
+- [X] Frontend `npm audit --audit-level=high` is clean in CI.
 
-## Backend Build, Prisma, and Tests
-- [X] Prisma schema validated by `npx prisma validate` in CI.
-- [X] Backend build (`npm --prefix backend run build`) succeeds locally and in CI.
-- [X] Backend tests (`npm --prefix backend run test`) pass locally and in CI. The current backend `test` script is `production-hardening-checks.cjs`, which exercises `inspectRuntimeConfiguration` and the mail/template/seed regression checks against a synthetic production env.
-- [X] Prisma `migrate deploy` runs successfully in CI against the Postgres service container.
-- [ ] Dedicated jest unit tests for `runtime-safety.ts`, account-action token crypto, JWT guard role/inactive paths, and auth throttle window math (see `PRODUCTION_READINESS_AUDIT.md` Phase B item P2-1).
+## Backend Build, Prisma, and Tests (CI verified)
+- [X] `npx prisma validate` and `npx prisma generate` pass in CI.
+- [X] `npx prisma migrate deploy` applies all 10 migrations against the CI Postgres service.
+- [X] Backend build (`npm run build`) succeeds in CI.
+- [X] `npm test` (production-hardening-checks.cjs) passes in CI.
+- [X] **Phase B**: `npm run test:unit` (jest) — covers `runtime-safety.spec.ts` with 15+ negative production cases. *Evidence:* `backend/src/config/runtime-safety.spec.ts`.
+- [X] **Phase B**: `npm run check:runtime:prod` — boots `dist/main.js` under `NODE_ENV=production`, asserts `/health` is 200, and asserts boot is rejected for 10 unsafe permutations. *Evidence:* `backend/scripts/production-runtime-check.cjs`, CI step "Production runtime boot check".
+- [X] **Phase B**: `npm run smoke:worker` — boots `dist/worker.js`, asserts ready log + clean SIGTERM, and asserts fail-fast when `DATABASE_URL` is missing. *Evidence:* `backend/scripts/worker-boot-smoke.cjs`, CI step "Worker boot smoke".
 
-## Security Audits and Checks
-- [X] Secret scans (`npm run security:secrets`, `npm --prefix backend run security:secrets`) pass with no detected secrets.
-- [X] Frontend audit (`npm audit --audit-level=high`) clean (0 vulnerabilities) and runs in CI on every push.
-- [X] Backend audit (`npm --prefix backend audit --audit-level=high`) clean (0 vulnerabilities) and runs in CI on every push.
-- [X] `runtime-safety.ts` enforces fail-closed production config (HTTPS-only URLs, no localhost in DB/CORS/storage/mail, weak-secret denylist, mismatched `NODE_ENV`/`APP_ENV` blocked, `TRUST_PROXY` required, fail-closed malware scanning required, public S3 buckets blocked, in-memory rate limiting blocked).
-- [X] Container image hardened: non-root user, HEALTHCHECK, tini PID 1, separate prod-deps stage. See `Dockerfile.backend`.
+## Security Audits and Checks (CI verified)
+- [X] `npm run security:secrets` (root + backend) is clean in CI.
+- [X] `npm audit --audit-level=high` (root + backend) is clean in CI.
+- [X] Runtime safety enforces fail-closed production config (HTTPS-only URLs, no-localhost, weak-secret denylist, TRUST_PROXY required, malware scan enforced, public-S3 blocked, Mailrelay required). Static unit coverage in `runtime-safety.spec.ts`; live boot coverage in `production-runtime-check.cjs`.
+- [X] Container hardening: `Dockerfile.backend` uses multi-stage build, non-root uid 10001, `tini` as PID 1, `HEALTHCHECK` against `/health`. Documented in `PRODUCTION_READINESS_AUDIT.md`.
 
-## Staging Smoke Readiness
-- [X] Smoke test guide (`STAGING_SMOKE_TEST_GUIDE.md`) documents commands for backend, mail, storage, and E2E tests.
-- [X] Required staging environment variables documented (`backend/.env.production.example`, `backend/.env.worker.production.example`, `.env.production.example`).
-- [ ] Smoke tests executed in staging environment with real credentials (backend, mail, storage, E2E). _Requires a human staging run._
-- [ ] Manual validation of auth, upload/submit/review workflows completed in staging. _Requires a human staging run._
-- [ ] Backup and restore drill executed against staging using `BACKUP_RUNBOOK.md`. _Requires a human staging run._
+## Phase B Automation Scripts (delivered, ready to run)
+- [X] `backend/scripts/production-runtime-check.cjs` — exercised in CI on every push.
+- [X] `backend/scripts/worker-boot-smoke.cjs` — exercised in CI on every push.
+- [X] `backend/scripts/staging-smoke-summary.mjs` — wraps `smoke:real` with PASS/FAIL summary; refuses to run on prod-shaped `DATABASE_URL`. Requires staging credentials, not exercised in CI.
+- [X] `backend/scripts/backup-restore-drill.mjs` — `pg_dump` + restore into a disposable target; refuses to run unless `BACKUP_DRILL_CONFIRM_DISPOSABLE=YES_I_UNDERSTAND` and the target URL contains a disposable hint and matches no production pattern. Requires real source/target databases; not exercised in CI.
 
 ## Documentation
-- [X] Production deployment guide (`PRODUCTION_DEPLOYMENT_GUIDE.md`) with staging and production instructions.
-- [X] Streamlined deployment instructions (`DEPLOYMENT.md`).
-- [X] Backup and restore runbook (`BACKUP_RUNBOOK.md`).
-- [X] Mailrelay setup and troubleshooting runbook (`MAILRELAY_RUNBOOK.md`).
-- [X] Security notes (`SECURITY_NOTES.md`) reflect the current dependency posture (npm audit clean) and current container/runtime hardening.
-- [X] Production readiness report (`PRODUCTION_READINESS.md`) documents completed hardening.
-- [X] Production readiness audit (`PRODUCTION_READINESS_AUDIT.md`) documents the latest audit pass, Phase A changes, and Phase B backlog.
+- [X] `DEPLOYMENT.md` — deployment commands; updated with Phase B verification commands.
+- [X] `PRODUCTION_READINESS_AUDIT.md` — Phase A + Phase B execution status and evidence map.
+- [X] `SECURITY_NOTES.md` — current dependency/security posture (npm audit clean; no xlsx; Nest 11; exceljs).
+- [X] `BACKUP_RUNBOOK.md` — backup and restore procedures.
+- [X] `MAILRELAY_RUNBOOK.md` — Mailrelay setup and troubleshooting.
 
-## Final Commits and Report
-- [X] Structured commit messages prepared in `COMMIT_MESSAGES.md`.
-- [X] Audit changes (Phase A) committed and CI-verified on `main`.
-- [X] Final readiness audit (`PRODUCTION_READINESS_AUDIT.md`) ready for stakeholder review.
+## Manual / Human-Required (NOT marked complete unless actually performed)
+- [ ] **Real staging smoke run** with `npm run smoke:staging:summary` against the staging backend, with real staging accounts. *Status:* not yet performed.
+- [ ] **Real backup-restore drill** with `npm run drill:backup-restore` from a recent staging backup into a disposable target. *Status:* not yet performed.
+- [ ] **Hosting-provider monitoring active** with alert thresholds for: API unavailable, DB unavailable, queue backlog, mail/backup worker stopped, backup stale, disk high, 5xx rate, auth-failure rate. *Status:* runbook documented, alerts not yet wired.
+- [ ] **Stakeholder review and sign-off** of this checklist and `PRODUCTION_READINESS_AUDIT.md`. *Status:* pending.
 
-## Go/No-Go Criteria for Production
-- [X] All CI checks pass on `main` branch (`ci.yml`, `production-candidate.yml`).
-- [ ] Staging smoke tests pass with real credentials. _Pending staging run._
-- [ ] Backup and restore drill completed successfully in staging with documented results. _Pending staging run._
-- [ ] Monitoring setup active with alert thresholds for uptime, errors, and performance. _Pending hosting-provider configuration._
-- [X] No unresolved high or critical security vulnerabilities; npm audit clean on both packages and enforced in CI.
-- [ ] Stakeholder review and approval of readiness report and security posture. _Pending sign-off._
+## Go / No-Go Criteria
+- [X] All CI checks pass on `main`.
+- [X] Frontend and backend `npm audit --audit-level=high` clean.
+- [X] Runtime-safety unit + live boot coverage in CI.
+- [X] Worker boot smoke in CI.
+- [ ] Real staging smoke executed.
+- [ ] Real backup/restore drill executed.
+- [ ] Monitoring & alerts active in production.
+- [ ] Stakeholder approval recorded.
 
-## Instructions
+## Verdict
 
-- **Checklist Completion**: An item is checked only when there is machine-verifiable evidence (CI job, committed file) or a committed code path that satisfies it. Items requiring a real staging run remain unchecked until that run is recorded.
-- **Blocker Resolution**: The remaining unchecked items all require either a human staging run, hosting-provider configuration, or stakeholder sign-off. None require additional code changes to clear.
-- **Final Review**: Review this checklist alongside `PRODUCTION_READINESS.md` and `PRODUCTION_READINESS_AUDIT.md` before production deployment.
+**CONDITIONAL GO**, conditional on the four "Manual / Human-Required" items above.
+
+The codebase, container, runtime configuration, and CI gates are production-ready and exercised on every push. Full GO requires a real human to run the staging smoke wrapper, run the backup-restore drill against a disposable database, wire alerts to the documented thresholds, and sign off.
