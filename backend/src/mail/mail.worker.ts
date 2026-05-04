@@ -100,7 +100,9 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
       });
     }, this.pollMs);
 
-    void this.processDueJobs();
+    this.processDueJobs().catch((error) => {
+      this.logger.error('Initial mail worker pass failed.', error as Error);
+    });
   }
 
   isEnabled() {
