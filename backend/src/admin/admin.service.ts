@@ -649,6 +649,7 @@ export class AdminService {
     academicYearId?: string;
     name?: string;
     sortOrder?: number | string;
+    courseId?: string;
   }) {
     const created = await this.adminOpsRepository.createAcademicYearLevel(payload);
     await this.auditLogs.record({
