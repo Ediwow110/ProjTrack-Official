@@ -365,9 +365,14 @@ export class BackupsService {
   async details(id: string) {
     const run = await this.requireRun(id);
     const row = this.serializeHistoryRun(run);
-    const manifest = row.artifactAvailable && run.fileName
-      ? this.storage.readJson(run.fileName)?.manifest || null
-      : null;
+    let manifest: unknown = null;
+    if (row.artifactAvailable && run.fileName) {
+      try {
+        manifest = this.storage.readJson(run.fileName)?.manifest ?? null;
+      } catch {
+        // File may have been deleted between the describe check and this read.
+      }
+    }
     return {
       ...row,
       manifest,
@@ -452,7 +457,7 @@ export class BackupsService {
       this.prisma.submissionFile.findMany(),
       this.prisma.submissionEvent.findMany(),
       this.prisma.notification.findMany(),
-      this.prisma.emailJob.findMany(),
+      this.prisma.emailJob.findMany({ orderBy: { createdAt: 'desc' }, take: 5000 }),
       this.prisma.systemSetting.findMany(),
     ]);
 
