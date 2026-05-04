@@ -12,7 +12,7 @@ export type RenderedMailTemplate = {
   text: string;
 };
 
-const KNOWN_TEMPLATE_KEYS = new Set(Object.values(MAIL_TEMPLATE_KEYS));
+const KNOWN_TEMPLATE_KEYS = new Set<string>(Object.values(MAIL_TEMPLATE_KEYS));
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const ACCOUNT_ACTIVATION_SUBJECT = 'Activate your ProjTrack account';
 
