@@ -475,6 +475,7 @@ export class SubmissionsService {
               templateKey: MAIL_TEMPLATE_KEYS.BROADCAST,
               subject: input.title,
               payload: {
+                firstName: user.firstName || undefined,
                 name:
                   [user.firstName, user.lastName].filter(Boolean).join(' ') ||
                   'ProjTrack user',
