@@ -127,6 +127,7 @@ export function getAcademicYearFromSections(
       courseCount: 0,
       yearLevelCount: 0,
       yearLevels: [],
+      courses: [],
     } as AdminAcademicYearRecord)
   );
 }
