@@ -182,6 +182,41 @@ export default function AdminBackups() {
     }
   }
 
+  async function handleToggleAutomaticEnabled(nextEnabled: boolean) {
+    const previous = settingsForm;
+    setSettingsForm((current) => ({ ...current, enabled: nextEnabled }));
+    setSettingsBusy(true);
+    setActionError(null);
+    setMessage(null);
+    try {
+      const saved = await adminService.updateBackupSettings({ ...previous, enabled: nextEnabled });
+      setSettingsForm(saved);
+      await refreshWithMessage(
+        nextEnabled
+          ? "Automatic backups are now enabled. The worker will pick up the schedule on its next tick."
+          : "Automatic backups are now disabled. The worker will stop creating scheduled backups on its next tick.",
+      );
+    } catch (err) {
+      setSettingsForm(previous);
+      setActionError(err instanceof Error ? err.message : "Unable to update automatic backup toggle.");
+    } finally {
+      setSettingsBusy(false);
+    }
+  }
+
+  const persistedEnabled = Boolean(data?.automaticSettings?.enabled);
+  const settingsDirty = Boolean(
+    data?.automaticSettings &&
+      (settingsForm.frequency !== data.automaticSettings.frequency ||
+        settingsForm.timeOfDay !== data.automaticSettings.timeOfDay ||
+        settingsForm.timezone !== data.automaticSettings.timezone ||
+        settingsForm.weeklyDay !== data.automaticSettings.weeklyDay ||
+        settingsForm.monthlyDay !== data.automaticSettings.monthlyDay ||
+        settingsForm.customIntervalHours !== data.automaticSettings.customIntervalHours ||
+        settingsForm.retentionDays !== data.automaticSettings.retentionDays ||
+        settingsForm.retentionCount !== data.automaticSettings.retentionCount),
+  );
+
   async function openBackupDetail(row: BackupRunRecord) {
     setDetailOpen(true);
     setDetailBusy(true);
@@ -352,11 +387,17 @@ export default function AdminBackups() {
         <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex items-center justify-between gap-4 rounded-[22px] border border-slate-200/80 bg-slate-50/90 px-4 py-4 text-sm font-semibold text-[var(--text-strong)] dark:border-slate-700/70 dark:bg-slate-900/70 sm:col-span-2">
-              <span>Automatic Backups Enabled</span>
+              <span className="flex flex-col gap-1">
+                <span>Automatic Backups Enabled</span>
+                <span className="text-xs font-normal text-[var(--text-muted)]">
+                  Toggling this saves immediately. The worker applies it on its next tick.
+                </span>
+              </span>
               <input
                 type="checkbox"
-                checked={settingsForm.enabled}
-                onChange={(event) => setSettingsForm((current) => ({ ...current, enabled: event.target.checked }))}
+                checked={persistedEnabled}
+                disabled={settingsBusy || loading}
+                onChange={(event) => handleToggleAutomaticEnabled(event.target.checked)}
                 className="h-5 w-5"
                 aria-label="Automatic backups enabled"
               />
@@ -424,11 +465,17 @@ export default function AdminBackups() {
               value={String(settingsForm.retentionCount)}
               onChange={(value) => setSettingsForm((current) => ({ ...current, retentionCount: Number(value) }))}
             />
-            <div className="sm:col-span-2">
-              <Button type="button" disabled={settingsBusy || loading} onClick={handleSaveSettings}>
+            <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
+              <Button type="button" disabled={settingsBusy || loading || !settingsDirty} onClick={handleSaveSettings}>
                 <CalendarClock size={16} />
-                {settingsBusy ? "Saving..." : "Save Settings"}
+                {settingsBusy ? "Saving..." : settingsDirty ? "Save Settings" : "Saved"}
               </Button>
+              {settingsDirty ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:border-amber-500/35 dark:bg-amber-500/12 dark:text-amber-200">
+                  <AlertTriangle size={12} />
+                  Unsaved changes
+                </span>
+              ) : null}
             </div>
           </div>
           <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/90 px-4 py-4 dark:border-slate-700/70 dark:bg-slate-900/70">
