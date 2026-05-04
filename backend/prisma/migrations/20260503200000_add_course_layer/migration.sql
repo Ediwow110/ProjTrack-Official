@@ -30,6 +30,6 @@ CREATE INDEX IF NOT EXISTS "AcademicYearLevel_courseId_idx"
   ON "AcademicYearLevel"("courseId");
 
 ALTER TABLE "AcademicYearLevel"
-  ADD CONSTRAINT IF NOT EXISTS "AcademicYearLevel_courseId_fkey"
+  ADD CONSTRAINT "AcademicYearLevel_courseId_fkey"
   FOREIGN KEY ("courseId") REFERENCES "Course"("id")
   ON DELETE SET NULL ON UPDATE CASCADE;
