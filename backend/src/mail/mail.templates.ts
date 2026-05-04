@@ -464,7 +464,7 @@ function renderBulkInvitation(p: MailTemplatePayload): RenderedMailTemplate {
 }
 
 function renderTeacherActivity(name: string, title: string, body: string, subjectName: string, teacherName: string, activityLink: string): RenderedMailTemplate {
-  const subject = normalizeSubject('', `${subjectName} activity update`);
+  const subject = normalizeSubject(title, `${subjectName} activity update`);
   const html = emailShell(title, [
     header('#0f766e', title, `New update in ${subjectName}`),
     bodyOpen(),
