@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
-import { CourseAdminController } from './course-admin.controller';
 import { AdminService } from './admin.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { MailModule } from '../mail/mail.module';
@@ -8,7 +7,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [AuditLogsModule, MailModule, NotificationsModule],
-  controllers: [AdminController, CourseAdminController],
+  controllers: [AdminController],
   providers: [AdminService],
   exports: [AdminService],
 })
