@@ -16,6 +16,11 @@ export const MAIL_TEMPLATE_KEYS = {
   TEACHER_ACTIVITY_NOTICE: 'teacher-activity-notice',
   BULK_INVITATION: 'bulk-invitation',
   BROADCAST: 'broadcast',
+  GRADE_SUBMITTED: 'grade-submitted',
+  RESTRICTION_LIFTED: 'restriction-lifted',
+  SUBMISSION_RECEIVED: 'submission-received',
+  SUBMISSION_GRADED: 'submission-graded',
+  TEST_EMAIL: 'test-email',
 } as const;
 
 export const MAIL_CATEGORY_KEYS = {
