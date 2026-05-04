@@ -276,10 +276,10 @@ function emailShell(title: string, body: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;">
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f4f6" style="background-color:#f3f4f6;">
 <tr><td align="center" style="padding:40px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 <tr><td>${body}</td></tr>
 </table>
 </td></tr>
@@ -288,67 +288,72 @@ function emailShell(title: string, body: string): string {
 </html>`;
 }
 
-function header(gradient: string, title: string, subtitle: string): string {
-  return `<div style="background:${gradient};padding:40px 32px;border-radius:16px 16px 0 0;text-align:center;">
-<h2 style="color:#ffffff;font-size:24px;font-weight:600;margin:0 0 4px;">${escapeHtml(title)}</h2>
-<p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${escapeHtml(subtitle)}</p>
-</div>`;
+function header(solidColor: string, title: string, subtitle: string): string {
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td bgcolor="${solidColor}" style="background-color:${solidColor};padding:40px 32px;border-radius:16px 16px 0 0;text-align:center;">
+<h2 style="color:#ffffff;font-size:24px;font-weight:700;margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(title)}</h2>
+<p style="color:#e0e7ff;font-size:14px;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(subtitle)}</p>
+</td></tr></table>`;
 }
 
 function bodyOpen(): string {
-  return `<div style="background:#ffffff;border:1px solid #f3f4f6;border-top:none;padding:32px;">`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td bgcolor="#ffffff" style="background-color:#ffffff;padding:32px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">`;
 }
 
 function bodyClose(): string {
-  return `</div>`;
+  return `</td></tr></table>`;
 }
 
 function footer(note = ''): string {
   const app = escapeHtml(appName());
   const year = new Date().getFullYear();
-  const noteHtml = note ? `<p style="color:#d1d5db;font-size:12px;margin:4px 0 0;">${escapeHtml(note)}</p>` : '';
-  return `<div style="background:#f9fafb;border:1px solid #f3f4f6;border-top:none;padding:20px 32px;border-radius:0 0 16px 16px;text-align:center;">
-<p style="color:#9ca3af;font-size:12px;margin:0;">© ${year} ${app} &middot; All rights reserved</p>
+  const noteHtml = note ? `<p style="color:#d1d5db;font-size:12px;margin:8px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(note)}</p>` : '';
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td bgcolor="#f9fafb" style="background-color:#f9fafb;padding:20px 32px;border-radius:0 0 16px 16px;border:1px solid #e5e7eb;border-top:none;text-align:center;">
+<p style="color:#9ca3af;font-size:12px;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">&#169; ${year} ${app} &middot; All rights reserved</p>
 ${noteHtml}
-</div>`;
+</td></tr></table>`;
 }
 
 function ctaButton(href: string, label: string, color: string): string {
   if (!href) return '';
-  return `<div style="text-align:center;margin:24px 0;">
-<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 32px;background:${color};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:12px;">${escapeHtml(label)}</a>
-</div>`;
+  return `<table cellpadding="0" cellspacing="0" border="0" style="margin:24px auto;"><tr>
+<td bgcolor="${color}" style="background-color:${color};border-radius:12px;text-align:center;">
+<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(label)}</a>
+</td></tr></table>`;
 }
 
 function greeting(name: string): string {
-  return `<p style="color:#4b5563;font-size:14px;margin:0 0 16px;">Hi <strong style="color:#111827;">${escapeHtml(name)}</strong>,</p>`;
+  return `<p style="color:#4b5563;font-size:14px;margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Hi <strong style="color:#111827;">${escapeHtml(name)}</strong>,</p>`;
 }
 
 function paragraph(text: string): string {
-  return `<p style="color:#4b5563;font-size:14px;line-height:1.6;margin:0 0 16px;">${escapeHtml(text)}</p>`;
+  return `<p style="color:#4b5563;font-size:14px;line-height:1.6;margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${escapeHtml(text)}</p>`;
 }
 
 function card(bg: string, border: string, content: string): string {
-  return `<div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:20px;margin-bottom:24px;">${content}</div>`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr>
+<td bgcolor="${bg}" style="background-color:${bg};border:1px solid ${border};border-radius:12px;padding:20px;">${content}</td></tr></table>`;
 }
 
 function fallbackLinkBlock(href: string): string {
-  return `<p style="color:#6b7280;font-size:13px;margin:0 0 8px;">If the button does not work, use this link:</p>
-<p style="margin:0;"><a href="${escapeHtml(href)}" style="color:#4f46e5;font-size:12px;word-break:break-all;">${escapeHtml(href)}</a></p>`;
+  return `<p style="color:#6b7280;font-size:13px;margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">If the button does not work, use this link:</p>
+<p style="margin:0;"><a href="${escapeHtml(href)}" style="color:#4f46e5;font-size:12px;word-break:break-all;font-family:monospace;">${escapeHtml(href)}</a></p>`;
 }
 
 function divider(): string {
-  return `<div style="border-top:1px solid #f3f4f6;margin:16px 0;"></div>`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
 }
 
 function infoRow(label: string, value: string, isLink = false): string {
   const valueHtml = isLink
     ? `<a href="${escapeHtml(value)}" style="color:#0d9488;font-size:12px;font-weight:600;word-break:break-all;">${escapeHtml(value)}</a>`
-    : `<span style="color:#1f2937;font-size:12px;font-weight:600;text-align:right;">${escapeHtml(value)}</span>`;
-  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-<span style="color:#9ca3af;font-size:12px;min-width:110px;">${escapeHtml(label)}</span>
-${valueHtml}
-</div>`;
+    : `<span style="color:#1f2937;font-size:12px;font-weight:600;">${escapeHtml(value)}</span>`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;"><tr>
+<td style="color:#9ca3af;font-size:12px;width:120px;vertical-align:top;">${escapeHtml(label)}</td>
+<td style="font-size:12px;vertical-align:top;text-align:right;">${valueHtml}</td>
+</tr></table>`;
 }
 
 // ─── Template Renderers ────────────────────────────────────────────────────────
@@ -360,7 +365,7 @@ function renderActivation(name: string, link: string, isVerification: boolean): 
   const subject = isVerification ? `${appName()} Email Verification` : ACCOUNT_ACTIVATION_SUBJECT;
 
   const html = emailShell(title, [
-    header('linear-gradient(135deg, #4f46e5, #3b82f6)', title, subtitle),
+    header('#4f46e5', title, subtitle),
     bodyOpen(),
     greeting(name),
     paragraph(isVerification
@@ -388,7 +393,7 @@ function renderPasswordReset(name: string, resetLink: string, expiresAt: string,
   const expiryText = Number.isNaN(expiryDate.getTime()) ? expiresAt : expiryDate.toLocaleString();
 
   const html = emailShell(title, [
-    header('linear-gradient(to right, #8b5cf6, #9333ea)', title, subtitle),
+    header('#8b5cf6', title, subtitle),
     bodyOpen(),
     greeting(name),
     paragraph(isFirstTimeSetup
@@ -442,7 +447,7 @@ function renderBulkInvitation(p: MailTemplatePayload): RenderedMailTemplate {
     : `You have been invited to join ${appName()}.`);
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #fbbf24, #f97316)', "You're Invited! &#127881;", `Join your class on ${appName()}`),
+    header('#f59e0b', "You're Invited!", `Join your class on ${appName()}`),
     bodyOpen(),
     greeting(name),
     paragraph(bodyText),
@@ -461,7 +466,7 @@ function renderBulkInvitation(p: MailTemplatePayload): RenderedMailTemplate {
 function renderTeacherActivity(name: string, title: string, body: string, subjectName: string, teacherName: string, activityLink: string): RenderedMailTemplate {
   const subject = normalizeSubject('', `${subjectName} activity update`);
   const html = emailShell(title, [
-    header('linear-gradient(to right, #0f766e, #0891b2)', title, `New update in ${subjectName}`),
+    header('#0f766e', title, `New update in ${subjectName}`),
     bodyOpen(),
     greeting(name),
     paragraph(`${teacherName} posted a new update in ${subjectName}.`),
@@ -477,7 +482,7 @@ function renderTeacherActivity(name: string, title: string, body: string, subjec
 function renderBroadcast(name: string, title: string, body: string, unsubscribeUrl: string): RenderedMailTemplate {
   const subject = normalizeSubject(title, title);
   const html = emailShell(title, [
-    header('linear-gradient(135deg, #6366f1, #8b5cf6)', title, appName()),
+    header('#6366f1', title, appName()),
     bodyOpen(),
     greeting(name),
     card('#f5f3ff', '#ddd6fe', `<p style="color:#3730a3;font-size:14px;line-height:1.6;margin:0;">${escapeHtml(body)}</p>`),
@@ -500,7 +505,7 @@ function renderGradeSubmitted(p: MailTemplatePayload): RenderedMailTemplate {
   const subject = normalizeSubject(p.subject, `Your Grade Has Been Submitted – ${courseName}`);
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #10b981, #0d9488)', 'Grade Submitted!', 'Your grade has been officially recorded'),
+    header('#10b981', 'Grade Submitted!', 'Your grade has been officially recorded'),
     bodyOpen(),
     greeting(name),
     paragraph(`We're writing to let you know that your grade for ${courseName} has been officially submitted by your instructor.`),
@@ -537,7 +542,7 @@ function renderRestrictionLifted(p: MailTemplatePayload): RenderedMailTemplate {
   const restoredItems = ['Full access to course materials', 'Ability to submit assignments', 'Access to grades and feedback', 'Course communication features'];
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #3b82f6, #4f46e5)', 'Access Restored!', 'Your account restriction has been lifted'),
+    header('#3b82f6', 'Access Restored!', 'Your account restriction has been lifted'),
     bodyOpen(),
     greeting(name),
     paragraph(`Great news! The restriction that was previously applied to your account has been removed by ${teacherName}. You now have full access to your account.`),
@@ -574,7 +579,7 @@ function renderSubmissionReceived(p: MailTemplatePayload): RenderedMailTemplate 
   const subject = normalizeSubject(p.subject, `Submission Received – ${assignmentName}`);
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #14b8a6, #0891b2)', 'Submission Received!', 'Your project has been successfully submitted'),
+    header('#14b8a6', 'Submission Received!', 'Your project has been successfully submitted'),
     bodyOpen(),
     greeting(name),
     paragraph(`We're writing to let you know that your submission for ${assignmentName} has been officially received by your instructor.`),
@@ -622,7 +627,7 @@ function renderSubmissionGraded(p: MailTemplatePayload): RenderedMailTemplate {
   const subject = normalizeSubject(p.subject, `Your Submission Has Been Graded – ${assignmentName}`);
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #f43f5e, #db2777)', 'Your Project Has Been Graded!', 'Your instructor has submitted a grade for your project'),
+    header('#f43f5e', 'Your Project Has Been Graded!', 'Your instructor has submitted a grade for your project'),
     bodyOpen(),
     groupName ? `<p style="color:#4b5563;font-size:14px;margin:0 0 8px;">Hi <strong style="color:#111827;">${escapeHtml(groupName)}</strong></p>` : greeting(name),
     groupMembers.length ? [
@@ -667,7 +672,7 @@ function renderTestEmail(p: MailTemplatePayload): RenderedMailTemplate {
   const subject = normalizeSubject(p.subject, `Test Email – ${appName()} System Check`);
 
   const html = emailShell(subject, [
-    header('linear-gradient(to right, #a855f7, #4f46e5)', 'Test Email', `${appName()} System Check`),
+    header('#a855f7', 'Test Email', `${appName()} System Check`),
     bodyOpen(),
     greeting(name),
     paragraph(`This is a test email from the ${appName()} platform. If you're receiving this message, it means your email notifications are configured correctly and working as expected.`),
