@@ -262,7 +262,36 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      const rendered = renderMailTemplate(job.templateKey, payload);
+      let rendered: ReturnType<typeof renderMailTemplate>;
+      try {
+        rendered = renderMailTemplate(job.templateKey, payload);
+      } catch (renderError) {
+        const renderMsg = renderError instanceof Error ? renderError.message : String(renderError ?? 'Template rendering failed.');
+        this.logger.error(
+          JSON.stringify({
+            event: 'mail.template_render_failed',
+            jobId: job.id,
+            templateKey: job.templateKey,
+            workerId: this.workerId,
+            error: renderMsg,
+          }),
+        );
+        await this.prisma.emailJob.update({
+          where: { id: job.id },
+          data: {
+            status: EmailJobStatus.DEAD,
+            lastError: `Template rendering failed: ${renderMsg.slice(0, 500)}`,
+            failureReason: MAIL_FAILURE_REASONS.TEMPLATE_RENDER_FAILED,
+            retryableFailure: false,
+            lockedAt: null,
+            lockedBy: null,
+            scheduledAt: null,
+          },
+        });
+        this.lastProcessedJobAt = new Date();
+        return;
+      }
+
       const limitCheck = await this.mailLimits.checkBeforeSend(
         this.transport.getProviderName(),
         job.type,
