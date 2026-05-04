@@ -409,15 +409,18 @@ export class MailService {
     if (!normalized) {
       throw new BadRequestException('Recipient email is required.');
     }
+    const now = new Date();
     const job = await this.queueTransactional({
       to: normalized,
-      recipientName: 'ProjTrack Mail Test',
-      subject: 'ProjTrack Mailrelay test',
-      templateKey: MAIL_TEMPLATE_KEYS.BROADCAST,
+      recipientName: 'ProjTrack Administrator',
+      subject: `ProjTrack Mail System Check – ${now.toISOString().slice(0, 10)}`,
+      templateKey: MAIL_TEMPLATE_KEYS.TEST_EMAIL,
       payload: {
-        name: 'ProjTrack administrator',
-        title: 'ProjTrack Mailrelay test',
-        body: 'This is a production mail configuration test generated from the ProjTrack admin mail operations page.',
+        firstName: 'ProjTrack Administrator',
+        testId: `test-${Date.now()}`,
+        timestamp: now.toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC',
+        senderName: 'ProjTrack System',
+        adminEmail: normalized,
         mailCategory: MAIL_CATEGORY_KEYS.ADMIN,
       },
       idempotencyKey: `mail:test:${normalized}:${Date.now()}`,
