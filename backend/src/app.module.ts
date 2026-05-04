@@ -10,7 +10,6 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { AdminModule } from './admin/admin.module';
-import { CoursesModule } from './courses/courses.module';
 import { ProfileModule } from './profile/profile.module';
 import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
@@ -20,6 +19,6 @@ import { BrandingModule } from './branding/branding.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
-  imports: [CoursesModule, PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule, MonitoringModule],
+  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule, MonitoringModule],
 })
 export class AppModule {}
