@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { EmailJobStatus, Prisma } from '@prisma/client';
 import { Webhook } from 'svix';
 import {
   MAIL_PROVIDER_NAMES,
@@ -7,6 +6,7 @@ import {
   MAIL_WEBHOOK_EVENT_TYPES,
 } from '../common/constants/mail.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailJobStatus, hasPrismaErrorCode, type PrismaJsonValue } from '../prisma/prisma-compat';
 
 type WebhookHeaders = Record<string, string | string[] | undefined>;
 
@@ -61,14 +61,11 @@ export class MailWebhookService {
           eventType,
           providerMessageId,
           email,
-          payload: payload as Prisma.InputJsonValue,
+          payload: payload as any,
         },
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (hasPrismaErrorCode(error, 'P2002')) {
         return { success: true, duplicate: true, providerEventId };
       }
       throw error;

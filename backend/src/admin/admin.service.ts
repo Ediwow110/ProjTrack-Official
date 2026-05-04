@@ -31,6 +31,7 @@ import { isPendingReviewStatus } from '../access/policies/submission-access.poli
 import {
   describeSeedRelationKind,
   evaluateSeedSectionCandidate,
+  type SeedSectionEvaluationResult,
   summarizeSeedRelationCounts,
 } from './seed-cleanup.utils';
 
@@ -3187,7 +3188,7 @@ export class AdminService {
     const seedGroupMembers = seedGroups.flatMap((group) => group.members);
     const seedGroupMemberIds = new Set(seedGroupMembers.map((member) => member.id));
 
-    const sectionSeedEvaluations = new Map(
+    const sectionSeedEvaluations = new Map<string, SeedSectionEvaluationResult>(
       sections.map((section) => {
         const evaluation = evaluateSeedSectionCandidate({
           explicitSeed:

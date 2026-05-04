@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { AccountActionTokenType } from '@prisma/client';
 import { ACCOUNT_ACTION_TOKEN_TTL_MS } from '../common/constants/mail-policy.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccountActionTokenType, type AccountActionTokenType as AccountActionTokenTypeValue } from '../prisma/prisma-compat';
 import {
   accountActionTokenHash,
   createPublicAccountActionRef,
@@ -13,19 +13,19 @@ import {
 
 type IssueInput = {
   userId: string;
-  type: AccountActionTokenType;
+  type: AccountActionTokenTypeValue;
   alwaysFresh?: boolean;
 };
 
-function tokenPrefix(type: AccountActionTokenType) {
+function tokenPrefix(type: AccountActionTokenTypeValue) {
   return type === AccountActionTokenType.PASSWORD_RESET ? 'reset' : 'activation';
 }
 
-function refPrefix(type: AccountActionTokenType) {
+function refPrefix(type: AccountActionTokenTypeValue) {
   return type === AccountActionTokenType.PASSWORD_RESET ? 'rst' : 'act';
 }
 
-function ttlMs(type: AccountActionTokenType) {
+function ttlMs(type: AccountActionTokenTypeValue) {
   return type === AccountActionTokenType.PASSWORD_RESET
     ? ACCOUNT_ACTION_TOKEN_TTL_MS.PASSWORD_RESET
     : ACCOUNT_ACTION_TOKEN_TTL_MS.ACCOUNT_ACTIVATION;
@@ -127,7 +127,7 @@ export class AccountActionTokenService {
     return { token, publicRef, expiresAt, reused: false };
   }
 
-  private async consume(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+  private async consume(type: AccountActionTokenTypeValue, ref: string, token: string, tx?: any) {
     const { client, record, now } = await this.resolveValidRecord(type, ref, token, tx);
 
     const consumed = await client.accountActionToken.updateMany({
@@ -159,12 +159,12 @@ export class AccountActionTokenService {
     return record.user;
   }
 
-  private async validate(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+  private async validate(type: AccountActionTokenTypeValue, ref: string, token: string, tx?: any) {
     const { record } = await this.resolveValidRecord(type, ref, token, tx);
     return record.user;
   }
 
-  private async resolveValidRecord(type: AccountActionTokenType, ref: string, token: string, tx?: any) {
+  private async resolveValidRecord(type: AccountActionTokenTypeValue, ref: string, token: string, tx?: any) {
     const client = tx ?? this.prisma;
     const publicRef = String(ref || '').trim();
     const rawToken = String(token || '').trim();

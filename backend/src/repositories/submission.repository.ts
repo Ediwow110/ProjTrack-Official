@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
+import { hasPrismaErrorCode } from '../prisma/prisma-compat';
 
 @Injectable()
 export class SubmissionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private isUniqueConstraintError(error: unknown) {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+    return hasPrismaErrorCode(error, 'P2002');
   }
 
   private async resolveTeacherProfileId(teacherId?: string) {
@@ -231,7 +231,7 @@ export class SubmissionRepository {
   }
 
   private async consumePendingUploads(
-    tx: Prisma.TransactionClient,
+    tx: any,
     files: { uploadId?: string }[],
     userId: string,
     submissionId: string,

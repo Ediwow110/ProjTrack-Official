@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { EmailJobStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
 import { MailLimitService } from '../mail/mail-limit.service';
@@ -21,6 +20,7 @@ import {
   getMailSenderConfigIssues,
   publicMailSenderConfig,
 } from '../mail/mail-sender-config';
+import { EmailJobStatus } from '../prisma/prisma-compat';
 
 @Injectable()
 export class HealthService {
@@ -559,25 +559,25 @@ export class HealthService {
     }
 
     try {
-      const databaseInfo = await this.prisma.$queryRawUnsafe<Array<{
+      const databaseInfo = (await this.prisma.$queryRawUnsafe(
+        'SELECT current_database() AS "currentDatabase", current_schema() AS "currentSchema", to_regclass(\'_prisma_migrations\')::text AS "migrationsTable"',
+      )) as Array<{
         currentDatabase: string;
         currentSchema: string;
         migrationsTable: string | null;
-      }>>(
-        'SELECT current_database() AS "currentDatabase", current_schema() AS "currentSchema", to_regclass(\'_prisma_migrations\')::text AS "migrationsTable"',
-      );
+      }>;
 
       const info = databaseInfo[0];
       let pendingMigrations: number | null = null;
       let appliedMigrations: number | null = null;
 
       if (info?.migrationsTable) {
-        const migrationInfo = await this.prisma.$queryRawUnsafe<Array<{
+        const migrationInfo = (await this.prisma.$queryRawUnsafe(
+          'SELECT COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL)::int AS "appliedCount", COUNT(*) FILTER (WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL)::int AS "unresolvedCount" FROM "_prisma_migrations"',
+        )) as Array<{
           appliedCount: number;
           unresolvedCount: number;
-        }>>(
-          'SELECT COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL)::int AS "appliedCount", COUNT(*) FILTER (WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL)::int AS "unresolvedCount" FROM "_prisma_migrations"',
-        );
+        }>;
         appliedMigrations = Number(migrationInfo[0]?.appliedCount ?? 0);
         pendingMigrations = Number(migrationInfo[0]?.unresolvedCount ?? 0);
       }

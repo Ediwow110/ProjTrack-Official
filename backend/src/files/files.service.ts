@@ -706,7 +706,18 @@ export class FilesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const indexed = new Map(
+    const indexed = new Map<string, {
+      id?: string;
+      fileName: string;
+      storedName?: string;
+      scope: string;
+      sizeBytes: number;
+      relativePath: string;
+      uploadedAt?: string;
+      modifiedAt?: string;
+      submissionId?: string;
+      subjectId?: string;
+    }>(
       scopedFiles
         .filter((file) => Boolean(file.relativePath))
         .map((file) => [
