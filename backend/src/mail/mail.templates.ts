@@ -381,7 +381,7 @@ function renderActivation(name: string, link: string, isVerification: boolean): 
 function renderPasswordReset(name: string, resetLink: string, expiresAt: string, isFirstTimeSetup: boolean): RenderedMailTemplate {
   const title = isFirstTimeSetup ? 'Set Up Your Password' : 'Reset Your Password';
   const subtitle = isFirstTimeSetup ? 'Create your password to complete setup' : 'Follow the link below to set a new password';
-  const btnLabel = isFirstTimeSetup ? 'Create Password' : 'Reset My Password';
+  const btnLabel = isFirstTimeSetup ? 'Create Password' : 'Reset Password';
   const subject = `${appName()} ${isFirstTimeSetup ? 'Set Up Your Password' : 'Password Reset'}`;
 
   const expiryDate = new Date(expiresAt);
@@ -405,7 +405,7 @@ function renderPasswordReset(name: string, resetLink: string, expiresAt: string,
     footer('This request was made to your account. If you did not request this, ignore this email.'),
   ].join(''));
 
-  const text = [`Hello ${name},`, '', isFirstTimeSetup ? 'Create your password:' : 'Reset your password:', `${btnLabel}: ${resetLink}`, '', `This link expires on ${expiryText}.`].join('\n');
+  const text = [`Hello ${name},`, '', isFirstTimeSetup ? 'Finish creating your password by clicking the link below:' : 'Reset your password:', `${btnLabel}: ${resetLink}`, '', `This link expires on ${expiryText}.`].join('\n');
   return { subject, html, text };
 }
 
