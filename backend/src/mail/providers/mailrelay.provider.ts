@@ -192,20 +192,22 @@ export class MailrelayMailProvider implements MailProvider {
       throw new MailrelayApiError('Mail HTML or text body is required before Mailrelay send.');
     }
     const payload: Record<string, unknown> = {
-      from_name: fromName,
-      from_email: fromEmail,
-      subject,
-      html,
-      recipients: [
+      from: {
+        email: fromEmail,
+        name: fromName,
+      },
+      to: [
         {
           email: input.to,
           name: input.recipientName || input.to,
         },
       ],
+      subject,
+      html_part: html,
     };
 
     if (text) {
-      payload.text = text;
+      payload.text_part = text;
     }
 
     const controller = new AbortController();
