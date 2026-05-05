@@ -83,18 +83,15 @@ manual section are NOT marked complete unless a real run was performed.
 
 ## Verdict
 
-**CONDITIONAL GO**, conditional on every "Manual / Human-Required" item above.
+**NO-GO / NOT PRODUCTION-READY**.
 
-The codebase, container, runtime configuration, automation scripts, and the
-full DigitalOcean deployment package are production-ready. Full GO requires a
-real human to:
+The branch is stronger than before, but it still does not have the evidence required for production:
 
-1. Apply the staged CI workflow patch.
-2. Provision DigitalOcean (Droplet + Postgres + Spaces).
-3. Run the bootstrap script and `docker compose up -d`.
-4. Wire DNS and watch certs issue.
-5. Run the staging smoke script against the live staging.
-6. Run the backup-restore drill against a real disposable database.
-7. Configure every monitoring alert in the runbook and test-fire each one.
-8. Execute Stages 2 and 3 of the Vercel cutover plan with the documented watch periods.
-9. Sign off.
+1. Post-fix real `npm run e2e:smoke` evidence is missing. The two smoke-found defects are patched locally, but `portal-navigation` and `workflow-smoke` have not been rerun after the fixes.
+2. GitHub status for pushed commit `9e46249` is mixed, not green: `Production Candidate Verification #186` succeeded, while `Production Checks #4` and `CI #215` failed.
+3. Backup-restore drill evidence is still missing.
+4. Monitoring alert evidence is still missing.
+5. Launch signoff is still missing.
+6. Live RBAC and upload proof are still missing.
+
+Production go-live should stay blocked until those items are resolved with real evidence.

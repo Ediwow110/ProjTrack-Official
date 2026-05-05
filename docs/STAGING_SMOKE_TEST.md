@@ -112,3 +112,41 @@ This is the first run with real fixtures and the new skip-green guard.
 
 - Two pre-existing defects (one backend 500 on `/admin/sections`, one frontend nested-`<button>` warning) cause portal-navigation test 4 to fail. Fix them or scope-isolate them before flipping the smoke gate to "all green".
 - workflow-smoke has not been verified yet against the seeded fixtures. After the two defects are addressed, rerun `npm run e2e:smoke` and confirm all 13 tests pass.
+
+### 2026-05-06 (resume pass) - local Windows host after fixing the two smoke-found defects
+
+This pass fixed the two real defects surfaced by the earlier real smoke run, but could not honestly rerun authenticated smoke in this shell because the required `SMOKE_*` credentials are not set.
+
+- Branch / commit under test: local worktree on `production-hardening-repo-audit`, based on pushed commit `9e46249`.
+- Backend defect fix:
+  - File: `backend/src/repositories/admin-ops.repository.ts`
+  - Root cause: `syncLegacyAcademicYearLevels()` used a `findFirst(...mode: 'insensitive')` plus `create()` sequence against `AcademicYearLevel @@unique([academicYearId, name])`, which is not atomic and can race into a duplicate create on `GET /admin/sections`.
+  - Fix: `ensureAcademicYearLevel()` now uses Prisma `upsert` on the real composite key `academicYearId_name`, making repeated sync attempts idempotent for the normalized label.
+  - Added proof: `backend/src/repositories/admin-ops.repository.spec.ts` verifies repeated calls reuse the same record instead of creating duplicates.
+- Frontend defect fix:
+  - File: `src/app/pages/admin/Sections.tsx`
+  - Root cause: the year-level and section cards were clickable outer `<button>` elements containing nested delete `<button>` elements, which triggers React `validateDOMNesting` and fails the portal smoke health assertion.
+  - Fix: both card types are now non-interactive containers with sibling controls: a delete button and a separate "Open year level" / "Open master list" button. Semantics remain valid, keyboard focus remains visible, and the Playwright-facing button labels are preserved.
+- Local validation on this pass:
+  - `npm run typecheck`: Pass.
+  - `npm run build`: Pass.
+  - `npm run e2e:responsive`: Pass, 24/24.
+  - `npm run e2e:responsive:auth`: Blocked by missing `SMOKE_*` env vars.
+  - `npm run check:smoke-env`: Fail by design, correctly listing all six missing `SMOKE_*` vars.
+  - `npm run e2e:smoke`: Not run because `check:smoke-env` fails first without credentials.
+  - `npm --prefix backend run build`: Pass.
+  - `npm --prefix backend test`: Pass.
+  - `npm --prefix backend run test:unit`: Pass, 16 suites / 265 tests.
+  - `npm --prefix backend run check:boot:production`: Pass.
+  - `npm --prefix backend run check:boot:worker`: Pass.
+- GitHub truth for pushed commit `9e46249` checked via public REST API:
+  - PR `#8`: still `draft: true`, `state: open`.
+  - Commit status API: `success`, but only for the `Vercel` deployment context.
+  - Workflow runs for `9e46249`: `Production Candidate Verification #186` = success, `Production Checks #4` = failure, `CI #215` = failure.
+
+### Current blocker summary
+
+- The two smoke-discovered defects are patched locally.
+- Real smoke is still not re-verified after those fixes because this shell does not have `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, or `SMOKE_STUDENT_PASSWORD`.
+- workflow-smoke remains unverified in the post-fix state.
+- PR #8 must remain Draft until a post-fix `npm run e2e:smoke` run executes all smoke specs and GitHub CI is green.

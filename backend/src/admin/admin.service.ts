@@ -3142,10 +3142,10 @@ export class AdminService {
         .map((user) => this.userName(user).trim().toLowerCase())
         .filter(Boolean),
     );
-    const seedStudentProfileIds = new Set(
+    const seedStudentProfileIds = new Set<string>(
       seedUsers.map((user) => user.studentProfile?.id).filter(Boolean) as string[],
     );
-    const seedTeacherProfileIds = new Set(
+    const seedTeacherProfileIds = new Set<string>(
       seedUsers.map((user) => user.teacherProfile?.id).filter(Boolean) as string[],
     );
 
@@ -3170,7 +3170,7 @@ export class AdminService {
       );
     });
 
-    const seedSubjectIds = new Set(seedSubjects.map((subject) => subject.id));
+    const seedSubjectIds = new Set<string>(seedSubjects.map((subject) => subject.id));
     const seedSubjectLabels = new Set(
       seedSubjects.flatMap((subject) =>
         [subject.code, subject.name]
@@ -3184,7 +3184,7 @@ export class AdminService {
         seedSubjectIds.has(group.subjectId) &&
         group.members.every((member) => seedUserIds.has(member.studentId)),
     );
-    const seedGroupIds = new Set(seedGroups.map((group) => group.id));
+    const seedGroupIds = new Set<string>(seedGroups.map((group) => group.id));
     const seedGroupMembers = seedGroups.flatMap((group) => group.members);
     const seedGroupMemberIds = new Set(seedGroupMembers.map((member) => member.id));
 

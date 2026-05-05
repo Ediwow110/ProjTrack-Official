@@ -292,14 +292,12 @@ export default function AdminSections() {
     setDeleteTarget({ type: 'course', id: course.id, yearId: selectedYear.id, name: course.name });
     setDeleteState({ deleting: false, error: null });
   }
-  function openDeleteYearLevel(level: AdminAcademicYearLevelRecord, event: React.MouseEvent) {
-    event.stopPropagation();
+  function openDeleteYearLevel(level: AdminAcademicYearLevelRecord) {
     if (!selectedYear) return;
     setDeleteTarget({ type: 'yearLevel', id: level.id, yearId: selectedYear.id, name: level.name });
     setDeleteState({ deleting: false, error: null });
   }
-  function openDeleteSection(section: AdminSectionRecord, event: React.MouseEvent) {
-    event.stopPropagation();
+  function openDeleteSection(section: AdminSectionRecord) {
     setDeleteTarget({ type: 'section', id: section.id, name: section.code });
     setDeleteState({ deleting: false, error: null });
   }
@@ -609,10 +607,8 @@ export default function AdminSections() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {yearLevelsForCourse.map((level) => (
-                  <button
+                  <div
                     key={level.id}
-                    type="button"
-                    onClick={() => openYearLevel(level)}
                     className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -626,9 +622,10 @@ export default function AdminSections() {
                         <FolderTree size={16} className="text-blue-600 dark:text-blue-300" />
                         <button
                           type="button"
-                          onClick={(e) => openDeleteYearLevel(level, e)}
+                          onClick={() => openDeleteYearLevel(level)}
                           className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
                           title="Delete year level"
+                          aria-label={`Delete year level ${level.name}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -638,11 +635,16 @@ export default function AdminSections() {
                       <Metric label="Sections" value={level.sectionCount} />
                       <Metric label="Students" value={level.studentCount} />
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
+                    <button
+                      type="button"
+                      onClick={() => openYearLevel(level)}
+                      className="mt-4 flex w-full items-center justify-between text-xs font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:text-slate-100"
+                      aria-label={`Open year level ${level.name}`}
+                    >
                       <span>Open year level</span>
                       <ChevronRight size={14} />
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -681,10 +683,8 @@ export default function AdminSections() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {sectionsForSelectedLevel.map((section) => (
-                  <button
+                  <div
                     key={section.id}
-                    type="button"
-                    onClick={() => openSection(section)}
                     className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -698,9 +698,10 @@ export default function AdminSections() {
                         <Users size={16} className="text-emerald-600 dark:text-emerald-300" />
                         <button
                           type="button"
-                          onClick={(e) => openDeleteSection(section, e)}
+                          onClick={() => openDeleteSection(section)}
                           className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
                           title="Delete section"
+                          aria-label={`Delete section ${section.code}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -714,11 +715,16 @@ export default function AdminSections() {
                       <Metric label="Students" value={section.students} />
                       <Metric label="Subjects" value={section.subjects} />
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
+                    <button
+                      type="button"
+                      onClick={() => openSection(section)}
+                      className="mt-4 flex w-full items-center justify-between text-xs font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:text-slate-100"
+                      aria-label={`Open master list ${section.code}`}
+                    >
                       <span>Open master list</span>
                       <ChevronRight size={14} />
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
