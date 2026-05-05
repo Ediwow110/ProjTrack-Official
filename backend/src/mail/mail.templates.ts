@@ -49,7 +49,8 @@ function truncate(value: string, max: number) {
 }
 
 function normalizeSubject(value: unknown, fallback: string) {
-  const subject = truncate(asText(value, fallback).replace(/[\r\n]+/g, ' '), 160);
+  const preferred = asText(value);
+  const subject = truncate((preferred || asText(fallback)).replace(/[\r\n]+/g, ' '), 160);
   if (!subject) throw new BadRequestException('Mail subject is required.');
   return subject;
 }

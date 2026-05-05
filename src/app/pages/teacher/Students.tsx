@@ -14,12 +14,27 @@ import type { SectionMasterListResponse } from "../../lib/api/contracts";
 export default function TeacherStudents() {
   const [search, setSearch] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const {
     data: sections,
     loading,
     error,
     reload,
   } = useAsyncData(() => teacherCatalogService.getAssignedSections(), []);
+
+  const handleDownloadMasterList = async (sectionId: string) => {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await teacherCatalogService.downloadSectionMasterList(sectionId);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Unable to download the master's list.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const filteredSections = useMemo(() => {
     const records = sections ?? [];
@@ -109,17 +124,23 @@ export default function TeacherStudents() {
             </button>
             <button
               type="button"
-              onClick={() => teacherCatalogService.downloadSectionMasterList(selectedSection.id)}
-              className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-600"
+              onClick={() => handleDownloadMasterList(selectedSection.id)}
+              disabled={downloading || masterListLoading || !masterList || masterList.rows.length === 0}
+              className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Download size={14} />
-              Download Master&apos;s List
+              {downloading ? "Downloading..." : "Download Master's List"}
             </button>
           </div>
 
           {masterListError ? (
             <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
               {masterListError}
+            </div>
+          ) : null}
+          {downloadError ? (
+            <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+              {downloadError}
             </div>
           ) : null}
 
@@ -239,9 +260,10 @@ export default function TeacherStudents() {
               <button
                 type="button"
                 onClick={reload}
-                className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70"
+                disabled={loading}
+                className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Refresh Sections
+                {loading ? "Refreshing..." : "Refresh Sections"}
               </button>
             </div>
           </PortalPanel>

@@ -311,8 +311,11 @@ export default function AdminAnnouncements() {
       </div>
 
       {loading && (
-        <div className="portal-card rounded-xl border p-5 text-sm text-[var(--text-muted)] shadow-[var(--shadow-soft)]">
-          Loading announcements…
+        <div className="space-y-2" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading announcements…</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} aria-hidden="true" className="portal-card rounded-xl border shadow-[var(--shadow-soft)] p-5 h-24 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          ))}
         </div>
       )}
 

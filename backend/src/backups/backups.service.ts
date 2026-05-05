@@ -8,8 +8,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { dirname, resolve } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { BackupStorageService } from './backup-storage.service';
@@ -29,6 +29,26 @@ type BackupSettings = {
 };
 
 const BACKUP_WORKER_LOCK_ID = 73042901;
+const DEFAULT_SYSTEM_SETTING_ROW = {
+  schoolName: 'PROJTRACK Academy Portal',
+  email: 'admin@projtrack.codes',
+  notifEmail: 'noreply@projtrack.codes',
+  minPassLen: '8',
+  maxFailedLogins: '5',
+  sessionTimeout: '60',
+  allowRegistration: false,
+  requireEmailVerification: true,
+  twoFactorAdmin: false,
+  backupFrequency: 'Daily',
+  accountAccessEmailsEnabled: true,
+  classroomActivityEmailsEnabled: false,
+  classroomActivitySystemNotificationsEnabled: true,
+} as const;
+
+type BackupSettingsLoadResult =
+  | { status: 'loaded'; settings: BackupSettings }
+  | { status: 'missing' }
+  | { status: 'invalid' };
 
 function serializeRun(run: any, extra: Record<string, unknown> = {}) {
   const merged = { ...run, ...extra };
@@ -81,7 +101,7 @@ export class BackupsService {
   }
 
   async getBackupSettings() {
-    const settings = this.readBackupSettings();
+    const settings = await this.readBackupSettings();
     const [lastAutomatic, lastAutomaticFailure] = await Promise.all([
       this.prisma.backupRun.findFirst({
         where: { trigger: 'automatic', status: 'COMPLETED', deletedAt: null },
@@ -112,11 +132,12 @@ export class BackupsService {
   }
 
   async updateBackupSettings(payload: Partial<BackupSettings>) {
+    const current = await this.readBackupSettings();
     const next = this.normalizeBackupSettings({
-      ...this.readBackupSettings(),
+      ...current,
       ...payload,
     });
-    this.writeBackupSettings(next);
+    await this.writeBackupSettings(next);
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'BACKUP_SETTINGS_UPDATED',
@@ -141,7 +162,13 @@ export class BackupsService {
     return run;
   }
 
-  async createBackup(input: { trigger: string; backupType: string; createdById?: string; actor?: BackupActor }) {
+  async createBackup(input: {
+    trigger: string;
+    backupType: string;
+    createdById?: string;
+    actor?: BackupActor;
+    settings?: BackupSettings;
+  }) {
     const run = await this.prisma.backupRun.create({
       data: {
         status: 'RUNNING',
@@ -184,7 +211,7 @@ export class BackupsService {
           sha256: artifact.sha256,
           recordCounts,
           completedAt: new Date(),
-          expiresAt: this.expiryForTrigger(input.trigger),
+          expiresAt: this.expiryForTrigger(input.trigger, new Date(), input.settings),
         },
       });
       await this.auditLogs.record({
@@ -235,7 +262,7 @@ export class BackupsService {
     if (!this.backupWorkerEnabledByEnv()) {
       return { ran: false, reason: 'BACKUP_WORKER_ENABLED is false.' };
     }
-    const settings = this.readBackupSettings();
+    const settings = await this.readBackupSettings();
     if (!settings.enabled) {
       return { ran: false, reason: 'Automatic backups are disabled in admin settings.' };
     }
@@ -271,7 +298,7 @@ export class BackupsService {
       this.logger.log(
         `Automatic backup started for scheduled time ${due.scheduledAt?.toISOString() ?? 'custom interval'}.`,
       );
-      const backup = await this.createBackup({ trigger: 'automatic', backupType: 'full' });
+      const backup = await this.createBackup({ trigger: 'automatic', backupType: 'full', settings });
       this.logger.log(
         backup.status === 'COMPLETED'
           ? `Automatic backup completed: ${backup.fileName ?? backup.id}.`
@@ -517,11 +544,10 @@ export class BackupsService {
     });
   }
 
-  private expiryForTrigger(trigger: string, baseDate = new Date()) {
-    const settings = this.readBackupSettings();
+  private expiryForTrigger(trigger: string, baseDate = new Date(), settings?: BackupSettings) {
     const days = trigger === 'manual'
       ? Number(process.env.BACKUP_MANUAL_RETENTION_DAYS || 90)
-      : Number(settings.retentionDays || process.env.BACKUP_AUTO_RETENTION_DAYS || 30);
+      : Number((settings || this.normalizeBackupSettings({})).retentionDays || process.env.BACKUP_AUTO_RETENTION_DAYS || 30);
     return new Date(baseDate.getTime() + Math.max(1, days) * 24 * 60 * 60 * 1000);
   }
 
@@ -629,27 +655,92 @@ export class BackupsService {
     };
   }
 
-  private readBackupSettings(): BackupSettings {
-    try {
-      const file = this.backupSettingsPath();
-      if (!existsSync(file)) {
-        return this.normalizeBackupSettings({});
-      }
-      return this.normalizeBackupSettings(JSON.parse(readFileSync(file, 'utf8')));
-    } catch (error) {
-      this.logger.warn(`Backup settings could not be read; defaults will be used. ${error instanceof Error ? error.message : ''}`.trim());
+  private async readBackupSettings(): Promise<BackupSettings> {
+    const dbResult = await this.readBackupSettingsFromDb();
+    if (dbResult.status === 'loaded') {
+      return dbResult.settings;
+    }
+    if (dbResult.status === 'invalid') {
       return this.normalizeBackupSettings({});
     }
+
+    const legacyResult = this.readLegacyBackupSettingsFile();
+    if (legacyResult.status === 'loaded') {
+      await this.persistBackupSettingsToDb(legacyResult.settings);
+      return legacyResult.settings;
+    }
+
+    return this.normalizeBackupSettings({});
   }
 
-  private writeBackupSettings(settings: BackupSettings) {
-    const file = this.backupSettingsPath();
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+  private async writeBackupSettings(settings: BackupSettings) {
+    await this.persistBackupSettingsToDb(settings);
   }
 
   private backupSettingsPath() {
     return resolve(this.storage.getRoot(), '..', 'backup-settings.json');
+  }
+
+  private async readBackupSettingsFromDb(): Promise<BackupSettingsLoadResult> {
+    const row = await this.prisma.systemSetting.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      select: { backupSettingsJson: true },
+    });
+    if (!row || row.backupSettingsJson === null || row.backupSettingsJson === undefined) {
+      return { status: 'missing' };
+    }
+    if (!this.isPlainObject(row.backupSettingsJson)) {
+      this.logger.error('Backup settings JSON in the database is malformed; safe defaults will be used.');
+      return { status: 'invalid' };
+    }
+    return {
+      status: 'loaded',
+      settings: this.normalizeBackupSettings(row.backupSettingsJson),
+    };
+  }
+
+  private readLegacyBackupSettingsFile(): BackupSettingsLoadResult {
+    try {
+      const file = this.backupSettingsPath();
+      if (!existsSync(file)) {
+        return { status: 'missing' };
+      }
+      const parsed = JSON.parse(readFileSync(file, 'utf8'));
+      if (!this.isPlainObject(parsed)) {
+        this.logger.warn('Legacy backup-settings.json is malformed; safe defaults will be used.');
+        return { status: 'invalid' };
+      }
+      return {
+        status: 'loaded',
+        settings: this.normalizeBackupSettings(parsed),
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Legacy backup-settings.json could not be read; safe defaults will be used. ${error instanceof Error ? error.message : ''}`.trim(),
+      );
+      return { status: 'invalid' };
+    }
+  }
+
+  private async persistBackupSettingsToDb(settings: BackupSettings) {
+    const row = await this.prisma.systemSetting.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    if (row) {
+      await this.prisma.systemSetting.update({
+        where: { id: row.id },
+        data: { backupSettingsJson: settings },
+      });
+      return;
+    }
+
+    await this.prisma.systemSetting.create({
+      data: {
+        ...DEFAULT_SYSTEM_SETTING_ROW,
+        backupSettingsJson: settings,
+      },
+    });
   }
 
   private normalizeBackupSettings(value: any): BackupSettings {
@@ -842,6 +933,10 @@ export class BackupsService {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return min;
     return Math.min(max, Math.max(min, Math.round(parsed)));
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
   private backupWorkerEnabledByEnv() {

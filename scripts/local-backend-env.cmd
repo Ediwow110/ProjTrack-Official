@@ -16,7 +16,17 @@ set "JWT_ISSUER=projtrack-api-local"
 set "JWT_AUDIENCE=projtrack-web-local"
 set "JWT_KEY_ID=local-dev"
 set "ACCOUNT_ACTION_TOKEN_ENC_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
-set "MAIL_PROVIDER=stub"
+if not defined MAIL_PROVIDER (
+  if defined MAILRELAY_API_KEY (
+    if defined MAILRELAY_API_URL (
+      set "MAIL_PROVIDER=mailrelay"
+    ) else (
+      set "MAIL_PROVIDER=stub"
+    )
+  ) else (
+    set "MAIL_PROVIDER=stub"
+  )
+)
 set "MAIL_WORKER_ENABLED=false"
 set "MAIL_WORKER_POLL_MS=60000"
 set "TESTMAIL_ENABLED=false"

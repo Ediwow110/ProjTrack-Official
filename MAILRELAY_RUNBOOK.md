@@ -11,7 +11,9 @@ MAIL_PROVIDER=mailrelay
 MAILRELAY_API_URL=https://your-mailrelay-api.example
 MAILRELAY_API_KEY=replace-with-mailrelay-key
 DATABASE_URL=postgresql://...
-FRONTEND_URL=https://projtrack.codes
+FRONTEND_URL=https://www.projtrack.codes
+APP_URL=https://www.projtrack.codes
+BACKEND_URL=https://api.projtrack.codes
 MAIL_FROM_NAME=ProjTrack
 MAIL_FROM_ADMIN=admin@projtrack.codes
 MAIL_FROM_NOREPLY=support@projtrack.codes
@@ -64,6 +66,43 @@ The local stub provider processes the same queue and moves jobs through
 `QUEUED -> PROCESSING -> SENT`, but it only logs local acceptance. It does not
 deliver to a real inbox. Keep `MAIL_WORKER_ENABLED=false` for the API process
 and `MAIL_WORKER_ENABLED=true` for the dedicated worker process.
+
+## Email Template System
+
+All six email flows (password-reset, account-activation, email-verification, bulk-invitation, teacher-activity-notice, broadcast) use a shared branded template renderer. The worker renders the full HTML card and plain-text fallback at send time using `renderMailTemplate()` in `mail.templates.ts`. No flow produces inline HTML at queue time; every flow stores a `templateKey` + typed `payload` in the `EmailJob` row and the worker renders from that.
+
+The branded template produces:
+
+- A ProjTrack-header blue card with the logo name
+- A body paragraph that greets the recipient by first name
+- A prominent CTA button (e.g. "Reset Password", "Create Password", "Activate Account")
+- A plain-text fallback link below the button
+- A footer with the unsubscribe link when applicable
+
+To inspect all rendered templates locally without sending email:
+
+```bash
+cd backend
+npm run mail:preview
+```
+
+Output goes to `backend/preview/mail/`. Open any `.html` file in a browser to inspect the design.
+
+### FRONTEND_URL is Required in Production — Root Cause Reference
+
+Every link embedded in a production email (reset-password, activation, unsubscribe, student subject) is built by `buildFrontendUrl()` in `src/common/utils/frontend-links.ts`. That function reads `process.env.FRONTEND_URL`.
+
+**If `FRONTEND_URL` is not set in the production environment, the function throws a hard error at call time.** This is intentional fail-fast behaviour introduced to prevent the previous bug where missing `FRONTEND_URL` caused all email links to silently fall back to `http://localhost:5173`, making every password-reset, account-activation, and invitation link unclickable.
+
+The startup validator in `runtime-safety.ts` also checks `FRONTEND_URL` and treats it as a blocking error in production, so the process should not start at all without it.
+
+**Resolution checklist if email links point to localhost:**
+
+1. Confirm `FRONTEND_URL=https://www.projtrack.codes` is set in the production API process environment.
+2. Confirm `FRONTEND_URL=https://www.projtrack.codes` is set in the production worker process environment.
+3. Restart both the API and worker processes after adding the variable.
+4. Create a fresh mail job (old queued jobs already stored localhost links in their payload and must be discarded).
+5. Confirm the new job's stored payload via Admin → Mail Jobs detail view before the worker picks it up.
 
 ## Sender Confirmation
 
@@ -218,16 +257,17 @@ If `DEAD` appears, check `failureReason` and the safe provider message before re
 ## Troubleshooting
 
 1. Confirm `MAIL_PROVIDER=mailrelay`.
-2. Confirm Mailrelay sender identities match configured `MAIL_FROM_*` values.
-3. If jobs fail with `SENDER_NOT_CONFIRMED`, confirm the From address shown on the job in Mailrelay. Do not remap account or classroom flows to `admin@projtrack.codes`.
-4. If jobs stay `QUEUED`, check the dedicated worker process first: it must have `MAIL_WORKER_ENABLED=true`, the same `DATABASE_URL`, and `MAIL_PROVIDER=mailrelay`.
-5. Check `nextTryAt`: `null` or a past timestamp is eligible; a future timestamp is intentionally delayed.
-6. Check Admin -> Mail Jobs for failed jobs and safe provider errors.
-7. Retry a failed/dead job after fixing sender/API configuration; manual retry makes it immediately eligible.
-8. Keep `TESTMAIL_ENABLED=false` in production.
-9. If Mailrelay returns an error body, only a redacted/truncated detail should be logged or shown.
-10. Production needs one worker only unless multi-worker locking is intentionally validated.
-11. Use archive actions to remove old sent/dead jobs from the default view instead of deleting them.
+2. Confirm `FRONTEND_URL=https://www.projtrack.codes` is set in **both** the API process and the worker process — missing this variable causes `frontendBaseUrl()` to throw in production and will prevent any email link from being generated.
+3. Confirm Mailrelay sender identities match configured `MAIL_FROM_*` values.
+4. If jobs fail with `SENDER_NOT_CONFIRMED`, confirm the From address shown on the job in Mailrelay. Do not remap account or classroom flows to `admin@projtrack.codes`.
+5. If jobs stay `QUEUED`, check the dedicated worker process first: it must have `MAIL_WORKER_ENABLED=true`, the same `DATABASE_URL`, and `MAIL_PROVIDER=mailrelay`.
+6. Check `nextTryAt`: `null` or a past timestamp is eligible; a future timestamp is intentionally delayed.
+7. Check Admin -> Mail Jobs for failed jobs and safe provider errors.
+8. Retry a failed/dead job after fixing sender/API configuration; manual retry makes it immediately eligible.
+9. Keep `TESTMAIL_ENABLED=false` in production.
+10. If Mailrelay returns an error body, only a redacted/truncated detail should be logged or shown.
+11. Production needs one worker only unless multi-worker locking is intentionally validated.
+12. Use archive actions to remove old sent/dead jobs from the default view instead of deleting them.
 
 Do not enable SMTP credentials in production.
 Do not commit secrets, API keys, activation links, reset links, or provider tokens.

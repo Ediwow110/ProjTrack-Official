@@ -110,7 +110,14 @@ export default function AdminReports() {
         <div className="ml-auto text-[11px] text-slate-400 dark:text-slate-300">Operational reporting view</div>
       </div>
 
-      {loading && <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-5 text-sm text-slate-500 dark:text-slate-400">Loading reports…</div>}
+      {loading && (
+        <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-5 space-y-3" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading reports…</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} aria-hidden="true" className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          ))}
+        </div>
+      )}
       {error && <div className="bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 rounded-xl p-4 text-sm">{error}</div>}
       {data && data.metrics.length === 0 && (
         <div className={`rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 p-6 text-sm text-slate-400 dark:text-slate-300 ${loading ? "opacity-80" : ""}`}>

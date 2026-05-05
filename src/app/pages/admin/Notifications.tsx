@@ -151,7 +151,12 @@ export default function AdminNotifications() {
       {actionState.error && <div className="bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 rounded-xl p-4 text-sm">{actionState.error}</div>}
 
       {loading && notifications.length === 0 ? (
-        <div className="portal-card rounded-xl border shadow-sm p-5 text-sm text-slate-500 dark:text-slate-400">Loading notifications…</div>
+        <div className="space-y-2" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading notifications…</span>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} aria-hidden="true" className="portal-card rounded-xl border shadow-sm p-4 h-16 bg-slate-100 dark:bg-slate-800/70 animate-pulse" />
+          ))}
+        </div>
       ) : notifications.length === 0 ? (
         <div className="portal-card rounded-xl border shadow-sm p-10 text-center text-sm text-slate-500 dark:text-slate-400">No notifications in this view.</div>
       ) : (

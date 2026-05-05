@@ -316,6 +316,23 @@ function getTeacherDisplayName(subjectLike: any, fallback = "Assigned Teacher") 
   return fallback;
 }
 
+function sanitizeBackendName(value: string | null | undefined): string | undefined {
+  const cleaned = String(value ?? "").trim();
+  const lower = cleaned.toLowerCase();
+  if (
+    !cleaned ||
+    lower === "undefined undefined" ||
+    lower === "null null" ||
+    lower === "undefined" ||
+    lower === "null" ||
+    lower === "null undefined" ||
+    lower === "undefined null"
+  ) {
+    return undefined;
+  }
+  return cleaned;
+}
+
 function syncAuthSessionFromCurrentUser(user?: {
   id?: string;
   identifier?: string;
@@ -329,11 +346,12 @@ function syncAuthSessionFromCurrentUser(user?: {
   if (!current || !user) return;
 
   const hasAvatarPath = typeof user.avatarRelativePath === "string";
+  const sanitizedName = sanitizeBackendName(user.name);
   updateAuthSession({
     userId: user.id ? String(user.id) : current.userId,
     identifier: user.identifier ? String(user.identifier) : current.identifier,
     email: user.email ? String(user.email) : current.email,
-    displayName: user.name ? String(user.name) : current.displayName,
+    displayName: sanitizedName ?? current.displayName,
     status: user.status ? String(user.status) : current.status,
     avatarRelativePath: hasAvatarPath ? user.avatarRelativePath : current.avatarRelativePath,
     avatarVersion: hasAvatarPath ? Date.now() : current.avatarVersion,
@@ -771,7 +789,7 @@ export const studentService = {
         return fallback.replace(/\b\w/g, (m) => m.toUpperCase());
       };
       return {
-        greeting: "Welcome back, Maria!",
+        greeting: (() => { const n = getAuthSession()?.displayName; return n && n !== 'Student Account' ? `Welcome back, ${n}!` : 'Welcome back!'; })(),
         subtext: "Stay on top of deadlines, progress, and recent updates.",
         kpis: [
           { label: 'Pending', value: String(summary.pending), tone: 'blue', icon: 'book' },
@@ -2890,7 +2908,7 @@ export const teacherDashboardService = {
         .slice(0, 5);
 
       return {
-        greeting: 'Teacher workspace',
+        greeting: (() => { const n = getAuthSession()?.displayName; return n && n !== 'Teacher Account' ? `Welcome, ${n}` : 'Teacher Dashboard'; })(),
         subtext: 'Review queue, subjects, and submission counts reflect the current teacher workspace.',
         kpis: [
           { label: 'Subjects', value: String(summary.subjects), tone: 'blue' },

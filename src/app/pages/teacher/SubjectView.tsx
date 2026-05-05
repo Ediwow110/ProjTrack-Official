@@ -597,10 +597,10 @@ export default function TeacherSubjectView() {
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm outline-none resize-none"
             />
             <div className="flex flex-wrap gap-2">
-              <button onClick={handleNotifyStudents} className="px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800">
-                Post & Notify
+              <button onClick={handleNotifyStudents} disabled={saving || !notifyForm.title.trim() || !notifyForm.message.trim()} className="px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed">
+                {saving ? "Posting..." : "Post & Notify"}
               </button>
-              <button onClick={() => setNotifyForm({ title: "", message: "" })} className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70">
+              <button onClick={() => setNotifyForm({ title: "", message: "" })} disabled={saving} className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-60">
                 Clear Draft
               </button>
             </div>

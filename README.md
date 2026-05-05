@@ -36,6 +36,8 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - Frontend typecheck: `npm run typecheck`
 - Frontend production build: `npm run build`
 - Backend build: `npm --prefix backend run build`
+- Backend production boot check: `npm --prefix backend run check:boot:production`
+- Backend worker boot check: `npm --prefix backend run check:boot:worker`
 - Backend smoke suite: `npm --prefix backend run smoke`
 - Backend smoke suite (local mutation-safe): `npm --prefix backend run smoke:local`
 - Backend smoke suite (real accounts, non-destructive): `npm --prefix backend run smoke:real`
@@ -85,6 +87,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
   - `CORS_ORIGINS=https://projtrack.codes,https://www.projtrack.codes`
   - `VITE_API_BASE_URL=https://api.projtrack.codes`
 - Full deployment and cutover steps are documented in [docs/PRODUCTION_RELEASE_RUNBOOK.md](/docs/PRODUCTION_RELEASE_RUNBOOK.md), [docs/production-readiness-checklist.md](/docs/production-readiness-checklist.md), [docs/DEPLOYMENT_CHECKLIST.md](/docs/DEPLOYMENT_CHECKLIST.md), and [docs/ROLE_ACCESS_RULES.md](/docs/ROLE_ACCESS_RULES.md).
+- Release management artifacts live in [CHANGELOG.md](/CHANGELOG.md), [ROADMAP.md](/ROADMAP.md), [docs/RELEASE_CHECKLIST.md](/docs/RELEASE_CHECKLIST.md), [docs/STAGING_SMOKE_TEST.md](/docs/STAGING_SMOKE_TEST.md), [docs/BACKUP_RESTORE_EVIDENCE.md](/docs/BACKUP_RESTORE_EVIDENCE.md), [docs/MONITORING_EVIDENCE.md](/docs/MONITORING_EVIDENCE.md), [docs/INCIDENT_RESPONSE.md](/docs/INCIDENT_RESPONSE.md), and [docs/PRODUCTION_LAUNCH_SIGNOFF.md](/docs/PRODUCTION_LAUNCH_SIGNOFF.md).
 
 ## Backend local startup troubleshooting
 

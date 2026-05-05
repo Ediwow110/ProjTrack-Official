@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../auth/password.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { FilesService } from '../files/files.service';
+import { userDisplayName } from '../common/utils/user-display-name';
 
 @Injectable()
 export class ProfileService {
@@ -28,8 +29,8 @@ export class ProfileService {
     const sectionName = studentProfile?.section?.name ?? '—';
 
     return {
-      initials: `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase(),
-      fullName: `${user.firstName} ${user.lastName}`,
+      initials: `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '??',
+      fullName: userDisplayName(user),
       roleLabel: 'Student Portal',
       avatarRelativePath,
       summary: [
@@ -67,8 +68,8 @@ export class ProfileService {
     );
 
     return {
-      initials: `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase(),
-      fullName: `${user.firstName} ${user.lastName}`,
+      initials: `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '??',
+      fullName: userDisplayName(user),
       roleLabel: 'Teacher Portal',
       avatarRelativePath,
       summary: [
@@ -92,8 +93,8 @@ export class ProfileService {
     const user = await this.requireUser(userId, 'Admin profile not found.');
     const avatarRelativePath = await this.resolveAvatarRelativePath(user.avatarRelativePath);
     return {
-      initials: `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase(),
-      fullName: `${user.firstName} ${user.lastName}`,
+      initials: `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '??',
+      fullName: userDisplayName(user),
       roleLabel: 'Admin Portal',
       avatarRelativePath,
       summary: [

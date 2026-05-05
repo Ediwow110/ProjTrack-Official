@@ -543,6 +543,7 @@ model SystemSetting {
   requireEmailVerification Boolean
   twoFactorAdmin           Boolean
   backupFrequency          String
+  backupSettingsJson       Json?
   accountAccessEmailsEnabled             Boolean  @default(true)
   classroomActivityEmailsEnabled         Boolean  @default(false)
   classroomActivitySystemNotificationsEnabled Boolean @default(true)

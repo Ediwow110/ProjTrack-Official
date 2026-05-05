@@ -30,6 +30,57 @@ const DEFAULT_SYSTEM_SETTINGS = {
   classroomActivitySystemNotificationsEnabled: true,
 } as const;
 
+const DEFAULT_SYSTEM_TOOLS = [
+  {
+    key: 'backup',
+    title: 'Backup Data',
+    desc: 'Generate a snapshot package of operational data for safekeeping.',
+    status: 'Ready',
+  },
+  {
+    key: 'restore',
+    title: 'Restore from Backup',
+    desc: 'Validate the newest backup package and prepare it for controlled restore work.',
+    status: 'Ready',
+  },
+  {
+    key: 'cache',
+    title: 'Clear Cache',
+    desc: 'Remove generated cache artifacts and write a cache-clear marker.',
+    status: 'Ready',
+  },
+  {
+    key: 'purge',
+    title: 'Purge Records',
+    desc: 'Review retention-oriented cleanup actions for old operational artifacts.',
+    status: 'Ready',
+  },
+  {
+    key: 'diag',
+    title: 'Run Diagnostics',
+    desc: 'Collect a diagnostic snapshot of database, storage, and mail health.',
+    status: 'Ready',
+  },
+  {
+    key: 'export',
+    title: 'Export Data',
+    desc: 'Create an export package of the current operational state.',
+    status: 'Ready',
+  },
+] as const;
+
+function buildDefaultAcademicSettings() {
+  const currentYear = new Date().getFullYear();
+  return {
+    schoolYear: `${currentYear}-${currentYear + 1}`,
+    semester: '2nd Semester',
+    submissionStart: `${currentYear}-01-15`,
+    submissionEnd: `${currentYear}-05-30`,
+    latePolicy: '24h',
+    lateDeduction: '10',
+  } as const;
+}
+
 type ToolResult = {
   toolId: string;
   title: string;
@@ -803,18 +854,53 @@ export class AdminOpsRepository {
   }
 
   async getAcademicSettings() {
-    return this.prisma.academicSetting.findFirst({ orderBy: { updatedAt: 'desc' } });
+    const latest = await this.prisma.academicSetting.findFirst({ orderBy: { updatedAt: 'desc' } });
+    return {
+      ...buildDefaultAcademicSettings(),
+      ...(latest ?? {}),
+    };
+  }
+
+  private async ensureDefaultSystemTools() {
+    for (const tool of DEFAULT_SYSTEM_TOOLS) {
+      const existing = await this.prisma.systemTool.findFirst({
+        where: {
+          key: {
+            equals: tool.key,
+            mode: 'insensitive',
+          },
+        },
+      });
+
+      if (existing) {
+        continue;
+      }
+
+      await this.prisma.systemTool.create({
+        data: {
+          key: tool.key,
+          title: tool.title,
+          desc: tool.desc,
+          status: tool.status,
+        },
+      });
+    }
   }
 
   async saveAcademicSettings(payload: any) {
     const existing = await this.prisma.academicSetting.findFirst({ orderBy: { updatedAt: 'desc' } });
+    const normalized = {
+      ...buildDefaultAcademicSettings(),
+      ...(existing ?? {}),
+      ...(payload ?? {}),
+    };
     if (existing) {
       return this.prisma.academicSetting.update({
         where: { id: existing.id },
-        data: { ...payload },
+        data: normalized,
       });
     }
-    return this.prisma.academicSetting.create({ data: { ...payload } });
+    return this.prisma.academicSetting.create({ data: normalized });
   }
 
   async getActiveAcademicYear() {
@@ -1681,11 +1767,13 @@ export class AdminOpsRepository {
   }
 
   async getSystemTools() {
+    await this.ensureDefaultSystemTools();
     const raw = await this.prisma.systemTool.findMany({ orderBy: { key: 'asc' } });
     return raw.map((item) => this.mapSystemToolRecord(item));
   }
 
   async runSystemTool(id: string) {
+    await this.ensureDefaultSystemTools();
     const raw = await this.prisma.systemTool.findMany({ orderBy: { key: 'asc' } });
     const current = raw.find((item) => item.id === id || item.key === id);
     if (!current) throw new NotFoundException('System tool not found.');

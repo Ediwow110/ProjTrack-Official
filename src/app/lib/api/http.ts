@@ -196,7 +196,11 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
 
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  const rawText = await response.text();
+  if (!rawText.trim()) {
+    return undefined as T;
+  }
+  return JSON.parse(rawText) as T;
 }
 
 function parseFileNameFromDisposition(header: string | null) {

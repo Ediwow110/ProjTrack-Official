@@ -96,7 +96,7 @@ export class AuthService {
         identifier: this.userRepository.getPrimaryLoginIdentifier(user),
         email: user.email,
         role: user.role,
-        name: `${user.firstName} ${user.lastName}`,
+        name: userDisplayName(user),
         status: user.status,
         avatarRelativePath,
       },
@@ -139,7 +139,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       status: user.status,
-      name: `${user.firstName} ${user.lastName}`,
+      name: userDisplayName(user),
       avatarRelativePath,
     };
   }
