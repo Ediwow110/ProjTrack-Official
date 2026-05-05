@@ -72,7 +72,7 @@ jobs:
       BACKUP_SCHEDULE_ENABLED: "false"
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_API_BASE_URL: http://localhost:3001
-      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+      SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
       SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     defaults:
       run:
@@ -105,14 +105,14 @@ jobs:
         run: npm run smoke:worker
 
       - name: Smoke secrets status
-        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
-        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
+        if: env.SMOKE_ADMIN_IDENTIFIER == '' || env.SMOKE_ADMIN_PASSWORD == ''
+        run: echo "SMOKE_ADMIN_IDENTIFIER and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
 
       - name: Ensure CI Smoke Admin
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+        if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:admin:ensure
       - name: Backend Smoke (Real Accounts)
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+        if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
