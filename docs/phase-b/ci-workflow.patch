@@ -1,0 +1,376 @@
+# Apply with: git apply docs/phase-b/ci-workflow.patch
+#
+# This patch adds three Phase B steps to the backend job in .github/workflows/ci.yml:
+#   - Runtime safety unit tests (jest)
+#   - Production runtime boot check (NODE_ENV=production)
+#   - Worker boot smoke (mail + backup workers)
+#
+# It cannot be applied via the standard contents-write PAT used for the rest of the
+# Phase B commit because GitHub blocks workflow-file edits without the 'workflow' scope.
+# Apply via PR with a maintainer account or a PAT that has the 'workflow' scope.
+
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,178 +1,184 @@
+-name: CI
+-
+-on:
+-  push:
+-  pull_request:
+-
+-jobs:
+-  frontend:
+-    runs-on: ubuntu-latest
+-    steps:
+-      - uses: actions/checkout@v4
+-      - uses: actions/setup-node@v4
+-        with:
+-          node-version: 20
+-          cache: npm
+-          cache-dependency-path: package-lock.json
+-      - run: npm ci --prefer-offline
+-      - run: npm run security:secrets
+-      - run: npm run check:release-hygiene
+-      - run: npm run check:click-targets
+-      - run: npm run check:frontend-env
+-      - run: npm run typecheck
+-      - run: npm run build
+-      - run: npm run security:audit
+-
+-  backend:
+-    runs-on: ubuntu-latest
+-    services:
+-      postgres:
+-        image: postgres:16
+-        env:
+-          POSTGRES_DB: projtrack
+-          POSTGRES_USER: projtrack
+-          POSTGRES_PASSWORD: projtrack
+-        ports:
+-          - 5432:5432
+-        options: >-
+-          --health-cmd "pg_isready -U projtrack -d projtrack"
+-          --health-interval 10s
+-          --health-timeout 5s
+-          --health-retries 5
+-    env:
+-      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+-      JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
+-      JWT_REFRESH_SECRET: ci-refresh-secret-for-tests-only-not-production-0000000000
+-      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+-      APP_URL: http://localhost:5173
+-      FRONTEND_URL: http://localhost:5173
+-      BACKEND_URL: http://localhost:3001
+-      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+-      MAIL_PROVIDER: stub
+-      MAIL_FROM: noreply@projtrack.local
+-      MAIL_WORKER_ENABLED: "false"
+-      MAIL_WORKER_POLL_MS: "60000"
+-      FILE_STORAGE_MODE: local
+-      OBJECT_STORAGE_MODE: local
+-      HTTP_RATE_LIMIT_STORE: memory
+-      FILE_MALWARE_SCAN_MODE: disabled
+-      APP_ENV: test
+-      BACKUP_WORKER_ENABLED: "false"
+-      BACKUP_SCHEDULE_ENABLED: "false"
+-      BACKUP_WORKER_POLL_MS: "60000"
+-      VITE_API_BASE_URL: http://localhost:3001
+-      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+-      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+-    defaults:
+-      run:
+-        working-directory: backend
+-    steps:
+-      - uses: actions/checkout@v4
+-      - uses: actions/setup-node@v4
+-        with:
+-          node-version: 20
+-          cache: npm
+-          cache-dependency-path: backend/package-lock.json
+-      - run: npm ci --prefer-offline
+-      - run: npm --prefix .. run security:secrets
+-      - run: npm --prefix .. run check:release-hygiene
+-      - run: npx prisma validate
+-      - run: npx prisma generate
+-      - run: npx prisma migrate deploy
+-      - run: npm run build
+-      - run: npm run test
+-      - name: Smoke secrets status
+-        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
+-        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
+-      - name: Ensure CI Smoke Admin
+-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+-        run: npm run smoke:admin:ensure
+-      - name: Backend Smoke (Real Accounts)
+-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+-        run: npm run smoke:real
+-        env:
+-          SMOKE_USE_REAL_ACCOUNTS: true
+-          SMOKE_DEBUG_ERRORS: true
+-      - run: npm audit --audit-level=high
+-
+-  e2e:
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 20
+-    services:
+-      postgres:
+-        image: postgres:16
+-        env:
+-          POSTGRES_DB: projtrack
+-          POSTGRES_USER: projtrack
+-          POSTGRES_PASSWORD: projtrack
+-        ports:
+-          - 5432:5432
+-        options: >-
+-          --health-cmd "pg_isready -U projtrack -d projtrack"
+-          --health-interval 10s
+-          --health-timeout 5s
+-          --health-retries 5
+-    env:
+-      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+-      JWT_ACCESS_SECRET: playwright-access-secret-for-tests-only-not-production-0000
+-      JWT_REFRESH_SECRET: playwright-refresh-secret-for-tests-only-not-production-00
+-      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+-      APP_URL: http://127.0.0.1:4173
+-      FRONTEND_URL: http://127.0.0.1:4173
+-      BACKEND_URL: http://127.0.0.1:3001
+-      CORS_ORIGINS: http://127.0.0.1:4173
+-      MAIL_PROVIDER: stub
+-      MAIL_FROM: noreply@projtrack.local
+-      MAIL_WORKER_ENABLED: "false"
+-      MAIL_WORKER_POLL_MS: "60000"
+-      FILE_STORAGE_MODE: local
+-      OBJECT_STORAGE_MODE: local
+-      HTTP_RATE_LIMIT_STORE: memory
+-      FILE_MALWARE_SCAN_MODE: disabled
+-      BACKUP_WORKER_ENABLED: "false"
+-      BACKUP_SCHEDULE_ENABLED: "false"
+-      BACKUP_WORKER_POLL_MS: "60000"
+-      VITE_USE_BACKEND: "true"
+-      VITE_API_BASE_URL: http://127.0.0.1:3001
+-      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+-      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+-    steps:
+-      - uses: actions/checkout@v4
+-      - uses: actions/setup-node@v4
+-        with:
+-          node-version: 20
+-          cache: npm
+-          cache-dependency-path: |
+-            package-lock.json
+-            backend/package-lock.json
+-      - run: npm ci --prefer-offline
+-      - run: npm --prefix backend ci --prefer-offline
+-      - run: npm run security:secrets
+-      - run: npm run check:release-hygiene
+-      - name: Cache Playwright browsers
+-        uses: actions/cache@v4
+-        with:
+-          path: ~/.cache/ms-playwright
+-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+-          restore-keys: |
+-            ${{ runner.os }}-playwright-
+-      - run: npx playwright install --with-deps chromium
+-      - run: npm --prefix backend run prisma:generate
+-      - run: npm --prefix backend run prisma:migrate:deploy
+-      - run: npm --prefix backend run build
+-      - name: E2E smoke secrets status
+-        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
+-        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account E2E preflight."
+-      - name: Ensure CI Smoke Admin
+-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+-        run: npm --prefix backend run smoke:admin:ensure
+-      - name: E2E database health preflight
+-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+-        run: npm --prefix backend run smoke:real
+-        env:
+-          SMOKE_USE_REAL_ACCOUNTS: true
+-          SMOKE_DEBUG_ERRORS: true
+-      - name: Run E2E Smoke
+-        run: npm run e2e:smoke
+-        timeout-minutes: 15
+-
++name: CI
++
++on:
++  push:
++  pull_request:
++
++jobs:
++  frontend:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 20
++          cache: npm
++          cache-dependency-path: package-lock.json
++      - run: npm ci --prefer-offline
++      - run: npm run security:secrets
++      - run: npm run check:release-hygiene
++      - run: npm run check:click-targets
++      - run: npm run check:frontend-env
++      - run: npm run typecheck
++      - run: npm run build
++      - run: npm run security:audit
++
++  backend:
++    runs-on: ubuntu-latest
++    services:
++      postgres:
++        image: postgres:16
++        env:
++          POSTGRES_DB: projtrack
++          POSTGRES_USER: projtrack
++          POSTGRES_PASSWORD: projtrack
++        ports:
++          - 5432:5432
++        options: >-
++          --health-cmd "pg_isready -U projtrack -d projtrack"
++          --health-interval 10s
++          --health-timeout 5s
++          --health-retries 5
++    env:
++      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
++      JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
++      JWT_REFRESH_SECRET: ci-refresh-secret-for-tests-only-not-production-0000000000
++      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
++      APP_URL: http://localhost:5173
++      FRONTEND_URL: http://localhost:5173
++      BACKEND_URL: http://localhost:3001
++      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
++      MAIL_PROVIDER: stub
++      MAIL_FROM: noreply@projtrack.local
++      MAIL_WORKER_ENABLED: "false"
++      MAIL_WORKER_POLL_MS: "60000"
++      FILE_STORAGE_MODE: local
++      OBJECT_STORAGE_MODE: local
++      HTTP_RATE_LIMIT_STORE: memory
++      FILE_MALWARE_SCAN_MODE: disabled
++      APP_ENV: test
++      BACKUP_WORKER_ENABLED: "false"
++      BACKUP_SCHEDULE_ENABLED: "false"
++      BACKUP_WORKER_POLL_MS: "60000"
++      VITE_API_BASE_URL: http://localhost:3001
++      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
++      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
++    defaults:
++      run:
++        working-directory: backend
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 20
++          cache: npm
++          cache-dependency-path: backend/package-lock.json
++      - run: npm ci --prefer-offline
++      - run: npm --prefix .. run security:secrets
++      - run: npm --prefix .. run check:release-hygiene
++      - run: npx prisma validate
++      - run: npx prisma generate
++      - run: npx prisma migrate deploy
++      - run: npm run build
++      - run: npm run test
++      - name: Runtime safety unit tests (jest)
++        run: npm run test:unit
++      - name: Production runtime boot check (NODE_ENV=production)
++        run: npm run check:runtime:prod
++      - name: Worker boot smoke (mail + backup workers)
++        run: npm run smoke:worker
++      - name: Smoke secrets status
++        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
++        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
++      - name: Ensure CI Smoke Admin
++        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
++        run: npm run smoke:admin:ensure
++      - name: Backend Smoke (Real Accounts)
++        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
++        run: npm run smoke:real
++        env:
++          SMOKE_USE_REAL_ACCOUNTS: true
++          SMOKE_DEBUG_ERRORS: true
++      - run: npm audit --audit-level=high
++
++  e2e:
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    services:
++      postgres:
++        image: postgres:16
++        env:
++          POSTGRES_DB: projtrack
++          POSTGRES_USER: projtrack
++          POSTGRES_PASSWORD: projtrack
++        ports:
++          - 5432:5432
++        options: >-
++          --health-cmd "pg_isready -U projtrack -d projtrack"
++          --health-interval 10s
++          --health-timeout 5s
++          --health-retries 5
++    env:
++      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
++      JWT_ACCESS_SECRET: playwright-access-secret-for-tests-only-not-production-0000
++      JWT_REFRESH_SECRET: playwright-refresh-secret-for-tests-only-not-production-00
++      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
++      APP_URL: http://127.0.0.1:4173
++      FRONTEND_URL: http://127.0.0.1:4173
++      BACKEND_URL: http://127.0.0.1:3001
++      CORS_ORIGINS: http://127.0.0.1:4173
++      MAIL_PROVIDER: stub
++      MAIL_FROM: noreply@projtrack.local
++      MAIL_WORKER_ENABLED: "false"
++      MAIL_WORKER_POLL_MS: "60000"
++      FILE_STORAGE_MODE: local
++      OBJECT_STORAGE_MODE: local
++      HTTP_RATE_LIMIT_STORE: memory
++      FILE_MALWARE_SCAN_MODE: disabled
++      BACKUP_WORKER_ENABLED: "false"
++      BACKUP_SCHEDULE_ENABLED: "false"
++      BACKUP_WORKER_POLL_MS: "60000"
++      VITE_USE_BACKEND: "true"
++      VITE_API_BASE_URL: http://127.0.0.1:3001
++      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
++      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 20
++          cache: npm
++          cache-dependency-path: |
++            package-lock.json
++            backend/package-lock.json
++      - run: npm ci --prefer-offline
++      - run: npm --prefix backend ci --prefer-offline
++      - run: npm run security:secrets
++      - run: npm run check:release-hygiene
++      - name: Cache Playwright browsers
++        uses: actions/cache@v4
++        with:
++          path: ~/.cache/ms-playwright
++          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
++          restore-keys: |
++            ${{ runner.os }}-playwright-
++      - run: npx playwright install --with-deps chromium
++      - run: npm --prefix backend run prisma:generate
++      - run: npm --prefix backend run prisma:migrate:deploy
++      - run: npm --prefix backend run build
++      - name: E2E smoke secrets status
++        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
++        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account E2E preflight."
++      - name: Ensure CI Smoke Admin
++        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
++        run: npm --prefix backend run smoke:admin:ensure
++      - name: E2E database health preflight
++        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
++        run: npm --prefix backend run smoke:real
++        env:
++          SMOKE_USE_REAL_ACCOUNTS: true
++          SMOKE_DEBUG_ERRORS: true
++      - name: Run E2E Smoke
++        run: npm run e2e:smoke
++        timeout-minutes: 15
++

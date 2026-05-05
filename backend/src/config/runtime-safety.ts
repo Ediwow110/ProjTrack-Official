@@ -382,7 +382,7 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
 
   if (!hasValue(env.DATABASE_URL)) {
     errors.push('DATABASE_URL is required.');
-  } else if (isProduction && isLocalDatabaseUrl(env.DATABASE_URL)) {
+  } else if (isProduction && isLocalDatabaseUrl(env.DATABASE_URL) && !asBoolean(env.RUNTIME_SAFETY_ALLOW_LOCALHOST_DB)) {
     errors.push('DATABASE_URL cannot point to localhost, SQLite, or any local-only database in production.');
   }
 

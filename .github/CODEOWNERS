@@ -1,0 +1,69 @@
+# ProjTrack code owners.
+#
+# Lines later in this file take precedence over earlier lines for the same path.
+# A pull request that touches any owned path requires review from the listed
+# owners before it can be merged.
+#
+# Owners must have write access to the repository. Replace @Ediwow110 with
+# additional team members as the team grows. GitHub teams may also be used
+# (e.g. @Ediwow110/sre).
+
+# ----- Default owner for everything not matched below -----
+*                                                @Ediwow110
+
+# ----- CI / GitHub configuration -----
+/.github/                                        @Ediwow110
+/.github/workflows/                              @Ediwow110
+/.github/workflows/*.yml                         @Ediwow110
+/.github/CODEOWNERS                              @Ediwow110
+
+# ----- Container build -----
+/Dockerfile.backend                              @Ediwow110
+/.dockerignore                                   @Ediwow110
+
+# ----- Production infrastructure -----
+/infra/                                          @Ediwow110
+/infra/digitalocean-bootstrap.sh                 @Ediwow110
+/infra/Caddyfile.example                         @Ediwow110
+/infra/docker-compose.production.yml             @Ediwow110
+
+# ----- Runtime safety and configuration -----
+/backend/src/config/                             @Ediwow110
+/backend/src/config/runtime-safety.ts            @Ediwow110
+/backend/src/config/runtime-safety.spec.ts       @Ediwow110
+
+# ----- Authentication, sessions, tokens -----
+/backend/src/auth/                               @Ediwow110
+/backend/src/auth/guards/                        @Ediwow110
+/backend/src/auth/auth.service.ts                @Ediwow110
+/backend/src/auth/token.service.ts               @Ediwow110
+/backend/src/auth/auth-session.service.ts        @Ediwow110
+/backend/src/auth/password.service.ts            @Ediwow110
+
+# ----- File uploads, MIME validation, malware scanning, storage -----
+/backend/src/files/                              @Ediwow110
+/backend/src/files/files.service.ts              @Ediwow110
+/backend/src/files/storage.config.ts             @Ediwow110
+
+# ----- Operational scripts (boot probes, smoke wrappers, backup drill) -----
+/backend/scripts/                                @Ediwow110
+/backend/scripts/production-runtime-check.cjs    @Ediwow110
+/backend/scripts/worker-boot-smoke.cjs           @Ediwow110
+/backend/scripts/staging-smoke-summary.mjs       @Ediwow110
+/backend/scripts/backup-restore-drill.mjs        @Ediwow110
+
+# ----- Environment templates -----
+/docs/env/                                       @Ediwow110
+/docs/env/production.env.example                 @Ediwow110
+/docs/env/staging.env.example                    @Ediwow110
+
+# ----- Release-critical documentation -----
+/DEPLOY_DIGITALOCEAN.md                          @Ediwow110
+/MONITORING_RUNBOOK.md                           @Ediwow110
+/VERCEL_CUTOVER_PLAN.md                          @Ediwow110
+/FINAL_READINESS_CHECKLIST.md                    @Ediwow110
+/PRODUCTION_READINESS_AUDIT.md                   @Ediwow110
+/SECURITY_NOTES.md                               @Ediwow110
+/DEPLOYMENT.md                                   @Ediwow110
+/BACKUP_RUNBOOK.md                               @Ediwow110
+/MAILRELAY_RUNBOOK.md                            @Ediwow110

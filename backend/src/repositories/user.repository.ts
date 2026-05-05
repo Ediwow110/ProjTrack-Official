@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { UserStatus } from '@prisma/client';
+import type { UserStatus } from '../prisma/prisma-compat';
 
 type UserPatch = {
   password?: string | null;

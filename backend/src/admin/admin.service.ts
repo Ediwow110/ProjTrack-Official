@@ -31,6 +31,7 @@ import { isPendingReviewStatus } from '../access/policies/submission-access.poli
 import {
   describeSeedRelationKind,
   evaluateSeedSectionCandidate,
+  type SeedSectionEvaluationResult,
   summarizeSeedRelationCounts,
 } from './seed-cleanup.utils';
 
@@ -548,10 +549,108 @@ export class AdminService {
     return result;
   }
 
+  
+  async deleteAcademicYear(id: string, actor?: AdminActorContext) {
+    const year = await this.prisma.academicYear.findUnique({ where: { id } });
+    if (!year) throw new NotFoundException('Academic year not found.');
+    const result = await this.adminOpsRepository.deleteAcademicYear(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Academic Years',
+      target: year.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Academic year deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
+  async deleteAcademicYearLevel(id: string, actor?: AdminActorContext) {
+    const level = await this.prisma.academicYearLevel.findUnique({ where: { id } });
+    if (!level) throw new NotFoundException('Year level not found.');
+    const result = await this.adminOpsRepository.deleteAcademicYearLevel(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Academic Years',
+      target: level.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Academic year level deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
+
+  async listCourses(academicYearId: string) {
+    return this.adminOpsRepository.listCourses(academicYearId);
+  }
+
+  async createCourse(
+    payload: { academicYearId: string; name?: string; code?: string; description?: string; sortOrder?: number },
+    actor?: AdminActorContext,
+  ) {
+    const created = await this.adminOpsRepository.createCourse(payload);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'CREATE',
+      module: 'Courses',
+      target: created.name,
+      entityId: created.id,
+      result: 'Success',
+      details: 'Course created.',
+      ipAddress: actor?.ipAddress,
+    });
+    return created;
+  }
+
+  async deleteCourse(id: string, actor?: AdminActorContext) {
+    const course = await this.prisma.course.findUnique({ where: { id } });
+    if (!course) throw new NotFoundException('Course not found.');
+    const result = await this.adminOpsRepository.deleteCourse(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Courses',
+      target: course.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Course deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
+  async deleteSection(id: string, actor?: AdminActorContext) {
+    const section = await this.prisma.section.findUnique({ where: { id } });
+    if (!section) throw new NotFoundException('Section not found.');
+    const result = await this.adminOpsRepository.deleteSection(id);
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DELETE',
+      module: 'Sections',
+      target: section.name,
+      entityId: id,
+      result: 'Success',
+      details: 'Section deleted.',
+      ipAddress: actor?.ipAddress,
+    });
+    return result;
+  }
+
   async createAcademicYearLevel(payload: {
     academicYearId?: string;
     name?: string;
     sortOrder?: number | string;
+    courseId?: string;
   }) {
     const created = await this.adminOpsRepository.createAcademicYearLevel(payload);
     await this.auditLogs.record({
@@ -3089,7 +3188,7 @@ export class AdminService {
     const seedGroupMembers = seedGroups.flatMap((group) => group.members);
     const seedGroupMemberIds = new Set(seedGroupMembers.map((member) => member.id));
 
-    const sectionSeedEvaluations = new Map(
+    const sectionSeedEvaluations = new Map<string, SeedSectionEvaluationResult>(
       sections.map((section) => {
         const evaluation = evaluateSeedSectionCandidate({
           explicitSeed:

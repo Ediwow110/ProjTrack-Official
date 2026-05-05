@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { EmailJobStatus, EmailJobType, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import {
   DEFAULT_MAIL_MAX_ATTEMPTS,
@@ -14,6 +13,14 @@ import {
   MAIL_TEMPLATE_KEYS,
 } from '../common/constants/mail.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  EmailJobStatus,
+  EmailJobType,
+  type EmailJobStatus as EmailJobStatusValue,
+  type EmailJobType as EmailJobTypeValue,
+  type PrismaEmailJobWhereInput,
+  type PrismaJsonValue,
+} from '../prisma/prisma-compat';
 import { MailLimitService } from './mail-limit.service';
 import { MailProviderRouterService } from './mail-provider-router.service';
 import { MailTransportService } from './mail.transport.service';
@@ -100,13 +107,13 @@ function mergePayload(
   };
 }
 
-function toStatusLabel(status: EmailJobStatus | string | null | undefined) {
+function toStatusLabel(status: EmailJobStatusValue | string | null | undefined) {
   return String(status ?? '')
     .trim()
     .toLowerCase();
 }
 
-function toTypeLabel(type: EmailJobType | string | null | undefined) {
+function toTypeLabel(type: EmailJobTypeValue | string | null | undefined) {
   return String(type ?? '')
     .trim()
     .toLowerCase();
@@ -409,15 +416,18 @@ export class MailService {
     if (!normalized) {
       throw new BadRequestException('Recipient email is required.');
     }
+    const now = new Date();
     const job = await this.queueTransactional({
       to: normalized,
-      recipientName: 'ProjTrack Mail Test',
-      subject: 'ProjTrack Mailrelay test',
-      templateKey: MAIL_TEMPLATE_KEYS.BROADCAST,
+      recipientName: 'ProjTrack Administrator',
+      subject: `ProjTrack Mail System Check – ${now.toISOString().slice(0, 10)}`,
+      templateKey: MAIL_TEMPLATE_KEYS.TEST_EMAIL,
       payload: {
-        name: 'ProjTrack administrator',
-        title: 'ProjTrack Mailrelay test',
-        body: 'This is a production mail configuration test generated from the ProjTrack admin mail operations page.',
+        firstName: 'ProjTrack Administrator',
+        testId: `test-${Date.now()}`,
+        timestamp: now.toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC',
+        senderName: 'ProjTrack System',
+        adminEmail: normalized,
         mailCategory: MAIL_CATEGORY_KEYS.ADMIN,
       },
       idempotencyKey: `mail:test:${normalized}:${Date.now()}`,
@@ -437,7 +447,7 @@ export class MailService {
   async resumePausedJobs(input?: { campaignId?: string; batchKey?: string }) {
     await this.transport.ensureReadyForQueue();
 
-    const where: Prisma.EmailJobWhereInput = {
+    const where: PrismaEmailJobWhereInput = {
       status: EmailJobStatus.PAUSED_LIMIT_REACHED,
     };
 
@@ -621,7 +631,7 @@ export class MailService {
         status: EmailJobStatus.QUEUED,
         scheduledAt: null,
         attempts: 0,
-        payload: previousErrorContext as Prisma.InputJsonValue,
+        payload: previousErrorContext as any,
         lastError: null,
         failureReason: null,
         retryableFailure: null,
@@ -637,7 +647,7 @@ export class MailService {
     });
   }
 
-  private async createJob(type: EmailJobType, input: QueueMailInput) {
+  private async createJob(type: EmailJobTypeValue, input: QueueMailInput) {
     const userEmail = normalizeEmail(input.userEmail || input.to || '');
     if (!userEmail) {
       throw new BadRequestException('Missing email recipient.');
@@ -689,7 +699,7 @@ export class MailService {
             recipientName: input.recipientName?.trim() || null,
             subject: safeSubject,
             templateKey: input.templateKey,
-            payload: safePayload as Prisma.InputJsonValue,
+            payload: safePayload as any,
             attempts: 0,
             maxAttempts: input.maxAttempts ?? DEFAULT_MAIL_MAX_ATTEMPTS,
             scheduledAt,
@@ -722,7 +732,7 @@ export class MailService {
         recipientName: input.recipientName?.trim() || null,
         subject: safeSubject,
         templateKey: input.templateKey,
-        payload: safePayload as Prisma.InputJsonValue,
+        payload: safePayload as any,
         attempts: 0,
         maxAttempts: input.maxAttempts ?? DEFAULT_MAIL_MAX_ATTEMPTS,
         scheduledAt,
@@ -751,7 +761,7 @@ export class MailService {
     const users = await this.prisma.user.findMany({
       where: {
         OR: emails.map((email) => ({
-          email: { equals: email, mode: Prisma.QueryMode.insensitive },
+          email: { equals: email, mode: 'insensitive' as const },
         })),
       },
       select: {

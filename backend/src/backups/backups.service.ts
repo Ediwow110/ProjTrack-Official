@@ -392,9 +392,14 @@ export class BackupsService {
   async details(id: string) {
     const run = await this.requireRun(id);
     const row = this.serializeHistoryRun(run);
-    const manifest = row.artifactAvailable && run.fileName
-      ? this.storage.readJson(run.fileName)?.manifest || null
-      : null;
+    let manifest: unknown = null;
+    if (row.artifactAvailable && run.fileName) {
+      try {
+        manifest = this.storage.readJson(run.fileName)?.manifest ?? null;
+      } catch {
+        // File may have been deleted between the describe check and this read.
+      }
+    }
     return {
       ...row,
       manifest,
@@ -479,7 +484,7 @@ export class BackupsService {
       this.prisma.submissionFile.findMany(),
       this.prisma.submissionEvent.findMany(),
       this.prisma.notification.findMany(),
-      this.prisma.emailJob.findMany(),
+      this.prisma.emailJob.findMany({ orderBy: { createdAt: 'desc' }, take: 5000 }),
       this.prisma.systemSetting.findMany(),
     ]);
 
@@ -547,7 +552,7 @@ export class BackupsService {
   private expiryForTrigger(trigger: string, baseDate = new Date(), settings?: BackupSettings) {
     const days = trigger === 'manual'
       ? Number(process.env.BACKUP_MANUAL_RETENTION_DAYS || 90)
-      : Number((settings || this.normalizeBackupSettings({})).retentionDays || process.env.BACKUP_AUTO_RETENTION_DAYS || 30);
+      : Number((settings || this.safeDefaultBackupSettings()).retentionDays || process.env.BACKUP_AUTO_RETENTION_DAYS || 30);
     return new Date(baseDate.getTime() + Math.max(1, days) * 24 * 60 * 60 * 1000);
   }
 
@@ -661,7 +666,7 @@ export class BackupsService {
       return dbResult.settings;
     }
     if (dbResult.status === 'invalid') {
-      return this.normalizeBackupSettings({});
+      return this.safeDefaultBackupSettings();
     }
 
     const legacyResult = this.readLegacyBackupSettingsFile();
@@ -670,7 +675,7 @@ export class BackupsService {
       return legacyResult.settings;
     }
 
-    return this.normalizeBackupSettings({});
+    return this.safeDefaultBackupSettings();
   }
 
   private async writeBackupSettings(settings: BackupSettings) {
@@ -750,7 +755,7 @@ export class BackupsService {
     const rawTime = String(value.timeOfDay || value.time || process.env.BACKUP_DEFAULT_TIME || '02:00').trim();
     const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTime) ? rawTime : '02:00';
     return {
-      enabled: this.booleanValue(value.enabled ?? process.env.BACKUP_SCHEDULE_ENABLED ?? false),
+      enabled: this.booleanValue(value.enabled ?? false),
       frequency: normalizedFrequency,
       timeOfDay,
       timezone: String(value.timezone || process.env.BACKUP_TIMEZONE || 'Asia/Manila').trim() || 'Asia/Manila',
@@ -937,6 +942,13 @@ export class BackupsService {
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private safeDefaultBackupSettings(): BackupSettings {
+    return {
+      ...this.normalizeBackupSettings({}),
+      enabled: false,
+    };
   }
 
   private backupWorkerEnabledByEnv() {

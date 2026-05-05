@@ -6,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   MAIL_CATEGORY_KEYS,
@@ -19,6 +18,7 @@ import { NotificationRepository } from '../repositories/notification.repository'
 import { FilesService } from '../files/files.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { PrismaJsonValue } from '../prisma/prisma-compat';
 import { AccessService } from '../access/access.service';
 import { eventActionForSubmission } from '../access/policies/submission-access.policy';
 import { canStudentEditSubmission, canTransitionSubmissionStatus, normalizeSubmissionLifecycleStatus } from './submission-lifecycle';
@@ -377,7 +377,7 @@ export class SubmissionsService {
         action: input.action,
         fromStatus: input.fromStatus || null,
         toStatus: input.toStatus || null,
-        details: input.details ? (input.details as Prisma.InputJsonValue) : undefined,
+        details: input.details ? (input.details as any) : undefined,
       },
     });
   }
@@ -475,6 +475,7 @@ export class SubmissionsService {
               templateKey: MAIL_TEMPLATE_KEYS.BROADCAST,
               subject: input.title,
               payload: {
+                firstName: user.firstName || undefined,
                 name:
                   [user.firstName, user.lastName].filter(Boolean).join(' ') ||
                   'ProjTrack user',

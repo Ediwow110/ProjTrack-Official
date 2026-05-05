@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { EmailJobStatus, EmailJobType, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { MAIL_FAILURE_REASONS, MAIL_TAGS } from '../common/constants/mail.constants';
 import {
@@ -17,6 +16,14 @@ import {
 } from '../common/constants/queue.constants';
 import { buildUnsubscribeLink } from '../common/utils/frontend-links';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  EmailJobStatus,
+  EmailJobType,
+  type EmailJobStatus as EmailJobStatusValue,
+  type EmailJobType as EmailJobTypeValue,
+  type PrismaEmailJobWhereInput,
+  type PrismaJsonValue,
+} from '../prisma/prisma-compat';
 import { MailLimitService } from './mail-limit.service';
 import { renderMailTemplate } from './mail.templates';
 import { MailService } from './mail.service';
@@ -41,9 +48,9 @@ export function isMailWorkerEnabled(env: NodeJS.ProcessEnv = process.env) {
 export { mailWorkerPollMs };
 
 export function buildDueEmailJobWhere(input: {
-  type: EmailJobType;
+  type: EmailJobTypeValue;
   now: Date;
-}): Prisma.EmailJobWhereInput {
+}): PrismaEmailJobWhereInput {
   return {
     archivedAt: null,
     type: input.type,
@@ -100,7 +107,9 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
       });
     }, this.pollMs);
 
-    void this.processDueJobs();
+    this.processDueJobs().catch((error) => {
+      this.logger.error('Initial mail worker pass failed.', error as Error);
+    });
   }
 
   isEnabled() {
@@ -162,7 +171,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async processQueueType(type: EmailJobType, take: number) {
+  private async processQueueType(type: EmailJobTypeValue, take: number) {
     const now = new Date();
     const activeProvider = this.transport.getProviderName();
     const rows = await this.prisma.emailJob.findMany({
@@ -220,7 +229,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
   private async processClaimedJob(job: {
     id: string;
     type: EmailJobType;
-    status: EmailJobStatus;
+    status: EmailJobStatusValue;
     userEmail: string;
     recipientName: string | null;
     subject: string | null;
@@ -262,7 +271,36 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      const rendered = renderMailTemplate(job.templateKey, payload);
+      let rendered: ReturnType<typeof renderMailTemplate>;
+      try {
+        rendered = renderMailTemplate(job.templateKey, payload);
+      } catch (renderError) {
+        const renderMsg = renderError instanceof Error ? renderError.message : String(renderError ?? 'Template rendering failed.');
+        this.logger.error(
+          JSON.stringify({
+            event: 'mail.template_render_failed',
+            jobId: job.id,
+            templateKey: job.templateKey,
+            workerId: this.workerId,
+            error: renderMsg,
+          }),
+        );
+        await this.prisma.emailJob.update({
+          where: { id: job.id },
+          data: {
+            status: EmailJobStatus.DEAD,
+            lastError: `Template rendering failed: ${renderMsg.slice(0, 500)}`,
+            failureReason: MAIL_FAILURE_REASONS.TEMPLATE_RENDER_FAILED,
+            retryableFailure: false,
+            lockedAt: null,
+            lockedBy: null,
+            scheduledAt: null,
+          },
+        });
+        this.lastProcessedJobAt = new Date();
+        return;
+      }
+
       const limitCheck = await this.mailLimits.checkBeforeSend(
         this.transport.getProviderName(),
         job.type,
@@ -322,7 +360,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         data: {
           status: EmailJobStatus.SENT,
           subject: resolvedSubject,
-          payload: payload as Prisma.InputJsonValue,
+        payload: payload as any,
           provider: delivery.provider,
           providerMessageId: delivery.messageId,
           sentAt: acceptedAt,
@@ -411,7 +449,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         OR: [
           { lockedAt: { lt: staleLockThreshold } },
           heartbeatWasStale ? { lockedAt: { lt: heartbeatRecoveryThreshold } } : undefined,
-        ].filter(Boolean) as Prisma.EmailJobWhereInput[],
+      ].filter(Boolean) as PrismaEmailJobWhereInput[],
       },
       select: {
         id: true,
@@ -543,7 +581,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
     reason: string | null,
     detail: string,
   ) {
-    const where: Prisma.EmailJobWhereInput = {
+    const where: PrismaEmailJobWhereInput = {
       archivedAt: null,
       id: { not: job.id },
       type: EmailJobType.BULK,

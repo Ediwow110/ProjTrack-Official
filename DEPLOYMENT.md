@@ -105,10 +105,15 @@ npm run backfill:subject-sections
 npm run backfill:submission-events
 npm run build
 npm test
+npm run test:unit
+npm run check:runtime:prod        # Phase B: boots dist/main.js under NODE_ENV=production
+npm run smoke:worker              # Phase B: boots dist/worker.js with mail+backup workers enabled
 npm audit --omit=dev
 ```
 
-Expected backend audit status is documented in `PRODUCTION_READINESS.md`.
+The two Phase B scripts run in CI on every push (see `.github/workflows/ci.yml`, backend job).
+
+Expected backend audit status is documented in `SECURITY_NOTES.md`.
 
 ## Health Checks
 
@@ -119,43 +124,48 @@ GET /health/live
 GET /health/ready
 ```
 
-Admin-only checks:
+Monitoring should alert when:
 
-```http
-GET /health/database
-GET /health/storage
-GET /health/mail
-GET /health/backups
-GET /health/configuration
-```
+| Signal | Threshold |
+| --- | --- |
+| `/health/live` 5xx or unreachable | any (page) |
+| `/health/ready` not 200 for 5 min | warning |
+| 5xx rate over 5-minute window | > 1% (warning), > 5% (page) |
+| auth failure rate over 10-minute window | > 20% of attempts |
+| mail-job `QUEUED` count | > 100 sustained 10 min |
+| mail-job oldest pending | > `MAIL_PROCESSING_STALE_MS` |
+| backup worker last successful run | > 25 hours ago |
+| disposable disk usage | > 80% |
+| DB unreachable from `/health/ready` | any (page) |
 
-Mail Jobs operator check:
+Alert ownership and escalation paths are recorded in `PRODUCTION_READINESS_AUDIT.md` § Monitoring.
 
-- worker heartbeat is fresh
-- queue depth is expected
-- `queuedTooLongCount` is zero
-- `processingTooLongCount` is zero
-- latest provider error is understood before retrying or archiving jobs
+## Phase B Operator Workflows (manual / staged)
 
-Do not ship `.env`, logs, `node_modules`, `.local-runtime`, `backend/uploads`, or `backend/data/system-tools/backups` inside the production package.
+These are honest manual workflows. They do **not** run in CI by default.
 
-## Required Theme and Silent Bug Gate
-
-Run this gate before publishing a production build:
+### Staging smoke (real accounts)
 
 ```bash
-npm run typecheck
-npm run build
-npm run check:click-targets
-npm run check:theme
+cd backend
+SMOKE_ADMIN_EMAIL=...               \
+SMOKE_ADMIN_PASSWORD=...            \
+DATABASE_URL=postgresql://...staging... \
+npm run smoke:staging:summary
 ```
 
-Then complete manual light/dark QA on Dashboard, Students, Announcements, Mail Jobs, System Tools, System Health, Backups, Settings, student login/dashboard/submissions/profile, and teacher login/dashboard/submission review/profile. Long modals and drawers must be checked at 1366x768 or a similar small laptop height. No success toast/message may be accepted unless the backend action confirms completion or queue creation. Email actions must include a MailJob ID in the response before the UI says queued or sent.
+The wrapper refuses to run when `DATABASE_URL` looks like production.
 
-## Mail and Icon Regression Notes
+### Backup / restore drill (disposable target only)
 
-Before release, verify that activation, reset, setup-link, and classroom notification actions display success only after backend confirmation. Status icons should come from the shared Bootstrap icon wrapper and use semantic tones rather than page-level one-off colors.
+```bash
+BACKUP_DRILL_SOURCE_DATABASE_URL=postgresql://...staging... \
+BACKUP_DRILL_TARGET_DATABASE_URL=postgresql://...drill-disposable... \
+BACKUP_DRILL_CONFIRM_DISPOSABLE=YES_I_UNDERSTAND \
+node backend/scripts/backup-restore-drill.mjs
+```
 
-## Required Visual Regression Check
-
-After any theme or portal-page change, test dark mode on Groups, Reports, Release Status, Deployment Checklist, Profile, Mail Jobs, System Tools, and dashboard pages. Confirm legacy cards are not white-on-dark, headings are readable, semantic icons remain visible, chart labels are readable, and no modal/action footer is clipped.
+The script refuses to run unless the target URL contains a disposable hint
+(`disposable`, `drill`, `scratch`, `throwaway`, `tmp`, `temp`, `test`) and
+does not match any production pattern, and unless the explicit confirmation
+env var is set.

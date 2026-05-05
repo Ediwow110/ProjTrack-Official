@@ -1,0 +1,65 @@
+# ProjTrack reverse proxy.
+# Place at /etc/caddy/Caddyfile and reload with `systemctl reload caddy`.
+#
+# Caddy auto-issues Let's Encrypt certs for each named site once DNS resolves
+# to this Droplet. If certs fail to issue, check that A records exist and that
+# ports 80/443 are reachable from the public internet.
+
+{
+	email ops@projtrack.codes
+	# Uncomment to use Let's Encrypt staging while testing certs:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# ----- Production frontend (static SPA) -----
+projtrack.codes, www.projtrack.codes {
+	root * /var/www/projtrack
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+	}
+}
+
+# ----- Production backend API -----
+api.projtrack.codes {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+# ----- Staging frontend -----
+staging.projtrack.codes {
+	root * /var/www/projtrack-staging
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Robots-Tag "noindex, nofollow"
+	}
+}
+
+# ----- Staging backend API -----
+api-staging.projtrack.codes {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3002 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Robots-Tag "noindex, nofollow"
+	}
+}

@@ -193,7 +193,31 @@ function classification(
   };
 }
 
+function isNestJsException(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as Record<string, unknown>;
+  const hasNestResponse = typeof e.response === 'object' && e.response !== null && !Buffer.isBuffer(e.response);
+  const hasNestName = typeof e.name === 'string' && (
+    e.name.endsWith('Exception') ||
+    e.name === 'BadRequestException' ||
+    e.name === 'NotFoundException' ||
+    e.name === 'UnauthorizedException' ||
+    e.name === 'ForbiddenException' ||
+    e.name === 'InternalServerErrorException'
+  );
+  return hasNestResponse || hasNestName;
+}
+
 export function classifyProviderError(error: unknown): MailProviderErrorClassification {
+  if (isNestJsException(error)) {
+    const message = getErrorMessage(error);
+    return classification(MAIL_FAILURE_REASONS.UNKNOWN_PROVIDER_ERROR, {
+      retryable: false,
+      reason: `Mail job failed due to an internal application error: ${truncate(message, 300)}`,
+      statusCode: undefined,
+    });
+  }
+
   const statusCode = getStatusCode(error);
   const message = getErrorMessage(error);
   const providerDetail = sanitizeProviderReason(message);

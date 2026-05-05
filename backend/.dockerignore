@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+coverage
+.env
+.env.*
+!.env.*.example
+data
+uploads
+*.log
+docs
+README.md
+docker-compose*.yml
+scripts/*.cmd
+scripts/*.ps1
+test
+**/*.spec.ts

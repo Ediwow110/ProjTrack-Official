@@ -752,9 +752,21 @@ export interface AdminSectionCreateInput {
   description?: string;
 }
 
+export interface AdminCourseRecord {
+  id: string;
+  name: string;
+  code: string | null;
+  description: string | null;
+  sortOrder: number | null;
+  yearLevelCount: number;
+  sectionCount?: number;
+  studentCount?: number;
+}
+
 export interface AdminAcademicYearLevelRecord {
   id: string;
   name: string;
+  courseId: string | null;
   sectionCount: number;
   studentCount: number;
 }
@@ -768,6 +780,7 @@ export interface AdminAcademicYearRecord {
   courseCount: number;
   yearLevelCount: number;
   yearLevels: AdminAcademicYearLevelRecord[];
+  courses: AdminCourseRecord[];
 }
 
 export interface SectionMasterListStudentRecord {

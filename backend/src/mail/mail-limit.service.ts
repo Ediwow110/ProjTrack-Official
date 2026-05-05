@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { EmailJobStatus, EmailJobType } from '@prisma/client';
 import {
   MAIL_FAILURE_REASONS,
   MAIL_PROVIDER_NAMES,
@@ -9,6 +8,7 @@ import {
   MAIL_LIMIT_ENV_KEYS,
 } from '../common/constants/mail-policy.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailJobStatus, EmailJobType, type EmailJobType as EmailJobTypeValue } from '../prisma/prisma-compat';
 
 export type MailLimitReason =
   (typeof MAIL_FAILURE_REASONS)[keyof typeof MAIL_FAILURE_REASONS];
@@ -58,7 +58,7 @@ function providerLabel(provider: string) {
 export class MailLimitService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async checkBeforeSend(provider: string, type: EmailJobType): Promise<MailLimitCheckResult> {
+  async checkBeforeSend(provider: string, type: EmailJobTypeValue): Promise<MailLimitCheckResult> {
     if (
       provider !== MAIL_PROVIDER_NAMES.MAILRELAY &&
       provider !== MAIL_PROVIDER_NAMES.SENDER

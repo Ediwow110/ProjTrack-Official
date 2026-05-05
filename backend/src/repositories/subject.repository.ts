@@ -1,15 +1,15 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
+import { hasPrismaErrorCode } from '../prisma/prisma-compat';
 
 @Injectable()
 export class SubjectRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private isUniqueConstraintError(error: unknown) {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+    return hasPrismaErrorCode(error, 'P2002');
   }
 
   private buildInviteCode() {

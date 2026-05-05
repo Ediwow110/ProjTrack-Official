@@ -1264,6 +1264,7 @@ export class SubjectsService {
             templateKey: input.templateKey,
             subject: input.title,
             payload: {
+              firstName: user.firstName || undefined,
               name:
                 [user.firstName, user.lastName].filter(Boolean).join(' ') ||
                 'Student',
