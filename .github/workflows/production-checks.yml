@@ -147,6 +147,15 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_USE_BACKEND: "true"
       VITE_API_BASE_URL: http://127.0.0.1:3001
+      # Required by all e2e smoke specs and authenticated-responsive.spec.ts.
+      # Without all six, npm run e2e:smoke fails loudly via scripts/check-smoke-env.mjs
+      # rather than silently exiting 0 with every test skipped.
+      SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+      SMOKE_TEACHER_IDENTIFIER: ${{ secrets.SMOKE_TEACHER_IDENTIFIER }}
+      SMOKE_TEACHER_PASSWORD: ${{ secrets.SMOKE_TEACHER_PASSWORD }}
+      SMOKE_STUDENT_IDENTIFIER: ${{ secrets.SMOKE_STUDENT_IDENTIFIER }}
+      SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -162,5 +171,12 @@ jobs:
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
       - run: npm --prefix backend run build
+      - name: Smoke env preflight (fails loudly if SMOKE_* secrets missing)
+        run: npm run check:smoke-env
+      - name: Seed deterministic smoke fixtures
+        run: npm run seed:smoke
       - run: npm run e2e:smoke
         timeout-minutes: 15
+      - name: Run authenticated responsive QA
+        run: npm run e2e:responsive:auth
+        timeout-minutes: 10

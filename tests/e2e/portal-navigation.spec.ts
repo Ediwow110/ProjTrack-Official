@@ -5,8 +5,8 @@ const accounts = {
     role: "student",
     identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
     password: process.env.SMOKE_STUDENT_PASSWORD || "",
-    identifierLabel: /Student ID or Email/i,
-    buttonName: /Continue to Student Portal Login/i,
+    identifierLabel: /Email or Student ID/i,
+    buttonName: /^Sign In$/i,
     dashboardPath: "/student/dashboard",
     routes: [
       "/student/dashboard",
@@ -21,8 +21,8 @@ const accounts = {
     role: "teacher",
     identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
     password: process.env.SMOKE_TEACHER_PASSWORD || "",
-    identifierLabel: /Employee ID or School Email/i,
-    buttonName: /Continue to Teacher Portal Login/i,
+    identifierLabel: /Email or Teacher ID/i,
+    buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
     routes: [
       "/teacher/dashboard",
@@ -37,8 +37,8 @@ const accounts = {
     role: "admin",
     identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
     password: process.env.SMOKE_ADMIN_PASSWORD || "",
-    identifierLabel: /Admin Email/i,
-    buttonName: /Continue to Admin Portal Login/i,
+    identifierLabel: /Email or Admin ID/i,
+    buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
     routes: [
       "/admin/dashboard",
@@ -161,7 +161,8 @@ test("public entry points resolve to student login without portal chooser UI", a
   for (const route of ["/", "/login", "/portals"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/student\/login$/);
-    await expect(page.getByRole("heading", { name: /^Student Portal Login$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Welcome Back!/i, level: 2 })).toBeVisible();
+    await expect(page.getByText(/Student Portal Login/i)).toBeVisible();
     await expect(page.getByText(forbiddenChooserCopy)).toHaveCount(0);
     await expect(page.getByText(/^Teacher Portal$/i)).toHaveCount(0);
     await expect(page.getByText(/^Admin Portal$/i)).toHaveCount(0);

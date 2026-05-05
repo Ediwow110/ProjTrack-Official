@@ -93,3 +93,22 @@ npm run e2e:smoke
 
 - Owner for student/teacher seed remediation: TBD.
 - Final decision today: **Conditional staging-ready, NOT production-ready.** Do not flip PR #8 to Ready for Review until full smoke produces a non-skipped Pass.
+
+### 2026-05-06 (later) — local Windows host with deterministic fixtures
+
+This is the first run with real fixtures and the new skip-green guard.
+
+- Branch / commit: `production-hardening-repo-audit`, working tree on top of `fb3a909`.
+- New scripts: `scripts/check-smoke-env.mjs`, `backend/scripts/ensure-smoke-fixtures.js`, `tests/e2e/authenticated-responsive.spec.ts`.
+- Skip-green guard verified: `npm run e2e:smoke` without `SMOKE_*` vars now exits 1 with a clear list of missing names instead of silently passing 13 skips.
+- `npm run seed:smoke` (idempotent): provisioned admin, teacher, student, AY, section, subject, subject-section, enrollment.
+- `npm run e2e:smoke`:
+  - `tests/e2e/auth-smoke.spec.ts`: **5/5 PASS** (16.9s) — home redirect, protected redirect, student/teacher/admin login → dashboard.
+  - `tests/e2e/portal-navigation.spec.ts`: **3/4 PASS** (~2 min including retry on the failing test). Public entry points, student sidebar, teacher sidebar all green. Admin sidebar deep-nav into `/admin/sections` failed: see Defects in scorecard.
+  - `tests/e2e/workflow-smoke.spec.ts`: not reached because `run-e2e-smoke.mjs` exits on the first non-transient failure.
+- `npm run e2e:responsive:auth`: **9/9 PASS** (25.9s) — student/teacher/admin dashboards at 390x844, 768x1024, 1440x900.
+
+### Remaining smoke blockers
+
+- Two pre-existing defects (one backend 500 on `/admin/sections`, one frontend nested-`<button>` warning) cause portal-navigation test 4 to fail. Fix them or scope-isolate them before flipping the smoke gate to "all green".
+- workflow-smoke has not been verified yet against the seeded fixtures. After the two defects are addressed, rerun `npm run e2e:smoke` and confirm all 13 tests pass.
