@@ -32,12 +32,64 @@ Run this after deploying to staging and before approving production.
 
 ## Evidence
 
-- `npm run check:smoke-deps` result:
-- `npm run e2e:responsive` result:
-- `npm run e2e:smoke` result:
-- If blocked, exact infrastructure blocker:
-- Command output link or pasted summary:
-- Screenshots:
-- Failed checks:
-- Owner for remediation:
-- Final decision:
+### 2026-05-06 — local Windows host (not staging)
+
+This is a local-host preflight, not a staging run. Use it as a template for the next real staging session.
+
+- Branch / commit: `production-hardening-repo-audit` @ `1b18739`.
+- Tester: local engineer (automated in Cascade session).
+- `npm run check:smoke-deps`: **Pass**. All five rows green:
+  ```
+  [PASS] Docker CLI
+  [PASS] Docker Compose
+  [PASS] Local PostgreSQL compose file
+  [PASS] Docker daemon
+  [PASS] PostgreSQL reachable at 127.0.0.1:5432
+  ```
+- `npm run e2e:responsive`: **Pass**, 24/24 tests across 8 viewports (360x800, 390x844, 430x932, 768x1024, 1024x768, 1366x768, 1440x900, 1920x1080) for `/student/login`, `/teacher/login`, `/admin/login`.
+- `npm run e2e:smoke`: **Blocked (skipped)**. The Playwright runner exited 0 because all 13 tests were skipped. The auth-smoke, portal-navigation, and workflow-smoke specs all gate on `SMOKE_{STUDENT,TEACHER,ADMIN}_IDENTIFIER` and `SMOKE_{STUDENT,TEACHER,ADMIN}_PASSWORD` being set. None were set in this session.
+- Backend snapshot for the same commit:
+  - `prisma validate`: Pass.
+  - `prisma migrate deploy`: 19 migrations applied (3 new today: `add_department_table`, `add_course_layer`, `backup_settings_json`).
+  - `npm --prefix backend test`: production-hardening-checks Pass.
+  - `npm --prefix backend run test:unit`: Jest 15 suites / 264 tests Pass in 25.0s.
+  - `check:boot:production` and `check:boot:worker`: Pass.
+  - `npm audit --audit-level=high` (frontend + backend): 0 vulnerabilities.
+
+### Exact infrastructure blocker for full smoke
+
+Repository ships only `backend/scripts/ensure-smoke-admin.js`, which provisions an admin user given `SMOKE_ADMIN_EMAIL` + `SMOKE_ADMIN_PASSWORD`. There is **no equivalent script** to seed:
+
+- A `STUDENT` user (with section/subject enrolment).
+- A `TEACHER` user (with subject assignment).
+
+Until those exist, every CI/local smoke run will silently skip every smoke test, producing exit 0 with zero real assertions.
+
+### Required commands once student/teacher accounts exist
+
+```pwsh
+# 1. Bring up local deps (or point to staging)
+npm run prepare:local
+npm run check:smoke-deps
+
+# 2. Provision the admin
+$env:SMOKE_ADMIN_EMAIL = "ci-smoke-admin@projtrack.local"
+$env:SMOKE_ADMIN_PASSWORD = "..."  # local-only, never reuse in prod
+npm --prefix backend run smoke:admin:ensure
+
+# 3. Set all six smoke creds (student + teacher must already exist in DB)
+$env:SMOKE_STUDENT_IDENTIFIER = "..."
+$env:SMOKE_STUDENT_PASSWORD   = "..."
+$env:SMOKE_TEACHER_IDENTIFIER = "..."
+$env:SMOKE_TEACHER_PASSWORD   = "..."
+$env:SMOKE_ADMIN_IDENTIFIER   = $env:SMOKE_ADMIN_EMAIL
+
+# 4. Run smoke
+npm run e2e:responsive
+npm run e2e:smoke
+```
+
+### Owner / final decision
+
+- Owner for student/teacher seed remediation: TBD.
+- Final decision today: **Conditional staging-ready, NOT production-ready.** Do not flip PR #8 to Ready for Review until full smoke produces a non-skipped Pass.

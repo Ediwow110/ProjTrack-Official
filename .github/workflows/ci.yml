@@ -21,6 +21,17 @@ jobs:
       - run: npm run check:frontend-env
       - run: npm run typecheck
       - run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - run: npx playwright install --with-deps chromium
+      - name: Auth responsive tests (no backend required)
+        run: npm run e2e:responsive
+        timeout-minutes: 10
       - run: npm run security:audit
 
   backend:
