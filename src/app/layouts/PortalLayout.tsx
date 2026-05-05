@@ -474,7 +474,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
   return (
     <div
       className={cn(
-        "relative flex h-screen w-full overflow-hidden bg-[var(--surface-canvas)] dark:bg-[var(--surface-canvas)]",
+        "relative flex h-dvh w-full overflow-hidden bg-[var(--surface-canvas)] dark:bg-[var(--surface-canvas)]",
         `portal-role-${role}`,
       )}
       style={roleThemeStyle(role)}
@@ -508,7 +508,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             <motion.div key="drawer" initial="hidden" animate="visible" exit="exit"
               variants={slideInVariants(reducedMotion, { axis: "x", distance: -296 })}
               transition={springTransition(reducedMotion, { stiffness: 380, damping: 40 })}
-              className="fixed top-0 left-0 bottom-0 z-50 w-[280px] p-3">
+              className="fixed top-0 left-0 bottom-0 z-50 w-[min(280px,calc(100vw-1rem))] p-3">
               <SidebarContent
                 role={role}
                 collapsed={false}
@@ -524,9 +524,9 @@ export function PortalLayout({ role }: { role: PortalRole }) {
       </AnimatePresence>
 
       {/* Main */}
-      <div className="relative z-10 flex-1 flex flex-col overflow-hidden pb-3 pr-3">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden px-3 pb-3 lg:pl-0">
         {/* Topbar */}
-        <header className="mt-3 flex h-[72px] items-center gap-4 rounded-[var(--radius-panel)] border border-white/65 bg-[var(--surface-shell)] px-4 shadow-[0_20px_65px_-42px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-[var(--surface-shell)] sm:px-6">
+        <header className="mt-3 flex min-h-[64px] items-center gap-2 rounded-[var(--radius-panel)] border border-white/65 bg-[var(--surface-shell)] px-3 py-2 shadow-[0_20px_65px_-42px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-[var(--surface-shell)] sm:min-h-[72px] sm:gap-4 sm:px-6">
           <button
             onClick={() => {
               if (isMobile) {
@@ -546,7 +546,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
           >
             {isMobile ? <Menu size={18} /> : collapsed ? <Menu size={18} /> : <Menu size={18} />}
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1 sm:flex-none">
             <div className="flex items-center gap-2">
               <p className="font-display truncate text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">{pathLabel}</p>
               <span className="portal-topbar-pill hidden rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] sm:inline-flex">
@@ -555,7 +555,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             </div>
             <p className="portal-accent-text text-[10px] font-semibold uppercase tracking-[0.22em]">{cfg.label}</p>
           </div>
-          <div className="flex-1" />
+          <div className="hidden flex-1 sm:block" />
           {/* Search */}
           <div className="portal-search-focus hidden w-56 items-center gap-2 rounded-[var(--radius-card)] border border-slate-200/80 bg-white/70 px-4 py-2 transition-all dark:border-slate-700/60 dark:bg-slate-900/70 sm:flex">
             <Search size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />

@@ -201,6 +201,7 @@ export function DataTableCard<T>({
         <div className="p-5 sm:p-6">{emptyState}</div>
       ) : (
         <>
+          <div className="w-full overflow-x-auto">
           <Table className={cn("min-w-[1040px]", tableClassName)}>
             <TableHeader className="portal-table-header">
               <TableRow className="hover:bg-transparent">
@@ -307,7 +308,7 @@ export function DataTableCard<T>({
                     ))}
                     {rowActions ? (
                       <TableCell className="px-5 py-4">
-                        <div className="flex items-center gap-1">
+                        <div className="flex min-w-max flex-wrap items-center gap-1">
                           {visibleActions.map((item) => {
                             const label =
                               typeof item.label === "function" ? item.label(row) : item.label;
@@ -365,6 +366,7 @@ export function DataTableCard<T>({
               })}
             </TableBody>
           </Table>
+          </div>
 
           {totalPages > 1 ? (
             <div className="portal-border flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
