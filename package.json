@@ -17,6 +17,7 @@
     "doctor:local": "node ./scripts/doctor-local.mjs",
     "e2e:smoke": "node ./scripts/run-e2e-smoke.mjs",
     "e2e:responsive": "playwright test --config=playwright.responsive.config.ts",
+    "check:smoke-deps": "node ./scripts/check-smoke-deps.mjs",
     "frontend:local": "node ./scripts/frontend-local.mjs",
     "prepare:local": "scripts\\prepare-local.cmd",
     "start": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\start-local.ps1",

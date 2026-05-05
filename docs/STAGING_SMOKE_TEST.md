@@ -13,6 +13,10 @@ Run this after deploying to staging and before approving production.
 
 ## Checks
 
+- Local preflight before browser smoke: `npm run check:smoke-deps`.
+- Local dependency startup, if needed: start Docker Desktop, then run `npm run prepare:local`.
+- Browser smoke command: `npm run e2e:smoke`.
+- Auth responsive command: `npm run e2e:responsive`.
 - `/health/live` returns `ok: true`.
 - `/health/ready` returns `ok: true` or lists only accepted non-blocking warnings.
 - Admin can sign in and view system health.
@@ -28,6 +32,10 @@ Run this after deploying to staging and before approving production.
 
 ## Evidence
 
+- `npm run check:smoke-deps` result:
+- `npm run e2e:responsive` result:
+- `npm run e2e:smoke` result:
+- If blocked, exact infrastructure blocker:
 - Command output link or pasted summary:
 - Screenshots:
 - Failed checks:

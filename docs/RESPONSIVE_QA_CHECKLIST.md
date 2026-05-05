@@ -86,20 +86,21 @@ Use this checklist to verify ProjTrack is usable across mobile, tablet, and desk
 
 | Size | Auth | Student | Teacher | Admin | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `360x800` | Pending | Pending | Pending | Pending | Verify mobile keyboard and no horizontal overflow. |
-| `390x844` | Pending | Pending | Pending | Pending | Verify common phone viewport. |
-| `430x932` | Pending | Pending | Pending | Pending | Verify large phone viewport. |
-| `768x1024` | Pending | Pending | Pending | Pending | Verify portrait tablet. |
-| `1024x768` | Pending | Pending | Pending | Pending | Verify landscape tablet. |
-| `1366x768` | Pending | Pending | Pending | Pending | Verify compact desktop. |
-| `1440x900` | Pending | Pending | Pending | Pending | Verify standard desktop. |
-| `1920x1080` | Pending | Pending | Pending | Pending | Verify wide desktop. |
+| `360x800` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `390x844` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `430x932` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `768x1024` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `1024x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `1366x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `1440x900` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
+| `1920x1080` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated route QA needs seeded or real accounts. |
 
 ## 11. Known Remaining Issues
 
 - Authenticated route QA requires a working backend and seeded or real test accounts.
 - E2E smoke remains blocked locally if PostgreSQL is not reachable at `localhost:5432`.
 - Manual visual review is still required for every role dashboard before production launch.
+- Current local run proved auth pages only; admin, teacher, and student dashboards are not yet production-approved for responsive launch.
 
 ## 12. Signoff Section
 

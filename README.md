@@ -42,6 +42,8 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - Backend smoke suite (local mutation-safe): `npm --prefix backend run smoke:local`
 - Backend smoke suite (real accounts, non-destructive): `npm --prefix backend run smoke:real`
 - Browser auth smoke suite: `npm run e2e:smoke`
+- Browser auth responsive suite: `npm run e2e:responsive`
+- Smoke dependency preflight: `npm run check:smoke-deps`
 
 ## Smoke modes
 
@@ -98,7 +100,8 @@ Use this local sequence instead:
 1. Start Docker Desktop.
 2. Run `npm install` and `npm --prefix backend install` if dependencies are missing.
 3. Run `npm run prepare:local` to start PostgreSQL/MinIO, generate Prisma, and migrate.
-4. Run `npm run backend:local` for the backend only, or `npm start` for backend + frontend.
-5. Run `npm run backend:doctor` when startup still fails.
+4. Run `npm run check:smoke-deps` to confirm Docker is reachable and PostgreSQL is listening on `127.0.0.1:5432`.
+5. Run `npm run e2e:smoke` for the browser smoke suite, `npm run backend:local` for the backend only, or `npm start` for backend + frontend.
+6. Run `npm run backend:doctor` when startup still fails.
 
 The local launch scripts now inject safe development defaults: local PostgreSQL, stub mail, local file storage, disabled mail worker, and non-production JWT secrets. This avoids accidentally using production-style env values during development. Production deploys must still use real secrets and the production checklist.
