@@ -158,12 +158,14 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_USE_BACKEND: "true"
       VITE_API_BASE_URL: http://127.0.0.1:3001
-      # Legacy single-account vars (kept for backend smoke:real script compatibility).
+      # Legacy single-account vars are kept only for backend smoke:real compatibility.
+      # They are not sufficient for browser smoke evidence.
       SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
       SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
-      # Vars required by tests/e2e/auth-smoke.spec.ts, portal-navigation.spec.ts,
-      # workflow-smoke.spec.ts, and authenticated-responsive.spec.ts. Without all six,
-      # `npm run e2e:smoke` will fail loudly via scripts/check-smoke-env.mjs (no skip-green).
+      # Real browser smoke requires all six vars below.
+      # auth-smoke.spec.ts, portal-navigation.spec.ts, workflow-smoke.spec.ts,
+      # and authenticated-responsive.spec.ts all depend on these credentials.
+      # If any are missing, scripts/check-smoke-env.mjs fails loudly before Playwright can skip.
       SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
       SMOKE_TEACHER_IDENTIFIER: ${{ secrets.SMOKE_TEACHER_IDENTIFIER }}
       SMOKE_TEACHER_PASSWORD: ${{ secrets.SMOKE_TEACHER_PASSWORD }}
@@ -193,7 +195,7 @@ jobs:
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
       - run: npm --prefix backend run build
-      - name: Smoke env preflight (fails loudly if SMOKE_* secrets missing)
+      - name: Smoke env preflight (requires all six SMOKE_* secrets; no skip-green)
         run: npm run check:smoke-env
       - name: Seed deterministic smoke fixtures
         run: npm run seed:smoke

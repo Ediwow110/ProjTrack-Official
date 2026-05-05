@@ -2,6 +2,35 @@
 
 Run this after deploying to staging and before approving production.
 
+## GitHub Actions smoke secrets
+
+GitHub Actions browser smoke requires all six repository secrets:
+
+- `SMOKE_ADMIN_IDENTIFIER`
+- `SMOKE_ADMIN_PASSWORD`
+- `SMOKE_TEACHER_IDENTIFIER`
+- `SMOKE_TEACHER_PASSWORD`
+- `SMOKE_STUDENT_IDENTIFIER`
+- `SMOKE_STUDENT_PASSWORD`
+
+Add them in `GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret`.
+
+- Use test-only or staging-only credentials.
+- Do not use production user credentials.
+- Do not commit these values.
+- Admin-only secrets are not enough for real smoke.
+
+Safe identifier placeholders:
+
+- `teacher.smoke@example.test`
+- `student.smoke@example.test`
+
+For passwords, use strong test-only values stored only as GitHub secrets.
+
+After adding the missing secrets, rerun the failed `CI` and `Production Checks` workflows from the Actions UI.
+
+See [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md) for the full checklist.
+
 ## Environment
 
 - Staging frontend URL:
@@ -150,3 +179,4 @@ This pass fixed the two real defects surfaced by the earlier real smoke run, but
 - Real smoke is still not re-verified after those fixes because this shell does not have `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, or `SMOKE_STUDENT_PASSWORD`.
 - workflow-smoke remains unverified in the post-fix state.
 - PR #8 must remain Draft until a post-fix `npm run e2e:smoke` run executes all smoke specs and GitHub CI is green.
+- GitHub Actions is expected to fail until the four missing teacher/student smoke secrets are added.

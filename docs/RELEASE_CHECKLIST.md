@@ -19,13 +19,33 @@ Use this checklist for every staging or production release. Do not approve publi
 - Prisma migrations reviewed and deployed with `prisma migrate deploy`.
 - Production API boot check passed.
 - Production worker boot check passed.
-- Playwright smoke test passed or documented as intentionally skipped.
+- Playwright smoke test passed, or is explicitly blocked with attached evidence. A skipped smoke run is not production evidence.
 - `npm audit --audit-level=high` passed for frontend and backend or exceptions were approved.
 - Secret scan passed.
 - Staging smoke evidence attached.
 - Backup restore evidence attached.
 - Monitoring evidence attached.
 - Rollback plan reviewed.
+
+## GitHub Actions smoke secrets
+
+Real GitHub Actions browser smoke requires these repository secrets:
+
+- `SMOKE_ADMIN_IDENTIFIER`
+- `SMOKE_ADMIN_PASSWORD`
+- `SMOKE_TEACHER_IDENTIFIER`
+- `SMOKE_TEACHER_PASSWORD`
+- `SMOKE_STUDENT_IDENTIFIER`
+- `SMOKE_STUDENT_PASSWORD`
+
+Add them in `Settings -> Secrets and variables -> Actions`.
+
+- Use test-only or staging-only credentials.
+- Do not use production credentials.
+- Do not commit these values.
+- Admin-only secrets are not enough.
+
+See [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md).
 
 ## Release Decision
 

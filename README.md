@@ -50,6 +50,9 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - `npm --prefix backend run smoke:local` is intended for local or disposable environments. It exercises forgot-password persistence, admin profile updates, avatar uploads, and storage roundtrips.
 - `npm --prefix backend run smoke:real` is intended for staging or production-like environments with real accounts. It verifies health, login, refresh, logout, and throttling while skipping destructive checks.
 - Real-account smoke credentials can use either `SMOKE_*_IDENTIFIER` or `SMOKE_*_EMAIL`, plus the matching `SMOKE_*_PASSWORD`.
+- GitHub Actions browser smoke uses these exact repository secret names: `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, `SMOKE_STUDENT_PASSWORD`.
+- Admin-only secrets are not enough for GitHub Actions smoke. Teacher and student credentials are required for real smoke evidence.
+- GitHub Actions smoke secret setup is documented in [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md).
 - The full Phase 7 operator prompt lives in [PHASE7_SMOKE_REAL_ACCOUNTS_PROMPT.md](/PHASE7_SMOKE_REAL_ACCOUNTS_PROMPT.md).
 
 ## Runtime notes
