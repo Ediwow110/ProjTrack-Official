@@ -147,16 +147,12 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_USE_BACKEND: "true"
       VITE_API_BASE_URL: http://127.0.0.1:3001
-      # Real browser smoke requires all six SMOKE_* secrets below.
-      # Admin-only credentials are not enough because workflow-smoke and portal-navigation
-      # exercise teacher and student flows too.
-      # If any required secret is missing, check-smoke-env fails loudly before Playwright runs.
+      # Real browser smoke requires admin credentials up front.
+      # Teacher/student smoke accounts are generated during seed:smoke and still
+      # exercise those flows in Playwright.
+      # If admin secrets are missing, check-smoke-env fails loudly before Playwright runs.
       SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
       SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
-      SMOKE_TEACHER_IDENTIFIER: ${{ secrets.SMOKE_TEACHER_IDENTIFIER }}
-      SMOKE_TEACHER_PASSWORD: ${{ secrets.SMOKE_TEACHER_PASSWORD }}
-      SMOKE_STUDENT_IDENTIFIER: ${{ secrets.SMOKE_STUDENT_IDENTIFIER }}
-      SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -172,7 +168,7 @@ jobs:
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
       - run: npm --prefix backend run build
-      - name: Smoke env preflight (requires all six SMOKE_* secrets; no skip-green)
+      - name: Smoke env preflight (requires admin smoke secrets; no skip-green)
         run: npm run check:smoke-env
       - name: Seed deterministic smoke fixtures
         run: npm run seed:smoke

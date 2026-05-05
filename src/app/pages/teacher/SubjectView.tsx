@@ -139,7 +139,16 @@ export default function TeacherSubjectView() {
     setSaving(true);
     try {
       const payload = {
-        ...activityForm,
+        title: activityForm.title,
+        instructions: activityForm.instructions,
+        deadline: activityForm.deadline,
+        openAt: activityForm.openAt,
+        closeAt: activityForm.closeAt,
+        submissionMode: activityForm.submissionMode,
+        allowLateSubmission: activityForm.allowLateSubmission,
+        maxFileSizeMb: activityForm.maxFileSizeMb,
+        externalLinksAllowed: activityForm.externalLinksAllowed,
+        notifyByEmail: activityForm.notifyByEmail,
         acceptedFileTypes: activityForm.acceptedFileTypesText
           .split(",")
           .map((item) => item.trim())

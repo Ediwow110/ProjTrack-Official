@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { smokeCredentials } from "./helpers/smoke-credentials";
 
 const backendRoot = path.resolve(fileURLToPath(new URL("../../backend/", import.meta.url)));
 const backendRequire = createRequire(path.join(backendRoot, "package.json"));
@@ -34,35 +35,29 @@ const prisma = new PrismaClient();
 const accounts = {
   student: {
     role: "student",
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
-    password: process.env.SMOKE_STUDENT_PASSWORD || "",
+    identifier: smokeCredentials.student.identifier,
+    password: smokeCredentials.student.password,
     identifierLabel: /Email or Student ID/i,
     buttonName: /^Sign In$/i,
     dashboardPath: "/student/dashboard",
   },
   teacher: {
     role: "teacher",
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
-    password: process.env.SMOKE_TEACHER_PASSWORD || "",
+    identifier: smokeCredentials.teacher.identifier,
+    password: smokeCredentials.teacher.password,
     identifierLabel: /Email or Teacher ID/i,
     buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
   },
   admin: {
     role: "admin",
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "",
+    identifier: smokeCredentials.admin.identifier,
+    password: smokeCredentials.admin.password,
     identifierLabel: /Email or Admin ID/i,
     buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
   },
 } as const;
-
-const hasSmokeCredentials = [accounts.student, accounts.teacher, accounts.admin].every(
-  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
-);
-
-test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e workflow smoke.');
 
 type RuntimeTracker = {
   consoleErrors: string[];

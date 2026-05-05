@@ -450,10 +450,8 @@ export default function AdminSections() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {academicYears.map((year) => (
-                <button
+                <div
                   key={year.id}
-                  type="button"
-                  onClick={() => openAcademicYear(year)}
                   className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -481,10 +479,17 @@ export default function AdminSections() {
                     <Metric label="Students" value={year.studentCount} />
                   </div>
                   <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
-                    <span>Open academic year</span>
-                    <ChevronRight size={14} />
+                    <button
+                      type="button"
+                      onClick={() => openAcademicYear(year)}
+                      className="flex w-full items-center justify-between text-xs font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:text-slate-100"
+                      aria-label={`Open academic year ${year.name}`}
+                    >
+                      <span>Open academic year</span>
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )
@@ -522,10 +527,8 @@ export default function AdminSections() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {(selectedYear.courses ?? []).map((course) => (
-                  <button
+                  <div
                     key={course.id}
-                    type="button"
-                    onClick={() => openCourse(course)}
                     className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/88 p-5 text-left shadow-[var(--shadow-soft)] transition hover:border-slate-300 hover:bg-white dark:hover:bg-slate-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:hover:border-slate-500/80 dark:hover:bg-slate-900/80"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -558,10 +561,17 @@ export default function AdminSections() {
                       <Metric label="Sections" value={course.sectionCount ?? 0} />
                     </div>
                     <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-300">
-                      <span>Open course</span>
-                      <ChevronRight size={14} />
+                      <button
+                        type="button"
+                        onClick={() => openCourse(course)}
+                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:text-slate-300 dark:hover:text-slate-100"
+                        aria-label={`Open course ${course.name}`}
+                      >
+                        <span>Open course</span>
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

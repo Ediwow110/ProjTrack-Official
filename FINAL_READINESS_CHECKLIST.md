@@ -14,7 +14,7 @@ manual section are NOT marked complete unless a real run was performed.
 - [X] `.github/workflows/production-candidate.yml` runs the production-candidate verification on Linux.
 - [X] Both workflows are green on `main` (commit `4144b25d` and successors).
 - [ ] **CI workflow patch applied** — `docs/phase-b/ci-workflow.patch` adds three Phase B steps (`runtime-safety` jest, `check:runtime:prod`, `smoke:worker`). The PAT used by build automation lacks `workflow` scope and cannot push to `.github/workflows/*.yml`. *Action:* a maintainer must apply the patch via PR or edit `ci.yml` in the GitHub web UI.
-- [ ] **All six GitHub Actions smoke secrets configured** — `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, `SMOKE_STUDENT_PASSWORD`. Admin-only secrets are not enough for real browser smoke.
+- [ ] **GitHub Actions admin smoke secrets configured** — `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`. Teacher/student smoke credentials are generated during `seed:smoke`; optional `SMOKE_TEACHER_*` and `SMOKE_STUDENT_*` overrides are for local debugging only.
 
 ## Frontend Build and Validation (CI verified)
 - [X] Frontend typecheck (`npm run typecheck`) passes in CI.
@@ -55,7 +55,7 @@ manual section are NOT marked complete unless a real run was performed.
 
 ## Manual / Human-Required (NOT marked complete unless actually performed)
 - [ ] **Apply `docs/phase-b/ci-workflow.patch`** via PR (PAT with `workflow` scope or a manual edit on github.com).
-- [ ] **Add the four missing GitHub Actions smoke secrets** for teacher and student accounts. *Status:* admin smoke secrets exist; teacher/student secrets still missing.
+- [ ] **Verify the admin GitHub Actions smoke secrets are present and valid**. *Status:* admin-only repo secrets are the correct design; teacher/student secrets are no longer required because fixture seeding generates those credentials.
 - [ ] **DigitalOcean Droplet provisioned** and bootstrap script run successfully.
 - [ ] **DO Managed Postgres** created (production + staging clusters) and reachable from the Droplet.
 - [ ] **DO Spaces** buckets created (uploads-prod, uploads-staging, backups-prod) and access keys minted.
@@ -91,7 +91,7 @@ The branch is stronger than before, but it still does not have the evidence requ
 
 1. Post-fix real `npm run e2e:smoke` evidence is missing. The two smoke-found defects are patched locally, but `portal-navigation` and `workflow-smoke` have not been rerun after the fixes.
 2. GitHub status for pushed commit `9e46249` is mixed, not green: `Production Candidate Verification #186` succeeded, while `Production Checks #4` and `CI #215` failed.
-3. GitHub Actions browser smoke is not fully configured yet because teacher/student smoke secrets are missing.
+3. GitHub Actions browser smoke still needs a green rerun on the new admin-only secret model.
 4. Backup-restore drill evidence is still missing.
 5. Monitoring alert evidence is still missing.
 6. Launch signoff is still missing.

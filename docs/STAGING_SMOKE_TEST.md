@@ -4,30 +4,21 @@ Run this after deploying to staging and before approving production.
 
 ## GitHub Actions smoke secrets
 
-GitHub Actions browser smoke requires all six repository secrets:
+GitHub Actions browser smoke requires only these repository secrets:
 
 - `SMOKE_ADMIN_IDENTIFIER`
 - `SMOKE_ADMIN_PASSWORD`
-- `SMOKE_TEACHER_IDENTIFIER`
-- `SMOKE_TEACHER_PASSWORD`
-- `SMOKE_STUDENT_IDENTIFIER`
-- `SMOKE_STUDENT_PASSWORD`
 
 Add them in `GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret`.
 
 - Use test-only or staging-only credentials.
 - Do not use production user credentials.
 - Do not commit these values.
-- Admin-only secrets are not enough for real smoke.
+- Teacher/student smoke credentials are generated during `npm run seed:smoke`.
+- Generated teacher/student passwords are not printed and are written only to `.tmp/smoke-credentials.json`.
+- Optional local overrides exist for `SMOKE_TEACHER_*` and `SMOKE_STUDENT_*`, but GitHub Actions does not require them.
 
-Safe identifier placeholders:
-
-- `teacher.smoke@example.test`
-- `student.smoke@example.test`
-
-For passwords, use strong test-only values stored only as GitHub secrets.
-
-After adding the missing secrets, rerun the failed `CI` and `Production Checks` workflows from the Actions UI.
+After adding or fixing the admin secrets, rerun the failed `CI` and `Production Checks` workflows from the Actions UI.
 
 See [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md) for the full checklist.
 
@@ -94,24 +85,19 @@ Repository ships only `backend/scripts/ensure-smoke-admin.js`, which provisions 
 
 Until those exist, every CI/local smoke run will silently skip every smoke test, producing exit 0 with zero real assertions.
 
-### Required commands once student/teacher accounts exist
+### Required commands with generated teacher/student fixtures
 
 ```pwsh
 # 1. Bring up local deps (or point to staging)
 npm run prepare:local
 npm run check:smoke-deps
 
-# 2. Provision the admin
-$env:SMOKE_ADMIN_EMAIL = "ci-smoke-admin@projtrack.local"
-$env:SMOKE_ADMIN_PASSWORD = "..."  # local-only, never reuse in prod
-npm --prefix backend run smoke:admin:ensure
+# 2. Set admin smoke credentials
+$env:SMOKE_ADMIN_IDENTIFIER = "admin.smoke@example.test"
+$env:SMOKE_ADMIN_PASSWORD   = "..."  # local-only, never reuse in prod
 
-# 3. Set all six smoke creds (student + teacher must already exist in DB)
-$env:SMOKE_STUDENT_IDENTIFIER = "..."
-$env:SMOKE_STUDENT_PASSWORD   = "..."
-$env:SMOKE_TEACHER_IDENTIFIER = "..."
-$env:SMOKE_TEACHER_PASSWORD   = "..."
-$env:SMOKE_ADMIN_IDENTIFIER   = $env:SMOKE_ADMIN_EMAIL
+# 3. Seed fixtures (teacher/student creds generated here)
+npm run seed:smoke
 
 # 4. Run smoke
 npm run e2e:responsive
@@ -144,7 +130,7 @@ This is the first run with real fixtures and the new skip-green guard.
 
 ### 2026-05-06 (resume pass) - local Windows host after fixing the two smoke-found defects
 
-This pass fixed the two real defects surfaced by the earlier real smoke run, but could not honestly rerun authenticated smoke in this shell because the required `SMOKE_*` credentials are not set.
+This pass fixed the two real defects surfaced by the earlier real smoke run, but could not honestly rerun authenticated smoke in that shell because the required admin smoke credentials were not set.
 
 - Branch / commit under test: local worktree on `production-hardening-repo-audit`, based on pushed commit `9e46249`.
 - Backend defect fix:
@@ -160,8 +146,8 @@ This pass fixed the two real defects surfaced by the earlier real smoke run, but
   - `npm run typecheck`: Pass.
   - `npm run build`: Pass.
   - `npm run e2e:responsive`: Pass, 24/24.
-  - `npm run e2e:responsive:auth`: Blocked by missing `SMOKE_*` env vars.
-  - `npm run check:smoke-env`: Fail by design, correctly listing all six missing `SMOKE_*` vars.
+  - `npm run e2e:responsive:auth`: Blocked by missing admin smoke env vars in that shell.
+  - `npm run check:smoke-env`: Fail by design in that shell, correctly listing the missing admin `SMOKE_*` vars.
   - `npm run e2e:smoke`: Not run because `check:smoke-env` fails first without credentials.
   - `npm --prefix backend run build`: Pass.
   - `npm --prefix backend test`: Pass.
@@ -176,7 +162,29 @@ This pass fixed the two real defects surfaced by the earlier real smoke run, but
 ### Current blocker summary
 
 - The two smoke-discovered defects are patched locally.
-- Real smoke is still not re-verified after those fixes because this shell does not have `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, or `SMOKE_STUDENT_PASSWORD`.
-- workflow-smoke remains unverified in the post-fix state.
+- The older blocked shell is now superseded by the admin-only secret validation run below.
+- workflow-smoke is now verified locally on the generated-credential path.
 - PR #8 must remain Draft until a post-fix `npm run e2e:smoke` run executes all smoke specs and GitHub CI is green.
-- GitHub Actions is expected to fail until the four missing teacher/student smoke secrets are added.
+- GitHub Actions should now require only the two admin smoke secrets, plus a green `seed:smoke` run that generates teacher/student credentials successfully.
+
+### 2026-05-06 (admin-only secret refactor validation) - local Windows host with generated teacher/student smoke credentials
+
+This pass validated the new smoke credential design end to end on a local Docker PostgreSQL stack.
+
+- `npm run check:smoke-env` without env: **Fail by design**, listing only `SMOKE_ADMIN_IDENTIFIER` and `SMOKE_ADMIN_PASSWORD`.
+- `npm run check:smoke-env` with admin-only env: **Pass**.
+- `npm run seed:smoke` with admin-only env: **Pass**.
+  - Teacher and student accounts were created or reused automatically.
+  - Generated credentials were written to `.tmp/smoke-credentials.json`.
+  - Password values were not printed in logs.
+- `npm run e2e:smoke`: **Pass**.
+  - `auth-smoke.spec.ts`: 5/5 pass
+  - `portal-navigation.spec.ts`: 4/4 pass
+  - `workflow-smoke.spec.ts`: 4/4 pass
+- `npm run e2e:responsive:auth`: **Pass**, 9/9.
+
+Remaining truth:
+
+- PR `#8` still stays Draft.
+- GitHub Actions on the updated branch tip has not yet been rerun and verified green.
+- Backup restore, monitoring, launch signoff, and live RBAC/upload proof are still missing.

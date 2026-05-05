@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
+import { smokeCredentials } from './helpers/smoke-credentials';
 
 const adminAccount = {
   role: 'admin',
-  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
-  password: process.env.SMOKE_ADMIN_PASSWORD || '',
+  identifier: smokeCredentials.admin.identifier,
+  password: smokeCredentials.admin.password,
   identifierLabel: /Admin Email/i,
   buttonName: /Continue to Admin Portal Login/i,
   dashboardPath: '/admin/dashboard',
@@ -11,8 +12,8 @@ const adminAccount = {
 
 const teacherAccount = {
   role: 'teacher',
-  identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
-  password: process.env.SMOKE_TEACHER_PASSWORD || '',
+  identifier: smokeCredentials.teacher.identifier,
+  password: smokeCredentials.teacher.password,
   identifierLabel: /Employee ID or School Email/i,
   buttonName: /Continue to Teacher Portal Login/i,
   dashboardPath: '/teacher/dashboard',
@@ -20,8 +21,8 @@ const teacherAccount = {
 
 const studentAccount = {
   role: 'student',
-  identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
-  password: process.env.SMOKE_STUDENT_PASSWORD || '',
+  identifier: smokeCredentials.student.identifier,
+  password: smokeCredentials.student.password,
   identifierLabel: /Student ID or Email/i,
   buttonName: /Continue to Student Portal Login/i,
   dashboardPath: '/student/dashboard',
@@ -49,12 +50,6 @@ const publicLoginRoutes = [
   { path: '/admin/login', heading: /Admin Portal Login/i },
 ] as const;
 
-test.skip(
-  [adminAccount, teacherAccount, studentAccount].some(
-    (account) => !String(account.identifier).trim() || !String(account.password).trim(),
-  ),
-  'Set SMOKE_* identifiers and passwords before running theme-and-modals e2e.',
-);
 
 type RuntimeTracker = { consoleErrors: string[]; pageErrors: string[] };
 

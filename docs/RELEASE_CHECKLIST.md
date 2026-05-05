@@ -33,17 +33,14 @@ Real GitHub Actions browser smoke requires these repository secrets:
 
 - `SMOKE_ADMIN_IDENTIFIER`
 - `SMOKE_ADMIN_PASSWORD`
-- `SMOKE_TEACHER_IDENTIFIER`
-- `SMOKE_TEACHER_PASSWORD`
-- `SMOKE_STUDENT_IDENTIFIER`
-- `SMOKE_STUDENT_PASSWORD`
 
 Add them in `Settings -> Secrets and variables -> Actions`.
 
 - Use test-only or staging-only credentials.
 - Do not use production credentials.
 - Do not commit these values.
-- Admin-only secrets are not enough.
+- Teacher/student smoke credentials are generated during `npm run seed:smoke` and written to `.tmp/smoke-credentials.json`.
+- Optional local overrides exist for `SMOKE_TEACHER_*` and `SMOKE_STUDENT_*`, but GitHub Actions does not require them.
 
 See [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md).
 

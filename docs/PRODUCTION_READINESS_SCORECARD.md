@@ -2,18 +2,18 @@
 
 This scorecard records proof, not intent. Do not mark a category `Pass` unless the evidence is attached or reproducible from the listed command.
 
-Last refreshed: 2026-05-06 06:10 UTC+08:00 on local Windows host (Node 22.22.2, npm 10.9.7), branch `production-hardening-repo-audit` based on pushed commit `9e46249` with local fixes for the two smoke-discovered defects.
+Last refreshed: 2026-05-06 on local Windows host, branch `production-hardening-repo-audit`, after the admin-only smoke-secret refactor on top of `844f4cd`.
 
 | # | Category | Status | Evidence | Command or manual test | Remaining action | Owner/signoff |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Build and typecheck | Pass | Frontend typecheck and Vite production build both finished cleanly on this branch after the Sections UI fix. | `npm run typecheck`; `npm run build` | Push the current fixes and recheck GitHub CI. | |
 | 2 | Backend tests | Pass | `npm --prefix backend test` (production-hardening-checks) passed; `npm --prefix backend run test:unit` passed with 16 suites / 265 tests after adding a new repository idempotency spec for the legacy academic-year-level sync path. | `npm --prefix backend test`; `npm --prefix backend run test:unit` | Push the current fixes and recheck GitHub CI. | |
-| 3 | Prisma/database | Partial (local) | `npm --prefix backend run prisma:generate` succeeds. `npm --prefix backend run prisma:validate` is blocked in this shell because `DATABASE_URL` is unset, so schema validation cannot be repeated honestly here. The backend build is green after a tiny type-only fix in `admin.service.ts`. | `npm --prefix backend run prisma:validate`; `npm --prefix backend run prisma:generate`; `npm --prefix backend run build` | Re-run `prisma:validate`, fixture seeding, and smoke in an environment with the correct database and smoke credentials. | |
-| 4 | E2E smoke | Partial (historical real evidence, post-fix rerun blocked locally and in CI) | Historical real smoke on pushed commit `9e46249` proved auth-smoke 5/5 PASS, portal-navigation 3/4 PASS, workflow-smoke not reached. The two surfaced defects are now patched, but a post-fix smoke rerun has not happened in the current shell because `check:smoke-env` fails first when all six required `SMOKE_*` vars are absent. GitHub Actions is also expected to fail until teacher and student smoke secrets are configured. | `npm run check:smoke-env`; `npm run seed:smoke`; `npm run e2e:smoke` | Add the four missing teacher/student GitHub Actions secrets, rerun CI, then rerun full smoke with real credentials and verify `auth-smoke`, `portal-navigation`, and `workflow-smoke` all execute. | |
-| 5 | Responsive QA | Partial | `npm run e2e:responsive` passed 24/24 across 8 viewports for the three login pages after the frontend fix. Historical evidence on `9e46249` shows `npm run e2e:responsive:auth` passed 9/9, but that authenticated rerun is blocked in the current shell by missing `SMOKE_*` vars. | `npm run e2e:responsive`; `npm run e2e:responsive:auth` | Re-run authenticated responsive QA with smoke credentials after pushing the Sections fix. | |
+| 3 | Prisma/database | Pass (local) | `npm --prefix backend run prisma:validate`, `prisma:generate`, and backend build all passed against the local Docker PostgreSQL instance during the admin-only smoke-secret validation pass. | `npm --prefix backend run prisma:validate`; `npm --prefix backend run prisma:generate`; `npm --prefix backend run build` | Re-run the same checks in GitHub Actions after pushing. | |
+| 4 | E2E smoke | Partial | Historical real smoke on pushed commit `9e46249` proved auth-smoke 5/5 PASS, portal-navigation 3/4 PASS, workflow-smoke not reached. The smoke design is now corrected so `check:smoke-env` requires admin credentials only and `seed:smoke` generates teacher/student credentials into `.tmp/smoke-credentials.json`. A post-fix authenticated rerun is still required on the new design. | `npm run check:smoke-env`; `npm run seed:smoke`; `npm run e2e:smoke` | Run post-fix smoke with admin env plus generated teacher/student fixtures, then verify `auth-smoke`, `portal-navigation`, and `workflow-smoke` all execute. | |
+| 5 | Responsive QA | Pass (local) | `npm run e2e:responsive` passed 24/24 across 8 public-auth viewports. `npm run e2e:responsive:auth` passed 9/9 across student, teacher, and admin dashboards at `390x844`, `768x1024`, and `1440x900` using generated teacher/student smoke credentials. | `npm run e2e:responsive`; `npm run e2e:responsive:auth` | Re-run in GitHub Actions after pushing. | |
 | 6 | Auth/RBAC security | Partial | Jest covers auth/session/JWT/guard/password (`session-cookie`, `token.service`, `jwt-auth.guard`, `auth-session.service`, `password.service`, `mail-environment.guard`, `runtime-safety` all green); staging real-account RBAC walk has not been executed in this session. | `npm --prefix backend run test:unit`; staging real-account smoke | Run staging smoke with admin, teacher, and student accounts; record cross-tenant denial proof. | |
 | 7 | Upload security | Partial | `files.service.spec.ts` and `storage.config.spec.ts` cover upload validation, MIME, malware-scan modes, and S3/local switching. No live malware-scanner path or oversized-upload run has been recorded against staging. | `npm --prefix backend run test:unit`; storage/malware staging smoke | Run upload smoke with valid, oversized, invalid MIME, and scanner-failure cases against staging. | |
-| 8 | CI/CD | Partial (verified, not green) | GitHub was checked via public REST API for pushed commit `9e46249`: PR `#8` is still Draft; `Production Candidate Verification #186` succeeded; `Production Checks #4` failed; `CI #215` failed. The current expected cause is incomplete smoke secret setup: GitHub Actions has admin smoke credentials only, while the real Playwright smoke gate requires six repository secrets. The commit-status endpoint reports only a successful `Vercel` deployment context, so merge readiness cannot be inferred from that single green status. | GitHub Actions and commit status API for PR `#8` / commit `9e46249` | Add `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, and `SMOKE_STUDENT_PASSWORD`; rerun `CI` and `Production Checks`; require green real smoke before considering merge. | |
+| 8 | CI/CD | Partial (verified, not green) | GitHub was previously checked via public REST API for pushed commit `9e46249`: PR `#8` is still Draft; `Production Candidate Verification #186` succeeded; `Production Checks #4` failed; `CI #215` failed. The smoke wiring is now corrected so GitHub Actions should require admin credentials only and generate teacher/student smoke credentials during `seed:smoke`, but the updated workflows still need a green rerun. | GitHub Actions and commit status API for PR `#8` / branch tip after push | Push the admin-only smoke-secret refactor, rerun `CI` and `Production Checks`, and require green real smoke before considering merge. | |
 | 9 | Monitoring | Blocked | Template exists (`docs/MONITORING_EVIDENCE.md`); no alert-test evidence recorded. | Manual alert test | Configure liveness/readiness/queue/backup alerts in your provider, fire each, and paste the alert payload + ack timestamps. | |
 | 10 | Backup/restore | Blocked | Template exists (`docs/BACKUP_RESTORE_EVIDENCE.md`); no completed drill recorded. `drill:backup-restore` script is present but unrun in this environment. | `npm --prefix backend run drill:backup-restore` against a safe disposable target | Run drill end-to-end, record source DB size, dump time, restore time, integrity verification, RPO/RTO. | |
 | 11 | Incident response | Partial | `docs/INCIDENT_RESPONSE.md` runbook exists; no rehearsal evidence attached. | Tabletop or timed incident drill | Record drill result, owner signoff, time-to-detect, time-to-mitigate. | |
@@ -24,21 +24,22 @@ Last refreshed: 2026-05-06 06:10 UTC+08:00 on local Windows host (Node 22.22.2, 
 
 ## Latest Local Evidence (2026-05-06)
 
-- Branch: `production-hardening-repo-audit`, based on pushed commit `9e46249`. Working tree adds:
-  - `backend/src/repositories/admin-ops.repository.ts`
-  - `backend/src/repositories/admin-ops.repository.spec.ts`
-  - `backend/src/admin/admin.service.ts` (type-only `Set<string>` fix so backend build reflects branch state)
-  - `src/app/pages/admin/Sections.tsx`
+- Branch: `production-hardening-repo-audit`, now with the admin-only smoke-secret refactor plus the follow-up smoke fixes staged for push.
 - `npm run typecheck`: **Pass**.
 - `npm run build`: **Pass**.
 - `npm run security:secrets`: **Pass**.
 - `npm run check:release-hygiene`: **Pass**.
-- `npm run check:smoke-env`: **Fail by design** in this shell, correctly listing all six missing `SMOKE_*` vars.
-- `npm run e2e:responsive`: **Pass**, 24/24 tests in 26.9s.
-- `npm run e2e:responsive:auth`: **Blocked** by missing `SMOKE_*` vars.
-- `npm run e2e:smoke`: **Not run in this shell** because `check:smoke-env` fails first without credentials. Historical pushed-commit evidence remains: auth-smoke 5/5 PASS, portal-navigation 3/4 PASS, workflow-smoke not reached.
+- `npm run check:smoke-env` without env: **Fail by design**, correctly lists only `SMOKE_ADMIN_IDENTIFIER` and `SMOKE_ADMIN_PASSWORD`.
+- `npm run check:smoke-env` with admin-only env: **Pass**.
+- `npm run seed:smoke` with admin-only env and local Docker PostgreSQL: **Pass**. Teacher/student credentials were generated and written to `.tmp/smoke-credentials.json`.
+- `npm run e2e:smoke`: **Pass**, all three specs executed:
+  - `auth-smoke.spec.ts`: 5/5 pass
+  - `portal-navigation.spec.ts`: 4/4 pass
+  - `workflow-smoke.spec.ts`: 4/4 pass
+- `npm run e2e:responsive`: **Pass**, 24/24 tests.
+- `npm run e2e:responsive:auth`: **Pass**, 9/9 tests.
 - `npm audit --audit-level=high` (frontend): **Pass**, 0 vulnerabilities.
-- `npm --prefix backend run prisma:validate`: **Blocked** by missing `DATABASE_URL`.
+- `npm --prefix backend run prisma:validate`: **Pass**.
 - `npm --prefix backend run prisma:generate`: **Pass**.
 - `npm --prefix backend run build`: **Pass**.
 - `npm --prefix backend run check:boot:production` / `check:boot:worker`: **Pass**.
@@ -49,7 +50,7 @@ Last refreshed: 2026-05-06 06:10 UTC+08:00 on local Windows host (Node 22.22.2, 
   - PR `#8`: `draft: true`, `state: open`, `mergeable_state: unstable`.
   - Commit status API: `success` for `Vercel` deployment only.
   - Workflow runs: `Production Candidate Verification #186` = success; `Production Checks #4` = failure; `CI #215` = failure.
-  - Repository secret situation provided by maintainer: admin smoke secrets exist; teacher/student smoke secrets are still missing, so the failing smoke jobs are expected and honest.
+  - Repository secret design per product rule: admin smoke secrets are required; teacher/student credentials are generated during `npm run seed:smoke`.
 
 ## GitHub Actions smoke secret setup
 
@@ -57,40 +58,37 @@ Required GitHub repository secrets for real browser smoke:
 
 - `SMOKE_ADMIN_IDENTIFIER`
 - `SMOKE_ADMIN_PASSWORD`
-- `SMOKE_TEACHER_IDENTIFIER`
-- `SMOKE_TEACHER_PASSWORD`
-- `SMOKE_STUDENT_IDENTIFIER`
-- `SMOKE_STUDENT_PASSWORD`
 
 Add them in `GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret`.
 
 - Use test-only or staging-only credentials.
 - Do not use production credentials.
 - Do not commit or print these values.
-- Admin-only secrets are not enough.
+- Teacher/student credentials are generated during `npm run seed:smoke`.
+- Optional `SMOKE_TEACHER_*` and `SMOKE_STUDENT_*` overrides are for local debugging only.
 
 Full setup guide: [docs/GITHUB_ACTIONS_SMOKE_SECRETS.md](/docs/GITHUB_ACTIONS_SMOKE_SECRETS.md)
 
 ## Defects surfaced by real smoke
 
-These were real pre-existing defects surfaced by the earlier `9e46249` smoke run. They are now fixed locally but still need a post-fix authenticated rerun for proof.
+These were real pre-existing defects surfaced by the earlier `9e46249` smoke run. They are now fixed locally and the generated-credential smoke rerun passed, but GitHub CI still needs to confirm the same result on the pushed branch tip.
 
 1. **Backend: `AdminOpsRepository.syncLegacyAcademicYearLevels` unique-constraint violation.** Root cause was a non-atomic `findFirst(...mode: 'insensitive')` plus `create()` flow against `AcademicYearLevel @@unique([academicYearId, name])`. Local fix: `ensureAcademicYearLevel()` now uses composite-key `upsert` in `backend/src/repositories/admin-ops.repository.ts`; new `backend/src/repositories/admin-ops.repository.spec.ts` covers repeated calls.
 2. **Frontend: nested `<button>` inside `<button>` in admin Sections drilldown.** Root cause was a clickable card button containing a nested delete button for year-level and section cards. Local fix: `src/app/pages/admin/Sections.tsx` now uses non-interactive containers with sibling action buttons, preserving valid semantics and visible keyboard focus.
 
 ## Current Verdict
 
-**Conditional staging-ready.** Stronger than previous pass, but still not production-ready:
+**Conditional staging-ready.** Stronger than the previous pass, but still not production-ready:
 
 - Skip-green smoke is now structurally impossible (`scripts/check-smoke-env.mjs` is chained into `e2e:smoke`).
-- The two smoke-found defects are patched locally with focused code changes and a new backend spec.
-- Public auth responsive QA reran green locally (24/24).
+- Real smoke now passes locally on the new admin-only secret model, with generated teacher/student fixture credentials.
+- Public auth responsive QA and authenticated responsive QA both reran green locally.
 - GitHub CI status has now been checked directly instead of assumed.
 
 ProjTrack is still **not production-ready** because:
 
-1. There is no post-fix real `e2e:smoke` rerun yet, so `portal-navigation` and `workflow-smoke` remain unverified after the fixes.
-2. `Production Checks #4` and `CI #215` are failing on GitHub for pushed commit `9e46249`.
+1. GitHub Actions has not yet been rerun on the updated branch tip, so `CI` and `Production Checks` are still not verified green on the admin-only secret model.
+2. The most recently checked GitHub runs for pushed commit `9e46249` were failing (`Production Checks #4`, `CI #215`).
 3. Backup-restore drill is unrun.
 4. Monitoring alert evidence is unrecorded.
 5. Launch signoff is empty.

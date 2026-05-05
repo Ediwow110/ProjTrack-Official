@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { smokeCredentials } from './helpers/smoke-credentials';
 
 const accounts = [
   {
     role: 'student',
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
-    password: process.env.SMOKE_STUDENT_PASSWORD || '',
+    identifier: smokeCredentials.student.identifier,
+    password: smokeCredentials.student.password,
     identifierLabel: /Email or Student ID/i,
     dashboardPath: '/student/dashboard',
     buttonName: /^Sign In$/i,
@@ -13,8 +14,8 @@ const accounts = [
   },
   {
     role: 'teacher',
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
-    password: process.env.SMOKE_TEACHER_PASSWORD || '',
+    identifier: smokeCredentials.teacher.identifier,
+    password: smokeCredentials.teacher.password,
     identifierLabel: /Email or Teacher ID/i,
     dashboardPath: '/teacher/dashboard',
     buttonName: /Sign In as Teacher/i,
@@ -23,8 +24,8 @@ const accounts = [
   },
   {
     role: 'admin',
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
-    password: process.env.SMOKE_ADMIN_PASSWORD || '',
+    identifier: smokeCredentials.admin.identifier,
+    password: smokeCredentials.admin.password,
     identifierLabel: /Email or Admin ID/i,
     dashboardPath: '/admin/dashboard',
     buttonName: /Sign In as Admin/i,
@@ -32,12 +33,6 @@ const accounts = [
     dashboardAssertion: /^System Status$/i,
   },
 ] as const;
-
-const hasSmokeCredentials = accounts.every(
-  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
-);
-
-test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e auth smoke.');
 
 async function login(page: Page, account: (typeof accounts)[number]) {
   await page.goto(`/${account.role}/login`);

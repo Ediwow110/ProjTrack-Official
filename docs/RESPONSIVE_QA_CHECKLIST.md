@@ -86,18 +86,18 @@ Use this checklist to verify ProjTrack is usable across mobile, tablet, and desk
 
 | Size | Auth | Student | Teacher | Admin | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `360x800` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Current shell has no `SMOKE_*` credentials, so authenticated QA cannot be rerun honestly. |
+| `360x800` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
 | `390x844` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `430x932` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Current shell has no `SMOKE_*` credentials, so authenticated QA cannot be rerun honestly. |
+| `430x932` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
 | `768x1024` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `1024x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Current shell has no `SMOKE_*` credentials, so authenticated QA cannot be rerun honestly. |
-| `1366x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Current shell has no `SMOKE_*` credentials, so authenticated QA cannot be rerun honestly. |
+| `1024x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
+| `1366x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
 | `1440x900` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `1920x1080` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Current shell has no `SMOKE_*` credentials, so authenticated QA cannot be rerun honestly. |
+| `1920x1080` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
 
 ## 11. Known Remaining Issues
 
-- Authenticated route QA requires a working backend plus real or seeded smoke credentials in the current shell.
+- Authenticated route QA requires a working backend plus admin smoke env and generated teacher/student credentials in the current shell.
 - Earlier evidence shows authenticated dashboard shells passed at `390x844`, `768x1024`, and `1440x900`, but that was not rerun after the latest admin Sections fix because the credentials were unavailable locally.
 - Manual visual review is still required for every role dashboard and for the admin Sections drilldown after the nested-button fix.
 - Responsive approval is not enough for production readiness while smoke, CI, backup restore, monitoring, and signoff remain incomplete.

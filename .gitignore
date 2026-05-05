@@ -53,6 +53,7 @@ logs/
 !/src/app/components/lists/logs/**
 /backups/
 tmp/
+.tmp/
 frontend-dev*.log
 backend-dev*.log
 backend-runtime*.log

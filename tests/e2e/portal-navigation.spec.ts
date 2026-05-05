@@ -1,10 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import { smokeCredentials } from "./helpers/smoke-credentials";
 
 const accounts = {
   student: {
     role: "student",
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
-    password: process.env.SMOKE_STUDENT_PASSWORD || "",
+    identifier: smokeCredentials.student.identifier,
+    password: smokeCredentials.student.password,
     identifierLabel: /Email or Student ID/i,
     buttonName: /^Sign In$/i,
     dashboardPath: "/student/dashboard",
@@ -19,8 +20,8 @@ const accounts = {
   },
   teacher: {
     role: "teacher",
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
-    password: process.env.SMOKE_TEACHER_PASSWORD || "",
+    identifier: smokeCredentials.teacher.identifier,
+    password: smokeCredentials.teacher.password,
     identifierLabel: /Email or Teacher ID/i,
     buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
@@ -35,8 +36,8 @@ const accounts = {
   },
   admin: {
     role: "admin",
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "",
+    identifier: smokeCredentials.admin.identifier,
+    password: smokeCredentials.admin.password,
     identifierLabel: /Email or Admin ID/i,
     buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
@@ -65,12 +66,6 @@ const accounts = {
     ],
   },
 } as const;
-
-const hasSmokeCredentials = [accounts.student, accounts.teacher, accounts.admin].every(
-  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
-);
-
-test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e portal smoke.');
 
 type RuntimeTracker = {
   consoleErrors: string[];
@@ -258,6 +253,7 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
 
   await openSidebarRoute(page, "/admin/sections");
   await page.getByRole("button", { name: /Open academic year/i }).first().click();
+  await page.getByRole("button", { name: /Open course/i }).first().click();
   await page.getByRole("button", { name: /Open year level/i }).first().click();
   await page.getByRole("button", { name: /Open master list/i }).first().click();
   await page.getByRole("button", { name: /^View Students$/ }).first().click();
@@ -267,6 +263,7 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
 
   await openSidebarRoute(page, "/admin/sections");
   await page.getByRole("button", { name: /Open academic year/i }).first().click();
+  await page.getByRole("button", { name: /Open course/i }).first().click();
   await page.getByRole("button", { name: /Open year level/i }).first().click();
   await page.getByRole("button", { name: /Open master list/i }).first().click();
   await page.getByRole("button", { name: /^Manage Moves$/ }).first().click();
