@@ -120,6 +120,10 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const smokeAcademicYearName = String(
+  process.env.SMOKE_ACADEMIC_YEAR_NAME ?? "Smoke AY 2026",
+).trim();
+
 async function login(page: Page, account: (typeof accounts)[keyof typeof accounts]) {
   await page.goto(`/${account.role}/login`);
   await page.getByLabel(account.identifierLabel).fill(account.identifier);
@@ -157,6 +161,18 @@ async function verifySidebarRoutes(page: Page, routes: string[]) {
 async function openSidebarRoute(page: Page, route: string) {
   await clickSidebarLink(page, route);
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+}
+
+async function openSmokeSectionMasterList(page: Page) {
+  await openSidebarRoute(page, "/admin/sections");
+  const academicYearButton = page.getByRole("button", {
+    name: new RegExp(`Open academic year\\s+${escapeRegExp(smokeAcademicYearName)}`, "i"),
+  });
+  await expect(academicYearButton).toBeVisible();
+  await academicYearButton.click();
+  await page.getByRole("button", { name: /Open course/i }).first().click();
+  await page.getByRole("button", { name: /Open year level/i }).first().click();
+  await page.getByRole("button", { name: /Open master list/i }).first().click();
 }
 
 test("public entry points resolve to student login without portal chooser UI", async ({
@@ -263,21 +279,13 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
   await expect(page).toHaveURL(/\/admin\/notifications$/);
   await assertHealthy(page, tracker);
 
-  await openSidebarRoute(page, "/admin/sections");
-  await page.getByRole("button", { name: /Open academic year/i }).first().click();
-  await page.getByRole("button", { name: /Open course/i }).first().click();
-  await page.getByRole("button", { name: /Open year level/i }).first().click();
-  await page.getByRole("button", { name: /Open master list/i }).first().click();
+  await openSmokeSectionMasterList(page);
   await page.getByRole("button", { name: /^View Students$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/students\?sectionId=[^&]+$/);
   await expect(page.getByRole("button", { name: /^Add Student$/ })).toBeVisible();
   await assertHealthy(page, tracker);
 
-  await openSidebarRoute(page, "/admin/sections");
-  await page.getByRole("button", { name: /Open academic year/i }).first().click();
-  await page.getByRole("button", { name: /Open course/i }).first().click();
-  await page.getByRole("button", { name: /Open year level/i }).first().click();
-  await page.getByRole("button", { name: /Open master list/i }).first().click();
+  await openSmokeSectionMasterList(page);
   await page.getByRole("button", { name: /^Manage Moves$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/bulk-move\?sourceSectionId=[^&]+$/);
   await expect(

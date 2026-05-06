@@ -25,6 +25,8 @@
  * Optional env vars:
  *  SMOKE_FIXTURE_PREFIX        default "SMOKE"
  *  SMOKE_ACADEMIC_YEAR_NAME    default "Smoke AY 2026"
+ *  SMOKE_COURSE_NAME           default "Smoke Course"
+ *  SMOKE_YEAR_LEVEL_NAME       default "Smoke Year Level"
  *  SMOKE_SECTION_NAME          default "Smoke Section A"
  *  SMOKE_SUBJECT_NAME          default "Smoke Subject"
  *  SMOKE_SUBJECT_CODE          default "${prefix}-SUBJ-1"
@@ -139,6 +141,8 @@ async function main() {
 
   const prefix = String(process.env.SMOKE_FIXTURE_PREFIX ?? 'SMOKE').trim() || 'SMOKE';
   const academicYearName = String(process.env.SMOKE_ACADEMIC_YEAR_NAME ?? 'Smoke AY 2026').trim();
+  const courseName = String(process.env.SMOKE_COURSE_NAME ?? 'Smoke Course').trim();
+  const yearLevelName = String(process.env.SMOKE_YEAR_LEVEL_NAME ?? 'Smoke Year Level').trim();
   const sectionName = String(process.env.SMOKE_SECTION_NAME ?? 'Smoke Section A').trim();
   const subjectName = String(process.env.SMOKE_SUBJECT_NAME ?? 'Smoke Subject').trim();
   const subjectCode = String(process.env.SMOKE_SUBJECT_CODE ?? `${prefix}-SUBJ-1`).trim();
@@ -162,6 +166,8 @@ async function main() {
     studentUser: 'unchanged',
     studentProfile: 'unchanged',
     academicYear: 'unchanged',
+    course: 'unchanged',
+    academicYearLevel: 'unchanged',
     section: 'unchanged',
     subject: 'unchanged',
     subjectSection: 'unchanged',
@@ -177,7 +183,50 @@ async function main() {
     });
     summary.academicYear = `id=${academicYear.id}, name=${academicYearName}`;
 
-    // 2. Section
+    // 2. Course + academic year level used by the admin Sections hierarchy.
+    const course = await prisma.course.upsert({
+      where: {
+        academicYearId_name: {
+          academicYearId: academicYear.id,
+          name: courseName,
+        },
+      },
+      create: {
+        academicYearId: academicYear.id,
+        name: courseName,
+        code: `${prefix}-COURSE-1`,
+        description: 'Smoke fixture course. Safe to delete after smoke testing.',
+        sortOrder: 1,
+      },
+      update: {
+        code: `${prefix}-COURSE-1`,
+        description: 'Smoke fixture course. Safe to delete after smoke testing.',
+        sortOrder: 1,
+      },
+    });
+    summary.course = `id=${course.id}, name=${courseName}`;
+
+    const academicYearLevel = await prisma.academicYearLevel.upsert({
+      where: {
+        academicYearId_name: {
+          academicYearId: academicYear.id,
+          name: yearLevelName,
+        },
+      },
+      create: {
+        academicYearId: academicYear.id,
+        courseId: course.id,
+        name: yearLevelName,
+        sortOrder: 1,
+      },
+      update: {
+        courseId: course.id,
+        sortOrder: 1,
+      },
+    });
+    summary.academicYearLevel = `id=${academicYearLevel.id}, name=${yearLevelName}`;
+
+    // 3. Section
     let section = await prisma.section.findFirst({
       where: { academicYearId: academicYear.id, name: sectionName },
     });
@@ -186,15 +235,26 @@ async function main() {
         data: {
           name: sectionName,
           academicYearId: academicYear.id,
+          academicYearLevelId: academicYearLevel.id,
+          course: courseName,
+          yearLevelName,
           description: 'Smoke fixture section. Safe to delete after smoke testing.',
         },
       });
       summary.section = `created id=${section.id}, name=${sectionName}`;
     } else {
+      section = await prisma.section.update({
+        where: { id: section.id },
+        data: {
+          academicYearLevelId: academicYearLevel.id,
+          course: courseName,
+          yearLevelName,
+        },
+      });
       summary.section = `reused id=${section.id}, name=${sectionName}`;
     }
 
-    // 3. Admin user
+    // 4. Admin user
     const adminHash = hashPassword(adminPassword);
     const adminUser = await prisma.user.upsert({
       where: { email: adminEmail },
@@ -214,7 +274,7 @@ async function main() {
     });
     summary.adminUser = `id=${adminUser.id}, identifier=${maskIdentifier(adminEmail)}`;
 
-    // 4. Teacher user + profile
+    // 5. Teacher user + profile
     const teacherHash = hashPassword(teacherPassword);
     const teacherUser = await prisma.user.upsert({
       where: { email: teacherEmail },
@@ -250,7 +310,7 @@ async function main() {
     });
     summary.teacherProfile = `id=${teacherProfile.id}, employeeId=${resolvedTeacherEmployeeId}`;
 
-    // 5. Student user + profile
+    // 6. Student user + profile
     const studentHash = hashPassword(studentPassword);
     const studentUser = await prisma.user.upsert({
       where: { email: studentEmail },
@@ -282,19 +342,22 @@ async function main() {
         studentNumber: resolvedStudentNumber,
         sectionId: section.id,
         academicYearId: academicYear.id,
-        course: 'Smoke Course',
+        academicYearLevelId: academicYearLevel.id,
+        course: courseName,
+        yearLevelName,
       },
       update: {
         studentNumber: resolvedStudentNumber,
         sectionId: section.id,
         academicYearId: academicYear.id,
-        yearLevel: null,
-        yearLevelName: null,
+        academicYearLevelId: academicYearLevel.id,
+        course: courseName,
+        yearLevelName,
       },
     });
     summary.studentProfile = `id=${studentProfile.id}, studentNumber=${resolvedStudentNumber}`;
 
-    // 6. Subject (owned by teacher)
+    // 7. Subject (owned by teacher)
     const subject = await prisma.subject.upsert({
       where: { code: subjectCode },
       create: {
@@ -313,7 +376,7 @@ async function main() {
     });
     summary.subject = `id=${subject.id}, code=${subjectCode}`;
 
-    // 7. SubjectSection (link subject -> section)
+    // 8. SubjectSection (link subject -> section)
     const subjectSection = await prisma.subjectSection.upsert({
       where: { subjectId_sectionId: { subjectId: subject.id, sectionId: section.id } },
       create: { subjectId: subject.id, sectionId: section.id },
@@ -321,7 +384,7 @@ async function main() {
     });
     summary.subjectSection = `id=${subjectSection.id}`;
 
-    // 8. Enrollment (student -> subject in section)
+    // 9. Enrollment (student -> subject in section)
     const enrollment = await prisma.enrollment.upsert({
       where: { studentId_subjectId: { studentId: studentProfile.id, subjectId: subject.id } },
       create: {
