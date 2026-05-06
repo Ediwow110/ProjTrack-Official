@@ -19,12 +19,12 @@ const transientPatterns = [
   /\[e2e:smoke\].*timed out after/i,
 ];
 
-function runPlaywright(spec) {
+function runPlaywright(specsToRun) {
   return new Promise((resolve) => {
-    const maxDurationMs = Number(process.env.PLAYWRIGHT_SPEC_TIMEOUT_MS || 240000);
+    const maxDurationMs = Number(process.env.PLAYWRIGHT_SPEC_TIMEOUT_MS || 600000);
     const child = spawn(
       process.execPath,
-      ["./node_modules/@playwright/test/cli.js", "test", spec, "--project", "chromium"],
+      ["./node_modules/@playwright/test/cli.js", "test", ...specsToRun, "--project", "chromium"],
       {
         cwd: process.cwd(),
         env: {
@@ -50,7 +50,7 @@ function runPlaywright(spec) {
 
     const watchdog = setTimeout(() => {
       if (resolved) return;
-      combined += `\n[e2e:smoke] ${spec} timed out after ${maxDurationMs}ms.\n`;
+      combined += `\n[e2e:smoke] Smoke suite timed out after ${maxDurationMs}ms.\n`;
       killChildTree();
       setTimeout(() => {
         if (!resolved) {
@@ -90,20 +90,18 @@ function isTransientFailure(output) {
   return transientPatterns.some((pattern) => pattern.test(output));
 }
 
-async function runSpec(spec) {
+async function runSmokeSuite() {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    process.stdout.write(`[e2e:smoke] Running ${spec} (attempt ${attempt}).\n`);
+    process.stdout.write(`[e2e:smoke] Running smoke suite (attempt ${attempt}).\n`);
     clearListeningPorts([3101, 4173]);
-    const result = await runPlaywright(spec);
+    const result = await runPlaywright(specs);
     if (result.code === 0) return;
     if (attempt < 3 && isTransientFailure(result.output)) {
-      process.stdout.write(`[e2e:smoke] Retrying ${spec} after transient Playwright failure.\n`);
+      process.stdout.write("[e2e:smoke] Retrying smoke suite after transient Playwright failure.\n");
       continue;
     }
     process.exit(result.code);
   }
 }
 
-for (const spec of specs) {
-  await runSpec(spec);
-}
+await runSmokeSuite();
