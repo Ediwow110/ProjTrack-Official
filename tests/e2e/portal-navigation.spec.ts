@@ -70,12 +70,14 @@ const accounts = {
 type RuntimeTracker = {
   consoleErrors: string[];
   pageErrors: string[];
+  serverErrors: string[];
 };
 
 function attachRuntimeTracker(page: Page): RuntimeTracker {
   const tracker: RuntimeTracker = {
     consoleErrors: [],
     pageErrors: [],
+    serverErrors: [],
   };
 
   page.on("console", (message) => {
@@ -87,6 +89,12 @@ function attachRuntimeTracker(page: Page): RuntimeTracker {
 
   page.on("pageerror", (error) => {
     tracker.pageErrors.push(error.message);
+  });
+
+  page.on("response", (response) => {
+    if (response.status() >= 500) {
+      tracker.serverErrors.push(`${response.status()} ${response.url()}`);
+    }
   });
 
   return tracker;
@@ -101,6 +109,10 @@ async function assertHealthy(page: Page, tracker: RuntimeTracker) {
   expect(
     tracker.consoleErrors,
     `Unexpected console errors: ${tracker.consoleErrors.join("\n")}`,
+  ).toEqual([]);
+  expect(
+    tracker.serverErrors,
+    `Unexpected server errors: ${tracker.serverErrors.join("\n")}`,
   ).toEqual([]);
 }
 
