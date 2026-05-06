@@ -292,73 +292,51 @@ test("teacher can create an activity, student can submit it, and teacher can gra
   }
 });
 
-test("admin academic settings save persists after refresh", async ({ browser }) => {
+test("admin settings and announcements persist after refresh", async ({ browser }) => {
   test.slow();
+  test.setTimeout(120000);
 
   const admin = await newTrackedPage(browser);
+  const announcementTitle = `Smoke Announcement ${Date.now()}`;
 
   try {
     await login(admin.page, accounts.admin, admin.tracker);
+
     await admin.page.goto("/admin/academic-settings");
     const lateDeductionInput = admin.page.getByLabel(/Point Deduction/i);
     await expect(lateDeductionInput).toBeVisible();
 
-    const currentValue = await lateDeductionInput.inputValue();
-    const nextValue = currentValue === "11" ? "12" : "11";
+    const currentLateDeduction = await lateDeductionInput.inputValue();
+    const nextLateDeduction = currentLateDeduction === "11" ? "12" : "11";
 
-    await lateDeductionInput.fill(nextValue);
+    await lateDeductionInput.fill(nextLateDeduction);
     await admin.page.getByRole("button", { name: /Save Settings/i }).click();
     await expect(
       admin.page.getByText(/Academic settings saved successfully/i),
     ).toBeVisible();
 
     await admin.page.reload();
-    await expect(admin.page.getByLabel(/Point Deduction/i)).toHaveValue(nextValue);
-    await assertHealthy(admin.page, admin.tracker);
-  } finally {
-    await admin.context.close();
-  }
-});
+    await expect(admin.page.getByLabel(/Point Deduction/i)).toHaveValue(nextLateDeduction);
 
-test("admin system settings save persists after refresh", async ({ browser }) => {
-  test.slow();
-
-  const admin = await newTrackedPage(browser);
-
-  try {
-    await login(admin.page, accounts.admin, admin.tracker);
     await admin.page.goto("/admin/settings");
     const sessionTimeoutInput = admin.page.getByLabel(/Session Timeout/i);
     await expect(sessionTimeoutInput).toBeVisible();
 
-    const currentValue = await sessionTimeoutInput.inputValue();
-    const nextValue = currentValue === "65" ? "60" : "65";
+    const currentSessionTimeout = await sessionTimeoutInput.inputValue();
+    const nextSessionTimeout = currentSessionTimeout === "65" ? "60" : "65";
 
-    await sessionTimeoutInput.fill(nextValue);
+    await sessionTimeoutInput.fill(nextSessionTimeout);
     await admin.page.getByRole("button", { name: /Save Settings/i }).click();
     await expect(
       admin.page.getByText(/Settings saved successfully/i),
     ).toBeVisible();
 
     await admin.page.reload();
-    await expect(admin.page.getByLabel(/Session Timeout/i)).toHaveValue(nextValue);
-    await assertHealthy(admin.page, admin.tracker);
-  } finally {
-    await admin.context.close();
-  }
-});
+    await expect(admin.page.getByLabel(/Session Timeout/i)).toHaveValue(nextSessionTimeout);
 
-test("admin can publish an announcement and see it after refresh", async ({ browser }) => {
-  test.slow();
-
-  const admin = await newTrackedPage(browser);
-  const title = `Smoke Announcement ${Date.now()}`;
-
-  try {
-    await login(admin.page, accounts.admin, admin.tracker);
     await admin.page.goto("/admin/announcements");
     await admin.page.getByRole("button", { name: /New Announcement/i }).click();
-    await admin.page.getByLabel(/^Title$/i).fill(title);
+    await admin.page.getByLabel(/^Title$/i).fill(announcementTitle);
     await admin.page.getByLabel(/^Audience$/i).selectOption("ALL");
     await admin.page.getByLabel(/Delivery Intent/i).selectOption("System");
     await admin.page.getByLabel(/^Message$/i).fill(
@@ -367,12 +345,12 @@ test("admin can publish an announcement and see it after refresh", async ({ brow
     await admin.page
       .getByRole("button", { name: /Publish Announcement/i })
       .click();
-    await expect(admin.page.getByText(title)).toBeVisible();
+    await expect(admin.page.getByText(announcementTitle)).toBeVisible();
     await admin.page.reload();
-    await expect(admin.page.getByText(title)).toBeVisible();
+    await expect(admin.page.getByText(announcementTitle)).toBeVisible();
     await assertHealthy(admin.page, admin.tracker);
   } finally {
     await admin.context.close();
-    await cleanupSmokeArtifacts({ announcementTitle: title });
+    await cleanupSmokeArtifacts({ announcementTitle });
   }
 });
