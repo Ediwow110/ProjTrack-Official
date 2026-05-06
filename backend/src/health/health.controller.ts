@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { HealthService } from './health.service';
@@ -18,8 +18,21 @@ export class HealthController {
   }
 
   @Get('ready')
-  ready() {
-    return this.health.ready();
+  async ready() {
+    const result = await this.health.ready();
+    if (!result.ok) {
+      throw new ServiceUnavailableException(result);
+    }
+    return result;
+  }
+
+  @Get('api-ready')
+  async apiReady() {
+    const result = await this.health.apiReady();
+    if (!result.ok) {
+      throw new ServiceUnavailableException(result);
+    }
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

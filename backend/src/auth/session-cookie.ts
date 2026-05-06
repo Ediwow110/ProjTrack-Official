@@ -48,8 +48,18 @@ export function refreshTokenFromCookie(req: any, env: NodeJS.ProcessEnv = proces
   const name = refreshCookieName(env);
   for (const item of cookieHeader.split(';')) {
     const [rawKey, ...rawValue] = item.split('=');
-    if (decodeURIComponent(rawKey.trim()) !== name) continue;
-    return decodeURIComponent(rawValue.join('=').trim());
+    let key = '';
+    try {
+      key = decodeURIComponent(rawKey.trim());
+    } catch {
+      continue;
+    }
+    if (key !== name) continue;
+    try {
+      return decodeURIComponent(rawValue.join('=').trim());
+    } catch {
+      return '';
+    }
   }
   return '';
 }

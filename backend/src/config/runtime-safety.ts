@@ -361,6 +361,28 @@ function validateUploadScanning(errors: string[], warnings: string[], isProducti
   }
 }
 
+function validateRefreshCookie(errors: string[], warnings: string[], isProduction: boolean, env: NodeJS.ProcessEnv) {
+  const name = String(env.AUTH_REFRESH_COOKIE_NAME || (isProduction ? '__Secure-projtrack_refresh' : 'projtrack_refresh')).trim();
+  const sameSite = String(env.AUTH_REFRESH_COOKIE_SAME_SITE || 'lax').trim().toLowerCase();
+
+  if (!name) {
+    (isProduction ? errors : warnings).push('AUTH_REFRESH_COOKIE_NAME cannot be empty.');
+  }
+
+  if (!['lax', 'strict', 'none'].includes(sameSite)) {
+    (isProduction ? errors : warnings).push('AUTH_REFRESH_COOKIE_SAME_SITE must be lax, strict, or none.');
+  }
+
+  if (!isProduction) return;
+
+  if (!name.startsWith('__Secure-') && !name.startsWith('__Host-')) {
+    errors.push('AUTH_REFRESH_COOKIE_NAME must use the __Secure- or __Host- prefix in production.');
+  }
+  if (sameSite === 'none') {
+    errors.push('AUTH_REFRESH_COOKIE_SAME_SITE=none is not allowed in production; use lax or strict for refresh-token CSRF protection.');
+  }
+}
+
 export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env): RuntimeValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -470,6 +492,7 @@ export function inspectRuntimeConfiguration(env: NodeJS.ProcessEnv = process.env
   validateWorkerSettings(errors, warnings, isProduction, env);
   validateRateLimit(errors, warnings, isProduction, env);
   validateUploadScanning(errors, warnings, isProduction, env);
+  validateRefreshCookie(errors, warnings, isProduction, env);
 
   if (isProduction && !asBoolean(env.TRUST_PROXY)) {
     errors.push('TRUST_PROXY=true is required in production so rate limiting and secure-cookie logic use proxy-aware client addresses.');

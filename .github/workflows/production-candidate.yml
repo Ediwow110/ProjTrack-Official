@@ -86,5 +86,15 @@ jobs:
       - run: npx prisma generate --schema prisma/schema.prisma
       - run: npx prisma migrate deploy --schema prisma/schema.prisma
       - run: npm run build
+      - run: npm run check:boot:production
+      - run: npm run check:boot:worker
       - run: npm run test
       - run: npm audit --audit-level=high
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend runtime image
+        run: docker build -f Dockerfile.backend -t projtrack/backend:${{ github.sha }} .

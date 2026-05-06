@@ -66,6 +66,25 @@ export class HealthService {
     };
   }
 
+  async apiReady() {
+    const [database, storage, configuration] = await Promise.all([
+      this.database(),
+      Promise.resolve(this.files.healthCheck()),
+      Promise.resolve(this.configuration()),
+    ]);
+
+    return {
+      ok: database.ok && storage.ok && configuration.ok,
+      service: 'projtrack-backend',
+      checks: {
+        database: database.ok,
+        storage: storage.ok,
+        configuration: configuration.ok,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   storage() {
     return this.files.healthCheck();
   }

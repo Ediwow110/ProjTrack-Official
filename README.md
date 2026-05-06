@@ -66,6 +66,7 @@ On Windows, `npm start` now uses native `.cmd` launchers for a more reliable loc
 - Public health endpoints:
   - `/health/live`
   - `/health/ready`
+  - `/health/api-ready` for API container readiness without requiring worker heartbeats
 - Admin-only diagnostic health endpoints:
   - `/health/database`
   - `/health/storage`

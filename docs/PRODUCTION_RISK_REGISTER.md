@@ -1,0 +1,19 @@
+# Production Risk Register
+
+| Risk | Severity | Likelihood | Impact | Mitigation | Owner | Evidence Required | Current Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Docker build not verified in current environment | Launch blocker | Medium | Runtime image may fail after approval | Run `docker build -f Dockerfile.backend -t projtrack/backend:<sha> .` on staging runner with Docker daemon | SRE | Successful build log and image tag | Open |
+| Docker boot smoke not verified | Launch blocker | Medium | API or worker may fail at container runtime | Boot production compose in staging and verify backend healthy, workers running | SRE | `docker compose ps`, logs, `/health/api-ready` | Open |
+| Prisma migrate deploy not verified against reachable staging DB | Launch blocker | Medium | Migration drift or failed schema deploy | Run `npm --prefix backend run prisma:migrate:deploy` against staging DB | Backend lead | Prisma migrate output | Open |
+| Authenticated smoke not verified | Launch blocker | Medium | Login, refresh, logout, or RBAC regressions may ship | Configure staging smoke admin secrets and run `npm run e2e:smoke` | QA lead | Playwright report and smoke credentials preflight output | Open |
+| S3 object storage not verified | Launch blocker | Medium | Upload/download/delete may fail or bucket may be public | Run storage smoke against staging S3-compatible bucket | SRE/security | Put/head/signed URL/delete evidence and bucket privacy confirmation | Open |
+| ClamAV not verified | Launch blocker | Medium | Malicious uploads may pass or all uploads may fail | Run clean upload and EICAR rejection test with fail-closed scanner | Security | Scanner smoke log | Open |
+| Mailrelay not verified | Launch blocker | Medium | Account activation/reset mail may fail | Run `npm --prefix backend run smoke:mail` and verify `/health/mail` | Production manager | Mail job ID, provider response, health output | Open |
+| Backup and restore not verified | Launch blocker | Medium | Recovery path may fail during incident | Run backup job and restore drill against disposable staging target | SRE | Backup ID, checksum, restore drill output | Open |
+| Monitoring and rollback not verified | Launch blocker | Medium | Incidents may go undetected or rollback may stall | Send test log/error, verify alert, test rollback procedure | SRE/incident lead | Alert screenshot/log and rollback transcript | Open |
+| Worker container inherited API HTTP healthcheck | High | Medium | Worker containers can be marked unhealthy despite running correctly | Dockerfile documents API-only healthcheck; production compose disables inherited healthcheck for workers; worker health checked through heartbeat | SRE | Compose config and `/health/ready` heartbeat evidence | Mitigated in repo, needs staging proof |
+| Refresh-token CSRF via cross-site cookie config | High | Low | Cross-site refresh endpoint abuse if cookie set SameSite=None | Runtime validation rejects SameSite=None in production and requires secure cookie prefix | Security | Unit tests and production boot check | Mitigated |
+| Malformed Cookie header crashes refresh parsing | Medium | Low | Bad header could cause 500s on auth refresh | Cookie parser catches malformed percent encoding | Backend lead | Unit tests | Mitigated |
+| Forgot-password page legacy hardcoded colors | Medium | Medium | Visual inconsistency on theme changes | Track existing warnings from `npm run check:theme` and migrate page styling | UI lead | Theme check output after migration | Open, not launch blocking |
+| Local backup storage provider remains default in worker env example | High | Medium | Production backups may stay on same host only | Require production operator to choose durable backup storage or explicitly accept local volume risk | SRE | Backup storage architecture and restore evidence | Open |
+
