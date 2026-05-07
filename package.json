@@ -27,7 +27,7 @@
     "start:attached": "node ./scripts/start-local.mjs",
     "start:local": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\start-local.ps1",
     "start:portable": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\start-local.ps1",
-    "start:worker": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\start-worker-local.ps1",
+    "start:worker": "node ./scripts/start-worker-local.mjs",
     "stop:local": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\stop-local.ps1",
     "typecheck": "tsc --noEmit -p tsconfig.pass3.json",
     "dev:all": "concurrently \"npm run dev\" \"npm --prefix backend run dev\"",

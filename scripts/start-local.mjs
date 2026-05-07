@@ -14,9 +14,11 @@ import {
   waitForHttp,
   waitForPort,
 } from "./local-stack-utils.mjs";
-import { withLocalBackendEnv } from "./local-backend-env.mjs";
+import { detectLocalBackendEnvSources, withLocalBackendEnv } from "./local-backend-env.mjs";
 const args = new Set(process.argv.slice(2));
 const prepareOnly = args.has("--prepare-only");
+const localApiEnv = withLocalBackendEnv({ MAIL_WORKER_ENABLED: "false" });
+const envSources = detectLocalBackendEnvSources();
 
 const managedChildren = [];
 let shuttingDown = false;
@@ -80,13 +82,13 @@ async function prepareDatabase() {
   console.log("[start-local] Generating Prisma client...");
   await runCommand("prisma generate", npmCommand, ["run", "prisma:generate"], {
     cwd: backendDir,
-    env: withLocalBackendEnv(),
+    env: localApiEnv,
   });
 
   console.log("[start-local] Applying Prisma migrations...");
   await runCommand("prisma migrate deploy", npmCommand, ["run", "prisma:migrate:deploy"], {
     cwd: backendDir,
-    env: withLocalBackendEnv(),
+    env: localApiEnv,
   });
 
   console.log("[start-local] Skipping automatic data seeding for production-safe local startup.");
@@ -96,7 +98,7 @@ async function ensureBackend() {
   console.log("[start-local] Starting backend...");
   const backend = startCommand("backend", nodeCommand, ["-r", "ts-node/register", "src/main.ts"], {
     cwd: backendDir,
-    env: withLocalBackendEnv(),
+    env: localApiEnv,
   });
   registerChild("backend", backend);
   await waitForHttp(`${backendUrl}/health/live`, 120_000);
@@ -127,6 +129,12 @@ async function main() {
   await ensureInfrastructure();
   await prepareDatabase();
 
+  console.log(
+    envSources.length
+      ? `[start-local] Backend env sources: ${envSources.join(", ")}`
+      : "[start-local] Backend env sources: none; using defaults and current shell env.",
+  );
+
   if (prepareOnly) {
     console.log("[start-local] Local infrastructure and database are ready.");
     console.log("[start-local] Run `npm start` to launch the frontend and backend.");
@@ -141,7 +149,7 @@ async function main() {
   console.log(`[start-local] Frontend: ${frontendUrl}/student/login`);
   console.log(`[start-local] Backend: ${backendUrl}/health/live`);
   console.log("[start-local] Automatic demo account seeding is disabled.");
-  console.log("[start-local] Mail stays pending until SMTP is configured.");
+  console.log("[start-local] Start the dedicated worker with `npm run start:worker` when you want live Mailrelay delivery.");
 
   await new Promise(() => {});
 }
