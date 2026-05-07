@@ -671,8 +671,18 @@ assert(backendPackage.scripts.worker === 'node -r ts-node/register src/worker.ts
 assert(backendPackage.scripts['dev:worker'] === 'node -r ts-node/register src/worker.ts', 'Backend package must expose a clear local dev worker command.');
 assert(backendPackage.scripts['start:worker'] === 'node dist/worker.js', 'Backend package must expose a production worker command.');
 const rootPackage = JSON.parse(readRepo('package.json'));
-assert(rootPackage.scripts['start:worker'] && rootPackage.scripts['start:worker'].includes('start-worker-local.ps1'), 'Root package must expose npm run start:worker.');
-assert(fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.ps1')), 'Local worker PowerShell helper is required.');
+const rootStartWorker = rootPackage.scripts['start:worker'];
+assert(
+  rootStartWorker
+    && (rootStartWorker.includes('start-worker-local.ps1')
+      || rootStartWorker.includes('start-worker-local.mjs')),
+  'Root package must expose npm run start:worker (start-worker-local.mjs or start-worker-local.ps1).',
+);
+assert(
+  fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.mjs'))
+    || fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.ps1')),
+  'Local worker helper (start-worker-local.mjs or start-worker-local.ps1) is required.',
+);
 const workerEntrypoint = read('src/worker.ts');
 assert(workerEntrypoint.includes('createApplicationContext'), 'Dedicated worker entrypoint must not open an HTTP listener.');
 assert(workerEntrypoint.includes('validateProductionEmailConfig'), 'Dedicated worker must validate production mail configuration.');
