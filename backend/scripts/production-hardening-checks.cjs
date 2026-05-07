@@ -560,6 +560,7 @@ for (const required of [
 assert(mailSenderConfig.includes('return config.support;'), 'Auth mail category must use support@projtrack.codes, not a noreply sender.');
 
 const healthService = read('src/health/health.service.ts');
+assert(healthService.includes('async apiReady()'), 'Health service must expose API readiness without requiring worker heartbeats.');
 assert(healthService.includes('processing'), 'Mail health status must expose processing count.');
 assert(healthService.includes('providerName'), 'Mail health status must expose the active provider name.');
 assert(healthService.includes('providerConfigured'), 'Mail health status must expose provider configuration status.');
@@ -577,6 +578,18 @@ assert(healthService.includes('processingTooLongCount'), 'Mail health status mus
 assert(healthService.includes('alerts'), 'Mail health status must expose admin-facing alerts.');
 assert(healthService.includes('senderConfig'), 'Mail health status must expose non-secret sender config.');
 assert(healthService.includes('recentFailureReason'), 'Mail health status must expose safe recent failure reason.');
+const healthController = read('src/health/health.controller.ts');
+assert(healthController.includes("@Get('api-ready')"), 'Health controller must expose /health/api-ready for dependency-aware API container readiness.');
+assert(healthController.includes('ServiceUnavailableException'), 'Readiness endpoints must return a non-2xx response when not ready.');
+
+const productionCompose = readRepo('infra/docker-compose.production.yml');
+assert(productionCompose.includes('http://127.0.0.1:3001/health/api-ready'), 'Production backend compose healthcheck must use dependency-aware /health/api-ready.');
+assert(/mail-worker:[\s\S]*?healthcheck:\s*[\r\n]+\s*disable:\s*true/.test(productionCompose), 'Mail worker must not inherit the API HTTP healthcheck.');
+assert(/backup-worker:[\s\S]*?healthcheck:\s*[\r\n]+\s*disable:\s*true/.test(productionCompose), 'Backup worker must not inherit the API HTTP healthcheck.');
+
+const backendDockerfile = readRepo('Dockerfile.backend');
+assert(backendDockerfile.includes('/health/live'), 'Backend Dockerfile liveness healthcheck must use /health/live.');
+assert(backendDockerfile.includes('Dedicated worker containers'), 'Backend Dockerfile must document that workers do not expose HTTP health.');
 
 const frontendContracts = readRepo('src/app/lib/api/contracts.ts');
 assert(frontendContracts.includes('interface MailJobRecipient'), 'Frontend mail job contract must include recipient identity.');
@@ -624,6 +637,24 @@ for (const phrase of ['FRONTEND_URL=https://projtrack.codes', 'MAIL_FROM_NAME=Pr
 }
 assert(productionEnvTemplate.includes('MAILRELAY_API_URL=https://projtrack.ipzmarketing.com/api/v1'), 'docs/PRODUCTION_ENV_TEMPLATE.md must document the active Mailrelay API URL.');
 
+for (const file of [
+  'docs/STAGING_VERIFICATION_RUNBOOK.md',
+  'docs/PRODUCTION_LAUNCH_RUNBOOK.md',
+  'docs/PRODUCTION_GO_NO_GO_CHECKLIST.md',
+  'docs/PRODUCTION_RISK_REGISTER.md',
+  'docs/PRODUCTION_ENVIRONMENT_CHECKLIST.md',
+]) {
+  assert(fs.existsSync(path.join(repoRoot, file)), `${file} is required for production evidence and launch governance.`);
+}
+const stagingVerificationRunbook = readRepo('docs/STAGING_VERIFICATION_RUNBOOK.md');
+for (const phrase of ['prisma:migrate:deploy', 'docker build -f Dockerfile.backend', '/health/api-ready', 'smoke:mail', 'smoke:storage', 'drill:backup-restore']) {
+  assert(stagingVerificationRunbook.includes(phrase), `docs/STAGING_VERIFICATION_RUNBOOK.md must document ${phrase}.`);
+}
+const goNoGoChecklist = readRepo('docs/PRODUCTION_GO_NO_GO_CHECKLIST.md');
+for (const phrase of ['Docker build green', 'Prisma migrate deploy passed', 'S3 verified', 'ClamAV verified', 'Mailrelay verified', 'Restore drill passed']) {
+  assert(goNoGoChecklist.includes(phrase), `docs/PRODUCTION_GO_NO_GO_CHECKLIST.md must include ${phrase}.`);
+}
+
 const duplicateGuardMigration = read('prisma/migrations/20260427120000_production_duplicate_guards/migration.sql');
 assert(duplicateGuardMigration.includes('"Submission_task_student_unique_idx"'), 'Submission individual uniqueness partial index migration is required.');
 assert(duplicateGuardMigration.includes('WHERE "studentId" IS NOT NULL'), 'Submission individual uniqueness index must be partial.');
@@ -640,8 +671,18 @@ assert(backendPackage.scripts.worker === 'node -r ts-node/register src/worker.ts
 assert(backendPackage.scripts['dev:worker'] === 'node -r ts-node/register src/worker.ts', 'Backend package must expose a clear local dev worker command.');
 assert(backendPackage.scripts['start:worker'] === 'node dist/worker.js', 'Backend package must expose a production worker command.');
 const rootPackage = JSON.parse(readRepo('package.json'));
-assert(rootPackage.scripts['start:worker'] && rootPackage.scripts['start:worker'].includes('start-worker-local.ps1'), 'Root package must expose npm run start:worker.');
-assert(fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.ps1')), 'Local worker PowerShell helper is required.');
+const rootStartWorker = rootPackage.scripts['start:worker'];
+assert(
+  rootStartWorker
+    && (rootStartWorker.includes('start-worker-local.ps1')
+      || rootStartWorker.includes('start-worker-local.mjs')),
+  'Root package must expose npm run start:worker (start-worker-local.mjs or start-worker-local.ps1).',
+);
+assert(
+  fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.mjs'))
+    || fs.existsSync(path.join(repoRoot, 'scripts/start-worker-local.ps1')),
+  'Local worker helper (start-worker-local.mjs or start-worker-local.ps1) is required.',
+);
 const workerEntrypoint = read('src/worker.ts');
 assert(workerEntrypoint.includes('createApplicationContext'), 'Dedicated worker entrypoint must not open an HTTP listener.');
 assert(workerEntrypoint.includes('validateProductionEmailConfig'), 'Dedicated worker must validate production mail configuration.');

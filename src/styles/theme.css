@@ -60,8 +60,8 @@
   --space-lg: 2rem;
   --space-xl: 3rem;
   --space-2xl: 4rem;
-  --page-pad-inline: clamp(1rem, 1vw + 0.9rem, 2rem);
-  --page-pad-block: clamp(1.5rem, 1vw + 1.25rem, 2.5rem);
+  --page-pad-inline: clamp(0.85rem, 1vw + 0.75rem, 2rem);
+  --page-pad-block: clamp(1rem, 1vw + 1rem, 2.5rem);
   --section-gap-sm: var(--space-sm);
   --section-gap-md: var(--space-md);
   --section-gap-lg: var(--space-lg);
@@ -653,8 +653,8 @@
   pointer-events: none;
   z-index: 0;
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.08), transparent 34%, rgba(255, 255, 255, 0.04) 72%, transparent),
-    radial-gradient(circle at 48% 42%, color-mix(in srgb, var(--role-accent) 15%, transparent), transparent 18rem);
+    linear-gradient(115deg, rgba(255, 255, 255, 0.05), transparent 34%, rgba(255, 255, 255, 0.03) 72%, transparent),
+    radial-gradient(circle at 48% 42%, color-mix(in srgb, var(--role-accent) 10%, transparent), transparent 18rem);
   mask-image: linear-gradient(to bottom, black 0%, black 72%, transparent 100%);
 }
 
@@ -707,7 +707,7 @@
 
 .auth-login-hero {
     display: flex;
-    min-height: min(40rem, calc(100vh - 6rem));
+    min-height: min(36rem, calc(100dvh - 6rem));
     flex-direction: column;
     justify-content: center;
     gap: clamp(1.6rem, 2.6vw, 2.5rem);
@@ -1035,8 +1035,8 @@
     background:
       linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.78)),
       radial-gradient(circle at top, color-mix(in srgb, var(--role-accent) 18%, transparent), transparent 16rem);
-    min-height: 42rem;
-    padding: clamp(2rem, 3.4vw, 3.25rem) clamp(2rem, 3.4vw, 3.25rem) 2.5rem;
+    min-height: auto;
+    padding: clamp(1.5rem, 3vw, 3.25rem) clamp(1.25rem, 3vw, 3.25rem) clamp(1.5rem, 2.5vw, 2.5rem);
     box-shadow:
       0 32px 96px -52px rgba(0, 0, 0, 0.96),
       0 0 0 1px rgba(255, 255, 255, 0.04) inset;
@@ -1142,11 +1142,36 @@
   }
 }
 
+.auth-login-page,
+.portal-theme-surface {
+  overflow-wrap: anywhere;
+}
+
+.auth-starry-login .auth-campus-bg,
+.auth-starry-login .auth-campus-skyline,
+.auth-starry-login .auth-campus-glow,
+.auth-starry-login .auth-starfield,
+.auth-starry-login .auth-dot-grid,
+.auth-starry-login .auth-space-glow,
+.auth-starry-login .auth-leaf,
+.auth-starry-login .auth-arc {
+  animation: none !important;
+  transition: none !important;
+}
+
 @media (max-width: 1023px) {
+  .auth-shell {
+    max-width: 44rem;
+  }
+
+  .auth-grid {
+    gap: 1.5rem;
+  }
+
   .auth-login-hero {
     min-height: auto;
     align-items: center;
-    padding-top: 1rem;
+    padding-top: 0.5rem;
     text-align: center;
   }
 
@@ -1171,23 +1196,95 @@
 }
 
 @media (max-width: 640px) {
-  .auth-feature-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-    }
+  .auth-campus-skyline,
+  .auth-campus-glow,
+  .auth-dot-grid,
+  .auth-leaf,
+  .auth-space-glow {
+    display: none;
+  }
 
-    .auth-feature-card {
-      padding: 0.75rem 0.5rem;
+  .auth-shell {
+    padding-block: 1rem;
+  }
+
+  .auth-grid {
+    gap: 1rem;
+    padding-block: 0;
+  }
+
+  .auth-hero-logo .projtrack-logo-mark {
+    height: 3.35rem !important;
+    width: 3.35rem !important;
+    border-radius: 1.05rem !important;
+  }
+
+  .auth-hero-logo-text p:first-child {
+    font-size: 1.55rem;
+  }
+
+  .auth-hero-logo-text p:last-child,
+  .auth-hero-description,
+  .auth-hero-rule {
+    display: none;
+  }
+
+  .auth-hero-eyebrow {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+  }
+
+  .auth-hero-headline {
+    max-width: 18rem;
+    font-size: clamp(1.6rem, 9vw, 2.15rem);
+    line-height: 1.08;
+  }
+
+  .auth-feature-grid {
+      display: none;
     }
 
   .auth-login-card {
     min-height: auto;
     border-radius: 1.25rem;
+    padding: 1.25rem;
   }
 
   .auth-card-icon {
-    height: 5.125rem;
-    width: 5.125rem;
+    height: 4.25rem;
+    width: 4.25rem;
+  }
+
+  .auth-card-title {
+    font-size: 1.65rem;
+  }
+
+  .auth-card-divider {
+    margin-top: 0.5rem;
+  }
+
+  .auth-field-control {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .auth-field-control > div:first-child {
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .auth-remember {
+    min-width: 0;
+  }
+
+  .auth-page-footer {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .auth-page-footer nav {
+    width: 100%;
+    gap: 0.45rem;
   }
 }
 

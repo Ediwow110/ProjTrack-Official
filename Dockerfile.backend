@@ -79,10 +79,12 @@ USER projtrack:projtrack
 
 EXPOSE 3001
 
-# Liveness probe hits the public /health endpoint exposed by both API and worker.
-# Worker also runs an HTTP listener for health checks; see backend/src/worker.ts.
+# Liveness probe is API-oriented. Dedicated worker containers run the same image
+# with `node dist/worker.js`, do not open an HTTP listener, and should disable
+# this inherited Docker healthcheck in compose/orchestrator config. Worker health
+# is verified through DB heartbeat checks exposed by the API and worker smoke.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget --quiet --tries=1 --spider "http://127.0.0.1:${PORT:-3001}/health" || exit 1
+  CMD wget --quiet --tries=1 --spider "http://127.0.0.1:${PORT:-3001}/health/live" || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
 

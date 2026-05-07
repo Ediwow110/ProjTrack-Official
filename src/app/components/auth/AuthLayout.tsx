@@ -1,12 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
   import { Lock } from "lucide-react";
-  import { motion, useReducedMotion } from "motion/react";
 
-  import {
-    fadeUpVariants,
-    scaleInVariants,
-    staggerContainer,
-  } from "../../lib/motion";
   import { roleThemeStyle, roleThemes, type PortalRole } from "../../lib/roleTheme";
   import { ProjTrackLogo } from "../brand/ProjTrackLogo";
   import { cn } from "../ui/utils";
@@ -56,7 +50,6 @@ import type { ComponentType, ReactNode } from "react";
     children: ReactNode;
     footer?: ReactNode;
   }) {
-    const reducedMotion = useReducedMotion() ?? false;
     const theme = roleThemes[role];
     const year = new Date().getFullYear();
     void theme;
@@ -64,7 +57,7 @@ import type { ComponentType, ReactNode } from "react";
     return (
       <div
         className={cn(
-          "auth-login-page auth-starry-login min-h-screen overflow-hidden text-white",
+          "auth-login-page auth-starry-login min-h-dvh overflow-x-hidden text-white",
           `portal-role-${role}`,
         )}
         style={roleThemeStyle(role)}
@@ -76,37 +69,19 @@ import type { ComponentType, ReactNode } from "react";
         <div className="auth-campus-glow" aria-hidden="true" />
         <div className="auth-starfield" aria-hidden="true" />
         <div className="auth-dot-grid" aria-hidden="true" />
-        <motion.div
-          className="auth-space-glow auth-space-glow-primary"
-          aria-hidden="true"
-          animate={reducedMotion ? { opacity: 0.7 } : { opacity: [0.6, 0.82, 0.6], scale: [1, 1.03, 1] }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="auth-space-glow auth-space-glow-secondary"
-          aria-hidden="true"
-          animate={reducedMotion ? { opacity: 0.5 } : { opacity: [0.42, 0.6, 0.42], scale: [1, 1.025, 1] }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
+        <div className="auth-space-glow auth-space-glow-primary" aria-hidden="true" />
+        <div className="auth-space-glow auth-space-glow-secondary" aria-hidden="true" />
         <div className="auth-leaf auth-leaf-bl" aria-hidden="true" />
         <div className="auth-leaf auth-leaf-br" aria-hidden="true" />
 
-        <div className="auth-shell relative z-10 mx-auto flex min-h-screen w-full max-w-[1240px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <div className="auth-shell relative z-10 mx-auto flex min-h-dvh w-full max-w-[1240px] flex-col px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           {/* Curved glowing arc divider — visible only at lg+ */}
           <span className="auth-arc" aria-hidden="true" />
           <span className="auth-arc auth-arc-soft" aria-hidden="true" />
 
           <div className="auth-grid relative grid flex-1 items-center gap-10 py-4 md:py-6 lg:gap-14">
-            <motion.aside
-              className="auth-login-hero relative z-[2]"
-              initial="hidden"
-              animate="visible"
-              variants={staggerContainer(reducedMotion, {
-                delayChildren: 0.08,
-                staggerChildren: 0.08,
-              })}
-            >
-              <motion.div variants={fadeUpVariants(reducedMotion)}>
+            <aside className="auth-login-hero relative z-[2]">
+              <div>
                 <ProjTrackLogo
                   role={role}
                   inverse
@@ -115,9 +90,9 @@ import type { ComponentType, ReactNode } from "react";
                   markClassName="h-[4.6rem] w-[4.6rem] rounded-[1.5rem]"
                   textClassName="auth-hero-logo-text"
                 />
-              </motion.div>
+              </div>
 
-              <motion.div className="auth-hero-copy" variants={fadeUpVariants(reducedMotion, { delay: 0.04 })}>
+              <div className="auth-hero-copy">
                 <span className="auth-hero-eyebrow">{portalEyebrow}</span>
                 <h1 className="auth-hero-headline">
                   <span className="auth-hero-headline-line">{headlineL1}</span>
@@ -128,23 +103,16 @@ import type { ComponentType, ReactNode } from "react";
                 </h1>
                 <p className="auth-hero-description">{description}</p>
                 <span className="auth-hero-rule" aria-hidden="true" />
-              </motion.div>
+              </div>
 
               {features.length ? (
-                <motion.div
-                  className="auth-feature-grid"
-                  variants={staggerContainer(reducedMotion, {
-                    delayChildren: 0.18,
-                    staggerChildren: 0.06,
-                  })}
-                >
+                <div className="auth-feature-grid">
                   {features.map((feature) => {
                     const FeatureIcon = feature.icon;
                     return (
-                      <motion.div
+                      <div
                         key={`${feature.label}-${feature.sub}`}
                         className="auth-feature-card"
-                        variants={fadeUpVariants(reducedMotion, { distance: 12 })}
                       >
                         <div className="auth-feature-icon" aria-hidden="true">
                           <FeatureIcon size={26} strokeWidth={1.85} />
@@ -153,45 +121,36 @@ import type { ComponentType, ReactNode } from "react";
                           <span>{feature.label}</span>
                           <span>{feature.sub}</span>
                         </p>
-                      </motion.div>
+                      </div>
                     );
                   })}
-                </motion.div>
+                </div>
               ) : null}
-            </motion.aside>
+            </aside>
 
-            <motion.main
+            <main
               className="auth-login-card relative z-[3]"
-              variants={scaleInVariants(reducedMotion, { scale: 0.982 })}
-              initial="hidden"
-              animate="visible"
               data-testid="login-card"
             >
-              <motion.div
-                className="auth-card-icon"
-                variants={scaleInVariants(reducedMotion, { delay: 0.08, scale: 0.92 })}
-              >
+              <div className="auth-card-icon">
                 <Icon size={46} strokeWidth={1.8} />
-              </motion.div>
+              </div>
 
-              <motion.div variants={fadeUpVariants(reducedMotion, { delay: 0.1 })}>
+              <div>
                 <h2 className="auth-card-title">Welcome Back!</h2>
                 <p className="auth-card-divider">
                   <span className="auth-card-divider-line" aria-hidden="true" />
                   <span className="auth-card-divider-text">{cardKicker}</span>
                   <span className="auth-card-divider-line" aria-hidden="true" />
                 </p>
-              </motion.div>
+              </div>
 
-              <motion.div className="mt-6" variants={fadeUpVariants(reducedMotion, { delay: 0.14 })}>
+              <div className="mt-6">
                 {children}
-              </motion.div>
+              </div>
 
               {securityBadge ? (
-                <motion.div
-                  className="auth-security-badge"
-                  variants={fadeUpVariants(reducedMotion, { delay: 0.18 })}
-                >
+                <div className="auth-security-badge">
                   <span className="auth-security-divider" aria-hidden="true">
                     <span />
                     <span className="auth-security-divider-text">or</span>
@@ -201,20 +160,17 @@ import type { ComponentType, ReactNode } from "react";
                     <Lock size={16} className="shrink-0" aria-hidden="true" />
                     <span>{securityBadge}</span>
                   </p>
-                </motion.div>
+                </div>
               ) : null}
 
               {footer ? (
-                <motion.div
-                  className="auth-footer-text mt-6"
-                  variants={fadeUpVariants(reducedMotion, { delay: 0.18 })}
-                >
+                <div className="auth-footer-text mt-6">
                   {footer}
-                </motion.div>
+                </div>
               ) : null}
 
               <span className="sr-only">{`Sign in to the ${roleNames[role]} portal`}</span>
-            </motion.main>
+            </main>
           </div>
 
           <footer className="auth-page-footer">

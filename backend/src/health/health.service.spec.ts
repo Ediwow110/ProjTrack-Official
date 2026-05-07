@@ -350,3 +350,72 @@ describe('HealthService.ready (composition)', () => {
     expect(r.checks).toEqual({ database: true, storage: true, mail: true, configuration: true, backup: true });
   });
 });
+
+describe('HealthService.apiReady (composition)', () => {
+  const ORIGINAL_ENV = { ...process.env };
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  function makeApiReadyService(opts: {
+    databaseUrlSet: boolean;
+    dbThrows?: boolean;
+    migrationsOk?: boolean;
+    storageOk: boolean;
+    configurationOk: boolean;
+  }) {
+    if (opts.databaseUrlSet) {
+      process.env.DATABASE_URL = 'postgresql://x:y@db.example.com:5432/z';
+    } else {
+      delete process.env.DATABASE_URL;
+    }
+    const { prisma } = buildPrisma({
+      rawError: opts.dbThrows ? new Error('connection refused') : undefined,
+      databaseInfoRows: opts.migrationsOk
+        ? [{ currentDatabase: 'projtrack', currentSchema: 'public', migrationsTable: 'public._prisma_migrations' }]
+        : undefined,
+      migrationInfoRows: opts.migrationsOk ? [{ appliedCount: 1, unresolvedCount: 0 }] : undefined,
+    });
+    const svc = new HealthService(
+      prisma,
+      buildFiles(opts.storageOk),
+      {} as MailTransportService,
+      {} as MailLimitService,
+      buildBackups({}),
+      buildBackupWorker(),
+      {} as MailWorker,
+    );
+    (svc as any).configuration = () => ({ ok: opts.configurationOk });
+    return svc;
+  }
+
+  it('passes when API dependencies are healthy without requiring worker heartbeat checks', async () => {
+    const svc = makeApiReadyService({
+      databaseUrlSet: true,
+      migrationsOk: true,
+      storageOk: true,
+      configurationOk: true,
+    });
+    const mailStatus = jest.spyOn(svc, 'mailStatus');
+    const backupStatus = jest.spyOn(svc, 'backupStatus');
+
+    const r = await svc.apiReady();
+
+    expect(r.ok).toBe(true);
+    expect(r.checks).toEqual({ database: true, storage: true, configuration: true });
+    expect(mailStatus).not.toHaveBeenCalled();
+    expect(backupStatus).not.toHaveBeenCalled();
+  });
+
+  it('fails when storage is unhealthy', async () => {
+    const svc = makeApiReadyService({
+      databaseUrlSet: true,
+      migrationsOk: true,
+      storageOk: false,
+      configurationOk: true,
+    });
+    const r = await svc.apiReady();
+    expect(r.ok).toBe(false);
+    expect(r.checks.storage).toBe(false);
+  });
+});

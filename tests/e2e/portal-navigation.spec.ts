@@ -1,12 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
+import { smokeCredentials } from "./helpers/smoke-credentials";
 
 const accounts = {
   student: {
     role: "student",
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || "",
-    password: process.env.SMOKE_STUDENT_PASSWORD || "",
-    identifierLabel: /Student ID or Email/i,
-    buttonName: /Continue to Student Portal Login/i,
+    identifier: smokeCredentials.student.identifier,
+    password: smokeCredentials.student.password,
+    identifierLabel: /Email or Student ID/i,
+    buttonName: /^Sign In$/i,
     dashboardPath: "/student/dashboard",
     routes: [
       "/student/dashboard",
@@ -19,10 +20,10 @@ const accounts = {
   },
   teacher: {
     role: "teacher",
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || "",
-    password: process.env.SMOKE_TEACHER_PASSWORD || "",
-    identifierLabel: /Employee ID or School Email/i,
-    buttonName: /Continue to Teacher Portal Login/i,
+    identifier: smokeCredentials.teacher.identifier,
+    password: smokeCredentials.teacher.password,
+    identifierLabel: /Email or Teacher ID/i,
+    buttonName: /Sign In as Teacher/i,
     dashboardPath: "/teacher/dashboard",
     routes: [
       "/teacher/dashboard",
@@ -35,10 +36,10 @@ const accounts = {
   },
   admin: {
     role: "admin",
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "",
-    identifierLabel: /Admin Email/i,
-    buttonName: /Continue to Admin Portal Login/i,
+    identifier: smokeCredentials.admin.identifier,
+    password: smokeCredentials.admin.password,
+    identifierLabel: /Email or Admin ID/i,
+    buttonName: /Sign In as Admin/i,
     dashboardPath: "/admin/dashboard",
     routes: [
       "/admin/dashboard",
@@ -66,21 +67,17 @@ const accounts = {
   },
 } as const;
 
-const hasSmokeCredentials = [accounts.student, accounts.teacher, accounts.admin].every(
-  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
-);
-
-test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e portal smoke.');
-
 type RuntimeTracker = {
   consoleErrors: string[];
   pageErrors: string[];
+  serverErrors: string[];
 };
 
 function attachRuntimeTracker(page: Page): RuntimeTracker {
   const tracker: RuntimeTracker = {
     consoleErrors: [],
     pageErrors: [],
+    serverErrors: [],
   };
 
   page.on("console", (message) => {
@@ -92,6 +89,12 @@ function attachRuntimeTracker(page: Page): RuntimeTracker {
 
   page.on("pageerror", (error) => {
     tracker.pageErrors.push(error.message);
+  });
+
+  page.on("response", (response) => {
+    if (response.status() >= 500) {
+      tracker.serverErrors.push(`${response.status()} ${response.url()}`);
+    }
   });
 
   return tracker;
@@ -107,11 +110,19 @@ async function assertHealthy(page: Page, tracker: RuntimeTracker) {
     tracker.consoleErrors,
     `Unexpected console errors: ${tracker.consoleErrors.join("\n")}`,
   ).toEqual([]);
+  expect(
+    tracker.serverErrors,
+    `Unexpected server errors: ${tracker.serverErrors.join("\n")}`,
+  ).toEqual([]);
 }
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+const smokeAcademicYearName = String(
+  process.env.SMOKE_ACADEMIC_YEAR_NAME ?? "Smoke AY 2026",
+).trim();
 
 async function login(page: Page, account: (typeof accounts)[keyof typeof accounts]) {
   await page.goto(`/${account.role}/login`);
@@ -152,6 +163,18 @@ async function openSidebarRoute(page: Page, route: string) {
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
 }
 
+async function openSmokeSectionMasterList(page: Page) {
+  await openSidebarRoute(page, "/admin/sections");
+  const academicYearButton = page.getByRole("button", {
+    name: new RegExp(`Open academic year\\s+${escapeRegExp(smokeAcademicYearName)}`, "i"),
+  });
+  await expect(academicYearButton).toBeVisible();
+  await academicYearButton.click();
+  await page.getByRole("button", { name: /Open course/i }).first().click();
+  await page.getByRole("button", { name: /Open year level/i }).first().click();
+  await page.getByRole("button", { name: /Open master list/i }).first().click();
+}
+
 test("public entry points resolve to student login without portal chooser UI", async ({
   page,
 }) => {
@@ -161,7 +184,8 @@ test("public entry points resolve to student login without portal chooser UI", a
   for (const route of ["/", "/login", "/portals"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/student\/login$/);
-    await expect(page.getByRole("heading", { name: /^Student Portal Login$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Welcome Back!/i, level: 2 })).toBeVisible();
+    await expect(page.getByText(/Student Portal Login/i)).toBeVisible();
     await expect(page.getByText(forbiddenChooserCopy)).toHaveCount(0);
     await expect(page.getByText(/^Teacher Portal$/i)).toHaveCount(0);
     await expect(page.getByText(/^Admin Portal$/i)).toHaveCount(0);
@@ -255,19 +279,13 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
   await expect(page).toHaveURL(/\/admin\/notifications$/);
   await assertHealthy(page, tracker);
 
-  await openSidebarRoute(page, "/admin/sections");
-  await page.getByRole("button", { name: /Open academic year/i }).first().click();
-  await page.getByRole("button", { name: /Open year level/i }).first().click();
-  await page.getByRole("button", { name: /Open master list/i }).first().click();
+  await openSmokeSectionMasterList(page);
   await page.getByRole("button", { name: /^View Students$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/students\?sectionId=[^&]+$/);
   await expect(page.getByRole("button", { name: /^Add Student$/ })).toBeVisible();
   await assertHealthy(page, tracker);
 
-  await openSidebarRoute(page, "/admin/sections");
-  await page.getByRole("button", { name: /Open academic year/i }).first().click();
-  await page.getByRole("button", { name: /Open year level/i }).first().click();
-  await page.getByRole("button", { name: /Open master list/i }).first().click();
+  await openSmokeSectionMasterList(page);
   await page.getByRole("button", { name: /^Manage Moves$/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/bulk-move\?sourceSectionId=[^&]+$/);
   await expect(

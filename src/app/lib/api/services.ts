@@ -207,6 +207,16 @@ function getHealthySystemTone(good: boolean, warning = false) {
   };
 }
 
+function readinessFailuresFromChecks(checks: Record<string, boolean>) {
+  return Object.entries(checks)
+    .filter(([, ok]) => !ok)
+    .map(([key]) => key);
+}
+
+function readinessLabel(key: string) {
+  return key.replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 async function fileToBase64(file: File) {
   const buffer = await file.arrayBuffer();
   let binary = "";
@@ -1264,16 +1274,24 @@ export const adminService = {
   },
   async getDashboard(): Promise<AdminDashboardResponse> {
     if (apiRuntime.useBackend) {
-      const [summary, activity, academicSettings, live, ready, storage, mail, database] = await Promise.all([
+      const [summary, activity, academicSettings, live, storage, mail, database] = await Promise.all([
         http.get<{ totalStudents: number; totalTeachers: number; totalSubjects: number; totalSubmissions: number; pendingReviews: number }>("/admin/dashboard/summary"),
         http.get<Array<any>>("/admin/dashboard/activity"),
         http.get<any>("/admin/settings/academic"),
         http.get<any>("/health/live"),
-        http.get<any>("/health/ready"),
         http.get<any>("/health/storage"),
         http.get<any>("/health/mail"),
         http.get<any>("/health/database"),
       ]);
+      const readinessChecks = {
+        database: Boolean(database?.ok),
+        storage: Boolean(storage?.ok),
+        mail: Boolean(mail?.ok),
+      };
+      const ready = {
+        ok: Boolean(live?.ok) && Object.values(readinessChecks).every(Boolean),
+        checks: readinessChecks,
+      };
       const systemStatus = [
         {
           label: "Backend Service",
@@ -1297,9 +1315,7 @@ export const adminService = {
         },
       ];
       const healthySystems = systemStatus.filter((item) => item.good).length;
-      const readinessFailures = Object.entries(ready?.checks || {})
-        .filter(([, ok]) => !ok)
-        .map(([key]) => key.replace(/\b\w/g, (match) => match.toUpperCase()));
+      const readinessFailures = readinessFailuresFromChecks(ready.checks).map(readinessLabel);
 
       return {
         title: 'Admin Dashboard',
@@ -1637,18 +1653,22 @@ async downloadBackup(id: string, fileName?: string) {
 
 async getSystemHealth(): Promise<SystemHealthRecord[]> {
   if (apiRuntime.useBackend) {
-    const [live, ready, storage, mail, database, backups, configuration] = await Promise.all([
+    const [live, storage, mail, database, backups, configuration] = await Promise.all([
       http.get<any>("/health/live"),
-      http.get<any>("/health/ready"),
       http.get<any>("/health/storage"),
       http.get<any>("/health/mail"),
       http.get<any>("/health/database"),
       http.get<any>("/health/backups"),
       http.get<any>("/health/configuration"),
     ]);
-    const failingReadinessChecks = Object.entries(ready?.checks || {})
-      .filter(([, ok]) => !ok)
-      .map(([key]) => key);
+    const readinessChecks = {
+      database: Boolean(database?.ok),
+      storage: Boolean(storage?.ok),
+      mail: Boolean(mail?.ok),
+      configuration: Boolean(configuration?.ok),
+      backup: Boolean(backups?.ok),
+    };
+    const failingReadinessChecks = readinessFailuresFromChecks(readinessChecks);
 
     return [
       {
@@ -1659,8 +1679,8 @@ async getSystemHealth(): Promise<SystemHealthRecord[]> {
           ? "Backend did not report healthy status."
           : failingReadinessChecks.length
             ? `Backend liveness is healthy. Remaining blockers: ${failingReadinessChecks.join(", ") || "one or more subsystems"}.`
-            : "Backend liveness and readiness checks passed.",
-        checkedAt: ready?.timestamp || live?.timestamp || new Date().toISOString(),
+            : "Backend liveness and component health checks passed.",
+        checkedAt: live?.timestamp || new Date().toISOString(),
       },
       {
         key: "storage",
@@ -1737,16 +1757,19 @@ async getClientErrorTelemetry(): Promise<ClientErrorTelemetryResponse> {
 
 async getReleaseStatus(): Promise<ReleaseStatusItem[]> {
   if (apiRuntime.useBackend) {
-    const [live, ready, storage, mail, database] = await Promise.all([
+    const [live, storage, mail, database] = await Promise.all([
       http.get<any>("/health/live"),
-      http.get<any>("/health/ready"),
       http.get<any>("/health/storage"),
       http.get<any>("/health/mail"),
       http.get<any>("/health/database"),
     ]);
-    const readinessFailures = Object.entries(ready?.checks || {})
-      .filter(([, ok]) => !ok)
-      .map(([key]) => key);
+    const readinessChecks = {
+      database: Boolean(database?.ok),
+      storage: Boolean(storage?.ok),
+      mail: Boolean(mail?.ok),
+    };
+    const ready = Boolean(live?.ok) && Object.values(readinessChecks).every(Boolean);
+    const readinessFailures = readinessFailuresFromChecks(readinessChecks);
 
       return [
         { area: "Frontend UI", status: "done", detail: "Primary student, teacher, and admin pages are active in official mode." },
@@ -1774,9 +1797,9 @@ async getReleaseStatus(): Promise<ReleaseStatusItem[]> {
         },
         {
           area: "Production Readiness",
-          status: ready?.ok ? "done" : "pending",
-          detail: ready?.ok
-            ? "Core readiness probes are green and the main release gates are currently passing."
+          status: ready ? "done" : "pending",
+          detail: ready
+            ? "Core component health probes are green and the main release gates are currently passing."
             : `Readiness is still blocked by ${readinessFailures.join(", ") || "one or more subsystems"}.`,
         },
       ];
@@ -1795,16 +1818,19 @@ async getReleaseStatus(): Promise<ReleaseStatusItem[]> {
 
 async getBootstrapGuide(): Promise<BootstrapStepItem[]> {
   if (apiRuntime.useBackend) {
-    const [live, ready, storage, mail, database] = await Promise.all([
+    const [live, storage, mail, database] = await Promise.all([
       http.get<any>("/health/live"),
-      http.get<any>("/health/ready"),
       http.get<any>("/health/storage"),
       http.get<any>("/health/mail"),
       http.get<any>("/health/database"),
     ]);
-    const failingChecks = Object.entries(ready?.checks || {})
-      .filter(([, ok]) => !ok)
-      .map(([key]) => key);
+    const readinessChecks = {
+      database: Boolean(database?.ok),
+      storage: Boolean(storage?.ok),
+      mail: Boolean(mail?.ok),
+    };
+    const ready = Boolean(live?.ok) && Object.values(readinessChecks).every(Boolean);
+    const failingChecks = readinessFailuresFromChecks(readinessChecks);
 
     return [
       {
@@ -1812,8 +1838,8 @@ async getBootstrapGuide(): Promise<BootstrapStepItem[]> {
         status: live?.ok ? "ready" : "action_needed",
         detail: !live?.ok
           ? "Backend did not report healthy status."
-          : ready?.ok
-            ? "Backend liveness and readiness checks passed."
+          : ready
+            ? "Backend liveness and component health checks passed."
             : `Backend liveness is healthy. Remaining blockers: ${failingChecks.join(", ") || "one or more subsystems"}.`,
       },
       {

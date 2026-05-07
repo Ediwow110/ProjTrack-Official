@@ -1,40 +1,38 @@
 import { expect, test, type Page } from '@playwright/test';
+import { smokeCredentials } from './helpers/smoke-credentials';
 
 const accounts = [
   {
     role: 'student',
-    identifier: process.env.SMOKE_STUDENT_IDENTIFIER || '',
-    password: process.env.SMOKE_STUDENT_PASSWORD || '',
-    identifierLabel: /Student ID or Email/i,
+    identifier: smokeCredentials.student.identifier,
+    password: smokeCredentials.student.password,
+    identifierLabel: /Email or Student ID/i,
     dashboardPath: '/student/dashboard',
-    buttonName: /Continue to Student Portal Login/i,
+    buttonName: /^Sign In$/i,
+    cardKicker: /Student Portal Login/i,
     dashboardAssertion: /Submit Project/i,
   },
   {
     role: 'teacher',
-    identifier: process.env.SMOKE_TEACHER_IDENTIFIER || '',
-    password: process.env.SMOKE_TEACHER_PASSWORD || '',
-    identifierLabel: /Employee ID or School Email/i,
+    identifier: smokeCredentials.teacher.identifier,
+    password: smokeCredentials.teacher.password,
+    identifierLabel: /Email or Teacher ID/i,
     dashboardPath: '/teacher/dashboard',
-    buttonName: /Continue to Teacher Portal Login/i,
+    buttonName: /Sign In as Teacher/i,
+    cardKicker: /Teacher Portal Login/i,
     dashboardAssertion: /Review Submissions/i,
   },
   {
     role: 'admin',
-    identifier: process.env.SMOKE_ADMIN_IDENTIFIER || '',
-    password: process.env.SMOKE_ADMIN_PASSWORD || '',
-    identifierLabel: /Admin Email/i,
+    identifier: smokeCredentials.admin.identifier,
+    password: smokeCredentials.admin.password,
+    identifierLabel: /Email or Admin ID/i,
     dashboardPath: '/admin/dashboard',
-    buttonName: /Continue to Admin Portal Login/i,
+    buttonName: /Sign In as Admin/i,
+    cardKicker: /Admin Portal Login/i,
     dashboardAssertion: /^System Status$/i,
   },
 ] as const;
-
-const hasSmokeCredentials = accounts.every(
-  (account) => Boolean(String(account.identifier).trim()) && Boolean(String(account.password).trim()),
-);
-
-test.skip(!hasSmokeCredentials, 'Set SMOKE_* identifiers and passwords before running e2e auth smoke.');
 
 async function login(page: Page, account: (typeof accounts)[number]) {
   await page.goto(`/${account.role}/login`);
@@ -53,16 +51,18 @@ test('home route lands directly on the student login portal', async ({ page }) =
   await page.goto('/');
   await page.waitForURL(/\/student\/login$/);
   await assertNoViteOverlay(page);
-  await expect(page.getByRole('heading', { name: /Student Portal Login/i, level: 1 })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /Welcome Back!/i, level: 2 })).toBeVisible({
     timeout: 60_000,
   });
+  await expect(page.getByText(/Student Portal Login/i)).toBeVisible();
 });
 
 test('protected routes redirect unauthenticated users to the matching login page', async ({ page }) => {
   await page.goto('/admin/dashboard');
   await expect(page).toHaveURL(/\/admin\/login$/);
   await assertNoViteOverlay(page);
-  await expect(page.getByRole('heading', { name: /Admin Portal Login/i, level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Welcome Back!/i, level: 2 })).toBeVisible();
+  await expect(page.getByText(/Admin Portal Login/i)).toBeVisible();
 });
 
 for (const account of accounts) {

@@ -21,6 +21,17 @@ jobs:
       - run: npm run check:frontend-env
       - run: npm run typecheck
       - run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - run: npx playwright install --with-deps chromium
+      - name: Auth responsive tests (no backend required)
+        run: npm run e2e:responsive
+        timeout-minutes: 10
       - run: npm run security:audit
 
   backend:
@@ -61,7 +72,7 @@ jobs:
       BACKUP_SCHEDULE_ENABLED: "false"
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_API_BASE_URL: http://localhost:3001
-      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+      SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
       SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     defaults:
       run:
@@ -94,14 +105,14 @@ jobs:
         run: npm run smoke:worker
 
       - name: Smoke secrets status
-        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
-        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
+        if: env.SMOKE_ADMIN_IDENTIFIER == '' || env.SMOKE_ADMIN_PASSWORD == ''
+        run: echo "SMOKE_ADMIN_IDENTIFIER and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account backend smoke."
 
       - name: Ensure CI Smoke Admin
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+        if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:admin:ensure
       - name: Backend Smoke (Real Accounts)
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
+        if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
         run: npm run smoke:real
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
@@ -147,7 +158,10 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
       VITE_USE_BACKEND: "true"
       VITE_API_BASE_URL: http://127.0.0.1:3001
-      SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+      # Real browser smoke requires admin credentials up front.
+      # Teacher/student accounts and passwords are generated during seed:smoke.
+      # If admin credentials are missing, scripts/check-smoke-env.mjs fails loudly before Playwright can skip.
+      SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
       SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -173,18 +187,13 @@ jobs:
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
       - run: npm --prefix backend run build
-      - name: E2E smoke secrets status
-        if: env.SMOKE_ADMIN_EMAIL == '' || env.SMOKE_ADMIN_PASSWORD == ''
-        run: echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are not configured; skipping real-account E2E preflight."
-      - name: Ensure CI Smoke Admin
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
-        run: npm --prefix backend run smoke:admin:ensure
-      - name: E2E database health preflight
-        if: env.SMOKE_ADMIN_EMAIL != '' && env.SMOKE_ADMIN_PASSWORD != ''
-        run: npm --prefix backend run smoke:real
-        env:
-          SMOKE_USE_REAL_ACCOUNTS: true
-          SMOKE_DEBUG_ERRORS: true
+      - name: Smoke env preflight (requires admin smoke secrets; no skip-green)
+        run: npm run check:smoke-env
+      - name: Seed deterministic smoke fixtures
+        run: npm run seed:smoke
       - name: Run E2E Smoke
         run: npm run e2e:smoke
         timeout-minutes: 15
+      - name: Run authenticated responsive QA
+        run: npm run e2e:responsive:auth
+        timeout-minutes: 10

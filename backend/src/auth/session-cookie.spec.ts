@@ -107,6 +107,16 @@ describe('refreshTokenFromCookie', () => {
     const req = { headers: { cookie: 'projtrack_refresh=token%20with%20space' } };
     expect(refreshTokenFromCookie(req, { NODE_ENV: 'development' } as any)).toBe('token with space');
   });
+
+  it('ignores malformed percent-encoded cookie values', () => {
+    const req = { headers: { cookie: 'projtrack_refresh=token%ZZvalue' } };
+    expect(refreshTokenFromCookie(req, { NODE_ENV: 'development' } as any)).toBe('');
+  });
+
+  it('continues past malformed cookie names', () => {
+    const req = { headers: { cookie: '%ZZ=bad; projtrack_refresh=good-token' } };
+    expect(refreshTokenFromCookie(req, { NODE_ENV: 'development' } as any)).toBe('good-token');
+  });
 });
 
 describe('stripRefreshTokenInProduction', () => {

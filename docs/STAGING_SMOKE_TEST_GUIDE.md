@@ -6,7 +6,7 @@ This guide provides the commands and steps necessary to validate the staging env
 
 - Ensure the staging environment is set up with the correct environment variables as outlined in `PRODUCTION_DEPLOYMENT_GUIDE.md`.
 - Verify that the backend and frontend are deployed and accessible at the staging URLs (e.g., `https://api-staging.projtrack.codes` and `https://staging.projtrack.codes`).
-- Have test accounts ready for admin, teacher, and student roles with credentials set in environment variables (`SMOKE_ADMIN_EMAIL`, `SMOKE_ADMIN_PASSWORD`, etc.).
+- Have a test-only admin smoke account ready. Teacher and student smoke accounts are generated during `npm run seed:smoke`, with optional local overrides available only when needed for debugging.
 
 ## Smoke Test Commands
 
@@ -43,7 +43,7 @@ Run these commands from the project root to validate various components of the s
 - **Command**: `npm run e2e:smoke`
 - **Purpose**: Runs automated browser tests to simulate user interactions across critical workflows (login, submission, review).
 - **Expected Output**: All tests should pass. Failures will detail which workflow or component failed (e.g., login, file upload).
-- **Troubleshooting**: Ensure test accounts are set (`SMOKE_*_EMAIL` or `SMOKE_*_IDENTIFIER`, plus `SMOKE_*_PASSWORD`). Check for frontend-backend URL mismatches (`VITE_API_BASE_URL`, `CORS_ORIGINS`).
+- **Troubleshooting**: Ensure admin smoke env is set (`SMOKE_ADMIN_IDENTIFIER` or `SMOKE_ADMIN_EMAIL`, plus `SMOKE_ADMIN_PASSWORD`), then run `npm run seed:smoke` so teacher/student credentials are generated before Playwright starts. Check for frontend-backend URL mismatches (`VITE_API_BASE_URL`, `CORS_ORIGINS`).
 
 ## Manual Validation Steps
 
@@ -63,7 +63,7 @@ Ensure these are set for staging smoke tests to run correctly:
 - **Authentication**: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ACCOUNT_ACTION_TOKEN_ENC_KEY`
 - **Mail**: `MAIL_PROVIDER=mailrelay`, `MAILRELAY_API_KEY`, `MAILRELAY_API_URL`, `MAIL_SMOKE_TO`, `MAIL_FROM_*`
 - **Storage**: `OBJECT_STORAGE_MODE=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `FILE_MALWARE_SCAN_MODE=fail-closed`, `CLAMAV_HOST`, `CLAMAV_PORT`
-- **Smoke Test Accounts**: `SMOKE_ADMIN_EMAIL` or `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`, `SMOKE_TEACHER_EMAIL` or `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_EMAIL` or `SMOKE_STUDENT_IDENTIFIER`, `SMOKE_STUDENT_PASSWORD`
+- **Smoke Test Accounts**: `SMOKE_ADMIN_EMAIL` or `SMOKE_ADMIN_IDENTIFIER`, `SMOKE_ADMIN_PASSWORD`. Optional local overrides: `SMOKE_TEACHER_IDENTIFIER`, `SMOKE_TEACHER_PASSWORD`, `SMOKE_STUDENT_IDENTIFIER`, `SMOKE_STUDENT_PASSWORD`
 - **Frontend**: `VITE_USE_BACKEND=true`, `VITE_API_BASE_URL=https://api-staging.projtrack.codes`
 
 ## Troubleshooting Common Issues
@@ -71,7 +71,7 @@ Ensure these are set for staging smoke tests to run correctly:
 - **Emails Not Sent**: Verify `MAIL_WORKER_ENABLED=true` and Mailrelay credentials. Check DNS records for SPF/DKIM/DMARC setup.
 - **S3 Upload Failures**: Ensure `S3_BUCKET_PUBLIC=false` and credentials are correct. Run the object storage smoke test for detailed errors.
 - **ClamAV Scanning Issues**: Confirm `CLAMAV_HOST` is reachable. If unavailable, uploads should fail closed as per policy.
-- **E2E Test Failures Due to Missing Accounts**: Set all `SMOKE_*` variables with valid test credentials.
+- **E2E Test Failures Due to Missing Accounts**: Set the admin `SMOKE_*` variables, run `npm run seed:smoke`, and inspect `.tmp/smoke-credentials.json` generation if teacher/student fixture creation fails.
 - **CORS Errors in Browser**: Ensure `CORS_ORIGINS` includes the staging frontend URL.
 
 ## Next Steps After Smoke Tests

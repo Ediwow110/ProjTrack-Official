@@ -405,19 +405,15 @@ export class AdminOpsRepository {
     const normalizedLabel = this.normalizeYearLevelLabel(label);
     if (!academicYearId || !normalizedLabel) return null;
 
-    const existing = await this.prisma.academicYearLevel.findFirst({
+    return this.prisma.academicYearLevel.upsert({
       where: {
-        academicYearId,
-        name: {
-          equals: normalizedLabel,
-          mode: 'insensitive',
+        academicYearId_name: {
+          academicYearId,
+          name: normalizedLabel,
         },
       },
-    });
-    if (existing) return existing;
-
-    return this.prisma.academicYearLevel.create({
-      data: {
+      update: {},
+      create: {
         academicYearId,
         name: normalizedLabel,
         sortOrder: sortOrder ?? this.parseYearLevelNumber(normalizedLabel) ?? undefined,

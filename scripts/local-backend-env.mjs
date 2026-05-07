@@ -1,8 +1,60 @@
-const resolvedMailProvider =
-  process.env.MAIL_PROVIDER ||
-  (process.env.MAILRELAY_API_KEY && process.env.MAILRELAY_API_URL ? 'mailrelay' : 'stub');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const localBackendEnv = {
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, '..');
+const backendDir = path.join(rootDir, 'backend');
+
+function parseEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+
+  const output = {};
+  const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex <= 0) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    let value = trimmed.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    output[key] = value;
+  }
+
+  return output;
+}
+
+const useTestBackendEnv = /^(1|true|yes|on)$/i.test(
+  String(process.env.PROJTRACK_USE_TEST_BACKEND_ENV ?? '').trim(),
+);
+
+const localEnvCandidates = [
+  path.join(rootDir, '.env'),
+  path.join(backendDir, '.env'),
+  path.join(rootDir, 'backend.env.local-private'),
+  ...(useTestBackendEnv ? [path.join(rootDir, 'backend.env.local-test')] : []),
+];
+
+const loadedLocalEnvSources = localEnvCandidates.filter((candidate) => fs.existsSync(candidate));
+const loadedLocalEnv = loadedLocalEnvSources.reduce(
+  (accumulator, candidate) => ({ ...accumulator, ...parseEnvFile(candidate) }),
+  {},
+);
+
+function resolveMailProvider(env) {
+  const explicitProvider = String(env.MAIL_PROVIDER ?? '').trim();
+  if (explicitProvider) return explicitProvider;
+  return 'mailrelay';
+}
+
+export const localBackendDefaults = {
   NODE_ENV: 'development',
   APP_ENV: 'development',
   PORT: '3001',
@@ -17,7 +69,6 @@ export const localBackendEnv = {
   JWT_AUDIENCE: 'projtrack-web-local',
   JWT_KEY_ID: 'local-dev',
   ACCOUNT_ACTION_TOKEN_ENC_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
-  MAIL_PROVIDER: resolvedMailProvider,
   MAIL_WORKER_ENABLED: 'false',
   MAIL_WORKER_POLL_MS: '60000',
   TESTMAIL_ENABLED: 'false',
@@ -47,5 +98,16 @@ export const localBackendEnv = {
 };
 
 export function withLocalBackendEnv(overrides = {}) {
-  return { ...localBackendEnv, ...overrides };
+  const merged = {
+    ...localBackendDefaults,
+    ...loadedLocalEnv,
+    ...process.env,
+    ...overrides,
+  };
+  merged.MAIL_PROVIDER = resolveMailProvider(merged);
+  return merged;
+}
+
+export function detectLocalBackendEnvSources() {
+  return [...loadedLocalEnvSources];
 }

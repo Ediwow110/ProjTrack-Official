@@ -1,14 +1,24 @@
 import { spawn } from 'node:child_process';
 import { backendDir, nodeCommand, terminateProcessTree } from './local-stack-utils.mjs';
-import { withLocalBackendEnv } from './local-backend-env.mjs';
+import { detectLocalBackendEnvSources, withLocalBackendEnv } from './local-backend-env.mjs';
+
+const backendEnv = withLocalBackendEnv({ MAIL_WORKER_ENABLED: 'false' });
+const envSources = detectLocalBackendEnvSources();
 
 console.log('[backend-local] Starting backend with local development settings.');
-console.log(`[backend-local] DATABASE_URL=${withLocalBackendEnv().DATABASE_URL.replace(/:([^:]+)@/, ':****@')}`);
-console.log('[backend-local] Mail provider is stub and the HTTP mail worker is disabled.');
+console.log(`[backend-local] DATABASE_URL=${backendEnv.DATABASE_URL.replace(/:([^:]+)@/, ':****@')}`);
+console.log(
+  `[backend-local] MAIL_PROVIDER=${backendEnv.MAIL_PROVIDER}; MAIL_WORKER_ENABLED=${backendEnv.MAIL_WORKER_ENABLED}; MAILRELAY_API_KEY=${backendEnv.MAILRELAY_API_KEY ? 'SET' : 'MISSING'}`,
+);
+console.log(
+  envSources.length
+    ? `[backend-local] Env sources: ${envSources.join(', ')}`
+    : '[backend-local] Env sources: none; using defaults and current shell env.',
+);
 
 const child = spawn(nodeCommand, ['-r', 'ts-node/register', 'src/main.ts'], {
   cwd: backendDir,
-  env: withLocalBackendEnv(),
+  env: backendEnv,
   stdio: 'inherit',
 });
 

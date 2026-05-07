@@ -16,6 +16,14 @@ coverage/
 # Environment files
 .env
 .env.*
+*.env
+backend.env.*
+backend.env.production
+backend.env.local-private
+backend.env.local-test
+*.env.private
+local-backend-env.cmd
+start-worker-local.ps1
 !.env.example
 !*.env.example
 !.env.local.example
@@ -25,6 +33,7 @@ backend/.env.*
 !backend/.env.example
 !backend/.env.local.example
 !backend/.env.production.example
+!docs/env/*.example
 
 # Test reports
 playwright-report/
@@ -53,6 +62,7 @@ logs/
 !/src/app/components/lists/logs/**
 /backups/
 tmp/
+.tmp/
 frontend-dev*.log
 backend-dev*.log
 backend-runtime*.log
@@ -77,3 +87,7 @@ patch_*.py
 backend/tmp-*.log
 backend/prisma/generated/
 backend/node_modules/.prisma/
+local-private
+*.private
+scripts/local-backend-env.cmd
+scripts/start-worker-local.ps1

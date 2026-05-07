@@ -790,7 +790,7 @@ export default function AdminMailJobs() {
           </>
         }
       >
-        <></>
+        <span className="sr-only">{pendingConfirm?.message ?? "Confirm this mail job action."}</span>
       </AppModal>
     </PortalPage>
   );

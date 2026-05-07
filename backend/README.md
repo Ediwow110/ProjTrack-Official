@@ -9,6 +9,7 @@ The backend runtime is Prisma/PostgreSQL-first and requires a reachable `DATABAS
 - Public health endpoints now expose only liveness/readiness:
   - `/health/live`
   - `/health/ready`
+  - `/health/api-ready` for API container readiness without requiring dedicated worker heartbeats
 - Detailed admin-only diagnostics remain available behind auth:
   - `/health/database`
   - `/health/storage`

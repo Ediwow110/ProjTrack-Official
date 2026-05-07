@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
   import { Link, useLocation, useNavigate } from "react-router";
-  import { AnimatePresence, motion, useReducedMotion } from "motion/react";
   import {
     Bell,
     BarChart3,
@@ -26,7 +25,6 @@ import { useEffect, useState } from "react";
   import { getAuthSession, getRememberMePreference, setRememberMePreference, type AppRole } from "../../lib/mockAuth";
   import { ApiError } from "../../lib/api/http";
   import { authService } from "../../lib/api/services";
-  import { fadeUpVariants } from "../../lib/motion";
 
   type RoleConfig = {
     portalEyebrow: string;
@@ -114,7 +112,6 @@ import { useEffect, useState } from "react";
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [retryAfter, setRetryAfter] = useState(0);
-    const reducedMotion = useReducedMotion() ?? false;
     const {
       register,
       handleSubmit,
@@ -287,21 +284,15 @@ import { useEffect, useState } from "react";
             </p>
           ) : null}
 
-          <AnimatePresence>
-            {error ? (
-              <motion.div
-                role="alert"
-                aria-live="polite"
-                variants={fadeUpVariants(reducedMotion, { distance: 8 })}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                className="rounded-[var(--radius-control)] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 shadow-[var(--shadow-soft)]"
-              >
-                {error}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          {error ? (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="rounded-[var(--radius-control)] border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 shadow-[var(--shadow-soft)]"
+            >
+              {error}
+            </div>
+          ) : null}
 
           <Button
             type="submit"

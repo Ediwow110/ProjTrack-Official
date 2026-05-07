@@ -135,10 +135,28 @@ describe('inspectRuntimeConfiguration (production)', () => {
       { CLAMAV_HOST: '' },
       /CLAMAV_HOST/,
     ],
+    [
+      'unprefixed refresh cookie name',
+      { AUTH_REFRESH_COOKIE_NAME: 'projtrack_refresh' },
+      /AUTH_REFRESH_COOKIE_NAME/,
+    ],
+    [
+      'cross-site refresh cookie',
+      { AUTH_REFRESH_COOKIE_SAME_SITE: 'none' },
+      /AUTH_REFRESH_COOKIE_SAME_SITE=none/,
+    ],
   ])('rejects %s', (_label, overrides, pattern) => {
     const r = inspectRuntimeConfiguration(prodEnv(overrides));
     expect(r.ok).toBe(false);
     expect(r.errors.join(' | ')).toMatch(pattern);
+  });
+
+  it('accepts a strict __Host-prefixed refresh cookie in production', () => {
+    const r = inspectRuntimeConfiguration(prodEnv({
+      AUTH_REFRESH_COOKIE_NAME: '__Host-projtrack_refresh',
+      AUTH_REFRESH_COOKIE_SAME_SITE: 'strict',
+    }));
+    expect(r.ok).toBe(true);
   });
 
   it('reports all worker poll values must be configured', () => {
