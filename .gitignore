@@ -89,3 +89,5 @@ backend/prisma/generated/
 backend/node_modules/.prisma/
 local-private
 *.private
+scripts/local-backend-env.cmd
+scripts/start-worker-local.ps1
