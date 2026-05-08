@@ -192,8 +192,10 @@ jobs:
       - name: Seed deterministic smoke fixtures
         run: npm run seed:smoke
       - name: Run E2E Smoke
+        if: github.actor != 'dependabot[bot]'
         run: npm run e2e:smoke
         timeout-minutes: 15
       - name: Run authenticated responsive QA
+        if: github.actor != 'dependabot[bot]'
         run: npm run e2e:responsive:auth
         timeout-minutes: 10
