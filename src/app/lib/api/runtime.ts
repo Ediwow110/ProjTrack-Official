@@ -1,3 +1,6 @@
+const PRODUCTION_API_BASE_URL = "https://api.projtrack.codes";
+const PRODUCTION_PUBLIC_APP_URL = "https://www.projtrack.codes";
+
 function parseBooleanEnv(value: unknown, fallback: boolean) {
   if (typeof value !== "string") return fallback;
   const normalized = value.trim().toLowerCase();
@@ -6,21 +9,22 @@ function parseBooleanEnv(value: unknown, fallback: boolean) {
   return fallback;
 }
 
+function isPlaceholderUrl(value: string) {
+  return /(?:^|\.)your-production-domain\.example$/i.test(value.trim());
+}
+
 const rawConfiguredBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 const useBackend = parseBooleanEnv(import.meta.env.VITE_USE_BACKEND, true);
 const publicAppUrl = normalizePublicAppUrl(import.meta.env.VITE_PUBLIC_APP_URL ?? import.meta.env.VITE_APP_URL);
 
 function normalizeBaseUrl(value: unknown) {
-  const fallback = "http://127.0.0.1:3001";
-  const candidate = String(value ?? "").trim() || fallback;
+  const fallback = import.meta.env.MODE === "production" ? PRODUCTION_API_BASE_URL : "http://127.0.0.1:3001";
+  const rawCandidate = String(value ?? "").trim();
+  const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
   const sanitized = candidate.replace(/\/+$/, "");
 
   try {
     const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
-
-    if (import.meta.env.MODE === 'production' && useBackend && !rawConfiguredBaseUrl) {
-      throw new Error("VITE_API_BASE_URL is required for production builds.");
-    }
 
     if (import.meta.env.MODE === 'production' && useBackend && /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(normalized)) {
       throw new Error("VITE_API_BASE_URL cannot point to localhost in production builds.");
@@ -41,8 +45,9 @@ function normalizeBaseUrl(value: unknown) {
 }
 
 function normalizePublicAppUrl(value: unknown) {
-  const fallback = "http://127.0.0.1:5173";
-  const candidate = String(value ?? "").trim() || fallback;
+  const fallback = import.meta.env.MODE === "production" ? PRODUCTION_PUBLIC_APP_URL : "http://127.0.0.1:5173";
+  const rawCandidate = String(value ?? "").trim();
+  const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
   const sanitized = candidate.replace(/\/+$/, "");
 
   try {
