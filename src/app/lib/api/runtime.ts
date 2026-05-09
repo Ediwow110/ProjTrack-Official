@@ -10,7 +10,14 @@ function parseBooleanEnv(value: unknown, fallback: boolean) {
 }
 
 function isPlaceholderUrl(value: string) {
-  return /(?:^|\.)your-production-domain\.example$/i.test(value.trim());
+  const candidate = value.trim();
+  if (!candidate) return false;
+
+  try {
+    return /(?:^|\.)your-production-domain\.example$/i.test(new URL(candidate).hostname);
+  } catch {
+    return /(?:^|\.)your-production-domain\.example$/i.test(candidate);
+  }
 }
 
 const rawConfiguredBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
@@ -20,6 +27,11 @@ const publicAppUrl = normalizePublicAppUrl(import.meta.env.VITE_PUBLIC_APP_URL ?
 function normalizeBaseUrl(value: unknown) {
   const fallback = import.meta.env.MODE === "production" ? PRODUCTION_API_BASE_URL : "http://127.0.0.1:3001";
   const rawCandidate = String(value ?? "").trim();
+
+  if (import.meta.env.MODE === 'production' && useBackend && !rawCandidate) {
+    throw new Error("VITE_API_BASE_URL is required for production builds.");
+  }
+
   const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
   const sanitized = candidate.replace(/\/+$/, "");
 
