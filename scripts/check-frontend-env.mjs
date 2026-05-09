@@ -29,6 +29,10 @@ function url(key) {
   }
 }
 
+function isPlaceholderHost(hostname) {
+  return /(?:^|\.)your-production-domain\.example$/i.test(hostname);
+}
+
 if (prod) {
   if (!bool(process.env.VITE_USE_BACKEND, true)) {
     failures.push('VITE_USE_BACKEND=false is not allowed for production builds.');
@@ -40,6 +44,9 @@ if (prod) {
     if (parsed.protocol !== 'https:') failures.push(`${key} must use https:// for production builds.`);
     if (/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(parsed.hostname)) {
       failures.push(`${key} cannot point to localhost for production builds.`);
+    }
+    if (isPlaceholderHost(parsed.hostname)) {
+      failures.push(`${key} still uses the placeholder example domain.`);
     }
   }
 }
