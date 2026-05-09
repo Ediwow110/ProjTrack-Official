@@ -1,5 +1,7 @@
 const PRODUCTION_API_BASE_URL = "https://api.projtrack.codes";
 const PRODUCTION_PUBLIC_APP_URL = "https://www.projtrack.codes";
+const LOCAL_API_BASE_URL = "http://127.0.0.1:3001";
+const LOCAL_PUBLIC_APP_URL = "http://127.0.0.1:5173";
 
 function parseBooleanEnv(value: unknown, fallback: boolean) {
   if (typeof value !== "string") return fallback;
@@ -20,12 +22,36 @@ function isPlaceholderUrl(value: string) {
   }
 }
 
+function isLocalhostUrl(value: string) {
+  try {
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function inferCodespacesPortUrl(port: string) {
+  if (typeof window === "undefined") return null;
+  const { protocol, hostname } = window.location;
+  if (protocol !== "https:" || !hostname.endsWith(".app.github.dev")) return null;
+
+  const nextHostname = hostname.replace(/-\d+(?=\.app\.github\.dev$)/, `-${port}`);
+  if (nextHostname === hostname) return null;
+  return `https://${nextHostname}`;
+}
+
+function localAwareFallback(localFallback: string, codespacesPort: string) {
+  return inferCodespacesPortUrl(codespacesPort) ?? localFallback;
+}
+
 const rawConfiguredBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
 const useBackend = parseBooleanEnv(import.meta.env.VITE_USE_BACKEND, true);
 const publicAppUrl = normalizePublicAppUrl(import.meta.env.VITE_PUBLIC_APP_URL ?? import.meta.env.VITE_APP_URL);
 
 function normalizeBaseUrl(value: unknown) {
-  const fallback = import.meta.env.MODE === "production" ? PRODUCTION_API_BASE_URL : "http://127.0.0.1:3001";
+  const fallback = import.meta.env.MODE === "production"
+    ? PRODUCTION_API_BASE_URL
+    : localAwareFallback(LOCAL_API_BASE_URL, "3001");
   const rawCandidate = String(value ?? "").trim();
 
   if (import.meta.env.MODE === 'production' && useBackend && !rawCandidate) {
@@ -33,7 +59,10 @@ function normalizeBaseUrl(value: unknown) {
   }
 
   const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
-  const sanitized = candidate.replace(/\/+$/, "");
+  const codespacesCandidate = import.meta.env.MODE !== "production" && isLocalhostUrl(candidate)
+    ? inferCodespacesPortUrl("3001")
+    : null;
+  const sanitized = (codespacesCandidate ?? candidate).replace(/\/+$/, "");
 
   try {
     const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
@@ -57,10 +86,15 @@ function normalizeBaseUrl(value: unknown) {
 }
 
 function normalizePublicAppUrl(value: unknown) {
-  const fallback = import.meta.env.MODE === "production" ? PRODUCTION_PUBLIC_APP_URL : "http://127.0.0.1:5173";
+  const fallback = import.meta.env.MODE === "production"
+    ? PRODUCTION_PUBLIC_APP_URL
+    : localAwareFallback(LOCAL_PUBLIC_APP_URL, "5173");
   const rawCandidate = String(value ?? "").trim();
   const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
-  const sanitized = candidate.replace(/\/+$/, "");
+  const codespacesCandidate = import.meta.env.MODE !== "production" && isLocalhostUrl(candidate)
+    ? inferCodespacesPortUrl("5173")
+    : null;
+  const sanitized = (codespacesCandidate ?? candidate).replace(/\/+$/, "");
 
   try {
     const normalized = new URL(`${sanitized}/`).toString().replace(/\/+$/, "");
