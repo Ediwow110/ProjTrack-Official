@@ -92,6 +92,28 @@ async function databaseRateLimit(
   return row.attempts <= max;
 }
 
+function parseAllowedOrigins() {
+  if (process.env.CORS_ORIGINS) {
+    return process.env.CORS_ORIGINS.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  if (process.env.NODE_ENV === 'production') return [];
+
+  return ['http://localhost:5173', 'http://127.0.0.1:5173'];
+}
+
+function isAllowedDevOrigin(origin: string) {
+  if (isProductionRuntime()) return false;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'https:' && parsed.hostname.endsWith('.app.github.dev');
+  } catch {
+    return false;
+  }
+}
+
 async function bootstrap() {
   const bootstrapLogger = new Logger('Bootstrap');
   const runtimeConfiguration = inspectRuntimeConfiguration(process.env);
@@ -126,13 +148,7 @@ async function bootstrap() {
     expressApp.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
   }
   const logger = new Logger('HTTP');
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-        .map((value) => value.trim())
-        .filter(Boolean)
-    : process.env.NODE_ENV === 'production'
-      ? []
-      : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  const allowedOrigins = parseAllowedOrigins();
 
   app.use(json({
     limit: bodyParserLimit,
@@ -232,7 +248,13 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableCors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin) || isAllowedDevOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS origin not allowed: ${origin}`));
+    },
     credentials: true,
     exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });
