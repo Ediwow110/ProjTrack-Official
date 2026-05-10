@@ -1,6 +1,8 @@
 const { randomBytes, scryptSync } = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 
+const DEFAULT_ADMIN_EMAIL = 'admin@projtrack.codes';
+
 function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
   const derived = scryptSync(password, salt, 64).toString('hex');
@@ -8,11 +10,18 @@ function hashPassword(password) {
 }
 
 async function main() {
-  const email = String(process.env.SMOKE_ADMIN_EMAIL || process.env.SMOKE_ADMIN_IDENTIFIER || '').trim().toLowerCase();
-  const password = String(process.env.SMOKE_ADMIN_PASSWORD || '');
+  const email = String(
+    process.env.PROJTRACK_ADMIN_EMAIL ||
+      process.env.SMOKE_ADMIN_EMAIL ||
+      process.env.SMOKE_ADMIN_IDENTIFIER ||
+      DEFAULT_ADMIN_EMAIL,
+  ).trim().toLowerCase();
+  const password = String(process.env.PROJTRACK_ADMIN_PASSWORD || process.env.SMOKE_ADMIN_PASSWORD || '');
 
-  if (!email || !password) {
-    throw new Error('SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are required to bootstrap the CI smoke admin.');
+  if (!password) {
+    throw new Error(
+      'A password is required to bootstrap the admin account. Set PROJTRACK_ADMIN_PASSWORD or SMOKE_ADMIN_PASSWORD.',
+    );
   }
 
   const prisma = new PrismaClient();
@@ -24,18 +33,18 @@ async function main() {
         passwordHash: hashPassword(password),
         role: 'ADMIN',
         status: 'ACTIVE',
-        firstName: 'CI',
-        lastName: 'Smoke Admin',
+        firstName: 'ProjTrack',
+        lastName: 'Admin',
       },
       update: {
         passwordHash: hashPassword(password),
         role: 'ADMIN',
         status: 'ACTIVE',
-        firstName: 'CI',
-        lastName: 'Smoke Admin',
+        firstName: 'ProjTrack',
+        lastName: 'Admin',
       },
     });
-    console.log(`Smoke admin ready for ${email}.`);
+    console.log(`Admin account ready for ${email}.`);
   } finally {
     await prisma.$disconnect();
   }
