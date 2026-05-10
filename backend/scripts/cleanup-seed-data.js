@@ -10,7 +10,14 @@ const SEED_EMAILS = [
   'admin@projtrack.local',
   'teacher@projtrack.local',
   'student@projtrack.local',
+  'smoke.teacher@example.test',
+  'smoke.student@example.test',
 ];
+
+const KEEP_EMAILS = new Set([
+  'admin@projtrack.codes',
+  String(process.env.PROJTRACK_ADMIN_EMAIL || process.env.SMOKE_ADMIN_IDENTIFIER || '').trim().toLowerCase(),
+].filter(Boolean));
 
 async function safeDelete(label, fn) {
   try {
@@ -51,8 +58,9 @@ async function main() {
     academicYears: 0,
   };
 
-  const subject = await prisma.subject.findUnique({ where: { code: 'IT 401' } });
-  if (subject) {
+  const smokeSubjectCodes = ['IT 401', 'SMOKE-SUBJ-1'];
+  const subjects = await prisma.subject.findMany({ where: { code: { in: smokeSubjectCodes } } });
+  for (const subject of subjects) {
     const taskIds = (
       await prisma.submissionTask.findMany({
         where: { subjectId: subject.id },
@@ -70,33 +78,33 @@ async function main() {
     ).map((row) => row.id);
 
     if (submissionIds.length) {
-      summary.submissionFiles += await safeDelete('Submission files', () =>
+      summary.submissionFiles += await safeDelete(`Submission files for ${subject.code}`, () =>
         prisma.submissionFile.deleteMany({ where: { submissionId: { in: submissionIds } } }),
       );
-      summary.submissionEvents += await safeDelete('Submission events', () =>
+      summary.submissionEvents += await safeDelete(`Submission events for ${subject.code}`, () =>
         prisma.submissionEvent.deleteMany({ where: { submissionId: { in: submissionIds } } }),
       );
-      summary.submissions += await safeDelete('Submissions', () =>
+      summary.submissions += await safeDelete(`Submissions for ${subject.code}`, () =>
         prisma.submission.deleteMany({ where: { id: { in: submissionIds } } }),
       );
     }
 
-    summary.groupMembers += await safeDelete('Group members for IT 401', () =>
+    summary.groupMembers += await safeDelete(`Group members for ${subject.code}`, () =>
       prisma.groupMember.deleteMany({ where: { subjectId: subject.id } }),
     );
-    summary.groups += await safeDelete('Groups for IT 401', () =>
+    summary.groups += await safeDelete(`Groups for ${subject.code}`, () =>
       prisma.group.deleteMany({ where: { subjectId: subject.id } }),
     );
-    summary.enrollments += await safeDelete('Enrollments for IT 401', () =>
+    summary.enrollments += await safeDelete(`Enrollments for ${subject.code}`, () =>
       prisma.enrollment.deleteMany({ where: { subjectId: subject.id } }),
     );
-    summary.subjectSections += await safeDelete('Subject-section links for IT 401', () =>
+    summary.subjectSections += await safeDelete(`Subject-section links for ${subject.code}`, () =>
       prisma.subjectSection.deleteMany({ where: { subjectId: subject.id } }),
     );
-    summary.submissionTasks += await safeDelete('Submission tasks for IT 401', () =>
+    summary.submissionTasks += await safeDelete(`Submission tasks for ${subject.code}`, () =>
       prisma.submissionTask.deleteMany({ where: { subjectId: subject.id } }),
     );
-    summary.subjects += await safeDelete('Subject IT 401', () =>
+    summary.subjects += await safeDelete(`Subject ${subject.code}`, () =>
       prisma.subject.deleteMany({ where: { id: subject.id } }),
     );
   }
@@ -121,12 +129,20 @@ async function main() {
   );
 
   const seedUsers = await prisma.user.findMany({
-    where: { email: { in: SEED_EMAILS } },
-    select: { id: true },
+    where: {
+      OR: [
+        { email: { in: SEED_EMAILS } },
+        { email: { endsWith: '@example.test' } },
+        { firstName: 'Smoke' },
+      ],
+      NOT: { email: { in: [...KEEP_EMAILS] } },
+    },
+    select: { id: true, email: true },
   });
   const seedUserIds = seedUsers.map((user) => user.id);
 
   if (seedUserIds.length) {
+    console.log(`[cleanup-seed] Removing local/smoke users: ${seedUsers.map((user) => user.email).join(', ')}`);
     summary.authSessions += await safeDelete('Auth sessions', () =>
       prisma.authSession.deleteMany({ where: { userId: { in: seedUserIds } } }),
     );
@@ -179,31 +195,32 @@ async function main() {
     );
   }
 
-  const section = await prisma.section.findFirst({ where: { name: 'BSIT 3A' }, select: { id: true } });
-  if (section) {
-    summary.enrollments += await safeDelete('Section enrollments', () =>
+  const sectionNames = ['BSIT 3A', 'Smoke Section A'];
+  const sections = await prisma.section.findMany({ where: { name: { in: sectionNames } }, select: { id: true, name: true } });
+  for (const section of sections) {
+    summary.enrollments += await safeDelete(`Section enrollments for ${section.name}`, () =>
       prisma.enrollment.deleteMany({ where: { sectionId: section.id } }),
     );
-    summary.groups += await safeDelete('Section groups', () =>
+    summary.groups += await safeDelete(`Section groups for ${section.name}`, () =>
       prisma.group.deleteMany({ where: { sectionId: section.id } }),
     );
-    summary.subjectSections += await safeDelete('Section subject links', () =>
+    summary.subjectSections += await safeDelete(`Section subject links for ${section.name}`, () =>
       prisma.subjectSection.deleteMany({ where: { sectionId: section.id } }),
     );
-    summary.sections += await safeDelete('Section BSIT 3A', () =>
+    summary.sections += await safeDelete(`Section ${section.name}`, () =>
       prisma.section.deleteMany({ where: { id: section.id } }),
     );
   }
 
-  const academicYear = await prisma.academicYear.findFirst({
-    where: { name: '2025-2026' },
-    select: { id: true },
+  const academicYears = await prisma.academicYear.findMany({
+    where: { name: { in: ['2025-2026', 'Smoke AY 2026'] } },
+    select: { id: true, name: true },
   });
-  if (academicYear) {
-    summary.academicYearLevels += await safeDelete('Academic year levels (2025-2026)', () =>
+  for (const academicYear of academicYears) {
+    summary.academicYearLevels += await safeDelete(`Academic year levels (${academicYear.name})`, () =>
       prisma.academicYearLevel.deleteMany({ where: { academicYearId: academicYear.id } }),
     );
-    summary.academicYears += await safeDelete('Academic year 2025-2026', () =>
+    summary.academicYears += await safeDelete(`Academic year ${academicYear.name}`, () =>
       prisma.academicYear.deleteMany({ where: { id: academicYear.id } }),
     );
   }
