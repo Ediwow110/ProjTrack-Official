@@ -58,6 +58,7 @@ npm --prefix backend run build
 ### Authorization
 
 - [x] Admin controller role metadata guardrail exists.
+- [x] Admin-only route runtime 401/403 tests exist.
 - [x] File route role metadata guardrails exist.
 - [x] Student submission role metadata guardrails exist.
 - [x] Teacher submission role metadata guardrails exist.
@@ -69,9 +70,8 @@ npm --prefix backend run build
 - [x] Student A cannot access Student B file service-level test exists.
 - [x] Teacher cannot access unrelated class/section submission service-level test exists.
 - [x] Teacher cannot access unrelated class/section file service-level test exists.
+- [x] Webhook signature/replay tests exist.
 - [ ] Teacher cannot export unrelated submissions test exists.
-- [ ] Admin-only route runtime 401/403 tests exist.
-- [ ] Webhook signature/replay tests exist.
 
 ### Files/storage
 
@@ -144,11 +144,10 @@ Mapped:
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
 2. Teacher export scope tests are incomplete.
-3. Admin-only route runtime 401/403 tests are incomplete.
-4. Rate-limit runtime behavior is not proven.
-5. Webhook signature/replay behavior is not proven.
-6. CI failure summaries/notifications are missing.
-7. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
+3. Rate-limit runtime behavior is not proven.
+4. CI failure summaries/notifications are missing.
+5. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
+6. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
 
 ## Acceptance decision
 
