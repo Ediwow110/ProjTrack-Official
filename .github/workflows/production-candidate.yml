@@ -89,6 +89,7 @@ jobs:
       - run: npm run check:boot:production
       - run: npm run check:boot:worker
       - run: npm run test
+      - run: npm run test:security
       - run: npm audit --audit-level=high
 
   docker:
