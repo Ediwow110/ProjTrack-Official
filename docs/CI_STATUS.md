@@ -7,7 +7,7 @@ Last updated: 2026-05-14
 
 ### `.github/workflows/ci.yml`
 
-Purpose: main continuous integration gate for frontend, backend, and E2E verification.
+Purpose: main continuous integration gate for frontend, backend, security, and E2E verification.
 
 Current structure:
 
@@ -31,6 +31,7 @@ Current structure:
   - `npm run build`
   - `npm run test`
   - `npm run test:unit`
+  - `npm run test:security`
   - production runtime boot check
   - worker boot smoke
   - optional real-account smoke
@@ -54,6 +55,10 @@ Current structure:
 
 - frontend production gate
 - backend production gate
+  - production boot checks
+  - worker boot checks
+  - production hardening checks
+  - `npm run test:security`
 - Playwright smoke gate
 - Docker backend image gate
 
@@ -66,14 +71,34 @@ Purpose: production-candidate verification for `main` pushes and PRs into `main`
 Current structure:
 
 - frontend production build fixture
-- backend boot/test/audit checks
+- backend boot/test/security/audit checks
 - Docker backend image build
 
 Risk note: because it runs on `main`, it should be treated as a pre-merge/merge-adjacent gate, not a substitute for protecting `main` from unverified `2nd-main` changes.
 
+## Security test gate
+
+A dedicated backend security test command now exists:
+
+```bash
+npm --prefix backend run test:security
+```
+
+CI integration:
+
+- `ci.yml` backend job runs `npm run test:security`.
+- `production-checks.yml` backend job runs `npm run test:security`.
+- `production-candidate.yml` backend job runs `npm run test:security`.
+
+Current security test files:
+
+- `backend/test/security/auth-abuse.spec.ts`
+- `backend/test/security/session-abuse.spec.ts`
+- `backend/test/security/authorization-abuse.spec.ts`
+
 ## Current Status
 
-Not fully verified in this document yet. The workflow files and package scripts have been inspected, but current GitHub Actions run results still need to be recorded after the branch runs.
+Not fully verified in this document yet. The workflow files and package scripts have been updated, but current GitHub Actions run results still need to be recorded after the branch runs.
 
 ## Verification Commands
 
@@ -91,6 +116,7 @@ npm --prefix backend run prisma:generate
 npm --prefix backend run build
 npm --prefix backend run test
 npm --prefix backend run test:unit
+npm --prefix backend run test:security
 npm run e2e:responsive
 ```
 
@@ -101,6 +127,7 @@ npm run e2e:responsive
 3. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
 4. Smoke tests depend on configured `SMOKE_ADMIN_IDENTIFIER` and `SMOKE_ADMIN_PASSWORD` secrets.
 5. README badge verification is static; live badge status still depends on Actions results.
+6. Security test coverage is still partial; file access, input hardening, and health redaction specs remain open.
 
 ## Required Before Merge to Main
 
@@ -109,9 +136,10 @@ npm run e2e:responsive
 - [ ] Failure visibility exists for production gate failure.
 - [ ] Dependency audit passes or exceptions are documented.
 - [ ] Secret scan passes.
+- [ ] Security tests pass in CI.
 - [ ] README badges point at the intended branch/workflows.
 - [ ] This document contains current run links or summaries.
 
 ## Current verdict
 
-CI is structurally stronger than the previous tracker implied, but it is not final-gate complete until live passing runs and failure visibility are recorded.
+CI now includes an executable security gate, which is real progress. It is still not final-gate complete until live passing runs and failure visibility are recorded.
