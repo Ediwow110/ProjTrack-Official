@@ -5,27 +5,70 @@ Last updated: 2026-05-14
 
 ## Purpose
 
-ProjTrack now targets more than 1000 end users. Load testing must use synthetic data large enough to expose query, index, authorization, dashboard, export, and file-path behavior.
+ProjTrack now targets school-scale usage: 20,000 to 50,000 registered users. Load testing must use synthetic data large enough to expose query, index, authorization, dashboard, export, notification, and file-path behavior.
 
 ## Verdict
 
-Partially implemented. A synthetic fixture generator and `seed:load` command now exist, but no seeded-run evidence or load-test result has been recorded yet.
+Partially implemented. A synthetic fixture generator and `seed:load` command exist, but no seeded-run evidence or load-test result has been recorded yet.
 
-## Minimum dataset for 1000+ end-user claim
+## Capacity tiers
 
-| Entity | Minimum count | Notes |
-|---|---:|---|
-| Student users | 1000 | Synthetic accounts only |
-| Teacher users | 50 | Enough to expose teacher dashboard/export behavior |
-| Admin users | 5 | Smoke/admin read-only flows |
-| Departments | 5 | Multiple academic divisions |
-| Sections | 50 | Roughly 20 students per section |
-| Subjects | 150 | Multiple teacher assignments |
-| Activities/tasks | 750 | Enough for dashboard/submission list volume |
-| Submissions | 10000 | Mix of individual/group/status values |
-| Submission files | 10000 | Metadata enough for file list/download paths |
-| Groups | 500 | Enough to expose group membership queries |
-| Notifications | 10000 | Enough to expose user notification lists |
+| Tier | Meaning | Claim allowed? |
+|---|---|---|
+| Tier 1 | 1,000 registered synthetic users | No production scale claim; baseline only |
+| Tier 2 | 20,000 registered synthetic users | First school-scale data-volume gate |
+| Tier 3 | 50,000 registered synthetic users | Upper school-scale data-volume gate |
+
+Registered users are not concurrent users. Concurrency must be separately proven with load runs.
+
+Tracking issues:
+
+- #35: 1000+ capacity evidence gate
+- #36: 20k-50k school-scale capacity gate
+
+## Minimum datasets
+
+### Tier 1 baseline dataset
+
+| Entity | Minimum count |
+|---|---:|
+| Student users | 1,000 |
+| Teacher users | 50 |
+| Admin users | 5 |
+| Sections | 50 |
+| Subjects | 150 |
+| Activities/tasks | 750 |
+| Submissions | 10,000 |
+| Submission files | 10,000 |
+| Notifications | 10,000 |
+
+### Tier 2 school-scale dataset
+
+| Entity | Minimum count |
+|---|---:|
+| Student users | 20,000 |
+| Teacher users | 800 |
+| Admin users | 20 |
+| Sections | 800 |
+| Subjects | 2,400 |
+| Activities/tasks | 12,000 |
+| Submissions | 200,000 |
+| Submission files | 200,000 |
+| Notifications | 200,000 |
+
+### Tier 3 upper school-scale dataset
+
+| Entity | Minimum count |
+|---|---:|
+| Student users | 50,000 |
+| Teacher users | 2,000 |
+| Admin users | 50 |
+| Sections | 2,000 |
+| Subjects | 6,000 |
+| Activities/tasks | 30,000 |
+| Submissions | 500,000 |
+| Submission files | 500,000 |
+| Notifications | 500,000 |
 
 ## Implemented generator
 
@@ -45,18 +88,22 @@ The generator creates tagged synthetic users, academic structure, enrollments, s
 
 ## Generator configuration
 
-The generator supports count overrides:
+Baseline:
 
 ```bash
-LOAD_FIXTURE_STUDENTS=1000
-LOAD_FIXTURE_TEACHERS=50
-LOAD_FIXTURE_ADMINS=5
-LOAD_FIXTURE_SECTIONS=50
-LOAD_FIXTURE_SUBJECTS=150
-LOAD_FIXTURE_TASKS_PER_SUBJECT=5
-LOAD_FIXTURE_SUBMISSIONS=10000
-LOAD_FIXTURE_NOTIFICATIONS=10000
-npm --prefix backend run seed:load
+LOAD_FIXTURE_STUDENTS=1000 LOAD_FIXTURE_TEACHERS=50 LOAD_FIXTURE_ADMINS=5 LOAD_FIXTURE_SECTIONS=50 LOAD_FIXTURE_SUBJECTS=150 LOAD_FIXTURE_TASKS_PER_SUBJECT=5 LOAD_FIXTURE_SUBMISSIONS=10000 LOAD_FIXTURE_NOTIFICATIONS=10000 npm --prefix backend run seed:load
+```
+
+20k registered-user school-scale tier:
+
+```bash
+LOAD_FIXTURE_STUDENTS=20000 LOAD_FIXTURE_TEACHERS=800 LOAD_FIXTURE_ADMINS=20 LOAD_FIXTURE_SECTIONS=800 LOAD_FIXTURE_SUBJECTS=2400 LOAD_FIXTURE_TASKS_PER_SUBJECT=5 LOAD_FIXTURE_SUBMISSIONS=200000 LOAD_FIXTURE_NOTIFICATIONS=200000 npm --prefix backend run seed:load
+```
+
+50k registered-user upper tier:
+
+```bash
+LOAD_FIXTURE_STUDENTS=50000 LOAD_FIXTURE_TEACHERS=2000 LOAD_FIXTURE_ADMINS=50 LOAD_FIXTURE_SECTIONS=2000 LOAD_FIXTURE_SUBJECTS=6000 LOAD_FIXTURE_TASKS_PER_SUBJECT=5 LOAD_FIXTURE_SUBMISSIONS=500000 LOAD_FIXTURE_NOTIFICATIONS=500000 npm --prefix backend run seed:load
 ```
 
 ## Required safety controls
@@ -66,30 +113,16 @@ npm --prefix backend run seed:load
 - [x] Must not use real user data.
 - [x] Must not print secrets or tokens.
 - [x] Must create enough data to expose unbounded-query behavior.
-- [ ] Must be run and results recorded.
-
-## Required output
-
-The generator should print only counts and fixture identifiers, not credentials or sensitive tokens:
-
-```text
-Synthetic load fixture seed complete
-students: 1000
-teachers: 50
-admins: 5
-sections: 50
-subjects: 150
-activities: 750
-submissions: 10000
-notifications: 10000
-```
+- [ ] Must be run and results recorded for Tier 1.
+- [ ] Must be run and results recorded for Tier 2 before any 20k claim.
+- [ ] Must be run and results recorded for Tier 3 before any 50k claim.
 
 ## Load testing integration
 
 Load test runs must record:
 
 - Commit SHA
-- Dataset counts
+- Dataset tier and counts
 - Environment
 - VU target
 - Duration
@@ -101,18 +134,20 @@ Load test runs must record:
 
 ## Fail conditions
 
-The 1000+ end-user claim fails if:
+The 20k-50k registered-user claim fails if:
 
-- Synthetic fixture data has fewer than 1000 students.
+- Synthetic fixture data has fewer registered users than the claimed tier.
 - Fixture generation cannot be reproduced.
 - Production data is used.
 - Submission list/export paths remain unbounded.
-- 1000-user load evidence is missing but claimed.
+- Load evidence is missing but claimed.
+- Database indexes and slow-query evidence are missing.
 
 ## Current blockers
 
 1. `npm --prefix backend run seed:load` has not been executed and recorded.
 2. PERF-GATE issue #34 remains open.
-3. CAPACITY-GATE issue #35 remains open.
+3. CAPACITY-GATE issues #35 and #36 remain open.
 4. No 300/500/1000-user load-test result has been recorded.
-5. The seeder needs a real dry run against a disposable database to validate schema compatibility.
+5. No 20k or 50k data-volume seed evidence exists.
+6. The seeder needs a real dry run against a disposable database to validate schema compatibility.
