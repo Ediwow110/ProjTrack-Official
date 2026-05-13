@@ -64,11 +64,13 @@ npm --prefix backend run build
 - [x] Profile route role metadata guardrails exist.
 - [x] Dashboard route role metadata guardrails exist.
 - [x] Sensitive health route role metadata guardrails exist.
+- [x] Authorization matrix expanded across mail, branding, students, subjects, backups, monitoring, and notifications controllers.
 - [ ] Student A cannot access Student B submission test exists.
 - [ ] Student A cannot access Student B file test exists.
 - [ ] Teacher cannot access unrelated class/section submission test exists.
 - [ ] Teacher cannot export unrelated submissions test exists.
 - [ ] Admin-only route runtime 401/403 tests exist.
+- [ ] Webhook signature/replay tests exist.
 
 ### Files/storage
 
@@ -98,6 +100,7 @@ npm --prefix backend run build
 - [ ] Pagination max-limit tests exist.
 - [ ] Sort/filter allowlist tests exist.
 - [ ] Admin report/export bound tests exist.
+- [ ] Public monitoring payload size/rate/sanitization tests exist.
 
 ## Authorization matrix completion
 
@@ -110,18 +113,15 @@ Mapped:
 - [x] `backend/src/profile/profile.controller.ts`
 - [x] `backend/src/dashboard/dashboard.controller.ts`
 - [x] `backend/src/health/health.controller.ts`
-
-Still unmapped:
-
-- [ ] `backend/src/mail/mail.controller.ts`
-- [ ] `backend/src/mail/mail.webhook.controller.ts`
-- [ ] `backend/src/branding/branding.controller.ts`
-- [ ] `backend/src/branding/admin-branding.controller.ts`
-- [ ] `backend/src/students/admin-students.controller.ts`
-- [ ] `backend/src/subjects/subjects.controller.ts`
-- [ ] `backend/src/backups/backups.controller.ts`
-- [ ] `backend/src/monitoring/monitoring.controller.ts`
-- [ ] `backend/src/notifications/notifications.controller.ts`
+- [x] `backend/src/mail/mail.controller.ts`
+- [x] `backend/src/mail/mail.webhook.controller.ts`
+- [x] `backend/src/branding/branding.controller.ts`
+- [x] `backend/src/branding/admin-branding.controller.ts`
+- [x] `backend/src/students/admin-students.controller.ts`
+- [x] `backend/src/subjects/subjects.controller.ts`
+- [x] `backend/src/backups/backups.controller.ts`
+- [x] `backend/src/monitoring/monitoring.controller.ts`
+- [x] `backend/src/notifications/notifications.controller.ts`
 
 ## Non-negotiable fail conditions
 
@@ -133,6 +133,7 @@ Still unmapped:
 - Any admin-only route can be reached by non-admin users.
 - Any student can access another student's private submissions/files.
 - Any teacher can access unrelated class/section submission data.
+- Webhooks accept unsigned or replayed provider payloads.
 - Production runtime permits local file storage.
 - Production runtime permits weak/equal JWT secrets.
 - Production runtime permits memory-only rate limiting.
@@ -142,9 +143,9 @@ Still unmapped:
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
 2. Service-level wrong-owner/wrong-scope tests are incomplete.
-3. Remaining controllers are not fully mapped in `docs/AUTHORIZATION_MATRIX.md`.
-4. Secret lifecycle and supply-chain documents are missing.
-5. Rate-limit runtime behavior is not proven.
+3. Secret lifecycle and supply-chain documents are missing.
+4. Rate-limit runtime behavior is not proven.
+5. Webhook signature/replay behavior is not proven.
 6. CI failure summaries/notifications are missing.
 
 ## Acceptance decision
