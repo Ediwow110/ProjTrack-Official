@@ -22,6 +22,7 @@ Current structure:
   - Playwright browser install
   - `npm run e2e:responsive`
   - `npm run security:audit`
+  - `GITHUB_STEP_SUMMARY` frontend summary
 
 - `backend` job
   - PostgreSQL service
@@ -36,6 +37,7 @@ Current structure:
   - worker boot smoke
   - optional real-account smoke
   - `npm audit --audit-level=high`
+  - `GITHUB_STEP_SUMMARY` backend summary
 
 - `e2e` job
   - frontend/backend installs
@@ -46,6 +48,7 @@ Current structure:
   - smoke environment preflight
   - `npm run e2e:smoke`
   - audit
+  - `GITHUB_STEP_SUMMARY` E2E summary
 
 ### `.github/workflows/production-checks.yml`
 
@@ -62,7 +65,7 @@ Current structure:
 - Playwright smoke gate
 - Docker backend image gate
 
-Risk note: this is a gate workflow, not a deployment workflow. It does not itself deploy production. It still needs failure summaries/notifications before production use.
+Risk note: this is a gate workflow, not a deployment workflow. It does not itself deploy production. It still needs production-gate notification routing before production use.
 
 ### `.github/workflows/production-candidate.yml`
 
@@ -78,7 +81,7 @@ Risk note: because it runs on `main`, it should be treated as a pre-merge/merge-
 
 ## Security test gate
 
-A dedicated backend security test command now exists:
+A dedicated backend security test command exists:
 
 ```bash
 npm --prefix backend run test:security
@@ -90,15 +93,24 @@ CI integration:
 - `production-checks.yml` backend job runs `npm run test:security`.
 - `production-candidate.yml` backend job runs `npm run test:security`.
 
-Current security test files:
+Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, and performance-bound blocker tests.
 
-- `backend/test/security/auth-abuse.spec.ts`
-- `backend/test/security/session-abuse.spec.ts`
-- `backend/test/security/authorization-abuse.spec.ts`
+## Failure visibility
+
+Implemented:
+
+- `ci.yml` now writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
+- The backend summary explicitly calls out unresolved `PERF-GATE` blocker #34.
+
+Still missing:
+
+- Production-check failure notification destination.
+- Owner/escalation routing for failed production gates.
+- Recorded latest workflow run URLs/results.
 
 ## Current Status
 
-Not fully verified in this document yet. The workflow files and package scripts have been updated, but current GitHub Actions run results still need to be recorded after the branch runs.
+Not fully verified in this document yet. Workflow files and package scripts have been updated, but current GitHub Actions run results still need to be recorded after the branch runs.
 
 ## Verification Commands
 
@@ -123,23 +135,24 @@ npm run e2e:responsive
 ## Known Gaps
 
 1. Current workflow run URLs and results are not yet recorded here.
-2. CI failure visibility is incomplete: workflow summaries and notification handling should be added.
+2. Production-gate notification routing is not implemented.
 3. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-4. Smoke tests depend on configured `SMOKE_ADMIN_IDENTIFIER` and `SMOKE_ADMIN_PASSWORD` secrets.
+4. Smoke tests depend on configured smoke account secrets.
 5. README badge verification is static; live badge status still depends on Actions results.
-6. Security test coverage is still partial; file access, input hardening, and health redaction specs remain open.
+6. `PERF-GATE` blocker #34 remains open: submission list/export paths are scoped but unbounded.
+7. Load-test scaffold exists, but no target run evidence exists.
 
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
 - [ ] Latest production gate run passes or documented blocker exists.
-- [ ] Failure visibility exists for production gate failure.
+- [ ] Production-gate failure notification routing exists.
 - [ ] Dependency audit passes or exceptions are documented.
 - [ ] Secret scan passes.
 - [ ] Security tests pass in CI.
-- [ ] README badges point at the intended branch/workflows.
+- [ ] `PERF-GATE` blocker #34 is fixed or explicitly risk-accepted.
 - [ ] This document contains current run links or summaries.
 
 ## Current verdict
 
-CI now includes an executable security gate, which is real progress. It is still not final-gate complete until live passing runs and failure visibility are recorded.
+CI now includes an executable security gate and basic workflow summaries. It is still not final-gate complete until live passing runs, production notification routing, and the performance blocker are resolved.
