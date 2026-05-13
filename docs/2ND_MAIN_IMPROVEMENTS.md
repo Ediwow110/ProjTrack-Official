@@ -33,8 +33,7 @@ Priority: Critical
 Files changed: `docs/2ND_MAIN_IMPROVEMENTS.md`  
 Verification command: `test -f docs/2ND_MAIN_IMPROVEMENTS.md`  
 Evidence document: `docs/2ND_MAIN_IMPROVEMENTS.md`  
-Merge blocker: Yes  
-Notes: Tracker now uses evidence-based statuses.
+Merge blocker: Yes
 
 ### CTRL-02 Create code audit
 Status: Done  
@@ -42,8 +41,7 @@ Priority: Critical
 Files changed: `docs/CODE_AUDIT.md`  
 Verification command: `test -f docs/CODE_AUDIT.md`  
 Evidence document: `docs/CODE_AUDIT.md`  
-Merge blocker: Yes  
-Notes: Initial audit exists; deeper service/query audit remains open.
+Merge blocker: Yes
 
 ### CTRL-03 Create final gate checklist
 Status: Done  
@@ -51,8 +49,7 @@ Priority: Critical
 Files changed: `docs/FINAL_MERGE_GATE.md`  
 Verification command: `test -f docs/FINAL_MERGE_GATE.md`  
 Evidence document: `docs/FINAL_MERGE_GATE.md`  
-Merge blocker: Yes  
-Notes: Final gate checklist exists and remains intentionally unchecked.
+Merge blocker: Yes
 
 ### CI-01 Verify README workflow badges
 Status: Done  
@@ -60,8 +57,7 @@ Priority: Critical
 Files changed: `README.md`, `docs/CI_STATUS.md`  
 Verification command: `grep -q 'branch=2nd-main' README.md`  
 Evidence document: `docs/CI_STATUS.md`  
-Merge blocker: Yes  
-Notes: README badges point at `2nd-main`; README avoids production-ready claims.
+Merge blocker: Yes
 
 ### CI-05 Create CI status document
 Status: Done  
@@ -70,27 +66,25 @@ Files changed: `docs/CI_STATUS.md`
 Verification command: `test -f docs/CI_STATUS.md`  
 Evidence document: `docs/CI_STATUS.md`  
 Merge blocker: Yes  
-Notes: CI status document exists and records the dedicated security test gate.
+Notes: CI status records the dedicated security test gate.
 
 ### SEC-01 Create threat model
 Status: Done  
 Priority: Critical  
-Files inspected: backend controllers, auth guard, file/auth/submission/profile/dashboard/health/admin routes  
 Files changed: `docs/THREAT_MODEL.md`  
 Verification command: `test -f docs/THREAT_MODEL.md`  
 Evidence document: `docs/THREAT_MODEL.md`  
-Merge blocker: Yes  
-Notes: Threat model exists. SEC-GATE still blocked until full security tests and acceptance evidence exist.
+Merge blocker: Yes
 
 ### SEC-02 Create authorization matrix
 Status: Done  
 Priority: Critical  
-Files inspected: `backend/src/auth/auth.controller.ts`, `backend/src/admin/admin.controller.ts`, `backend/src/files/files.controller.ts`, `backend/src/submissions/submissions.controller.ts`, `backend/src/profile/profile.controller.ts`, `backend/src/dashboard/dashboard.controller.ts`, `backend/src/health/health.controller.ts`, `backend/src/auth/guards/jwt-auth.guard.ts`  
+Files inspected: auth, admin, files, submissions, profile, dashboard, health, mail, branding, admin students, subjects, backups, monitoring, notifications controllers  
 Files changed: `docs/AUTHORIZATION_MATRIX.md`  
 Verification command: `test -f docs/AUTHORIZATION_MATRIX.md`  
 Evidence document: `docs/AUTHORIZATION_MATRIX.md`  
 Merge blocker: Yes  
-Notes: Initial matrix exists. AUTHZ-GATE still blocked until service-level owner/scope proof and abuse tests pass.
+Notes: Matrix is broadly mapped. AUTHZ-GATE still blocked by service-level wrong-owner/wrong-scope tests.
 
 ### SEC-03 Security test plan
 Status: Done  
@@ -98,8 +92,25 @@ Priority: Critical
 Files changed: `docs/SECURITY_TEST_PLAN.md`  
 Verification command: `test -f docs/SECURITY_TEST_PLAN.md`  
 Evidence document: `docs/SECURITY_TEST_PLAN.md`  
+Merge blocker: Yes
+
+### SEC-07 Security review
+Status: Done  
+Priority: Critical  
+Files changed: `docs/SECURITY_REVIEW.md`  
+Verification command: `test -f docs/SECURITY_REVIEW.md`  
+Evidence document: `docs/SECURITY_REVIEW.md`  
 Merge blocker: Yes  
-Notes: Test plan exists and first executable specs are implemented.
+Notes: Review is evidence-based and explicitly says SEC-GATE is not passed.
+
+### SEC-08 Security acceptance gate
+Status: Done  
+Priority: Critical  
+Files changed: `docs/SECURITY_ACCEPTANCE_GATE.md`  
+Verification command: `test -f docs/SECURITY_ACCEPTANCE_GATE.md`  
+Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`  
+Merge blocker: Yes  
+Notes: Acceptance gate has pass/fail criteria and current blockers.
 
 ### DOC-01 README truth audit
 Status: Done  
@@ -107,8 +118,7 @@ Priority: Critical
 Files changed: `README.md`  
 Verification command: `grep -Ei "production-ready|fully secure|fully tested|complete|deployment-ready" README.md || true`  
 Evidence document: `docs/CI_STATUS.md`  
-Merge blocker: Yes  
-Notes: README states branch-hardening status instead of pretending completion.
+Merge blocker: Yes
 
 ## Executable security/test progress
 
@@ -119,7 +129,7 @@ Files changed: `backend/jest.security.config.cjs`, `backend/package.json`, `back
 Verification command: `npm --prefix backend run test:security`  
 Evidence document: `docs/SECURITY_TEST_PLAN.md`  
 Merge blocker: Yes  
-Notes: Initial auth/session tests exist. They need live passing evidence from CI/local run.
+Notes: Initial auth/session tests exist. Live passing evidence still required.
 
 ### SEC-04 Add authorization abuse tests
 Status: In Progress  
@@ -128,7 +138,34 @@ Files changed: `backend/test/security/authorization-abuse.spec.ts`
 Verification command: `npm --prefix backend run test:security`  
 Evidence document: `docs/AUTHORIZATION_MATRIX.md`  
 Merge blocker: Yes  
-Notes: Initial role-metadata guardrail tests exist. Service-level wrong-owner/wrong-scope tests remain open.
+Notes: Role-metadata guardrail tests exist. Service-level wrong-owner/wrong-scope tests remain open.
+
+### SEC-05 Validate input hardening
+Status: In Progress  
+Priority: Critical  
+Files changed: `backend/test/security/input-hardening.spec.ts`  
+Verification command: `npm --prefix backend run test:security`  
+Evidence document: `docs/SECURITY_TEST_PLAN.md`  
+Merge blocker: Yes  
+Notes: Mass-assignment and production runtime config tests exist. Pagination/sort/filter/report bounds remain open.
+
+### SEC-06 Harden S3-compatible storage/file upload
+Status: In Progress  
+Priority: Critical  
+Files changed: `backend/test/security/file-access-abuse.spec.ts`  
+Verification command: `npm --prefix backend run test:security`  
+Evidence document: `docs/SECURITY_TEST_PLAN.md`  
+Merge blocker: Yes  
+Notes: Identity propagation and upload policy tests exist. Wrong-owner download and signed URL TTL tests remain open.
+
+### SEC-09 Health/config redaction tests
+Status: In Progress  
+Priority: Critical  
+Files changed: `backend/test/security/health-redaction.spec.ts`  
+Verification command: `npm --prefix backend run test:security`  
+Evidence document: `docs/SECURITY_TEST_PLAN.md`  
+Merge blocker: Yes  
+Notes: Liveness/readiness/config/database redaction tests exist. Live passing evidence still required.
 
 ### CI-02 Harden ci.yml
 Status: In Progress  
@@ -137,7 +174,7 @@ Files changed: `.github/workflows/ci.yml`, `.github/workflows/production-checks.
 Verification command: `npm --prefix backend run test:security`  
 Evidence document: `docs/CI_STATUS.md`  
 Merge blocker: Yes  
-Notes: CI and production gate workflows now run the backend security test command. Live run evidence still required.
+Notes: CI and production gate workflows run backend security tests. Live run evidence still required.
 
 ## Active blockers
 
@@ -147,28 +184,25 @@ Priority: High
 Files to inspect: `.github/workflows/*.yml`  
 Verification command: `grep -R "GITHUB_STEP_SUMMARY\|actions/github-script\|slack\|discord\|mail" .github/workflows`  
 Evidence document: `docs/CI_STATUS.md`  
-Merge blocker: Before production  
-Notes: Must add workflow summaries and production-check failure notification.
+Merge blocker: Before production
 
-### SEC-05 Validate input hardening
+### SEC-10 Prove service-level owner/scope authorization
 Status: Not Started  
 Priority: Critical  
-Files to inspect: DTOs, validation pipe/bootstrap, query handling  
-Files to change: `backend/test/security/input-hardening.spec.ts` and affected DTO/services if tests expose gaps  
+Files to inspect: `backend/src/submissions/**`, `backend/src/files/**`, `backend/src/subjects/**`, `backend/src/notifications/**`  
+Files to change: additional `backend/test/security/*` specs and service code if tests expose gaps  
 Verification command: `npm --prefix backend run test:security`  
-Evidence document: `docs/SECURITY_TEST_PLAN.md`  
+Evidence document: `docs/AUTHORIZATION_MATRIX.md`  
 Merge blocker: Yes  
-Notes: Unknown fields, pagination limits, sort/filter allowlists, and mass assignment still need tests.
+Notes: This is the highest-risk remaining security blocker.
 
-### SEC-06 Harden S3-compatible storage/file upload
+### SEC-11 Supply-chain and secret lifecycle docs
 Status: Not Started  
 Priority: Critical  
-Files to inspect: `backend/src/files/**`, storage providers/config  
-Files to change: `backend/test/security/file-access-abuse.spec.ts` and file/storage implementation if tests expose gaps  
-Verification command: `npm --prefix backend run test:security`  
-Evidence document: `docs/SECURITY_TEST_PLAN.md`  
-Merge blocker: Yes  
-Notes: File ownership, dangerous extension, MIME, size, signed URL, and local-prod behavior need proof.
+Files to change: `docs/SUPPLY_CHAIN_SECURITY.md`, `docs/SECRETS_MANAGEMENT_CHECKLIST.md`, `docs/SECRET_LEAK_RESPONSE.md`, `docs/VULNERABILITY_MANAGEMENT.md`, `docs/INCIDENT_RESPONSE.md`  
+Verification command: `test -f docs/SUPPLY_CHAIN_SECURITY.md && test -f docs/SECRETS_MANAGEMENT_CHECKLIST.md`  
+Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`  
+Merge blocker: Yes
 
 ### PERF-01 Audit unbounded queries
 Status: Not Started  
@@ -176,8 +210,7 @@ Priority: Critical
 Files to inspect: `backend/src/**/*.service.ts`, `backend/src/**/*.controller.ts`  
 Verification command: `grep -R "findMany({\|findMany()" backend/src`  
 Evidence document: `docs/CODE_AUDIT.md`  
-Merge blocker: Yes  
-Notes: No load/scale claim is valid until complete.
+Merge blocker: Yes
 
 ### LOAD-01 Create load test plan
 Status: Not Started  
@@ -185,9 +218,8 @@ Priority: High
 Files to change: `docs/LOAD_TEST_PLAN.md`  
 Verification command: `test -f docs/LOAD_TEST_PLAN.md`  
 Evidence document: `docs/LOAD_TEST_PLAN.md`  
-Merge blocker: Before production  
-Notes: Do not claim 300-500 online users until realistic load tests exist.
+Merge blocker: Before production
 
 ## Immediate next move
 
-Add `backend/test/security/file-access-abuse.spec.ts`, `backend/test/security/input-hardening.spec.ts`, and `backend/test/security/health-redaction.spec.ts`, then record live `test:security` results.
+Create supply-chain and secret lifecycle documents, then implement service-level wrong-owner/wrong-scope authorization tests.
