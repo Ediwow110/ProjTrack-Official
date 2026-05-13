@@ -9,7 +9,7 @@ ProjTrack now targets more than 1000 end users. Load testing must use synthetic 
 
 ## Verdict
 
-Not implemented. No 1000+ end-user capacity claim is valid until a synthetic dataset exists and load results are recorded.
+Partially implemented. A synthetic fixture generator and `seed:load` command now exist, but no seeded-run evidence or load-test result has been recorded yet.
 
 ## Minimum dataset for 1000+ end-user claim
 
@@ -27,39 +27,46 @@ Not implemented. No 1000+ end-user capacity claim is valid until a synthetic dat
 | Groups | 500 | Enough to expose group membership queries |
 | Notifications | 10000 | Enough to expose user notification lists |
 
-## Distribution assumptions
+## Implemented generator
 
-- 70% student-heavy traffic.
-- 25% teacher traffic.
-- 5% admin read-only traffic.
-- Teachers own multiple subjects and sections.
-- Students have multiple submissions and notifications.
-- Some subjects use group submissions.
-- Export paths must be tested against large scoped datasets.
-
-## Required generator
-
-Preferred location:
+Current location:
 
 ```text
-backend/scripts/seed-load-fixtures.ts
+backend/scripts/seed-load-fixtures.cjs
 ```
 
-Required command:
+Current command:
 
 ```bash
 npm --prefix backend run seed:load
 ```
 
-The generator must be idempotent or safely reset only synthetic fixture data.
+The generator creates tagged synthetic users, academic structure, enrollments, subjects, activities, submissions, files, and notifications. It refuses production by default unless explicitly allowed.
+
+## Generator configuration
+
+The generator supports count overrides:
+
+```bash
+LOAD_FIXTURE_STUDENTS=1000
+LOAD_FIXTURE_TEACHERS=50
+LOAD_FIXTURE_ADMINS=5
+LOAD_FIXTURE_SECTIONS=50
+LOAD_FIXTURE_SUBJECTS=150
+LOAD_FIXTURE_TASKS_PER_SUBJECT=5
+LOAD_FIXTURE_SUBMISSIONS=10000
+LOAD_FIXTURE_NOTIFICATIONS=10000
+npm --prefix backend run seed:load
+```
 
 ## Required safety controls
 
-- Must not run against production unless explicitly blocked as impossible.
-- Must clearly tag fixture users/data as synthetic.
-- Must not use real user data.
-- Must not print secrets or tokens.
-- Must create enough data to expose unbounded-query behavior.
+- [x] Must not run against production unless explicitly allowed.
+- [x] Must clearly tag fixture users/data as synthetic.
+- [x] Must not use real user data.
+- [x] Must not print secrets or tokens.
+- [x] Must create enough data to expose unbounded-query behavior.
+- [ ] Must be run and results recorded.
 
 ## Required output
 
@@ -74,7 +81,6 @@ sections: 50
 subjects: 150
 activities: 750
 submissions: 10000
-files: 10000
 notifications: 10000
 ```
 
@@ -105,8 +111,8 @@ The 1000+ end-user claim fails if:
 
 ## Current blockers
 
-1. `backend/scripts/seed-load-fixtures.ts` does not exist.
-2. `npm --prefix backend run seed:load` does not exist.
-3. PERF-GATE issue #34 remains open.
-4. CAPACITY-GATE issue #35 remains open.
-5. No load-test result has been recorded.
+1. `npm --prefix backend run seed:load` has not been executed and recorded.
+2. PERF-GATE issue #34 remains open.
+3. CAPACITY-GATE issue #35 remains open.
+4. No 300/500/1000-user load-test result has been recorded.
+5. The seeder needs a real dry run against a disposable database to validate schema compatibility.
