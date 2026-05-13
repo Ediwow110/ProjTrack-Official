@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { StudentSubmitDto } from '../../src/submissions/dto/submission.dto';
@@ -17,7 +16,7 @@ async function validationErrors(dtoClass: any, payload: Record<string, unknown>)
 describe('input hardening security gate', () => {
   it('rejects mass-assignment fields on student submission DTOs', async () => {
     const errors = await validationErrors(StudentSubmitDto, {
-      subjectId: 'subject-1',
+      activityId: 'activity-1',
       title: 'Legitimate submission',
       description: 'Safe body',
       status: 'Approved',
