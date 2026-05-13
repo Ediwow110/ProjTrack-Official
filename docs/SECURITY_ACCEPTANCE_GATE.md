@@ -27,11 +27,11 @@ npm --prefix backend run build
 - [x] `docs/AUTHORIZATION_MATRIX.md`
 - [x] `docs/SECURITY_TEST_PLAN.md`
 - [x] `docs/SECURITY_REVIEW.md`
-- [ ] `docs/SECRETS_MANAGEMENT_CHECKLIST.md`
-- [ ] `docs/SECRET_LEAK_RESPONSE.md`
-- [ ] `docs/SUPPLY_CHAIN_SECURITY.md`
-- [ ] `docs/VULNERABILITY_MANAGEMENT.md`
-- [ ] `docs/INCIDENT_RESPONSE.md`
+- [x] `docs/SECRETS_MANAGEMENT_CHECKLIST.md`
+- [x] `docs/SECRET_LEAK_RESPONSE.md`
+- [x] `docs/SUPPLY_CHAIN_SECURITY.md`
+- [x] `docs/VULNERABILITY_MANAGEMENT.md`
+- [x] `docs/INCIDENT_RESPONSE.md`
 
 ## Required executable tests
 
@@ -143,10 +143,10 @@ Mapped:
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
 2. Service-level wrong-owner/wrong-scope tests are incomplete.
-3. Secret lifecycle and supply-chain documents are missing.
-4. Rate-limit runtime behavior is not proven.
-5. Webhook signature/replay behavior is not proven.
-6. CI failure summaries/notifications are missing.
+3. Rate-limit runtime behavior is not proven.
+4. Webhook signature/replay behavior is not proven.
+5. CI failure summaries/notifications are missing.
+6. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
 
 ## Acceptance decision
 
