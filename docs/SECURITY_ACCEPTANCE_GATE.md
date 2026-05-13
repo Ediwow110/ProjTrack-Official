@@ -65,9 +65,10 @@ npm --prefix backend run build
 - [x] Dashboard route role metadata guardrails exist.
 - [x] Sensitive health route role metadata guardrails exist.
 - [x] Authorization matrix expanded across mail, branding, students, subjects, backups, monitoring, and notifications controllers.
-- [ ] Student A cannot access Student B submission test exists.
-- [ ] Student A cannot access Student B file test exists.
-- [ ] Teacher cannot access unrelated class/section submission test exists.
+- [x] Student A cannot access Student B submission service-level test exists.
+- [x] Student A cannot access Student B file service-level test exists.
+- [x] Teacher cannot access unrelated class/section submission service-level test exists.
+- [x] Teacher cannot access unrelated class/section file service-level test exists.
 - [ ] Teacher cannot export unrelated submissions test exists.
 - [ ] Admin-only route runtime 401/403 tests exist.
 - [ ] Webhook signature/replay tests exist.
@@ -82,7 +83,7 @@ npm --prefix backend run build
 - [x] Magic-byte mismatch rejection test exists.
 - [x] Production base64 upload block test exists.
 - [x] Invalid upload scope rejection test exists.
-- [ ] Wrong-owner metadata/download service-level tests exist.
+- [x] Wrong-owner metadata/download service-level tests exist.
 - [ ] Signed URL TTL test exists.
 - [ ] Malware scanner fail-closed test exists.
 - [ ] Production S3/private-bucket operational evidence exists.
@@ -142,11 +143,12 @@ Mapped:
 ## Current blockers
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
-2. Service-level wrong-owner/wrong-scope tests are incomplete.
-3. Rate-limit runtime behavior is not proven.
-4. Webhook signature/replay behavior is not proven.
-5. CI failure summaries/notifications are missing.
-6. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
+2. Teacher export scope tests are incomplete.
+3. Admin-only route runtime 401/403 tests are incomplete.
+4. Rate-limit runtime behavior is not proven.
+5. Webhook signature/replay behavior is not proven.
+6. CI failure summaries/notifications are missing.
+7. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
 
 ## Acceptance decision
 
