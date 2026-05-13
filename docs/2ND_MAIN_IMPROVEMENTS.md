@@ -22,7 +22,7 @@ A task is not done because a file exists. A task is done only when code or docum
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | In Progress |
-| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md` | Not Started |
+| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md` | In Progress |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -40,6 +40,8 @@ A task is not done because a file exists. A task is done only when code or docum
 | SEC-07 security review | Done | `docs/SECURITY_REVIEW.md` |
 | SEC-08 security acceptance gate | Done | `docs/SECURITY_ACCEPTANCE_GATE.md` |
 | SEC-11 supply-chain and secret lifecycle docs | Done | `docs/SUPPLY_CHAIN_SECURITY.md`, `docs/SECRETS_MANAGEMENT_CHECKLIST.md`, `docs/SECRET_LEAK_RESPONSE.md`, `docs/VULNERABILITY_MANAGEMENT.md`, `docs/INCIDENT_RESPONSE.md` |
+| LOAD-01 load test plan | Done | `docs/LOAD_TEST_PLAN.md` |
+| PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 
 ## Executable security/test progress
 
@@ -83,16 +85,16 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 Status: Not Started  
 Priority: Critical  
 Verification command: `grep -R "findMany({\|findMany()" backend/src`  
-Evidence document: `docs/CODE_AUDIT.md`  
+Evidence document: `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes
 
-### LOAD-01 Create load test plan
+### LOAD-02 Implement load scripts and execute target runs
 Status: Not Started  
 Priority: High  
-Verification command: `test -f docs/LOAD_TEST_PLAN.md`  
+Verification command: `k6 run load-tests/k6.mixed.js`  
 Evidence document: `docs/LOAD_TEST_PLAN.md`  
 Merge blocker: Before production
 
 ## Immediate next move
 
-Create `docs/LOAD_TEST_PLAN.md` and `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, then audit unbounded queries before making any 300-500 user claim.
+Audit unbounded queries and add the first `load-tests/` scaffold. Do not make 300-500 online-user claims until query audit and load evidence exist.
