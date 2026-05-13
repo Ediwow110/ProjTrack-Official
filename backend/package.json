@@ -24,6 +24,7 @@
     "smoke": "node scripts/smoke.js",
     "smoke:admin:ensure": "node scripts/ensure-smoke-admin.js",
     "seed:smoke": "node scripts/ensure-smoke-fixtures.js",
+    "seed:load": "node scripts/seed-load-fixtures.cjs",
     "smoke:local": "node scripts/smoke.js --local-accounts",
     "smoke:real": "node scripts/smoke.js --real-accounts",
     "smoke:storage": "node scripts/object-storage-smoke.js",
