@@ -46,10 +46,11 @@ A task is not done because a file exists. A task is done only when code or docum
 | Task | Status | Files | Verification |
 |---|---|---|---|
 | SEC-03 auth/session abuse tests | In Progress | `backend/jest.security.config.cjs`, `backend/package.json`, `backend/test/security/auth-abuse.spec.ts`, `backend/test/security/session-abuse.spec.ts` | `npm --prefix backend run test:security` |
-| SEC-04 authorization abuse tests | In Progress | `backend/test/security/authorization-abuse.spec.ts` | `npm --prefix backend run test:security` |
+| SEC-04 authorization abuse tests | In Progress | `backend/test/security/authorization-abuse.spec.ts`, `backend/test/security/service-authorization-abuse.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-05 input hardening tests | In Progress | `backend/test/security/input-hardening.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-06 file/storage tests | In Progress | `backend/test/security/file-access-abuse.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-09 health/config redaction tests | In Progress | `backend/test/security/health-redaction.spec.ts` | `npm --prefix backend run test:security` |
+| SEC-10 service-level owner/scope authorization | In Progress | `backend/test/security/service-authorization-abuse.spec.ts` | `npm --prefix backend run test:security` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -62,14 +63,14 @@ Merge blocker: Before production
 Notes: Must add workflow summaries and production-check failure notification.
 
 ### SEC-10 Prove service-level owner/scope authorization
-Status: Not Started  
+Status: In Progress  
 Priority: Critical  
-Files to inspect: `backend/src/submissions/**`, `backend/src/files/**`, `backend/src/subjects/**`, `backend/src/notifications/**`  
-Files to change: additional `backend/test/security/*` specs and service code if tests expose gaps  
+Files inspected: `backend/src/submissions/**`, `backend/src/files/**`, `backend/src/access/access.service.ts`  
+Files changed: `backend/test/security/service-authorization-abuse.spec.ts`  
 Verification command: `npm --prefix backend run test:security`  
-Evidence document: `docs/AUTHORIZATION_MATRIX.md`  
+Evidence document: `docs/AUTHORIZATION_MATRIX.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
-Notes: Highest-risk remaining security blocker.
+Notes: Student submission/file and teacher submission/file wrong-owner tests exist. Teacher export, notifications, subjects/groups, webhook, and admin runtime 401/403 tests remain open.
 
 ### LIVE-EVIDENCE-01 Record live command/CI results
 Status: Not Started  
@@ -95,4 +96,4 @@ Merge blocker: Before production
 
 ## Immediate next move
 
-Implement service-level wrong-owner/wrong-scope authorization tests, starting with submissions and files.
+Add admin runtime 401/403 tests and webhook signature/replay tests, then record live `test:security` evidence.
