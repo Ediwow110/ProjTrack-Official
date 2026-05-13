@@ -53,6 +53,7 @@ Tracking issue: #35.
 | LOAD-01 load test plan | Done | `docs/LOAD_TEST_PLAN.md` |
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
+| CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 
@@ -79,12 +80,12 @@ Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
 Merge blocker: Yes  
 Notes: Issue #34. `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and teacher export path are scoped but unbounded. Add pagination, export caps/queue/streaming strategy, and tests requiring bounds.
 
-### CAPACITY-02 Build 1000-user synthetic fixture generator
-Status: Not Started  
+### CAPACITY-02 Validate 1000-user synthetic fixture generator
+Status: In Progress  
 Priority: Critical  
 Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`  
 Merge blocker: Before 1000+ claim  
-Notes: Need `backend/scripts/seed-load-fixtures.ts` and `npm --prefix backend run seed:load` or equivalent reproducible fixture generator.
+Notes: `backend/scripts/seed-load-fixtures.cjs` and `npm --prefix backend run seed:load` exist. They still need a real dry run against a disposable database and result evidence.
 
 ### CAPACITY-03 Execute 1000+ capacity evidence runs
 Status: Not Started  
@@ -118,4 +119,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Do not scale-test unbounded code. Fix issue #34 first, then build the 1000-user synthetic dataset generator and run staged load tests.
+Do not scale-test unbounded code. Fix issue #34 first, then validate the synthetic dataset generator with a disposable database and run staged load tests.
