@@ -43,6 +43,13 @@ jobs:
 
       - run: npm run security:audit
 
+      - name: Frontend CI summary
+        if: always()
+        run: |
+          echo "## Frontend CI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Secret scan, release hygiene, click-target, env, typecheck, build, responsive E2E, and audit steps completed or failed above." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Inspect failed step logs before treating this branch as mergeable." >> "$GITHUB_STEP_SUMMARY"
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -128,6 +135,13 @@ jobs:
 
       - run: npm audit --audit-level=high
 
+      - name: Backend CI summary
+        if: always()
+        run: |
+          echo "## Backend CI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Prisma validation/generation/migration, build, hardening checks, unit tests, security tests, runtime boot, worker smoke, optional smoke, and audit steps completed or failed above." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Security acceptance still requires live passing evidence plus resolution of PERF-GATE blocker #34." >> "$GITHUB_STEP_SUMMARY"
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -210,3 +224,10 @@ jobs:
         timeout-minutes: 15
 
       - run: npm audit --audit-level=high
+
+      - name: E2E CI summary
+        if: always()
+        run: |
+          echo "## E2E CI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backend build, smoke env preflight, Playwright smoke, and audit steps completed or failed above." >> "$GITHUB_STEP_SUMMARY"
+          echo "- E2E success is not a substitute for security/performance gate evidence." >> "$GITHUB_STEP_SUMMARY"
