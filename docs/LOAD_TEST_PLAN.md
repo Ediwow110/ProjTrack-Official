@@ -5,24 +5,27 @@ Last updated: 2026-05-14
 
 ## Verdict
 
-Not executed. No 1000+ end-user support claim is valid until this plan is implemented and results are recorded.
+Not executed. No 20k-50k registered-user school-scale support claim is valid until this plan is implemented and results are recorded.
 
 ## Capacity target
 
-The product requirement is now **more than 1000 end users**.
+The product requirement is now **20,000 to 50,000 registered users** for a school-based website project.
 
 This must be measured precisely:
 
-- Registered users: at least 1000 synthetic users in test data.
+- Registered users: 20k first gate, 50k upper gate.
 - Daily active users: target still needs confirmation.
 - Peak concurrent users: target still needs confirmation.
 - Sustained concurrent users: target still needs confirmation.
 - Upload concurrency: target still needs confirmation.
 - Teacher/admin export concurrency: target still needs confirmation.
 
-Do not confuse registered users with concurrent active users. 1000 registered users is a data-volume requirement. 1000 concurrent active users is a much harder runtime capacity requirement.
+Do not confuse registered users with concurrent active users. 50,000 registered users is a data-volume requirement. 50,000 concurrent active users is a separate architecture-scale problem and is not currently proven.
 
-Tracking issue: GitHub issue #35.
+Tracking issues:
+
+- #35: 1000+ capacity evidence gate
+- #36: 20k-50k registered-user school-scale gate
 
 ## Purpose
 
@@ -60,6 +63,7 @@ The load plan covers:
 | Target | 300 | 20 min | Validate expected target load from earlier plan | Pass thresholds |
 | Stretch | 500 | 20 min | Explore headroom | Results documented |
 | Capacity exploration | 1000 | 20 min | Explore 1000 concurrent-user behavior only after query bounds are fixed | Results documented; not a promise unless thresholds pass |
+| School-scale exploration | 2000 | 20 min | Optional next step after 1000 VU passes | Results documented; not a promise unless thresholds pass |
 | Soak | 100 | 60 min | Catch leaks and degradation | Stable memory/errors |
 
 ## Minimum thresholds
@@ -104,18 +108,18 @@ k6 run load-tests/k6.mixed.js
 k6 run -e VUS=300 -e DURATION=20m load-tests/k6.mixed.js
 k6 run -e VUS=500 -e DURATION=20m load-tests/k6.mixed.js
 k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js
+k6 run -e VUS=2000 -e DURATION=20m load-tests/k6.mixed.js
 ```
 
 ## Required test data
 
-For 1000+ end-user readiness, the synthetic dataset must include at minimum:
+For school-scale readiness, the synthetic dataset must include at minimum:
 
-- At least 1000 student accounts
-- At least 50 teacher accounts
-- At least 5 admin/smoke admin accounts
-- Multiple departments, sections, subjects, activities, groups, submissions, and files
-- Enough submissions/files to expose list/export query behavior
-- Fixtures must be synthetic and non-production
+- Tier 2: at least 20,000 student accounts, 800 teacher accounts, 20 admins, and matching academic/submission/file/notification volume.
+- Tier 3: at least 50,000 student accounts, 2,000 teacher accounts, 50 admins, and matching academic/submission/file/notification volume.
+- Multiple departments, sections, subjects, activities, groups, submissions, and files.
+- Enough submissions/files to expose list/export query behavior.
+- Fixtures must be synthetic and non-production.
 
 ## Security requirements during load
 
@@ -132,7 +136,7 @@ Load tests must not bypass authorization. They must verify:
 - Command used
 - Environment
 - Commit SHA
-- Dataset size
+- Dataset tier and counts
 - Registered synthetic users
 - VU count and duration
 - p50/p95/p99 latencies
@@ -151,7 +155,7 @@ Date:
 Commit SHA:
 Environment:
 Command:
-Dataset:
+Dataset tier:
 Registered synthetic users:
 Virtual users:
 Duration:
@@ -171,9 +175,10 @@ Owner:
 `LOAD-GATE` fails if:
 
 - No load scripts exist.
-- Synthetic dataset has fewer than 1000 registered users for the 1000+ claim.
+- Synthetic dataset has fewer registered users than the claimed tier.
 - 300-user target run is not executed.
 - 1000-user capacity exploration is claimed as supported without passing thresholds.
+- 20k or 50k registered-user support is claimed without matching seeded dataset evidence.
 - PERF-GATE issue #34 remains unresolved.
 - p95/error/memory thresholds fail without documented mitigation.
 - Authorization is bypassed for convenience.
@@ -183,8 +188,9 @@ Owner:
 ## Current blockers
 
 1. PERF-GATE issue #34 is open.
-2. No synthetic 1000-user dataset generator is documented.
-3. No 300-user, 500-user, or 1000-user run evidence exists.
-4. No memory/DB connection trend evidence exists.
-5. No slow-query evidence exists.
-6. Current load script is read-only and token-based; write-flow load scripts still need implementation.
+2. Synthetic fixture generator exists but has not been run and recorded.
+3. No 20k or 50k synthetic dataset evidence exists.
+4. No 300-user, 500-user, 1000-user, or 2000-user run evidence exists.
+5. No memory/DB connection trend evidence exists.
+6. No slow-query evidence exists.
+7. Current load script is read-only and token-based; write-flow load scripts still need implementation.
