@@ -23,8 +23,65 @@ npm --prefix backend run test:security
 
 - [x] `docs/CODE_AUDIT.md`
 - [x] `docs/LOAD_TEST_PLAN.md`
-- [ ] Query audit results recorded in this document
+- [x] Initial query audit findings recorded in this document
 - [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
+
+## Initial query audit findings
+
+### PERF-FINDING-001: student submission list is unbounded
+
+Status: Open  
+Severity: High  
+Affected file: `backend/src/repositories/submission.repository.ts`  
+Affected method: `listStudentSubmissions`
+
+Risk: student submission list can return every matching submission and relation graph without pagination.
+
+Required fix:
+
+- Add bounded pagination contract.
+- Add maximum page size.
+- Keep ownership filter.
+- Add regression test requiring `take`/limit behavior.
+
+### PERF-FINDING-002: teacher submission task pre-query is unbounded
+
+Status: Open  
+Severity: High  
+Affected file: `backend/src/repositories/submission.repository.ts`  
+Affected method: `listTeacherSubmissions`
+
+Risk: the method fetches all task IDs for a teacher before querying submissions. Large teachers/classes can produce a large `IN (...)` query and memory pressure.
+
+Required fix:
+
+- Avoid unbounded task ID pre-fetch where possible.
+- Prefer relational filtering directly in the submission query or bounded pagination.
+- Review supporting indexes.
+
+### PERF-FINDING-003: teacher submission list/export path is unbounded
+
+Status: Open  
+Severity: High  
+Affected file: `backend/src/repositories/submission.repository.ts`  
+Affected method: `listTeacherSubmissions`  
+Related path: `teacherExport`
+
+Risk: teacher submissions and exports are scoped, but not bounded. Scoped does not mean scalable.
+
+Required fix:
+
+- Add page/limit for normal list routes.
+- Add explicit export cap, queue, or streaming strategy for exports.
+- Add tests for max export bounds.
+
+## Executable regression evidence
+
+The following test file documents current open blockers:
+
+- `backend/test/security/performance-bounds.spec.ts`
+
+These tests are not a pass for `PERF-GATE`; they intentionally capture current unbounded behavior so it cannot be ignored.
 
 ## Required performance checks
 
@@ -79,30 +136,16 @@ npm --prefix backend run test:security
 - Load tests are not run but capacity claims are made.
 - Load tests fail thresholds without documented mitigation.
 
-## Required result entry template
-
-```text
-Date:
-Commit SHA:
-Command:
-Environment:
-Finding:
-Severity:
-Affected files/routes:
-Fix or mitigation:
-Owner:
-Status:
-```
-
 ## Current blockers
 
-1. Query audit command results are not recorded.
-2. Unbounded query review is incomplete.
-3. No load scripts exist.
-4. No 300-user or 500-user evidence exists.
-5. No slow-query/index review is recorded.
-6. No database connection/memory trend is recorded.
+1. Student submission list needs pagination.
+2. Teacher task pre-query needs redesign or bounds.
+3. Teacher submission list/export path needs pagination/export cap/queue/streaming plan.
+4. Broader query audit is incomplete.
+5. No 300-user or 500-user evidence exists.
+6. No slow-query/index review is recorded.
+7. No database connection/memory trend is recorded.
 
 ## Current acceptance decision
 
-Not accepted. Performance/readiness claims must remain conservative until query audit and load-test evidence exist.
+Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, and load-test evidence exist.
