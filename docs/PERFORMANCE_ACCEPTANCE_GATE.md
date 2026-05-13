@@ -7,7 +7,17 @@ Last updated: 2026-05-14
 
 Not passed.
 
-This gate defines the minimum performance and scalability evidence required before production-readiness or 300-500 online-user claims are made.
+This gate defines the minimum performance and scalability evidence required before production-readiness, 300-500 concurrent-user claims, or 1000+ end-user claims are made.
+
+## Capacity tracking
+
+- Issue #34 tracks the bounded submission list/export blocker.
+- Issue #35 tracks the 1000+ end-user capacity gate.
+
+Required distinction:
+
+- 1000+ registered users requires synthetic data and bounded queries.
+- 1000+ concurrent users requires load-test evidence, database connection headroom, memory stability, and slow-query review.
 
 ## Required command evidence
 
@@ -75,6 +85,19 @@ Required fix:
 - Add explicit export cap, queue, or streaming strategy for exports.
 - Add tests for max export bounds.
 
+## 1000+ end-user acceptance requirements
+
+- [ ] Synthetic dataset has at least 1000 registered student users.
+- [ ] Teacher/admin synthetic ratios are realistic.
+- [ ] All high-volume list routes are bounded.
+- [ ] Submission list/export blocker #34 is resolved.
+- [ ] 300 VU target run is recorded.
+- [ ] 500 VU stretch run is recorded.
+- [ ] 1000 VU capacity exploration is recorded before any 1000-concurrent-user claim.
+- [ ] Database connection trend is recorded.
+- [ ] Memory trend is recorded.
+- [ ] Slow-query/index evidence is recorded.
+
 ## Executable regression evidence
 
 The following test file documents current open blockers:
@@ -109,6 +132,7 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 - [ ] Baseline 50-user run completed.
 - [ ] Target 300-user run completed.
 - [ ] Stretch 500-user run attempted and documented.
+- [ ] 1000-user capacity exploration attempted and documented if claiming 1000 concurrent users.
 - [ ] Soak run completed or explicitly deferred with owner/date.
 - [ ] p95/error/memory/database-connection results recorded.
 
@@ -129,6 +153,8 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 
 `PERF-GATE` fails if:
 
+- Issue #34 remains unresolved.
+- Issue #35 has no recorded capacity evidence.
 - Any critical route has unbounded list queries.
 - Any high-volume route performs database queries inside unbounded loops.
 - Teacher/admin exports are unbounded.
@@ -142,10 +168,11 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 2. Teacher task pre-query needs redesign or bounds.
 3. Teacher submission list/export path needs pagination/export cap/queue/streaming plan.
 4. Broader query audit is incomplete.
-5. No 300-user or 500-user evidence exists.
+5. No 300-user, 500-user, or 1000-user evidence exists.
 6. No slow-query/index review is recorded.
 7. No database connection/memory trend is recorded.
+8. No synthetic 1000-user dataset generator exists.
 
 ## Current acceptance decision
 
-Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, and load-test evidence exist.
+Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, synthetic 1000-user data, and load-test evidence exist.
