@@ -22,7 +22,7 @@ A task is not done because a file exists. A task is done only when code or docum
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | In Progress |
-| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md` | In Progress |
+| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -41,6 +41,7 @@ A task is not done because a file exists. A task is done only when code or docum
 | SEC-08 security acceptance gate | Done | `docs/SECURITY_ACCEPTANCE_GATE.md` |
 | SEC-11 supply-chain and secret lifecycle docs | Done | `docs/SUPPLY_CHAIN_SECURITY.md`, `docs/SECRETS_MANAGEMENT_CHECKLIST.md`, `docs/SECRET_LEAK_RESPONSE.md`, `docs/VULNERABILITY_MANAGEMENT.md`, `docs/INCIDENT_RESPONSE.md` |
 | LOAD-01 load test plan | Done | `docs/LOAD_TEST_PLAN.md` |
+| LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 
 ## Executable security/test progress
@@ -54,6 +55,7 @@ A task is not done because a file exists. A task is done only when code or docum
 | SEC-09 health/config redaction tests | In Progress | `backend/test/security/health-redaction.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-10 service-level owner/scope authorization | In Progress | `backend/test/security/service-authorization-abuse.spec.ts`, `backend/test/security/teacher-export-scope.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-12 webhook abuse tests | In Progress | `backend/test/security/webhook-abuse.spec.ts` | `npm --prefix backend run test:security` |
+| PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -81,20 +83,21 @@ Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`
 Merge blocker: Yes  
 Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/filter, admin report/export bounds, notification scope, and subject/group scope tests remain open.
 
-### PERF-01 Audit unbounded queries
+### PERF-03 Fix bounded list/export blockers
 Status: Not Started  
 Priority: Critical  
-Verification command: `grep -R "findMany({\|findMany()" backend/src`  
-Evidence document: `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
-Merge blocker: Yes
+Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
+Merge blocker: Yes  
+Notes: `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and teacher export path are scoped but unbounded. Add pagination, export caps/queue/streaming strategy, and tests requiring bounds.
 
-### LOAD-02 Implement load scripts and execute target runs
+### LOAD-03 Execute target load runs
 Status: Not Started  
 Priority: High  
-Verification command: `k6 run load-tests/k6.mixed.js`  
+Verification command: `k6 run -e VUS=300 -e DURATION=20m load-tests/k6.mixed.js`  
 Evidence document: `docs/LOAD_TEST_PLAN.md`  
-Merge blocker: Before production
+Merge blocker: Before production  
+Notes: Scaffold exists, but no 300-user or 500-user evidence exists.
 
 ## Immediate next move
 
-Audit unbounded queries and add the first `load-tests/` scaffold. Do not make 300-500 online-user claims until query audit and load evidence exist.
+Fix bounded pagination/export blockers in submissions before making any scale claim. After bounds exist, run `npm --prefix backend run test:security` and record live evidence.
