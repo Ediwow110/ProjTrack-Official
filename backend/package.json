@@ -14,6 +14,7 @@
     "check:boot:worker": "node scripts/check-worker-boot.cjs",
     "test": "node scripts/production-hardening-checks.cjs",
     "test:unit": "jest",
+    "test:security": "jest --config jest.security.config.cjs --runInBand",
     "check:runtime:prod": "node scripts/production-runtime-check.cjs",
     "smoke:worker": "node scripts/worker-boot-smoke.cjs",
     "smoke:staging:summary": "node scripts/staging-smoke-summary.mjs",
