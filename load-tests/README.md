@@ -8,19 +8,20 @@ These scripts support `docs/LOAD_TEST_PLAN.md`. They are not proof by themselves
 
 Initial scaffold: k6.
 
+## Authentication model
+
+`k6.mixed.js` is a read-only scaffold. It expects pre-provisioned synthetic bearer tokens from the environment. Token generation is intentionally outside the load script so the script does not contain credential-login handling.
+
 ## Environment
 
 ```bash
 BASE_URL=http://localhost:3001
-STUDENT_IDENTIFIER=student@example.com
-STUDENT_PASSWORD=change-me
-TEACHER_IDENTIFIER=teacher@example.com
-TEACHER_PASSWORD=change-me
-ADMIN_IDENTIFIER=admin@example.com
-ADMIN_PASSWORD=change-me
+LOAD_STUDENT_TOKEN=<synthetic student token>
+LOAD_TEACHER_TOKEN=<synthetic teacher token>
+LOAD_ADMIN_TOKEN=<synthetic admin token>
 ```
 
-Use synthetic test accounts only.
+Use synthetic test accounts only. Do not paste real production tokens into shared terminals, docs, screenshots, or CI logs.
 
 ## Commands
 
@@ -51,3 +52,4 @@ Record commit SHA, environment, dataset size, command, VUs, duration, p95 latenc
 - Do not run against production data.
 - Do not bypass authorization.
 - Do not claim 300-500 user support until target and stretch runs are recorded.
+- Treat this scaffold as a starting point; write-flow scripts for upload/submit/review must be added before full load acceptance.
