@@ -62,6 +62,7 @@ npm --prefix backend run build
 - [x] File route role metadata guardrails exist.
 - [x] Student submission role metadata guardrails exist.
 - [x] Teacher submission role metadata guardrails exist.
+- [x] Teacher export scope tests exist.
 - [x] Profile route role metadata guardrails exist.
 - [x] Dashboard route role metadata guardrails exist.
 - [x] Sensitive health route role metadata guardrails exist.
@@ -71,7 +72,6 @@ npm --prefix backend run build
 - [x] Teacher cannot access unrelated class/section submission service-level test exists.
 - [x] Teacher cannot access unrelated class/section file service-level test exists.
 - [x] Webhook signature/replay tests exist.
-- [ ] Teacher cannot export unrelated submissions test exists.
 
 ### Files/storage
 
@@ -143,11 +143,11 @@ Mapped:
 ## Current blockers
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
-2. Teacher export scope tests are incomplete.
-3. Rate-limit runtime behavior is not proven.
-4. CI failure summaries/notifications are missing.
-5. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
-6. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
+2. Rate-limit runtime behavior is not proven.
+3. CI failure summaries/notifications are missing.
+4. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
+5. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
+6. Pagination/sort/filter and admin report/export bounds remain open.
 
 ## Acceptance decision
 
