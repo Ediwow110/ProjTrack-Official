@@ -22,7 +22,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - [ ] `ci.yml` passing on `2nd-main`
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
-- [ ] Failure visibility configured
+- [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
 - [ ] `npm run check:release-hygiene` passing, including capacity-claim check
 
@@ -32,10 +32,11 @@ Evidence: `docs/CI_STATUS.md`
 
 - [ ] Threat model complete
 - [ ] Security review complete
+- [ ] Security hardening backlog reviewed
 - [ ] Security regression tests passing
 - [ ] Secret scan passing
 - [ ] Dependency audit passing or exceptions documented
-- [ ] No critical/high security risks open
+- [ ] No critical/high security risks open without explicit risk acceptance
 
 Evidence:
 
@@ -43,6 +44,7 @@ Evidence:
 - `docs/SECURITY_REVIEW.md`
 - `docs/SECURITY_TEST_PLAN.md`
 - `docs/SECURITY_ACCEPTANCE_GATE.md`
+- `docs/SECURITY_HARDENING_BACKLOG.md`
 - `docs/SECRETS_MANAGEMENT_CHECKLIST.md`
 - `docs/SUPPLY_CHAIN_SECURITY.md`
 - `docs/VULNERABILITY_MANAGEMENT.md`
@@ -55,8 +57,10 @@ Evidence:
 - [ ] Wrong-owner behavior tested
 - [ ] Admin-only behavior tested
 - [ ] File ownership/signed URL behavior tested
+- [ ] Notification owner-scope behavior tested or risk-accepted
+- [ ] Subject/group scope edge cases tested or risk-accepted
 
-Evidence: `docs/AUTHORIZATION_MATRIX.md`
+Evidence: `docs/AUTHORIZATION_MATRIX.md`, `docs/SECURITY_HARDENING_BACKLOG.md`
 
 ## TEST-GATE
 
@@ -76,12 +80,17 @@ Evidence: `docs/TESTING_STRATEGY.md`
 - [ ] Migration checklist complete
 - [ ] Rollback strategy complete
 - [ ] Monitoring/alerts documented
+- [ ] Production-check failure issue path live-verified
+- [ ] Incident tabletop/drill evidence recorded
+- [ ] Backup/restore drill evidence recorded or explicitly deferred with owner/date
+- [ ] Correlation/request ID logging verified end-to-end
 
 Evidence:
 
 - `docs/OPERATIONAL_READINESS.md`
 - `docs/MIGRATION_SAFETY_CHECKLIST.md`
 - `docs/ROLLBACK_STRATEGY.md`
+- `docs/INCIDENT_RESPONSE.md`
 
 ## PERF-GATE
 
@@ -153,6 +162,7 @@ Evidence:
 - [ ] `docs/SECURITY_REVIEW.md` complete
 - [ ] `docs/TESTING_STRATEGY.md` complete
 - [ ] `docs/OPERATIONAL_READINESS.md` complete
+- [ ] `docs/SECURITY_HARDENING_BACKLOG.md` complete or explicitly risk-accepted
 - [ ] `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` updated after each school-scale workflow run
 - [ ] `docs/LOAD_TEST_RESULTS.md` updated after each load workflow run
 
@@ -164,4 +174,4 @@ Evidence:
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, and automated claim checks, but the required passing evidence is not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, and automated claim checks, but the required passing evidence is not recorded yet.
