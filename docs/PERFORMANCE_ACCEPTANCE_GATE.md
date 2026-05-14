@@ -7,17 +7,19 @@ Last updated: 2026-05-14
 
 Not passed.
 
-This gate defines the minimum performance and scalability evidence required before production-readiness, 300-500 concurrent-user claims, or 1000+ end-user claims are made.
+This gate defines the minimum performance and scalability evidence required before production-readiness, 300-500 concurrent-user claims, 1000+ concurrent-user claims, or 20k-50k registered-user school-scale claims are made.
 
 ## Capacity tracking
 
 - Issue #34 tracks the bounded submission list/export blocker.
-- Issue #35 tracks the 1000+ end-user capacity gate.
+- Issue #35 tracks the 1000+ capacity evidence gate.
+- Issue #36 tracks the 20k-50k registered-user school-scale gate.
 
 Required distinction:
 
-- 1000+ registered users requires synthetic data and bounded queries.
+- 20k-50k registered users requires synthetic data, bounded queries, indexes, and data-volume evidence.
 - 1000+ concurrent users requires load-test evidence, database connection headroom, memory stability, and slow-query review.
+- 20k-50k concurrent users is not currently claimed and would require a separate architecture program.
 
 ## Required command evidence
 
@@ -33,6 +35,7 @@ npm --prefix backend run test:security
 
 - [x] `docs/CODE_AUDIT.md`
 - [x] `docs/LOAD_TEST_PLAN.md`
+- [x] `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
 - [x] Initial query audit findings recorded in this document
 - [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
 
@@ -85,18 +88,31 @@ Required fix:
 - Add explicit export cap, queue, or streaming strategy for exports.
 - Add tests for max export bounds.
 
-## 1000+ end-user acceptance requirements
+## School-scale registered-user acceptance requirements
 
-- [ ] Synthetic dataset has at least 1000 registered student users.
-- [ ] Teacher/admin synthetic ratios are realistic.
-- [ ] All high-volume list routes are bounded.
-- [ ] Submission list/export blocker #34 is resolved.
+### Tier 1 baseline
+
+- [ ] Synthetic dataset has at least 1,000 registered student users.
 - [ ] 300 VU target run is recorded.
 - [ ] 500 VU stretch run is recorded.
 - [ ] 1000 VU capacity exploration is recorded before any 1000-concurrent-user claim.
-- [ ] Database connection trend is recorded.
-- [ ] Memory trend is recorded.
+
+### Tier 2 school-scale
+
+- [ ] Synthetic dataset has at least 20,000 registered student users.
+- [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
+- [ ] All high-volume list routes are bounded.
+- [ ] Submission list/export blocker #34 is resolved.
 - [ ] Slow-query/index evidence is recorded.
+- [ ] Database connection and memory trends are recorded.
+
+### Tier 3 upper school-scale
+
+- [ ] Synthetic dataset has at least 50,000 registered student users.
+- [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
+- [ ] 50k seed completion time and resource usage are recorded.
+- [ ] Load-test evidence is recorded against the 50k dataset.
+- [ ] Any architecture bottlenecks are documented with mitigation or rejection of the claim.
 
 ## Executable regression evidence
 
@@ -133,6 +149,7 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 - [ ] Target 300-user run completed.
 - [ ] Stretch 500-user run attempted and documented.
 - [ ] 1000-user capacity exploration attempted and documented if claiming 1000 concurrent users.
+- [ ] 2000-user school-scale exploration attempted only after 1000 VU passes.
 - [ ] Soak run completed or explicitly deferred with owner/date.
 - [ ] p95/error/memory/database-connection results recorded.
 
@@ -154,7 +171,7 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 `PERF-GATE` fails if:
 
 - Issue #34 remains unresolved.
-- Issue #35 has no recorded capacity evidence.
+- Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
 - Any critical route has unbounded list queries.
 - Any high-volume route performs database queries inside unbounded loops.
 - Teacher/admin exports are unbounded.
@@ -168,11 +185,11 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 2. Teacher task pre-query needs redesign or bounds.
 3. Teacher submission list/export path needs pagination/export cap/queue/streaming plan.
 4. Broader query audit is incomplete.
-5. No 300-user, 500-user, or 1000-user evidence exists.
+5. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
 6. No slow-query/index review is recorded.
 7. No database connection/memory trend is recorded.
-8. No synthetic 1000-user dataset generator exists.
+8. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
 
 ## Current acceptance decision
 
-Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, synthetic 1000-user data, and load-test evidence exist.
+Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, synthetic 20k/50k data evidence, and load-test evidence exist.
