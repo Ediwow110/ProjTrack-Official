@@ -53,6 +53,81 @@ export class SubmissionsService {
     return Array.isArray(rows) ? rows.slice(0, maxRows) : [];
   }
 
+  private async resolveTeacherProfileId(teacherId?: string) {
+    if (!teacherId) return undefined;
+    const direct = await this.prisma.teacherProfile.findUnique({ where: { id: teacherId }, select: { id: true } });
+    if (direct) return direct.id;
+    const byUser = await this.prisma.teacherProfile.findUnique({ where: { userId: teacherId }, select: { id: true } });
+    return byUser?.id ?? teacherId;
+  }
+
+  private submissionListInclude() {
+    return {
+      task: true,
+      files: true,
+      student: { select: { id: true, firstName: true, lastName: true, studentProfile: { include: { section: true } } } },
+      group: {
+        include: {
+          members: {
+            include: {
+              student: { select: { id: true, firstName: true, lastName: true, studentProfile: { include: { section: true } } } },
+            },
+          },
+        },
+      },
+      events: { orderBy: { createdAt: 'asc' as const } },
+    };
+  }
+
+  private async boundedStudentSubmissionRows(userId: string, status?: string) {
+    return this.prisma.submission.findMany({
+      take: MAX_SUBMISSION_LIST_RESPONSE_ROWS,
+      where: {
+        ...(status ? { status } : {}),
+        OR: [{ studentId: userId }, { group: { members: { some: { studentId: userId } } } }],
+      },
+      include: this.submissionListInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async boundedTeacherSubmissionRows(
+    filters: { teacherId?: string; section?: string; status?: string; subjectId?: string } | undefined,
+    maxRows: number,
+  ) {
+    const resolvedTeacherId = await this.resolveTeacherProfileId(filters?.teacherId);
+    return this.prisma.submission.findMany({
+      take: Math.max(1, Math.min(maxRows, MAX_TEACHER_EXPORT_ROWS + 1)),
+      where: {
+        ...(filters?.status ? { status: filters.status } : {}),
+        ...(filters?.subjectId ? { subjectId: filters.subjectId } : {}),
+        ...(resolvedTeacherId ? { task: { subject: { teacherId: resolvedTeacherId } } } : {}),
+        ...(filters?.section
+          ? {
+              OR: [
+                { student: { studentProfile: { section: { name: filters.section } } } },
+                {
+                  group: {
+                    members: {
+                      some: {
+                        student: {
+                          studentProfile: {
+                            section: { name: filters.section },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      include: this.submissionListInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   private async ensureStudentEnrolledInSubject(userId: string, subjectId: string) {
     const studentProfile = await this.prisma.studentProfile.findUnique({
       where: { userId },
@@ -76,9 +151,8 @@ export class SubmissionsService {
 
   async studentList(userId?: string, status?: string) {
     const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
-    const rows: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId, status);
-    const boundedRows = this.limitRows(rows, MAX_SUBMISSION_LIST_RESPONSE_ROWS);
-    return Promise.all(boundedRows.map((row) => this.decorate(row)));
+    const rows: any[] = await this.boundedStudentSubmissionRows(studentUserId, status);
+    return Promise.all(rows.map((row) => this.decorate(row)));
   }
 
   async studentDetail(id: string, userId?: string) {
@@ -185,8 +259,8 @@ export class SubmissionsService {
   }
 
   async teacherList(filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string }) {
-    const rows: any[] = await this.submissionRepository.listTeacherSubmissions(filters);
-    const decorated = await Promise.all(this.limitRows(rows, MAX_SUBMISSION_LIST_RESPONSE_ROWS).map((row) => this.decorate(row)));
+    const rows: any[] = await this.boundedTeacherSubmissionRows(filters, MAX_SUBMISSION_LIST_RESPONSE_ROWS);
+    const decorated = await Promise.all(rows.map((row) => this.decorate(row)));
     if (filters?.section) return decorated.filter((row: any) => row.section === filters.section);
     return decorated;
   }
@@ -199,13 +273,14 @@ export class SubmissionsService {
   }
 
   async teacherExport(filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string }) {
-    const rows: any[] = await this.submissionRepository.listTeacherSubmissions(filters);
-    const decorated = await Promise.all(this.limitRows(rows, MAX_TEACHER_EXPORT_ROWS).map((row) => this.decorate(row)));
+    const rows: any[] = await this.boundedTeacherSubmissionRows(filters, MAX_TEACHER_EXPORT_ROWS + 1);
+    const limitedRows = this.limitRows(rows, MAX_TEACHER_EXPORT_ROWS);
+    const decorated = await Promise.all(limitedRows.map((row) => this.decorate(row)));
     const filteredRows = filters?.section ? decorated.filter((row: any) => row.section === filters.section) : decorated;
     return {
       fileName: `teacher-submissions-${Date.now()}.csv`,
       rows: filteredRows,
-      truncated: rows.length > filteredRows.length || rows.length > MAX_TEACHER_EXPORT_ROWS,
+      truncated: rows.length > MAX_TEACHER_EXPORT_ROWS || decorated.length > filteredRows.length,
       maxRows: MAX_TEACHER_EXPORT_ROWS,
     };
   }
