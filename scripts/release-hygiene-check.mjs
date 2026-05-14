@@ -102,6 +102,7 @@ if (violations.length) {
   process.exit(1);
 }
 
+execFileSync(process.execPath, ['./scripts/check-release-guard-wiring.mjs'], { stdio: 'inherit' });
 execFileSync(process.execPath, ['./scripts/capacity-claim-check.mjs'], { stdio: 'inherit' });
 
 console.log('Release hygiene check passed.');
