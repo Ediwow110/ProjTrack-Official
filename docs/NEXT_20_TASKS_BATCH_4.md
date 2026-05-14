@@ -16,17 +16,17 @@ Batch 4 focuses on executable regression guards and remaining repo-editable cont
 | 3 | Add static regression test requiring teacher export truncation metadata | Done | `backend/test/security/submission-service-static-bounds.spec.ts` |
 | 4 | Add static regression test requiring capacity-claim checker in release hygiene | Done | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` |
 | 5 | Add docs index for validation/evidence files | Done | `docs/EVIDENCE_DOCS_INDEX.md` |
-| 6 | Add release evidence checklist to README or docs | Not Started | Avoid accidental claims |
+| 6 | Add release evidence checklist to README or docs | Done | `docs/RELEASE_EVIDENCE_CHECKLIST.md` |
 | 7 | Add load workflow secret preflight doc | Done | `docs/LOAD_VALIDATION_RUNBOOK.md` |
 | 8 | Add school-scale workflow runbook | Done | `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md` |
 | 9 | Add production-check failure issue runbook | Done | `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md` |
 | 10 | Add query-plan warning triage runbook | Done | `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md` |
-| 11 | Add export strategy ADR placeholder | Not Started | Hard cap vs queued vs streaming |
-| 12 | Add migration deployment evidence template | Not Started | Record deploy result consistently |
-| 13 | Add backend build/security evidence template | Not Started | Record command output consistently |
-| 14 | Add school-scale claim review checklist | Not Started | Pre-README/product review |
-| 15 | Link Batch 4 into master tracker | Not Started | `docs/2ND_MAIN_IMPROVEMENTS.md` |
-| 16 | Update final merge gate with static regression guard references | Not Started | `docs/FINAL_MERGE_GATE.md` |
+| 11 | Add export strategy ADR placeholder | Done | `docs/ADR_EXPORT_STRATEGY.md` |
+| 12 | Add migration deployment evidence template | Done | `docs/MIGRATION_DEPLOYMENT_EVIDENCE_TEMPLATE.md` |
+| 13 | Add backend build/security evidence template | Done | `docs/BACKEND_BUILD_SECURITY_EVIDENCE_TEMPLATE.md` |
+| 14 | Add school-scale claim review checklist | Done | `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md` |
+| 15 | Link Batch 4 into master tracker | Done | `docs/2ND_MAIN_IMPROVEMENTS.md` |
+| 16 | Update final merge gate with static regression guard references | Done | `docs/FINAL_MERGE_GATE.md` |
 | 17 | Run static/security test suite | Blocked | Requires CI/local run evidence |
 | 18 | Run capacity/release hygiene checks | Blocked | Requires CI/local run evidence |
 | 19 | Run school-scale validation tier 1k | Blocked | Requires GitHub Actions run |
@@ -34,4 +34,4 @@ Batch 4 focuses on executable regression guards and remaining repo-editable cont
 
 ## Current priority
 
-Turn documentation decisions into tests/checks where possible, then record live evidence.
+Repo-editable Batch 4 guardrails are complete. Live validation is now the critical path.
