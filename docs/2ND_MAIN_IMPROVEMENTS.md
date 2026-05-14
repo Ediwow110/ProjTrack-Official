@@ -35,7 +35,7 @@ Tracking issues: #35 and #36.
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
 | LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
-| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
+| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -57,6 +57,7 @@ Tracking issues: #35 and #36.
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
+| CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
@@ -78,6 +79,7 @@ Tracking issues: #35 and #36.
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
+| CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -108,7 +110,7 @@ Status: In Progress
 Priority: Critical  
 Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`  
 Merge blocker: Before 20k-50k claim  
-Notes: `backend/scripts/seed-load-fixtures.cjs` and `npm --prefix backend run seed:load` exist. Need disposable DB dry runs for 1k, 20k, and 50k tiers.
+Notes: `backend/scripts/seed-load-fixtures.cjs`, `npm --prefix backend run seed:load`, and manual school-scale validation workflow exist. Need workflow dry runs for 1k, 20k, and 50k tiers.
 
 ### CAPACITY-03 Execute staged capacity evidence runs
 Status: Not Started  
@@ -142,4 +144,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run live security/build/migration/query-plan tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
+Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `20k`; only after that should `50k` be attempted. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
