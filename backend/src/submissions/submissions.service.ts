@@ -18,10 +18,12 @@ import { NotificationRepository } from '../repositories/notification.repository'
 import { FilesService } from '../files/files.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type { PrismaJsonValue } from '../prisma/prisma-compat';
 import { AccessService } from '../access/access.service';
 import { eventActionForSubmission } from '../access/policies/submission-access.policy';
 import { canStudentEditSubmission, canTransitionSubmissionStatus, normalizeSubmissionLifecycleStatus } from './submission-lifecycle';
+
+const MAX_SUBMISSION_LIST_RESPONSE_ROWS = 100;
+const MAX_TEACHER_EXPORT_ROWS = 1000;
 
 @Injectable()
 export class SubmissionsService {
@@ -45,6 +47,10 @@ export class SubmissionsService {
       throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
     }
     return normalized;
+  }
+
+  private limitRows<T>(rows: T[], maxRows: number) {
+    return Array.isArray(rows) ? rows.slice(0, maxRows) : [];
   }
 
   private async ensureStudentEnrolledInSubject(userId: string, subjectId: string) {
@@ -71,7 +77,8 @@ export class SubmissionsService {
   async studentList(userId?: string, status?: string) {
     const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
     const rows: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId, status);
-    return Promise.all(rows.map((row) => this.decorate(row)));
+    const boundedRows = this.limitRows(rows, MAX_SUBMISSION_LIST_RESPONSE_ROWS);
+    return Promise.all(boundedRows.map((row) => this.decorate(row)));
   }
 
   async studentDetail(id: string, userId?: string) {
@@ -179,7 +186,7 @@ export class SubmissionsService {
 
   async teacherList(filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string }) {
     const rows: any[] = await this.submissionRepository.listTeacherSubmissions(filters);
-    const decorated = await Promise.all(rows.map((row) => this.decorate(row)));
+    const decorated = await Promise.all(this.limitRows(rows, MAX_SUBMISSION_LIST_RESPONSE_ROWS).map((row) => this.decorate(row)));
     if (filters?.section) return decorated.filter((row: any) => row.section === filters.section);
     return decorated;
   }
@@ -192,10 +199,14 @@ export class SubmissionsService {
   }
 
   async teacherExport(filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string }) {
-    const rows = await this.teacherList(filters);
+    const rows: any[] = await this.submissionRepository.listTeacherSubmissions(filters);
+    const decorated = await Promise.all(this.limitRows(rows, MAX_TEACHER_EXPORT_ROWS).map((row) => this.decorate(row)));
+    const filteredRows = filters?.section ? decorated.filter((row: any) => row.section === filters.section) : decorated;
     return {
       fileName: `teacher-submissions-${Date.now()}.csv`,
-      rows,
+      rows: filteredRows,
+      truncated: rows.length > filteredRows.length || rows.length > MAX_TEACHER_EXPORT_ROWS,
+      maxRows: MAX_TEACHER_EXPORT_ROWS,
     };
   }
 
@@ -265,19 +276,6 @@ export class SubmissionsService {
     }
 
     return decorated;
-  }
-
-
-  private async canStudentAccessSubmission(userId: string, record: any) {
-    if (record.studentUserId === userId || record.studentId === userId) return true;
-    if (record.groupId) {
-      const subjectId = record.subjectId || record.task?.subjectId;
-      if (!subjectId) return false;
-      const groups: any[] = await this.subjectRepository.listGroupsBySubject(subjectId);
-      const group = groups.find((item: any) => item.id === record.groupId);
-      return Boolean(group?.memberUserIds?.includes?.(userId) || group?.members?.some?.((member: any) => member.studentId === userId));
-    }
-    return false;
   }
 
   private async validateStudentSubmission(body: {
@@ -380,15 +378,6 @@ export class SubmissionsService {
         details: input.details ? (input.details as any) : undefined,
       },
     });
-  }
-
-  private async canTeacherAccessSubmission(teacherId: string, record: any) {
-    const subjectId = record.subjectId || record.task?.subjectId;
-    if (!subjectId) return false;
-    const subject: any = await this.subjectRepository.findSubjectById(subjectId);
-    const actor: any = await this.userRepository.findById(teacherId);
-    const allowedTeacherId = actor?.teacherProfile?.id ?? teacherId;
-    return String(subject?.teacherId || '') === String(allowedTeacherId);
   }
 
   private async getNotificationPreferences() {
