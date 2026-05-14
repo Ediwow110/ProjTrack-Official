@@ -23,10 +23,10 @@ Batch 3 focuses on remaining security hardening and operational guardrails. A ta
 | 10 | Add webhook idempotency checklist | Done | `docs/SECURITY_HARDENING_BACKLOG.md` |
 | 11 | Add production secrets rotation checklist | Done | `docs/SECURITY_HARDENING_BACKLOG.md`, existing secrets docs |
 | 12 | Add incident drill checklist | Done | `docs/SECURITY_HARDENING_BACKLOG.md`, existing incident docs |
-| 13 | Link Batch 3 into master tracker | Not Started | `docs/2ND_MAIN_IMPROVEMENTS.md` |
+| 13 | Link Batch 3 into master tracker | Done | `docs/2ND_MAIN_IMPROVEMENTS.md` |
 | 14 | Update security acceptance gate with Batch 3 blockers | Done | `docs/SECURITY_ACCEPTANCE_GATE.md` |
-| 15 | Update operational readiness with incident drill blockers | Not Started | `docs/OPERATIONAL_READINESS.md` |
-| 16 | Update final merge gate with Batch 3 hardening evidence | Not Started | `docs/FINAL_MERGE_GATE.md` |
+| 15 | Update operational readiness with incident drill blockers | Done | `docs/OPERATIONAL_READINESS.md` |
+| 16 | Update final merge gate with Batch 3 hardening evidence | Done | `docs/FINAL_MERGE_GATE.md` |
 | 17 | Run backend security tests | Blocked | Requires CI/local run evidence |
 | 18 | Run secret scan | Blocked | Requires CI/local run evidence |
 | 19 | Run dependency audit | Blocked | Requires CI/local run evidence |
@@ -34,7 +34,7 @@ Batch 3 focuses on remaining security hardening and operational guardrails. A ta
 
 ## Current priority
 
-Complete repo-editable hardening docs and gates first, then run live verification.
+Repo-editable Batch 3 hardening docs and gates are complete. Live verification is now the critical path.
 
 ## Hard blockers carried forward
 
