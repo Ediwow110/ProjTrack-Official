@@ -1,0 +1,65 @@
+name: Load Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      vus:
+        description: Virtual users for k6
+        required: true
+        default: "10"
+      duration:
+        description: Duration for k6, for example 5m or 20m
+        required: true
+        default: "5m"
+      dataset_tier:
+        description: Dataset tier already seeded in the target environment
+        required: true
+        default: "manual"
+      base_url:
+        description: Target base URL for the API under test
+        required: true
+        default: "http://127.0.0.1:3001"
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+      VUS: ${{ inputs.vus }}
+      DURATION: ${{ inputs.duration }}
+      LOAD_STUDENT_TOKEN: ${{ secrets.LOAD_STUDENT_TOKEN }}
+      LOAD_TEACHER_TOKEN: ${{ secrets.LOAD_TEACHER_TOKEN }}
+      LOAD_ADMIN_TOKEN: ${{ secrets.LOAD_ADMIN_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate load test credentials
+        run: |
+          test -n "$LOAD_STUDENT_TOKEN"
+          test -n "$LOAD_TEACHER_TOKEN"
+          test -n "$LOAD_ADMIN_TOKEN"
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          curl -s https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run mixed load test
+        run: k6 run load-tests/k6.mixed.js
+
+      - name: Load validation summary
+        if: always()
+        run: |
+          echo "## Load Validation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dataset tier: ${{ inputs.dataset_tier }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Base URL: ${{ inputs.base_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Virtual users: ${{ inputs.vus }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Duration: ${{ inputs.duration }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Script: load-tests/k6.mixed.js" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This workflow validates runtime concurrency only. It does not prove registered-user data-volume readiness." >> "$GITHUB_STEP_SUMMARY"
