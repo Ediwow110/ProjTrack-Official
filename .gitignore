@@ -39,6 +39,10 @@ backend/.env.*
 playwright-report/
 test-results/
 
+# Evidence reports
+evidence/*.md
+!evidence/README.md
+
 # Artifacts and diagnostics
 artifacts-*.png
 *-report.json
