@@ -29,7 +29,7 @@ Tracking issues: #35 and #36.
 | Gate | Blocks merge? | Evidence document | Current status |
 |---|---:|---|---|
 | CI-GATE | Yes | `docs/CI_STATUS.md` | In Progress |
-| SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md` | In Progress |
+| SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/SECURITY_HARDENING_BACKLOG.md` | In Progress |
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
@@ -53,6 +53,7 @@ Tracking issues: #35 and #36.
 | SEC-07 security review | Done | `docs/SECURITY_REVIEW.md` |
 | SEC-08 security acceptance gate | Done | `docs/SECURITY_ACCEPTANCE_GATE.md` |
 | SEC-11 supply-chain and secret lifecycle docs | Done | `docs/SUPPLY_CHAIN_SECURITY.md`, `docs/SECRETS_MANAGEMENT_CHECKLIST.md`, `docs/SECRET_LEAK_RESPONSE.md`, `docs/VULNERABILITY_MANAGEMENT.md`, `docs/INCIDENT_RESPONSE.md` |
+| SEC-14 hardening backlog | In Progress | `docs/SECURITY_HARDENING_BACKLOG.md`, `docs/NEXT_20_TASKS_BATCH_3.md` |
 | LOAD-01 load test plan | Done | `docs/LOAD_TEST_PLAN.md` |
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
@@ -78,6 +79,7 @@ Tracking issues: #35 and #36.
 | SEC-09 health/config redaction tests | In Progress | `backend/test/security/health-redaction.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-10 service-level owner/scope authorization | In Progress | `backend/test/security/service-authorization-abuse.spec.ts`, `backend/test/security/teacher-export-scope.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-12 webhook abuse tests | In Progress | `backend/test/security/webhook-abuse.spec.ts` | `npm --prefix backend run test:security` |
+| SEC-14 hardening backlog | In Progress | `docs/SECURITY_HARDENING_BACKLOG.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/NEXT_20_TASKS_BATCH_3.md` | `npm --prefix backend run test:security` + scan/audit evidence |
 | PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
@@ -94,6 +96,13 @@ Priority: Critical
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
 Notes: Issue #34 is substantially mitigated on active service paths: student list, teacher list, and teacher export now use bounded Prisma queries directly. Remaining work is cleanup: legacy repository list methods still contain unbounded behavior and should be bounded or removed to prevent future misuse.
+
+### SEC-14 Complete remaining security hardening backlog
+Status: In Progress  
+Priority: High  
+Evidence document: `docs/SECURITY_HARDENING_BACKLOG.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`  
+Merge blocker: Yes  
+Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/filter, admin report/export bounds, notification scope, subject/group scope, webhook idempotency, secrets rotation, and incident drill evidence remain open.
 
 ### PERF-05 Deploy and validate school-scale indexes
 Status: In Progress  
@@ -137,15 +146,7 @@ Status: In Progress
 Priority: High  
 Evidence document: `docs/CI_STATUS.md`  
 Merge blocker: Before production  
-Notes: Basic GitHub workflow summaries exist. Production notification routing/owner escalation still missing.
-
-### SEC-13 Remaining security hardening tests
-Status: Not Started  
-Priority: High  
-Verification command: `npm --prefix backend run test:security`  
-Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`  
-Merge blocker: Yes  
-Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/filter, admin report/export bounds, notification scope, and subject/group scope tests remain open.
+Notes: GitHub issue creation on failure is implemented, but live verification and owner/escalation beyond issue creation remain missing.
 
 ## Immediate next move
 
