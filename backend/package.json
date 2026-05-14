@@ -16,6 +16,7 @@
     "test:unit": "jest",
     "test:security": "jest --config jest.security.config.cjs --runInBand",
     "check:runtime:prod": "node scripts/production-runtime-check.cjs",
+    "check:query-plans": "node scripts/check-school-scale-query-plans.cjs",
     "smoke:worker": "node scripts/worker-boot-smoke.cjs",
     "smoke:staging:summary": "node scripts/staging-smoke-summary.mjs",
     "drill:backup-restore": "node scripts/backup-restore-drill.mjs",
