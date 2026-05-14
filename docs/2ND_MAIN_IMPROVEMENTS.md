@@ -18,7 +18,7 @@ The target is now school-scale: 20,000 to 50,000 registered users.
 
 Do not confuse registered users with concurrent users:
 
-- 20k-50k registered users requires synthetic fixture data, bounded queries, index/slow-query evidence, and data-volume load evidence.
+- 20k-50k registered users requires synthetic fixture data, bounded database queries, index/slow-query evidence, and data-volume load evidence.
 - 1000+ concurrent active users requires passing load-test evidence, database connection headroom, memory stability, and slow-query review.
 - 20k-50k concurrent active users is not claimed and would require a separate architecture program.
 
@@ -72,17 +72,18 @@ Tracking issues: #35 and #36.
 | SEC-09 health/config redaction tests | In Progress | `backend/test/security/health-redaction.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-10 service-level owner/scope authorization | In Progress | `backend/test/security/service-authorization-abuse.spec.ts`, `backend/test/security/teacher-export-scope.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-12 webhook abuse tests | In Progress | `backend/test/security/webhook-abuse.spec.ts` | `npm --prefix backend run test:security` |
-| PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
+| PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
+| PERF-04 service-layer submission response caps | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
 
-### PERF-03 Fix bounded list/export blockers
-Status: Not Started  
+### PERF-03 Fix bounded database list/export blockers
+Status: In Progress  
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
-Notes: Issue #34. `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and teacher export path are scoped but unbounded. Add pagination, export caps/queue/streaming strategy, and tests requiring bounds.
+Notes: Issue #34. Service-layer response caps are implemented for student lists, teacher lists, and teacher exports. This does not close the issue: `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and the teacher export repository path still need database-level pagination or bounded query strategy.
 
 ### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
@@ -123,4 +124,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Do not market 20k-50k support yet. Fix issue #34 first, validate the synthetic dataset generator with disposable 1k/20k/50k database runs, then run staged load tests and record evidence.
+Finish issue #34 at the repository/database layer. Service-layer caps are only a defensive stopgap; they do not prove 20k-50k readiness. After DB-level bounds land, validate the synthetic dataset generator with disposable 1k/20k/50k database runs and run staged load tests.
