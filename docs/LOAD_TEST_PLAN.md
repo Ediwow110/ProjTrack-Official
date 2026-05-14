@@ -7,6 +7,13 @@ Last updated: 2026-05-14
 
 Not executed. No 20k-50k registered-user school-scale support claim is valid until this plan is implemented and results are recorded.
 
+## Evidence documents
+
+- Data-volume/query-plan validation: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
+- Runtime concurrency/load validation: `docs/LOAD_TEST_RESULTS.md`
+
+Passing one does not replace the other.
+
 ## Capacity target
 
 The product requirement is now **20,000 to 50,000 registered users** for a school-based website project.
@@ -133,6 +140,8 @@ Load tests must not bypass authorization. They must verify:
 
 ## Evidence to collect
 
+Record load outcomes in `docs/LOAD_TEST_RESULTS.md`.
+
 - Command used
 - Environment
 - Commit SHA
@@ -148,38 +157,15 @@ Load tests must not bypass authorization. They must verify:
 - Slow query evidence if available
 - Logs/request IDs for representative failures
 
-## Results template
-
-```text
-Date:
-Commit SHA:
-Environment:
-Command:
-Dataset tier:
-Registered synthetic users:
-Virtual users:
-Duration:
-Passed thresholds? yes/no
-p95 read latency:
-p95 write latency:
-Error rate:
-Max memory:
-DB connection peak:
-Top failures:
-Fixes required:
-Owner:
-```
-
 ## Fail conditions
 
 `LOAD-GATE` fails if:
 
 - No load scripts exist.
 - Synthetic dataset has fewer registered users than the claimed tier.
-- 300-user target run is not executed.
-- 1000-user capacity exploration is claimed as supported without passing thresholds.
-- 20k or 50k registered-user support is claimed without matching seeded dataset evidence.
-- PERF-GATE issue #34 remains unresolved.
+- 300-user target run is not executed and recorded in `docs/LOAD_TEST_RESULTS.md`.
+- 1000-user capacity exploration is claimed as supported without passing thresholds and recorded evidence.
+- 20k or 50k registered-user support is claimed without matching seeded dataset evidence in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`.
 - p95/error/memory thresholds fail without documented mitigation.
 - Authorization is bypassed for convenience.
 - Test data is production data.
@@ -187,10 +173,8 @@ Owner:
 
 ## Current blockers
 
-1. PERF-GATE issue #34 is open.
-2. Synthetic fixture generator exists but has not been run and recorded.
-3. No 20k or 50k synthetic dataset evidence exists.
-4. No 300-user, 500-user, 1000-user, or 2000-user run evidence exists.
-5. No memory/DB connection trend evidence exists.
-6. No slow-query evidence exists.
-7. Current load script is read-only and token-based; write-flow load scripts still need implementation.
+1. School-scale validation results are not recorded.
+2. No 20k or 50k synthetic dataset evidence exists.
+3. No 300-user, 500-user, 1000-user, or 2000-user run evidence exists in `docs/LOAD_TEST_RESULTS.md`.
+4. No memory/DB connection trend evidence exists.
+5. Current load script is read-only and token-based; write-flow load scripts still need implementation.
