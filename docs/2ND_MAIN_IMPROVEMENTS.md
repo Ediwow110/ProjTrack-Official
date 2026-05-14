@@ -34,8 +34,8 @@ Tracking issues: #35 and #36.
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
-| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
-| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
+| LOAD-GATE | Before production | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
+| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `.github/workflows/load-validation.yml`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -57,6 +57,7 @@ Tracking issues: #35 and #36.
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | LOAD-05 load test results ledger | Done | `docs/LOAD_TEST_RESULTS.md` |
+| LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_RESULTS.md` |
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-06 school-scale validation results ledger | Done | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` |
@@ -82,6 +83,7 @@ Tracking issues: #35 and #36.
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
+| LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `load-tests/k6.mixed.js` | GitHub Actions manual workflow dispatch |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -115,11 +117,12 @@ Merge blocker: Before 20k-50k claim
 Notes: `backend/scripts/seed-load-fixtures.cjs`, `npm --prefix backend run seed:load`, and manual school-scale validation workflow exist. Need workflow dry runs for 1k, 20k, and 50k tiers.
 
 ### CAPACITY-03 Execute staged capacity evidence runs
-Status: Not Started  
+Status: In Progress  
 Priority: Critical  
-Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after synthetic fixtures are validated  
+Verification command: Manual `Load Validation` workflow with 300/500/1000/2000 VU inputs  
 Evidence document: `docs/LOAD_TEST_RESULTS.md`, issues #35/#36  
-Merge blocker: Before 20k-50k claim
+Merge blocker: Before 20k-50k claim  
+Notes: Manual workflow exists, but no load run evidence has been recorded.
 
 ### LIVE-EVIDENCE-01 Record live command/CI results
 Status: Not Started  
@@ -146,4 +149,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `20k`; only after that should `50k` be attempted. Record results in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
+Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `Load Validation` smoke against the validated target. Record school-scale results in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` and load results in `docs/LOAD_TEST_RESULTS.md`. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
