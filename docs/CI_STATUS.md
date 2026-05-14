@@ -64,8 +64,15 @@ Current structure:
   - `npm run test:security`
 - Playwright smoke gate
 - Docker backend image gate
+- production gate failure issue job
 
-Risk note: this is a gate workflow, not a deployment workflow. It does not itself deploy production. It still needs production-gate notification routing before production use.
+Risk note: this is a gate workflow, not a deployment workflow. It does not itself deploy production.
+
+Failure visibility:
+
+- The workflow has `issues: write` permission.
+- If any production-check job fails, `notify-failure` creates or comments on a GitHub issue titled `Production Checks failed on <ref>`.
+- The issue includes run URL, commit SHA, and frontend/backend/smoke/docker job results.
 
 ### `.github/workflows/production-candidate.yml`
 
@@ -127,14 +134,15 @@ Purpose: prevent unsupported README/product-facing claims such as 20k-50k suppor
 
 Implemented:
 
-- `ci.yml` now writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
+- `ci.yml` writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
+- `production-checks.yml` creates or updates a GitHub issue when a production gate fails.
 - Manual school-scale and load-validation workflows write GitHub step summaries.
 - Backend summaries explicitly call out unresolved performance/capacity evidence gaps.
 
 Still missing:
 
-- Production-check failure notification destination.
-- Owner/escalation routing for failed production gates.
+- Live verification that the production-check failure issue path works in GitHub Actions.
+- Owner/escalation routing beyond the GitHub issue.
 - Recorded latest workflow run URLs/results.
 
 ## Current Status
@@ -166,19 +174,20 @@ npm run e2e:responsive
 ## Known Gaps
 
 1. Current workflow run URLs and results are not yet recorded here.
-2. Production-gate notification routing is not implemented.
-3. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-4. Smoke tests depend on configured smoke account secrets.
-5. README badge verification is static; live badge status still depends on Actions results.
-6. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
-7. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-8. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+2. Production-gate failure issue path is implemented but not live-verified.
+3. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
+4. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+5. Smoke tests depend on configured smoke account secrets.
+6. README badge verification is static; live badge status still depends on Actions results.
+7. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
+8. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+9. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
 - [ ] Latest production gate run passes or documented blocker exists.
-- [ ] Production-gate failure notification routing exists.
+- [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
 - [ ] Dependency audit passes or exceptions are documented.
 - [ ] Secret scan passes.
 - [ ] Capacity claim check passes.
@@ -189,4 +198,4 @@ npm run e2e:responsive
 
 ## Current verdict
 
-CI now includes security, hygiene, and capacity-claim guardrails plus manual validation workflows. It is still not final-gate complete until live passing runs, production notification routing, school-scale evidence, and load evidence are recorded.
+CI now includes security, hygiene, capacity-claim guardrails, manual validation workflows, and production-check failure issue creation. It is still not final-gate complete until live passing runs, production failure notification verification, school-scale evidence, and load evidence are recorded.
