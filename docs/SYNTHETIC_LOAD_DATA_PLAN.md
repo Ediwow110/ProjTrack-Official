@@ -9,7 +9,7 @@ ProjTrack now targets school-scale usage: 20,000 to 50,000 registered users. Loa
 
 ## Verdict
 
-Partially implemented. A synthetic fixture generator and `seed:load` command exist, but no seeded-run evidence or load-test result has been recorded yet.
+Partially implemented. A synthetic fixture generator, `seed:load` command, and manual school-scale validation workflow exist, but no seeded-run evidence or load-test result has been recorded yet.
 
 ## Capacity tiers
 
@@ -86,7 +86,30 @@ npm --prefix backend run seed:load
 
 The generator creates tagged synthetic users, academic structure, enrollments, subjects, activities, submissions, files, and notifications. It refuses production by default unless explicitly allowed.
 
-## Generator configuration
+## Manual validation workflow
+
+Current location:
+
+```text
+.github/workflows/school-scale-validation.yml
+```
+
+Manual workflow inputs:
+
+- `tier`: `1k`, `20k`, or `50k`
+- `fail_on_query_plan_warning`: whether hot-table sequential scan warnings fail the workflow
+
+The workflow performs:
+
+1. PostgreSQL service startup.
+2. Backend dependency install.
+3. Prisma validation/generation/migration deploy.
+4. Backend build.
+5. Synthetic fixture seed for selected tier.
+6. Query-plan validation.
+7. GitHub step summary with dataset counts.
+
+## Local generator configuration
 
 Baseline:
 
@@ -113,6 +136,7 @@ LOAD_FIXTURE_STUDENTS=50000 LOAD_FIXTURE_TEACHERS=2000 LOAD_FIXTURE_ADMINS=50 LO
 - [x] Must not use real user data.
 - [x] Must not print secrets or tokens.
 - [x] Must create enough data to expose unbounded-query behavior.
+- [x] Must have a reproducible manual validation workflow.
 - [ ] Must be run and results recorded for Tier 1.
 - [ ] Must be run and results recorded for Tier 2 before any 20k claim.
 - [ ] Must be run and results recorded for Tier 3 before any 50k claim.
@@ -138,16 +162,17 @@ The 20k-50k registered-user claim fails if:
 
 - Synthetic fixture data has fewer registered users than the claimed tier.
 - Fixture generation cannot be reproduced.
+- Manual validation workflow fails for the claimed tier.
 - Production data is used.
 - Submission list/export paths remain unbounded.
 - Load evidence is missing but claimed.
-- Database indexes and slow-query evidence are missing.
+- Database indexes and query-plan evidence are missing.
 
 ## Current blockers
 
-1. `npm --prefix backend run seed:load` has not been executed and recorded.
-2. PERF-GATE issue #34 remains open.
-3. CAPACITY-GATE issues #35 and #36 remain open.
-4. No 300/500/1000-user load-test result has been recorded.
-5. No 20k or 50k data-volume seed evidence exists.
-6. The seeder needs a real dry run against a disposable database to validate schema compatibility.
+1. School-scale validation workflow has not been run and recorded for Tier 1.
+2. School-scale validation workflow has not been run and recorded for Tier 2.
+3. School-scale validation workflow has not been run and recorded for Tier 3.
+4. CAPACITY-GATE issues #35 and #36 remain open.
+5. No 300/500/1000-user load-test result has been recorded.
+6. No 20k or 50k data-volume seed evidence exists.
