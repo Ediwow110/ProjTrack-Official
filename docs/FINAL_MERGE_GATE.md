@@ -16,6 +16,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - Runtime concurrency/load evidence belongs in `docs/LOAD_TEST_RESULTS.md`.
 - CI/security/build evidence belongs in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
 - Unsupported capacity/readiness claims are blocked by `scripts/capacity-claim-check.mjs`, which runs through `npm run check:release-hygiene`.
+- Release evidence and claim review checklists must be used before any public readiness/capacity wording changes.
 
 ## CI-GATE
 
@@ -24,9 +25,9 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - [ ] `production-candidate.yml` reviewed
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
-- [ ] `npm run check:release-hygiene` passing, including capacity-claim check
+- [ ] `npm run check:release-hygiene` passing, including capacity-claim and guard-wiring checks
 
-Evidence: `docs/CI_STATUS.md`
+Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`
 
 ## SEC-GATE
 
@@ -45,6 +46,7 @@ Evidence:
 - `docs/SECURITY_TEST_PLAN.md`
 - `docs/SECURITY_ACCEPTANCE_GATE.md`
 - `docs/SECURITY_HARDENING_BACKLOG.md`
+- `docs/BACKEND_BUILD_SECURITY_EVIDENCE_TEMPLATE.md`
 - `docs/SECRETS_MANAGEMENT_CHECKLIST.md`
 - `docs/SUPPLY_CHAIN_SECURITY.md`
 - `docs/VULNERABILITY_MANAGEMENT.md`
@@ -69,8 +71,9 @@ Evidence: `docs/AUTHORIZATION_MATRIX.md`, `docs/SECURITY_HARDENING_BACKLOG.md`
 - [ ] E2E tests passing
 - [ ] Critical auth/authorization paths tested
 - [ ] Coverage generated
+- [ ] Static bounded-submission service guard test included in security test evidence
 
-Evidence: `docs/TESTING_STRATEGY.md`
+Evidence: `docs/TESTING_STRATEGY.md`, `backend/test/security/submission-service-static-bounds.spec.ts`
 
 ## OPS-GATE
 
@@ -89,8 +92,10 @@ Evidence:
 
 - `docs/OPERATIONAL_READINESS.md`
 - `docs/MIGRATION_SAFETY_CHECKLIST.md`
+- `docs/MIGRATION_DEPLOYMENT_EVIDENCE_TEMPLATE.md`
 - `docs/ROLLBACK_STRATEGY.md`
 - `docs/INCIDENT_RESPONSE.md`
+- `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`
 
 ## PERF-GATE
 
@@ -99,6 +104,7 @@ Evidence:
 - [x] Active teacher export path is database-bounded and capped
 - [x] School-scale performance index migration exists
 - [x] Query-plan checker exists
+- [x] Static guard prevents active submission service paths from returning to legacy unbounded helpers
 - [ ] School-scale index migration deployment result recorded
 - [ ] Query-plan checker results recorded for seeded data
 - [ ] Legacy unbounded repository list helpers removed or bounded
@@ -107,12 +113,16 @@ Evidence:
 - [ ] Heavy tasks moved to workers or explicitly accepted
 - [ ] External calls have timeouts
 - [ ] Expensive routes rate-limited
+- [ ] Export strategy accepted for any exports above the current 1000-row cap
 
 Evidence:
 
 - `docs/CODE_AUDIT.md`
 - `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
 - `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
+- `docs/ADR_EXPORT_STRATEGY.md`
+- `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`
+- `backend/test/security/submission-service-static-bounds.spec.ts`
 - `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`
 
 ## SCHOOL-SCALE DATA GATE
@@ -123,12 +133,15 @@ Evidence:
 - [ ] Tier `50k` workflow result recorded and passing before any 50k registered-user claim
 - [ ] Query-plan warnings are zero or explicitly risk-accepted with mitigation
 - [ ] Seed duration/resource impact is acceptable for the claimed tier
+- [ ] Claim wording reviewed with `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md`
 
 Evidence:
 
 - `.github/workflows/school-scale-validation.yml`
 - `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
 - `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
+- `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`
+- `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md`
 
 ## LOAD-GATE
 
@@ -148,6 +161,7 @@ Evidence:
 - `.github/workflows/load-validation.yml`
 - `docs/LOAD_TEST_PLAN.md`
 - `docs/LOAD_TEST_RESULTS.md`
+- `docs/LOAD_VALIDATION_RUNBOOK.md`
 - `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
 - `load-tests/**`
 
@@ -155,8 +169,11 @@ Evidence:
 
 - [ ] README claims match reality
 - [ ] Automated capacity claim check passes
+- [ ] Release guard wiring check passes
+- [ ] Release evidence checklist reviewed
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
+- [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
 - [ ] `docs/2ND_MAIN_IMPROVEMENTS.md` updated
 - [ ] `docs/CODE_AUDIT.md` complete
 - [ ] `docs/SECURITY_REVIEW.md` complete
@@ -170,8 +187,11 @@ Evidence:
 
 - repository documentation on `2nd-main`
 - `scripts/capacity-claim-check.mjs`
+- `scripts/check-release-guard-wiring.mjs`
 - `scripts/release-hygiene-check.mjs`
+- `docs/EVIDENCE_DOCS_INDEX.md`
+- `docs/RELEASE_EVIDENCE_CHECKLIST.md`
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, and automated claim checks, but the required passing evidence is not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, and automated claim checks, but the required passing evidence is not recorded yet.
