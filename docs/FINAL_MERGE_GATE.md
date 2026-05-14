@@ -16,6 +16,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - Runtime concurrency/load evidence belongs in `docs/LOAD_TEST_RESULTS.md`.
 - CI/security/build evidence belongs in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
 - Blocking evidence issues are tracked in `docs/EVIDENCE_ISSUES_INDEX.md`.
+- Manual GitHub Actions execution steps are tracked in `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`.
 - Unsupported capacity/readiness claims are blocked by `scripts/capacity-claim-check.mjs`, which runs through `npm run check:release-hygiene`.
 - Release evidence and claim review checklists must be used before any public readiness/capacity wording changes.
 
@@ -30,11 +31,12 @@ The following GitHub issues are merge/claim blockers until resolved with recorde
 - #41: production-check failure issue creation live verification.
 - #42: `School Scale Validation` tier `20k` and `50k` evidence.
 
-Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`
+Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
 ## CI-GATE
 
 - [ ] `ci.yml` passing on `2nd-main`
+- [ ] `Evidence Gates` workflow run recorded or equivalent local evidence report recorded
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
 - [ ] Failure visibility configured and live-verified
@@ -44,7 +46,7 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`
 - [ ] Issue #41 resolved with production-check failure visibility evidence
 - [ ] `npm run check:release-hygiene` passing, including capacity-claim and guard-wiring checks
 
-Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`
+Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
 ## SEC-GATE
 
@@ -115,6 +117,7 @@ Evidence:
 - `docs/ROLLBACK_STRATEGY.md`
 - `docs/INCIDENT_RESPONSE.md`
 - `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`
+- `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
 ## PERF-GATE
 
@@ -165,6 +168,7 @@ Evidence:
 - `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
 - `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`
 - `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md`
+- `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
 ## LOAD-GATE
 
@@ -187,6 +191,7 @@ Evidence:
 - `docs/LOAD_TEST_RESULTS.md`
 - `docs/LOAD_VALIDATION_RUNBOOK.md`
 - `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
+- `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 - `load-tests/**`
 
 ## DOC-GATE
@@ -200,6 +205,7 @@ Evidence:
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
 - [ ] `docs/EVIDENCE_ISSUES_INDEX.md` is current
+- [ ] `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` is current
 - [ ] `docs/2ND_MAIN_IMPROVEMENTS.md` updated
 - [ ] `docs/CODE_AUDIT.md` complete
 - [ ] `docs/SECURITY_REVIEW.md` complete
@@ -217,8 +223,9 @@ Evidence:
 - `scripts/release-hygiene-check.mjs`
 - `docs/EVIDENCE_DOCS_INDEX.md`
 - `docs/EVIDENCE_ISSUES_INDEX.md`
+- `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 - `docs/RELEASE_EVIDENCE_CHECKLIST.md`
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, and issue-level evidence tracking, but the required passing evidence is not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, and a manual GitHub Actions execution runbook, but the required passing evidence is not recorded yet.
