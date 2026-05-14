@@ -73,17 +73,17 @@ Tracking issues: #35 and #36.
 | SEC-10 service-level owner/scope authorization | In Progress | `backend/test/security/service-authorization-abuse.spec.ts`, `backend/test/security/teacher-export-scope.spec.ts` | `npm --prefix backend run test:security` |
 | SEC-12 webhook abuse tests | In Progress | `backend/test/security/webhook-abuse.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
-| PERF-04 service-layer submission response caps | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
+| PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
 
-### PERF-03 Fix bounded database list/export blockers
+### PERF-03 Finish bounded database list/export cleanup
 Status: In Progress  
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
-Notes: Issue #34. Service-layer response caps are implemented for student lists, teacher lists, and teacher exports. This does not close the issue: `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and the teacher export repository path still need database-level pagination or bounded query strategy.
+Notes: Issue #34 is substantially mitigated on active service paths: student list, teacher list, and teacher export now use bounded Prisma queries directly. Remaining work is cleanup: legacy repository list methods still contain unbounded behavior and should be bounded or removed to prevent future misuse.
 
 ### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
@@ -95,7 +95,7 @@ Notes: `backend/scripts/seed-load-fixtures.cjs` and `npm --prefix backend run se
 ### CAPACITY-03 Execute staged capacity evidence runs
 Status: Not Started  
 Priority: Critical  
-Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after #34 and synthetic fixtures are validated  
+Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after synthetic fixtures are validated  
 Evidence document: `docs/LOAD_TEST_PLAN.md`, issues #35/#36  
 Merge blocker: Before 20k-50k claim
 
@@ -124,4 +124,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Finish issue #34 at the repository/database layer. Service-layer caps are only a defensive stopgap; they do not prove 20k-50k readiness. After DB-level bounds land, validate the synthetic dataset generator with disposable 1k/20k/50k database runs and run staged load tests.
+Run live security/build tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until test evidence, seed evidence, slow-query/index review, and load results are recorded.
