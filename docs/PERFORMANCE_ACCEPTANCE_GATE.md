@@ -17,9 +17,24 @@ This gate defines the minimum performance and scalability evidence required befo
 
 Required distinction:
 
-- 20k-50k registered users requires synthetic data, bounded queries, indexes, and data-volume evidence.
+- 20k-50k registered users requires synthetic data, bounded database queries, indexes, and data-volume evidence.
 - 1000+ concurrent users requires load-test evidence, database connection headroom, memory stability, and slow-query review.
 - 20k-50k concurrent users is not currently claimed and would require a separate architecture program.
+
+## Current mitigation status
+
+Implemented:
+
+- Service-layer student submission list response cap: 100 rows.
+- Service-layer teacher submission list response cap: 100 rows.
+- Service-layer teacher export cap: 1000 rows with truncation metadata.
+- Tests for student list cap, teacher list cap, and teacher export cap.
+
+Still open:
+
+- Repository/database-level `take`/`skip` pagination is not implemented.
+- Teacher task pre-query is still not eliminated or properly paginated at the database layer.
+- Issue #34 remains open until database-level query bounds land.
 
 ## Required command evidence
 
@@ -41,14 +56,14 @@ npm --prefix backend run test:security
 
 ## Initial query audit findings
 
-### PERF-FINDING-001: student submission list is unbounded
+### PERF-FINDING-001: student submission list database query is unbounded
 
 Status: Open  
 Severity: High  
 Affected file: `backend/src/repositories/submission.repository.ts`  
 Affected method: `listStudentSubmissions`
 
-Risk: student submission list can return every matching submission and relation graph without pagination.
+Risk: student submission list can fetch every matching submission and relation graph without database-level pagination. Service-layer response caps reduce payload size but do not prevent database work.
 
 Required fix:
 
@@ -72,7 +87,7 @@ Required fix:
 - Prefer relational filtering directly in the submission query or bounded pagination.
 - Review supporting indexes.
 
-### PERF-FINDING-003: teacher submission list/export path is unbounded
+### PERF-FINDING-003: teacher submission list/export database path is unbounded
 
 Status: Open  
 Severity: High  
@@ -80,13 +95,13 @@ Affected file: `backend/src/repositories/submission.repository.ts`
 Affected method: `listTeacherSubmissions`  
 Related path: `teacherExport`
 
-Risk: teacher submissions and exports are scoped, but not bounded. Scoped does not mean scalable.
+Risk: teacher submissions and exports are scoped, and service-layer output is now capped, but the repository fetch remains unbounded. Scoped does not mean scalable.
 
 Required fix:
 
 - Add page/limit for normal list routes.
-- Add explicit export cap, queue, or streaming strategy for exports.
-- Add tests for max export bounds.
+- Add repository-level export cap, queue, or streaming strategy for exports.
+- Add tests for database query bounds.
 
 ## School-scale registered-user acceptance requirements
 
@@ -101,7 +116,7 @@ Required fix:
 
 - [ ] Synthetic dataset has at least 20,000 registered student users.
 - [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
-- [ ] All high-volume list routes are bounded.
+- [ ] All high-volume list routes are bounded at the database query layer.
 - [ ] Submission list/export blocker #34 is resolved.
 - [ ] Slow-query/index evidence is recorded.
 - [ ] Database connection and memory trends are recorded.
@@ -116,19 +131,21 @@ Required fix:
 
 ## Executable regression evidence
 
-The following test file documents current open blockers:
+Current security/performance tests include:
 
 - `backend/test/security/performance-bounds.spec.ts`
+- `backend/test/security/teacher-export-scope.spec.ts`
+- `backend/test/security/submission-list-response-bounds.spec.ts`
 
-These tests are not a pass for `PERF-GATE`; they intentionally capture current unbounded behavior so it cannot be ignored.
+`performance-bounds.spec.ts` still documents current open repository-level blockers. The response-cap tests prove payload caps only, not database-query scalability.
 
 ## Required performance checks
 
 ### Database/query checks
 
 - [ ] No unbounded user-facing `findMany()` list routes.
-- [ ] List routes use pagination or bounded limits.
-- [ ] Teacher/admin exports are scoped and bounded.
+- [ ] List routes use database-level pagination or bounded limits.
+- [ ] Teacher/admin exports are scoped and bounded at the data-access layer.
 - [ ] Dashboard queries are bounded and indexed.
 - [ ] Search/filter routes have allowlisted fields.
 - [ ] No database queries inside large loops without batching or documented bounds.
@@ -136,6 +153,9 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 
 ### API behavior checks
 
+- [x] Student submission list API response is capped.
+- [x] Teacher submission list API response is capped.
+- [x] Teacher export response is capped and reports truncation.
 - [ ] External provider calls have timeouts.
 - [ ] Expensive routes have rate limits or queueing.
 - [ ] File upload limits are enforced.
@@ -172,18 +192,18 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 
 - Issue #34 remains unresolved.
 - Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
-- Any critical route has unbounded list queries.
+- Any critical route has unbounded database list queries.
 - Any high-volume route performs database queries inside unbounded loops.
-- Teacher/admin exports are unbounded.
+- Teacher/admin exports are unbounded at the database layer.
 - Expensive routes have no rate limit, bound, timeout, or queue.
 - Load tests are not run but capacity claims are made.
 - Load tests fail thresholds without documented mitigation.
 
 ## Current blockers
 
-1. Student submission list needs pagination.
-2. Teacher task pre-query needs redesign or bounds.
-3. Teacher submission list/export path needs pagination/export cap/queue/streaming plan.
+1. Student submission list needs database-level pagination.
+2. Teacher task pre-query needs redesign or database-level bounds.
+3. Teacher submission list/export path needs repository-level pagination/export cap/queue/streaming plan.
 4. Broader query audit is incomplete.
 5. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
 6. No slow-query/index review is recorded.
@@ -192,4 +212,4 @@ These tests are not a pass for `PERF-GATE`; they intentionally capture current u
 
 ## Current acceptance decision
 
-Not accepted. Performance/readiness claims must remain conservative until query audit, bounded list fixes, synthetic 20k/50k data evidence, and load-test evidence exist.
+Not accepted. API response caps are a useful defensive improvement, but performance/readiness claims must remain conservative until database-level query bounds, synthetic 20k/50k data evidence, and load-test evidence exist.
