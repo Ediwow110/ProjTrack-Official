@@ -24,9 +24,9 @@ Batch 2 focuses on repo-editable risk reduction while Batch 1 waits for live evi
 | 11 | Add search/filter allowlist review item | Done | `docs/QUERY_BOUND_AUDIT_CHECKLIST.md` |
 | 12 | Add database-loop audit item | Done | `docs/QUERY_BOUND_AUDIT_CHECKLIST.md` |
 | 13 | Add queued/streaming export ADR placeholder | Done | `docs/QUERY_BOUND_AUDIT_CHECKLIST.md` |
-| 14 | Add school-scale operational assumptions doc | Not Started | Clarify hosting/database assumptions |
-| 15 | Add capacity claim wording guide | Not Started | Prevent accidental unsupported marketing copy |
-| 16 | Add evidence update checklist | Not Started | Make post-run updates mechanical |
+| 14 | Add school-scale operational assumptions doc | Done | `docs/SCHOOL_SCALE_OPERATIONAL_ASSUMPTIONS.md` |
+| 15 | Add capacity claim wording guide | Done | `docs/CAPACITY_CLAIM_WORDING_GUIDE.md` |
+| 16 | Add evidence update checklist | Done | `docs/EVIDENCE_UPDATE_CHECKLIST.md` |
 | 17 | Run backend security tests | Blocked | Requires CI/local run evidence |
 | 18 | Run backend build | Blocked | Requires CI/local run evidence |
 | 19 | Run school-scale validation tier 1k | Blocked | Requires GitHub Actions run |
@@ -34,7 +34,7 @@ Batch 2 focuses on repo-editable risk reduction while Batch 1 waits for live evi
 
 ## Current priority
 
-Reduce future regression risk while live validation remains pending.
+Live validation is now the critical path. Repo-editable risk-reduction items in this batch are complete.
 
 ## Hard blockers carried from Batch 1
 
