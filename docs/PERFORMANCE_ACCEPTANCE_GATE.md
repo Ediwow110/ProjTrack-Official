@@ -30,10 +30,12 @@ Implemented:
 - Teacher export active service path uses bounded Prisma query with `take: 1001`, returns up to 1000 rows, and reports truncation metadata.
 - Teacher list/export path uses relational teacher filtering instead of the old unbounded task-ID pre-query.
 - Tests assert student list, teacher list, and teacher export use bounded database reads and do not call the old repository list paths.
+- Additive school-scale index migration exists at `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`.
 
 Still open:
 
 - Repository helper methods still contain legacy unbounded list methods and should be cleaned up or made bounded to prevent future misuse.
+- Index migration must be deployed and validated with `EXPLAIN`/slow-query evidence.
 - Broader query audit remains incomplete.
 - Load and seed evidence are not recorded.
 
@@ -43,6 +45,7 @@ Still open:
 grep -R "findMany({\|findMany()" backend/src
 grep -R "for .*await\|forEach(async\|map(async" backend/src
 npm --prefix backend run prisma:validate
+npm --prefix backend run prisma:migrate:deploy
 npm --prefix backend run build
 npm --prefix backend run test:security
 ```
@@ -53,6 +56,9 @@ npm --prefix backend run test:security
 - [x] `docs/LOAD_TEST_PLAN.md`
 - [x] `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
 - [x] Initial query audit findings recorded in this document
+- [x] School-scale index migration added
+- [ ] Migration deployment result recorded
+- [ ] Slow-query/index evidence recorded
 - [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
 
 ## Query audit findings
@@ -67,10 +73,12 @@ Evidence:
 
 - `backend/src/submissions/submissions.service.ts` uses bounded Prisma query with `take: 100`.
 - `backend/test/security/submission-list-response-bounds.spec.ts` asserts the bounded query and verifies the legacy repository list method is not called by `studentList`.
+- Index migration adds `Submission_studentId_createdAt_idx` and `Submission_groupId_createdAt_idx`.
 
 Remaining cleanup:
 
 - `backend/src/repositories/submission.repository.ts::listStudentSubmissions` still should be made bounded or removed to prevent future misuse.
+- Validate index usage against seeded data.
 
 ### PERF-FINDING-002: active teacher submission list no longer uses unbounded task pre-query
 
@@ -82,10 +90,12 @@ Evidence:
 
 - `backend/src/submissions/submissions.service.ts` uses relational filtering through `task.subject.teacherId` and bounded Prisma query with `take: 100`.
 - `backend/test/security/teacher-export-scope.spec.ts` asserts bounded teacher list DB query behavior.
+- Index migration adds task, subject, submission, enrollment, section, and group-member support indexes.
 
 Remaining cleanup:
 
 - `backend/src/repositories/submission.repository.ts::listTeacherSubmissions` still contains legacy task pre-query behavior and should be cleaned up or made bounded.
+- Validate query plans against 1k/20k/50k seeded tiers.
 
 ### PERF-FINDING-003: active teacher export is now database-bounded
 
@@ -108,6 +118,7 @@ Remaining cleanup:
 ### Tier 1 baseline
 
 - [ ] Synthetic dataset has at least 1,000 registered student users.
+- [ ] Performance index migration is deployed.
 - [ ] 300 VU target run is recorded.
 - [ ] 500 VU stretch run is recorded.
 - [ ] 1000 VU capacity exploration is recorded before any 1000-concurrent-user claim.
@@ -145,6 +156,8 @@ Current security/performance tests include:
 - [x] Student submission active list path uses database-level bound.
 - [x] Teacher submission active list path uses database-level bound.
 - [x] Teacher export active path is scoped and database-bounded.
+- [x] Initial school-scale index migration exists.
+- [ ] Index migration is deployed and verified.
 - [ ] Legacy repository list methods are cleaned up or made bounded.
 - [ ] Dashboard queries are bounded and indexed.
 - [ ] Search/filter routes have allowlisted fields.
@@ -200,14 +213,15 @@ Current security/performance tests include:
 
 ## Current blockers
 
-1. Legacy repository list methods should be bounded or removed to prevent future misuse.
-2. Broader query audit is incomplete.
-3. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
-4. No slow-query/index review is recorded.
-5. No database connection/memory trend is recorded.
-6. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
-7. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
+1. Performance index migration needs deployment evidence.
+2. Legacy repository list methods should be bounded or removed to prevent future misuse.
+3. Broader query audit is incomplete.
+4. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
+5. No slow-query/index review is recorded.
+6. No database connection/memory trend is recorded.
+7. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
+8. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are now database-bounded, but school-scale claims remain blocked until broader query audit, synthetic 20k/50k data evidence, slow-query/index evidence, and load-test evidence exist.
+Not accepted. High-volume submission list/export active service paths are now database-bounded and initial indexes exist, but school-scale claims remain blocked until migration deployment, broader query audit, synthetic 20k/50k data evidence, slow-query/index evidence, and load-test evidence exist.
