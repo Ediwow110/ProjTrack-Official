@@ -15,6 +15,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - Registered-user/data-volume evidence belongs in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`.
 - Runtime concurrency/load evidence belongs in `docs/LOAD_TEST_RESULTS.md`.
 - CI/security/build evidence belongs in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
+- Unsupported capacity/readiness claims are blocked by `scripts/capacity-claim-check.mjs`, which runs through `npm run check:release-hygiene`.
 
 ## CI-GATE
 
@@ -23,6 +24,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - [ ] `production-candidate.yml` reviewed
 - [ ] Failure visibility configured
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
+- [ ] `npm run check:release-hygiene` passing, including capacity-claim check
 
 Evidence: `docs/CI_STATUS.md`
 
@@ -143,6 +145,7 @@ Evidence:
 ## DOC-GATE
 
 - [ ] README claims match reality
+- [ ] Automated capacity claim check passes
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/2ND_MAIN_IMPROVEMENTS.md` updated
@@ -153,8 +156,12 @@ Evidence:
 - [ ] `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` updated after each school-scale workflow run
 - [ ] `docs/LOAD_TEST_RESULTS.md` updated after each load workflow run
 
-Evidence: repository documentation on `2nd-main`
+Evidence:
+
+- repository documentation on `2nd-main`
+- `scripts/capacity-claim-check.mjs`
+- `scripts/release-hygiene-check.mjs`
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, and load-validation infrastructure, but the required passing evidence is not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, and automated claim checks, but the required passing evidence is not recorded yet.
