@@ -8,6 +8,14 @@ Last updated: 2026-05-14
 
 Do not merge `2nd-main` into `main` until every blocking gate below is checked and backed by reproducible evidence.
 
+## Claim rule
+
+Do not claim school-scale support, 20k-50k registered-user support, 1000+ concurrent-user support, or production readiness unless the matching evidence documents contain passing results.
+
+- Registered-user/data-volume evidence belongs in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`.
+- Runtime concurrency/load evidence belongs in `docs/LOAD_TEST_RESULTS.md`.
+- CI/security/build evidence belongs in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
+
 ## CI-GATE
 
 - [ ] `ci.yml` passing on `2nd-main`
@@ -75,9 +83,16 @@ Evidence:
 
 ## PERF-GATE
 
-- [ ] No unbounded list queries
+- [x] Active student submission list path is database-bounded
+- [x] Active teacher submission list path is database-bounded
+- [x] Active teacher export path is database-bounded and capped
+- [x] School-scale performance index migration exists
+- [x] Query-plan checker exists
+- [ ] School-scale index migration deployment result recorded
+- [ ] Query-plan checker results recorded for seeded data
+- [ ] Legacy unbounded repository list helpers removed or bounded
 - [ ] No unreviewed database queries inside loops
-- [ ] Indexes match common query patterns
+- [ ] Indexes verified against common query patterns
 - [ ] Heavy tasks moved to workers or explicitly accepted
 - [ ] External calls have timeouts
 - [ ] Expensive routes rate-limited
@@ -86,32 +101,60 @@ Evidence:
 
 - `docs/CODE_AUDIT.md`
 - `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
+- `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
+- `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`
+
+## SCHOOL-SCALE DATA GATE
+
+- [ ] Manual `School Scale Validation` workflow exists
+- [ ] Tier `1k` workflow result recorded and passing
+- [ ] Tier `20k` workflow result recorded and passing before any 20k registered-user claim
+- [ ] Tier `50k` workflow result recorded and passing before any 50k registered-user claim
+- [ ] Query-plan warnings are zero or explicitly risk-accepted with mitigation
+- [ ] Seed duration/resource impact is acceptable for the claimed tier
+
+Evidence:
+
+- `.github/workflows/school-scale-validation.yml`
+- `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
+- `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
 
 ## LOAD-GATE
 
 - [ ] Load test plan exists
+- [ ] Manual `Load Validation` workflow exists
 - [ ] Realistic flows tested
+- [ ] Smoke run recorded
 - [ ] 300-user test passes or blocker recorded
 - [ ] 500-user test attempted and documented
-- [ ] p95/error/memory targets documented
+- [ ] 1000-user test passes before any 1000 concurrent-user claim
+- [ ] 2000-user exploration documented before any higher school-scale concurrency discussion
+- [ ] p95/error/memory/database-connection targets documented
+- [ ] No authorization shortcuts used in accepted load evidence
 
 Evidence:
 
+- `.github/workflows/load-validation.yml`
 - `docs/LOAD_TEST_PLAN.md`
+- `docs/LOAD_TEST_RESULTS.md`
 - `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
 - `load-tests/**`
 
 ## DOC-GATE
 
 - [ ] README claims match reality
+- [ ] No README/product claim says 20k-50k support until school-scale evidence passes
+- [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/2ND_MAIN_IMPROVEMENTS.md` updated
 - [ ] `docs/CODE_AUDIT.md` complete
 - [ ] `docs/SECURITY_REVIEW.md` complete
 - [ ] `docs/TESTING_STRATEGY.md` complete
 - [ ] `docs/OPERATIONAL_READINESS.md` complete
+- [ ] `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` updated after each school-scale workflow run
+- [ ] `docs/LOAD_TEST_RESULTS.md` updated after each load workflow run
 
 Evidence: repository documentation on `2nd-main`
 
 ## Current verdict
 
-Not mergeable. The control documents now exist, but security, authorization, operations, performance, and load evidence are not complete yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, and load-validation infrastructure, but the required passing evidence is not recorded yet.
