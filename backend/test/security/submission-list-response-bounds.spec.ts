@@ -17,6 +17,8 @@ function buildSubmissionsService() {
   const filesService = { resolvePendingUploadsForSubmission: jest.fn() } as any;
   const mailService = { queueTransactional: jest.fn() } as any;
   const prisma = {
+    submission: { findMany: jest.fn(async () => []) },
+    teacherProfile: { findUnique: jest.fn() },
     systemSetting: { findFirst: jest.fn() },
     submissionEvent: { create: jest.fn() },
     studentProfile: { findUnique: jest.fn() },
@@ -41,14 +43,15 @@ function buildSubmissionsService() {
       access,
     ),
     submissionRepository,
+    prisma,
   };
 }
 
 describe('submission list response bounds', () => {
-  it('caps student list responses to prevent unbounded API payloads', async () => {
-    const { service, submissionRepository } = buildSubmissionsService();
-    submissionRepository.listStudentSubmissions.mockResolvedValue(
-      Array.from({ length: 150 }, (_, index) => ({
+  it('uses bounded database query for student submission lists', async () => {
+    const { service, submissionRepository, prisma } = buildSubmissionsService();
+    prisma.submission.findMany.mockResolvedValue(
+      Array.from({ length: 100 }, (_, index) => ({
         id: `submission-${index}`,
         title: `Submission ${index}`,
         subjectId: 'subject-1',
@@ -60,5 +63,14 @@ describe('submission list response bounds', () => {
     const result = await service.studentList('student-user-1');
 
     expect(result).toHaveLength(100);
+    expect(submissionRepository.listStudentSubmissions).not.toHaveBeenCalled();
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.any(Array),
+        }),
+      }),
+    );
   });
 });
