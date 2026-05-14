@@ -15,12 +15,12 @@ Batch 4 focuses on executable regression guards and remaining repo-editable cont
 | 2 | Add static regression test preventing active service use of legacy unbounded submission helpers | Done | `backend/test/security/submission-service-static-bounds.spec.ts` |
 | 3 | Add static regression test requiring teacher export truncation metadata | Done | `backend/test/security/submission-service-static-bounds.spec.ts` |
 | 4 | Add static regression test requiring capacity-claim checker in release hygiene | Done | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` |
-| 5 | Add docs index for validation/evidence files | Not Started | Make evidence docs discoverable |
+| 5 | Add docs index for validation/evidence files | Done | `docs/EVIDENCE_DOCS_INDEX.md` |
 | 6 | Add release evidence checklist to README or docs | Not Started | Avoid accidental claims |
-| 7 | Add load workflow secret preflight doc | Not Started | Clarify token requirements |
-| 8 | Add school-scale workflow runbook | Not Started | Clarify 1k to 20k to 50k order |
-| 9 | Add production-check failure issue runbook | Not Started | Live verification steps |
-| 10 | Add query-plan warning triage runbook | Not Started | What to do if checker warns |
+| 7 | Add load workflow secret preflight doc | Done | `docs/LOAD_VALIDATION_RUNBOOK.md` |
+| 8 | Add school-scale workflow runbook | Done | `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md` |
+| 9 | Add production-check failure issue runbook | Done | `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md` |
+| 10 | Add query-plan warning triage runbook | Done | `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md` |
 | 11 | Add export strategy ADR placeholder | Not Started | Hard cap vs queued vs streaming |
 | 12 | Add migration deployment evidence template | Not Started | Record deploy result consistently |
 | 13 | Add backend build/security evidence template | Not Started | Record command output consistently |
