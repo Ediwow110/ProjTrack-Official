@@ -23,6 +23,8 @@ This index points reviewers to the evidence documents that determine whether `2n
 | Load test plan | `docs/LOAD_TEST_PLAN.md` | Load stages, thresholds, and scripts current |
 | Operational readiness | `docs/OPERATIONAL_READINESS.md` | Drills, monitoring, failure visibility recorded |
 | Evidence update process | `docs/EVIDENCE_UPDATE_CHECKLIST.md` | Used after every run |
+| GitHub Actions execution | `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` | Manual workflow execution steps followed |
+| Evidence issues | `docs/EVIDENCE_ISSUES_INDEX.md` | Blocking issues #37-#42 resolved only with recorded evidence |
 | Claim wording | `docs/CAPACITY_CLAIM_WORDING_GUIDE.md` | Public wording must comply |
 | Operational assumptions | `docs/SCHOOL_SCALE_OPERATIONAL_ASSUMPTIONS.md` | Claim assumptions documented |
 
@@ -33,6 +35,8 @@ This index points reviewers to the evidence documents that determine whether `2n
 | Capacity claim check | `npm run check:capacity-claims` | Blocks unsupported scale/readiness claims |
 | Release hygiene | `npm run check:release-hygiene` | Blocks release artifacts/secrets and runs claim checks |
 | Release guard wiring | `npm run check:release-guard-wiring` | Ensures claim checker remains wired into release hygiene |
+| Local evidence runner | `npm run evidence:local` | Produces local report for issues #37 and #38 |
+| Evidence Gates workflow | `.github/workflows/evidence-gates.yml` | Produces CI artifact for issues #37 and #38 |
 | Backend security tests | `npm --prefix backend run test:security` | Security regression suite |
 | Query-plan checker | `npm --prefix backend run check:query-plans` | Representative DB query-plan validation |
 | School-scale workflow | `.github/workflows/school-scale-validation.yml` | Data-volume + migration + query-plan evidence |
@@ -40,8 +44,8 @@ This index points reviewers to the evidence documents that determine whether `2n
 
 ## Required execution order for school-scale claims
 
-1. Run `npm run check:capacity-claims`.
-2. Run `npm run check:release-hygiene`.
+1. Run `Evidence Gates` or `npm run evidence:local`.
+2. Record issue #37 and #38 evidence in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
 3. Run `School Scale Validation` tier `1k`.
 4. Record result in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`.
 5. Run `Load Validation` smoke.
