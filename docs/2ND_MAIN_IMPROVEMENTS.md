@@ -12,14 +12,17 @@ All hardening work happens on `2nd-main`. Do not merge to `main` until `docs/FIN
 
 A task is not done because a file exists. A task is done only when code or documentation exists on `2nd-main`, the related test or verification command passes, and the evidence is recorded here or in the linked evidence document.
 
-## Capacity rule
+## School-scale capacity rule
 
-The target is now more than 1000 end users. Do not confuse registered users with concurrent users:
+The target is now school-scale: 20,000 to 50,000 registered users.
 
-- 1000+ registered users requires synthetic fixture data and bounded queries.
+Do not confuse registered users with concurrent users:
+
+- 20k-50k registered users requires synthetic fixture data, bounded queries, index/slow-query evidence, and data-volume load evidence.
 - 1000+ concurrent active users requires passing load-test evidence, database connection headroom, memory stability, and slow-query review.
+- 20k-50k concurrent active users is not claimed and would require a separate architecture program.
 
-Tracking issue: #35.
+Tracking issues: #35 and #36.
 
 ## Gate summary
 
@@ -32,7 +35,7 @@ Tracking issue: #35.
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | In Progress |
 | LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
-| CAPACITY-GATE | Before 1000+ claim | issue #35, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
+| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -56,6 +59,7 @@ Tracking issue: #35.
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
+| CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 
 ## Executable security/test progress
 
@@ -80,19 +84,19 @@ Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`
 Merge blocker: Yes  
 Notes: Issue #34. `SubmissionRepository.listStudentSubmissions`, `listTeacherSubmissions`, and teacher export path are scoped but unbounded. Add pagination, export caps/queue/streaming strategy, and tests requiring bounds.
 
-### CAPACITY-02 Validate 1000-user synthetic fixture generator
+### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
 Priority: Critical  
 Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`  
-Merge blocker: Before 1000+ claim  
-Notes: `backend/scripts/seed-load-fixtures.cjs` and `npm --prefix backend run seed:load` exist. They still need a real dry run against a disposable database and result evidence.
+Merge blocker: Before 20k-50k claim  
+Notes: `backend/scripts/seed-load-fixtures.cjs` and `npm --prefix backend run seed:load` exist. Need disposable DB dry runs for 1k, 20k, and 50k tiers.
 
-### CAPACITY-03 Execute 1000+ capacity evidence runs
+### CAPACITY-03 Execute staged capacity evidence runs
 Status: Not Started  
 Priority: Critical  
-Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after #34 and synthetic fixtures are ready  
-Evidence document: `docs/LOAD_TEST_PLAN.md`, issue #35  
-Merge blocker: Before 1000+ claim
+Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after #34 and synthetic fixtures are validated  
+Evidence document: `docs/LOAD_TEST_PLAN.md`, issues #35/#36  
+Merge blocker: Before 20k-50k claim
 
 ### LIVE-EVIDENCE-01 Record live command/CI results
 Status: Not Started  
@@ -119,4 +123,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Do not scale-test unbounded code. Fix issue #34 first, then validate the synthetic dataset generator with a disposable database and run staged load tests.
+Do not market 20k-50k support yet. Fix issue #34 first, validate the synthetic dataset generator with disposable 1k/20k/50k database runs, then run staged load tests and record evidence.
