@@ -59,6 +59,7 @@ Tracking issues: #35 and #36.
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
+| PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 
@@ -76,6 +77,7 @@ Tracking issues: #35 and #36.
 | PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
+| PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -92,7 +94,14 @@ Status: In Progress
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Before 20k-50k claim  
-Notes: Additive index migration exists. Need `npm --prefix backend run prisma:migrate:deploy` evidence and slow-query/EXPLAIN validation on seeded data.
+Notes: Additive index migration exists. Need `npm --prefix backend run prisma:migrate:deploy` evidence and query-plan validation on seeded data.
+
+### PERF-06 Record query-plan evidence
+Status: In Progress  
+Priority: Critical  
+Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
+Merge blocker: Before 20k-50k claim  
+Notes: `npm --prefix backend run check:query-plans` exists. Need recorded output after migrations and synthetic seed data are applied.
 
 ### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
@@ -133,4 +142,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run live security/build/migration tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until migration evidence, test evidence, seed evidence, slow-query/index review, and load results are recorded.
+Run live security/build/migration/query-plan tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
