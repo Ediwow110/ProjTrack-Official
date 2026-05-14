@@ -33,7 +33,7 @@ Tracking issues: #35 and #36.
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
-| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | In Progress |
+| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
 | LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
 | CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
@@ -58,6 +58,7 @@ Tracking issues: #35 and #36.
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
+| PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 
@@ -74,6 +75,7 @@ Tracking issues: #35 and #36.
 | SEC-12 webhook abuse tests | In Progress | `backend/test/security/webhook-abuse.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
+| PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
 
 ## Active blockers
@@ -84,6 +86,13 @@ Priority: Critical
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
 Notes: Issue #34 is substantially mitigated on active service paths: student list, teacher list, and teacher export now use bounded Prisma queries directly. Remaining work is cleanup: legacy repository list methods still contain unbounded behavior and should be bounded or removed to prevent future misuse.
+
+### PERF-05 Deploy and validate school-scale indexes
+Status: In Progress  
+Priority: Critical  
+Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
+Merge blocker: Before 20k-50k claim  
+Notes: Additive index migration exists. Need `npm --prefix backend run prisma:migrate:deploy` evidence and slow-query/EXPLAIN validation on seeded data.
 
 ### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
@@ -124,4 +133,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run live security/build tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until test evidence, seed evidence, slow-query/index review, and load results are recorded.
+Run live security/build/migration tests, then validate synthetic fixture seeding against a disposable database. Do not claim 20k-50k school-scale support until migration evidence, test evidence, seed evidence, slow-query/index review, and load results are recorded.
