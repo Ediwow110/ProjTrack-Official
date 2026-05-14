@@ -62,9 +62,12 @@ Tracking issues: #35 and #36.
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-06 school-scale validation results ledger | Done | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` |
+| CAPACITY-07 validation/runbook evidence docs | In Progress | `docs/EVIDENCE_DOCS_INDEX.md`, `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`, `docs/LOAD_VALIDATION_RUNBOOK.md`, `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`, `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
-| PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
+| PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
+| PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
+| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 
@@ -84,6 +87,8 @@ Tracking issues: #35 and #36.
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
+| PERF-08 static bounded submission service guard | In Progress | `backend/test/security/submission-service-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
+| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
 | LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `load-tests/k6.mixed.js` | GitHub Actions manual workflow dispatch |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
