@@ -1,0 +1,116 @@
+name: School Scale Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Synthetic dataset tier to seed
+        required: true
+        default: 1k
+        type: choice
+        options:
+          - 1k
+          - 20k
+          - 50k
+      fail_on_query_plan_warning:
+        description: Fail if query-plan checker detects hot-table sequential scans
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      APP_ENV: test
+      NODE_ENV: test
+      FAIL_ON_QUERY_PLAN_WARNING: ${{ inputs.fail_on_query_plan_warning }}
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci --prefer-offline
+
+      - name: Configure synthetic dataset tier
+        run: |
+          case "${{ inputs.tier }}" in
+            "1k")
+              echo "LOAD_FIXTURE_STUDENTS=1000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=50" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=50" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=150" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=10000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=10000" >> "$GITHUB_ENV"
+              ;;
+            "20k")
+              echo "LOAD_FIXTURE_STUDENTS=20000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=800" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=20" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=800" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=2400" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=200000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=200000" >> "$GITHUB_ENV"
+              ;;
+            "50k")
+              echo "LOAD_FIXTURE_STUDENTS=50000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=2000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=50" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=2000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=6000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=500000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=500000" >> "$GITHUB_ENV"
+              ;;
+          esac
+
+      - run: npm run prisma:validate
+      - run: npm run prisma:generate
+      - run: npm run prisma:migrate:deploy
+      - run: npm run build
+      - run: npm run seed:load
+      - run: npm run check:query-plans
+
+      - name: School-scale validation summary
+        if: always()
+        run: |
+          echo "## School Scale Validation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tier: ${{ inputs.tier }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Students: ${LOAD_FIXTURE_STUDENTS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Teachers: ${LOAD_FIXTURE_TEACHERS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Admins: ${LOAD_FIXTURE_ADMINS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Sections: ${LOAD_FIXTURE_SECTIONS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Subjects: ${LOAD_FIXTURE_SUBJECTS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Submissions: ${LOAD_FIXTURE_SUBMISSIONS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Notifications: ${LOAD_FIXTURE_NOTIFICATIONS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Query-plan warnings fail build: ${{ inputs.fail_on_query_plan_warning }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This workflow does not prove user concurrency. It validates migration, seed data volume, build, and representative query plans." >> "$GITHUB_STEP_SUMMARY"
