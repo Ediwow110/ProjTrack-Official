@@ -22,21 +22,32 @@ Do not confuse registered users with concurrent users:
 - 1000+ concurrent active users requires passing load-test evidence, database connection headroom, memory stability, and slow-query review.
 - 20k-50k concurrent active users is not claimed and would require a separate architecture program.
 
-Tracking issues: #35 and #36.
+Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41, and #42.
 
 ## Gate summary
 
 | Gate | Blocks merge? | Evidence document | Current status |
 |---|---:|---|---|
-| CI-GATE | Yes | `docs/CI_STATUS.md` | In Progress |
-| SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/SECURITY_HARDENING_BACKLOG.md` | In Progress |
+| CI-GATE | Yes | `docs/CI_STATUS.md`, issue #37, issue #38, issue #41 | Blocked |
+| SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/SECURITY_HARDENING_BACKLOG.md`, issue #38 | Blocked |
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
-| TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
-| OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
-| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
-| LOAD-GATE | Before production | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
-| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `.github/workflows/load-validation.yml`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
-| DOC-GATE | Yes | This tracker and final docs | In Progress |
+| TEST-GATE | Yes | `docs/TESTING_STRATEGY.md`, issue #38 | Blocked |
+| OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md`, issue #41 | Blocked |
+| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, issue #39, issue #42, migration `20260514000100_school_scale_performance_indexes` | Blocked |
+| LOAD-GATE | Before production | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, issue #40, `load-tests/README.md`, `load-tests/k6.mixed.js` | Blocked |
+| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36/#39/#40/#42, `.github/workflows/school-scale-validation.yml`, `.github/workflows/load-validation.yml`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
+| DOC-GATE | Yes | This tracker, `docs/EVIDENCE_ISSUES_INDEX.md`, issue #37 | Blocked |
+
+## Blocking evidence issues
+
+| Issue | Blocks | Required evidence |
+|---:|---|---|
+| #37 | CI-GATE, DOC-GATE, capacity/readiness claims | `npm run check:capacity-claims`, `npm run check:release-guard-wiring`, `npm run check:release-hygiene` results recorded |
+| #38 | SEC-GATE, TEST-GATE, CI-GATE | backend build, security tests, unit tests, secret scan, dependency audit evidence recorded |
+| #39 | PERF-GATE, CAPACITY-GATE baseline | `School Scale Validation` tier `1k` result recorded |
+| #40 | LOAD-GATE baseline | `Load Validation` smoke result recorded |
+| #41 | OPS-GATE, CI-GATE | production-check failure issue creation live-verified |
+| #42 | 20k/50k registered-user claims | `School Scale Validation` tier `20k` and `50k` results recorded |
 
 ## Done this phase
 
@@ -45,6 +56,7 @@ Tracking issues: #35 and #36.
 | CTRL-01 master tracker | Done | `docs/2ND_MAIN_IMPROVEMENTS.md` |
 | CTRL-02 code audit | Done | `docs/CODE_AUDIT.md` |
 | CTRL-03 final merge gate | Done | `docs/FINAL_MERGE_GATE.md` |
+| CTRL-04 evidence issues index | Done | `docs/EVIDENCE_ISSUES_INDEX.md`, issues #37-#42 |
 | CI-01 README badge/truth audit | Done | `README.md`, `docs/CI_STATUS.md` |
 | CI-05 CI status document | Done | `docs/CI_STATUS.md` |
 | SEC-01 threat model | Done | `docs/THREAT_MODEL.md` |
@@ -58,16 +70,16 @@ Tracking issues: #35 and #36.
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | LOAD-05 load test results ledger | Done | `docs/LOAD_TEST_RESULTS.md` |
-| LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_RESULTS.md` |
+| LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_RESULTS.md`, issue #40 |
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
-| CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
+| CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, issues #39/#42 |
 | CAPACITY-06 school-scale validation results ledger | Done | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` |
-| CAPACITY-07 validation/runbook evidence docs | In Progress | `docs/EVIDENCE_DOCS_INDEX.md`, `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`, `docs/LOAD_VALIDATION_RUNBOOK.md`, `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`, `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md` |
+| CAPACITY-07 validation/runbook evidence docs | In Progress | `docs/EVIDENCE_DOCS_INDEX.md`, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`, `docs/LOAD_VALIDATION_RUNBOOK.md`, `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`, `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
-| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` |
+| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37 |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 
@@ -95,6 +107,48 @@ Tracking issues: #35 and #36.
 
 ## Active blockers
 
+### LIVE-EVIDENCE-01 Resolve release guard evidence
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/CI_STATUS.md`  
+Tracking issue: #37  
+Merge blocker: Yes
+
+### LIVE-EVIDENCE-02 Resolve backend build/security evidence
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/CI_STATUS.md`  
+Tracking issue: #38  
+Merge blocker: Yes
+
+### LIVE-EVIDENCE-03 Resolve school-scale 1k baseline evidence
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
+Tracking issue: #39  
+Merge blocker: Before any school-scale baseline claim
+
+### LIVE-EVIDENCE-04 Resolve load smoke evidence
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/LOAD_TEST_RESULTS.md`  
+Tracking issue: #40  
+Merge blocker: Before any load-stage escalation
+
+### LIVE-EVIDENCE-05 Verify production-check failure issue path
+Status: Not Started  
+Priority: High  
+Evidence document: `docs/CI_STATUS.md`, `docs/OPERATIONAL_READINESS.md`  
+Tracking issue: #41  
+Merge blocker: Before production
+
+### LIVE-EVIDENCE-06 Resolve 20k/50k school-scale evidence
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
+Tracking issue: #42  
+Merge blocker: Before 20k/50k claim
+
 ### PERF-03 Finish bounded database list/export cleanup
 Status: In Progress  
 Priority: Critical  
@@ -109,50 +163,6 @@ Evidence document: `docs/SECURITY_HARDENING_BACKLOG.md`, `docs/SECURITY_ACCEPTAN
 Merge blocker: Yes  
 Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/filter, admin report/export bounds, notification scope, subject/group scope, webhook idempotency, secrets rotation, and incident drill evidence remain open.
 
-### PERF-05 Deploy and validate school-scale indexes
-Status: In Progress  
-Priority: Critical  
-Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
-Merge blocker: Before 20k-50k claim  
-Notes: Additive index migration exists. Need `npm --prefix backend run prisma:migrate:deploy` evidence and query-plan validation on seeded data.
-
-### PERF-06 Record query-plan evidence
-Status: In Progress  
-Priority: Critical  
-Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
-Merge blocker: Before 20k-50k claim  
-Notes: `npm --prefix backend run check:query-plans` exists. Need recorded output after migrations and synthetic seed data are applied.
-
-### CAPACITY-02 Validate synthetic fixture generator
-Status: In Progress  
-Priority: Critical  
-Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
-Merge blocker: Before 20k-50k claim  
-Notes: `backend/scripts/seed-load-fixtures.cjs`, `npm --prefix backend run seed:load`, and manual school-scale validation workflow exist. Need workflow dry runs for 1k, 20k, and 50k tiers.
-
-### CAPACITY-03 Execute staged capacity evidence runs
-Status: In Progress  
-Priority: Critical  
-Verification command: Manual `Load Validation` workflow with 300/500/1000/2000 VU inputs  
-Evidence document: `docs/LOAD_TEST_RESULTS.md`, issues #35/#36  
-Merge blocker: Before 20k-50k claim  
-Notes: Manual workflow exists, but no load run evidence has been recorded.
-
-### LIVE-EVIDENCE-01 Record live command/CI results
-Status: Not Started  
-Priority: Critical  
-Verification command: `npm --prefix backend run test:security`, `npm run security:secrets`, `npm run security:audit`, `npm --prefix backend run build`  
-Evidence document: `docs/CI_STATUS.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`  
-Merge blocker: Yes  
-Notes: Tests and gates exist, but passing run evidence is not recorded.
-
-### CI-04 Add production-gate notification routing
-Status: In Progress  
-Priority: High  
-Evidence document: `docs/CI_STATUS.md`  
-Merge blocker: Before production  
-Notes: GitHub issue creation on failure is implemented, but live verification and owner/escalation beyond issue creation remain missing.
-
 ## Immediate next move
 
-Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `Load Validation` smoke against the validated target. Record school-scale results in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` and load results in `docs/LOAD_TEST_RESULTS.md`. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
+Resolve issues #37 and #38 first, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 is resolved with recorded evidence.
