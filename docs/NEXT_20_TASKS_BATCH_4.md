@@ -12,9 +12,9 @@ Batch 4 focuses on executable regression guards and remaining repo-editable cont
 | # | Task | Status | Evidence / Notes |
 |---:|---|---|---|
 | 1 | Create Batch 4 tracker | Done | `docs/NEXT_20_TASKS_BATCH_4.md` |
-| 2 | Add static regression test preventing active service use of legacy unbounded submission helpers | Not Started | Backend security test |
-| 3 | Add static regression test requiring teacher export truncation metadata | Not Started | Backend security test |
-| 4 | Add static regression test requiring capacity-claim checker in release hygiene | Not Started | Root script test/check |
+| 2 | Add static regression test preventing active service use of legacy unbounded submission helpers | Done | `backend/test/security/submission-service-static-bounds.spec.ts` |
+| 3 | Add static regression test requiring teacher export truncation metadata | Done | `backend/test/security/submission-service-static-bounds.spec.ts` |
+| 4 | Add static regression test requiring capacity-claim checker in release hygiene | Done | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` |
 | 5 | Add docs index for validation/evidence files | Not Started | Make evidence docs discoverable |
 | 6 | Add release evidence checklist to README or docs | Not Started | Avoid accidental claims |
 | 7 | Add load workflow secret preflight doc | Not Started | Clarify token requirements |
