@@ -18,7 +18,7 @@ The target is now school-scale: 20,000 to 50,000 registered users.
 
 Do not confuse registered users with concurrent users:
 
-- 20k-50k registered users requires synthetic fixture data, bounded database queries, index/slow-query evidence, and data-volume load evidence.
+- 20k-50k registered users requires synthetic fixture data, bounded database queries, index/slow-query evidence, and data-volume validation evidence.
 - 1000+ concurrent active users requires passing load-test evidence, database connection headroom, memory stability, and slow-query review.
 - 20k-50k concurrent active users is not claimed and would require a separate architecture program.
 
@@ -33,9 +33,9 @@ Tracking issues: #35 and #36.
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md` | In Progress |
 | OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md` | In Progress |
-| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
-| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
-| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
+| PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, migration `20260514000100_school_scale_performance_indexes` | In Progress |
+| LOAD-GATE | Before production | `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `load-tests/README.md`, `load-tests/k6.mixed.js` | In Progress |
+| CAPACITY-GATE | Before 20k-50k claim | issues #35/#36, `.github/workflows/school-scale-validation.yml`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/LOAD_TEST_PLAN.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
 | DOC-GATE | Yes | This tracker and final docs | In Progress |
 
 ## Done this phase
@@ -56,8 +56,10 @@ Tracking issues: #35 and #36.
 | LOAD-01 load test plan | Done | `docs/LOAD_TEST_PLAN.md` |
 | LOAD-02 load test scaffold | Done | `load-tests/README.md`, `load-tests/k6.mixed.js` |
 | LOAD-04 synthetic load data plan | Done | `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
+| LOAD-05 load test results ledger | Done | `docs/LOAD_TEST_RESULTS.md` |
 | CAPACITY-02 synthetic fixture generator | In Progress | `backend/scripts/seed-load-fixtures.cjs`, `backend/package.json`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
+| CAPACITY-06 school-scale validation results ledger | Done | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
@@ -94,21 +96,21 @@ Notes: Issue #34 is substantially mitigated on active service paths: student lis
 ### PERF-05 Deploy and validate school-scale indexes
 Status: In Progress  
 Priority: Critical  
-Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
+Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
 Merge blocker: Before 20k-50k claim  
 Notes: Additive index migration exists. Need `npm --prefix backend run prisma:migrate:deploy` evidence and query-plan validation on seeded data.
 
 ### PERF-06 Record query-plan evidence
 Status: In Progress  
 Priority: Critical  
-Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
+Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
 Merge blocker: Before 20k-50k claim  
 Notes: `npm --prefix backend run check:query-plans` exists. Need recorded output after migrations and synthetic seed data are applied.
 
 ### CAPACITY-02 Validate synthetic fixture generator
 Status: In Progress  
 Priority: Critical  
-Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`  
+Evidence document: `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
 Merge blocker: Before 20k-50k claim  
 Notes: `backend/scripts/seed-load-fixtures.cjs`, `npm --prefix backend run seed:load`, and manual school-scale validation workflow exist. Need workflow dry runs for 1k, 20k, and 50k tiers.
 
@@ -116,7 +118,7 @@ Notes: `backend/scripts/seed-load-fixtures.cjs`, `npm --prefix backend run seed:
 Status: Not Started  
 Priority: Critical  
 Verification command: `k6 run -e VUS=1000 -e DURATION=20m load-tests/k6.mixed.js` after synthetic fixtures are validated  
-Evidence document: `docs/LOAD_TEST_PLAN.md`, issues #35/#36  
+Evidence document: `docs/LOAD_TEST_RESULTS.md`, issues #35/#36  
 Merge blocker: Before 20k-50k claim
 
 ### LIVE-EVIDENCE-01 Record live command/CI results
@@ -144,4 +146,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `20k`; only after that should `50k` be attempted. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
+Run the manual `School Scale Validation` workflow for the `1k` tier first. If it passes, run `20k`; only after that should `50k` be attempted. Record results in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`. Do not claim 20k-50k school-scale support until workflow evidence, migration evidence, query-plan evidence, test evidence, seed evidence, and load results are recorded.
