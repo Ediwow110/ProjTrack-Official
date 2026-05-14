@@ -27,11 +27,29 @@ npm --prefix backend run build
 - [x] `docs/AUTHORIZATION_MATRIX.md`
 - [x] `docs/SECURITY_TEST_PLAN.md`
 - [x] `docs/SECURITY_REVIEW.md`
+- [x] `docs/SECURITY_HARDENING_BACKLOG.md`
 - [x] `docs/SECRETS_MANAGEMENT_CHECKLIST.md`
 - [x] `docs/SECRET_LEAK_RESPONSE.md`
 - [x] `docs/SUPPLY_CHAIN_SECURITY.md`
 - [x] `docs/VULNERABILITY_MANAGEMENT.md`
 - [x] `docs/INCIDENT_RESPONSE.md`
+
+## Batch 3 hardening backlog
+
+The remaining hardening backlog is consolidated in `docs/SECURITY_HARDENING_BACKLOG.md`.
+
+Open areas that still block final acceptance unless tested or explicitly risk-accepted:
+
+- Rate-limit runtime behavior.
+- Signed URL TTL enforcement.
+- Malware scanner fail-closed behavior.
+- Pagination/sort/filter abuse controls.
+- Admin report/export bounds.
+- Notification owner scope.
+- Subject/group scope edge cases.
+- Webhook idempotency and retry behavior.
+- Production secrets rotation evidence.
+- Incident drill evidence.
 
 ## Required executable tests
 
@@ -144,10 +162,10 @@ Mapped:
 
 1. Live test result for `npm --prefix backend run test:security` is not recorded.
 2. Rate-limit runtime behavior is not proven.
-3. CI failure summaries/notifications are missing.
-4. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
-5. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
-6. Pagination/sort/filter and admin report/export bounds remain open.
+3. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
+4. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
+5. Pagination/sort/filter and admin report/export bounds remain open.
+6. Notification scope, subject/group scope, and incident drill evidence remain open.
 
 ## Acceptance decision
 
