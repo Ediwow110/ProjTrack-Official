@@ -50,6 +50,30 @@ Current structure:
   - audit
   - `GITHUB_STEP_SUMMARY` E2E summary
 
+### `.github/workflows/evidence-gates.yml`
+
+Purpose: manual evidence collection workflow for issues #37 and #38.
+
+Current structure:
+
+- PostgreSQL service
+- frontend dependency install
+- backend dependency install
+- Prisma generate/migrate
+- `npm run evidence:local`
+- upload generated `local-evidence-report` artifact
+- GitHub step summary
+
+Evidence targets:
+
+- `docs/CI_STATUS.md`
+- `docs/SECURITY_ACCEPTANCE_GATE.md`
+- `docs/2ND_MAIN_IMPROVEMENTS.md`
+- issue #37
+- issue #38
+
+Risk note: this workflow produces evidence artifacts. It does not automatically mark gates passed. A human must review the artifact and update the evidence documents.
+
 ### `.github/workflows/production-checks.yml`
 
 Purpose: production-oriented verification gate for PRs into `main`, manual runs, and selected hardening branches.
@@ -111,8 +135,9 @@ CI integration:
 - `ci.yml` backend job runs `npm run test:security`.
 - `production-checks.yml` backend job runs `npm run test:security`.
 - `production-candidate.yml` backend job runs `npm run test:security`.
+- `evidence-gates.yml` runs `npm --prefix backend run test:security` through `npm run evidence:local`.
 
-Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, and performance-bound tests.
+Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, static bounded-submission service guard, and performance-bound tests.
 
 ## Capacity claim gate
 
@@ -128,13 +153,36 @@ It is also called by:
 npm run check:release-hygiene
 ```
 
+It is included in:
+
+```bash
+npm run evidence:local
+```
+
 Purpose: prevent unsupported README/product-facing claims such as 20k-50k support, 1000 concurrent-user support, school-scale readiness, or production readiness before evidence is recorded.
+
+## Local/manual evidence workflow
+
+For issues #37 and #38, use either:
+
+```bash
+npm run evidence:local
+```
+
+or manually run GitHub Actions workflow:
+
+```text
+Evidence Gates
+```
+
+The generated report or artifact must be reviewed and summarized into this document and `docs/SECURITY_ACCEPTANCE_GATE.md`. Do not mark #37 or #38 resolved just because the workflow exists.
 
 ## Failure visibility
 
 Implemented:
 
 - `ci.yml` writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
+- `evidence-gates.yml` uploads a local-equivalent evidence report artifact.
 - `production-checks.yml` creates or updates a GitHub issue when a production gate fails.
 - Manual school-scale and load-validation workflows write GitHub step summaries.
 - Backend summaries explicitly call out unresolved performance/capacity evidence gaps.
@@ -160,6 +208,8 @@ npm run build
 npm run security:secrets
 npm run check:release-hygiene
 npm run check:capacity-claims
+npm run check:release-guard-wiring
+npm run evidence:local
 npm run security:audit
 npm --prefix backend run prisma:validate
 npm --prefix backend run prisma:generate
@@ -174,18 +224,20 @@ npm run e2e:responsive
 ## Known Gaps
 
 1. Current workflow run URLs and results are not yet recorded here.
-2. Production-gate failure issue path is implemented but not live-verified.
-3. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
-4. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-5. Smoke tests depend on configured smoke account secrets.
-6. README badge verification is static; live badge status still depends on Actions results.
-7. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
-8. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-9. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+2. Evidence Gates workflow exists, but no result/artifact is recorded here.
+3. Production-gate failure issue path is implemented but not live-verified.
+4. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
+5. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+6. Smoke tests depend on configured smoke account secrets.
+7. README badge verification is static; live badge status still depends on Actions results.
+8. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
+9. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+10. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
+- [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
 - [ ] Dependency audit passes or exceptions are documented.
@@ -198,4 +250,4 @@ npm run e2e:responsive
 
 ## Current verdict
 
-CI now includes security, hygiene, capacity-claim guardrails, manual validation workflows, and production-check failure issue creation. It is still not final-gate complete until live passing runs, production failure notification verification, school-scale evidence, and load evidence are recorded.
+CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, and production-check failure issue creation. It is still not final-gate complete until live passing runs, production failure notification verification, school-scale evidence, and load evidence are recorded.
