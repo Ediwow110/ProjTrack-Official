@@ -31,11 +31,12 @@ Implemented:
 - Teacher list/export path uses relational teacher filtering instead of the old unbounded task-ID pre-query.
 - Tests assert student list, teacher list, and teacher export use bounded database reads and do not call the old repository list paths.
 - Additive school-scale index migration exists at `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`.
+- Query-plan checker exists at `backend/scripts/check-school-scale-query-plans.cjs` and is wired as `npm --prefix backend run check:query-plans`.
 
 Still open:
 
 - Repository helper methods still contain legacy unbounded list methods and should be cleaned up or made bounded to prevent future misuse.
-- Index migration must be deployed and validated with `EXPLAIN`/slow-query evidence.
+- Index migration must be deployed and validated with query-plan evidence.
 - Broader query audit remains incomplete.
 - Load and seed evidence are not recorded.
 
@@ -46,6 +47,7 @@ grep -R "findMany({\|findMany()" backend/src
 grep -R "for .*await\|forEach(async\|map(async" backend/src
 npm --prefix backend run prisma:validate
 npm --prefix backend run prisma:migrate:deploy
+npm --prefix backend run check:query-plans
 npm --prefix backend run build
 npm --prefix backend run test:security
 ```
@@ -57,8 +59,9 @@ npm --prefix backend run test:security
 - [x] `docs/SYNTHETIC_LOAD_DATA_PLAN.md`
 - [x] Initial query audit findings recorded in this document
 - [x] School-scale index migration added
+- [x] Query-plan checker added
 - [ ] Migration deployment result recorded
-- [ ] Slow-query/index evidence recorded
+- [ ] Query-plan checker result recorded
 - [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
 
 ## Query audit findings
@@ -74,6 +77,7 @@ Evidence:
 - `backend/src/submissions/submissions.service.ts` uses bounded Prisma query with `take: 100`.
 - `backend/test/security/submission-list-response-bounds.spec.ts` asserts the bounded query and verifies the legacy repository list method is not called by `studentList`.
 - Index migration adds `Submission_studentId_createdAt_idx` and `Submission_groupId_createdAt_idx`.
+- Query-plan checker probes the student submission list path.
 
 Remaining cleanup:
 
@@ -91,6 +95,7 @@ Evidence:
 - `backend/src/submissions/submissions.service.ts` uses relational filtering through `task.subject.teacherId` and bounded Prisma query with `take: 100`.
 - `backend/test/security/teacher-export-scope.spec.ts` asserts bounded teacher list DB query behavior.
 - Index migration adds task, subject, submission, enrollment, section, and group-member support indexes.
+- Query-plan checker probes teacher-owned subject submission listing.
 
 Remaining cleanup:
 
@@ -119,6 +124,7 @@ Remaining cleanup:
 
 - [ ] Synthetic dataset has at least 1,000 registered student users.
 - [ ] Performance index migration is deployed.
+- [ ] `npm --prefix backend run check:query-plans` result is recorded.
 - [ ] 300 VU target run is recorded.
 - [ ] 500 VU stretch run is recorded.
 - [ ] 1000 VU capacity exploration is recorded before any 1000-concurrent-user claim.
@@ -128,7 +134,7 @@ Remaining cleanup:
 - [ ] Synthetic dataset has at least 20,000 registered student users.
 - [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
 - [ ] All high-volume active service list routes are bounded at the database query layer.
-- [ ] Slow-query/index evidence is recorded.
+- [ ] Query-plan checker result is recorded against the 20k tier.
 - [ ] Database connection and memory trends are recorded.
 
 ### Tier 3 upper school-scale
@@ -136,6 +142,7 @@ Remaining cleanup:
 - [ ] Synthetic dataset has at least 50,000 registered student users.
 - [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
 - [ ] 50k seed completion time and resource usage are recorded.
+- [ ] Query-plan checker result is recorded against the 50k tier.
 - [ ] Load-test evidence is recorded against the 50k dataset.
 - [ ] Any architecture bottlenecks are documented with mitigation or rejection of the claim.
 
@@ -157,7 +164,9 @@ Current security/performance tests include:
 - [x] Teacher submission active list path uses database-level bound.
 - [x] Teacher export active path is scoped and database-bounded.
 - [x] Initial school-scale index migration exists.
+- [x] Query-plan checker exists.
 - [ ] Index migration is deployed and verified.
+- [ ] Query-plan checker result is recorded.
 - [ ] Legacy repository list methods are cleaned up or made bounded.
 - [ ] Dashboard queries are bounded and indexed.
 - [ ] Search/filter routes have allowlisted fields.
@@ -214,14 +223,14 @@ Current security/performance tests include:
 ## Current blockers
 
 1. Performance index migration needs deployment evidence.
-2. Legacy repository list methods should be bounded or removed to prevent future misuse.
-3. Broader query audit is incomplete.
-4. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
-5. No slow-query/index review is recorded.
+2. Query-plan checker needs recorded output against seeded data.
+3. Legacy repository list methods should be bounded or removed to prevent future misuse.
+4. Broader query audit is incomplete.
+5. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
 6. No database connection/memory trend is recorded.
 7. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
 8. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are now database-bounded and initial indexes exist, but school-scale claims remain blocked until migration deployment, broader query audit, synthetic 20k/50k data evidence, slow-query/index evidence, and load-test evidence exist.
+Not accepted. High-volume submission list/export active service paths are now database-bounded, initial indexes exist, and query-plan validation is executable, but school-scale claims remain blocked until migration deployment, broader query audit, synthetic 20k/50k data evidence, query-plan results, and load-test evidence exist.
