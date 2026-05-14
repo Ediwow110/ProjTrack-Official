@@ -25,16 +25,17 @@ Required distinction:
 
 Implemented:
 
-- Service-layer student submission list response cap: 100 rows.
-- Service-layer teacher submission list response cap: 100 rows.
-- Service-layer teacher export cap: 1000 rows with truncation metadata.
-- Tests for student list cap, teacher list cap, and teacher export cap.
+- Student submission list active service path uses bounded Prisma query with `take: 100`.
+- Teacher submission list active service path uses bounded Prisma query with `take: 100`.
+- Teacher export active service path uses bounded Prisma query with `take: 1001`, returns up to 1000 rows, and reports truncation metadata.
+- Teacher list/export path uses relational teacher filtering instead of the old unbounded task-ID pre-query.
+- Tests assert student list, teacher list, and teacher export use bounded database reads and do not call the old repository list paths.
 
 Still open:
 
-- Repository/database-level `take`/`skip` pagination is not implemented.
-- Teacher task pre-query is still not eliminated or properly paginated at the database layer.
-- Issue #34 remains open until database-level query bounds land.
+- Repository helper methods still contain legacy unbounded list methods and should be cleaned up or made bounded to prevent future misuse.
+- Broader query audit remains incomplete.
+- Load and seed evidence are not recorded.
 
 ## Required command evidence
 
@@ -54,54 +55,53 @@ npm --prefix backend run test:security
 - [x] Initial query audit findings recorded in this document
 - [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
 
-## Initial query audit findings
+## Query audit findings
 
-### PERF-FINDING-001: student submission list database query is unbounded
+### PERF-FINDING-001: active student submission list is now database-bounded
 
-Status: Open  
+Status: Mitigated on active service path  
 Severity: High  
-Affected file: `backend/src/repositories/submission.repository.ts`  
-Affected method: `listStudentSubmissions`
+Affected active method: `SubmissionsService.studentList`
 
-Risk: student submission list can fetch every matching submission and relation graph without database-level pagination. Service-layer response caps reduce payload size but do not prevent database work.
+Evidence:
 
-Required fix:
+- `backend/src/submissions/submissions.service.ts` uses bounded Prisma query with `take: 100`.
+- `backend/test/security/submission-list-response-bounds.spec.ts` asserts the bounded query and verifies the legacy repository list method is not called by `studentList`.
 
-- Add bounded pagination contract.
-- Add maximum page size.
-- Keep ownership filter.
-- Add regression test requiring `take`/limit behavior.
+Remaining cleanup:
 
-### PERF-FINDING-002: teacher submission task pre-query is unbounded
+- `backend/src/repositories/submission.repository.ts::listStudentSubmissions` still should be made bounded or removed to prevent future misuse.
 
-Status: Open  
+### PERF-FINDING-002: active teacher submission list no longer uses unbounded task pre-query
+
+Status: Mitigated on active service path  
 Severity: High  
-Affected file: `backend/src/repositories/submission.repository.ts`  
-Affected method: `listTeacherSubmissions`
+Affected active method: `SubmissionsService.teacherList`
 
-Risk: the method fetches all task IDs for a teacher before querying submissions. Large teachers/classes can produce a large `IN (...)` query and memory pressure.
+Evidence:
 
-Required fix:
+- `backend/src/submissions/submissions.service.ts` uses relational filtering through `task.subject.teacherId` and bounded Prisma query with `take: 100`.
+- `backend/test/security/teacher-export-scope.spec.ts` asserts bounded teacher list DB query behavior.
 
-- Avoid unbounded task ID pre-fetch where possible.
-- Prefer relational filtering directly in the submission query or bounded pagination.
-- Review supporting indexes.
+Remaining cleanup:
 
-### PERF-FINDING-003: teacher submission list/export database path is unbounded
+- `backend/src/repositories/submission.repository.ts::listTeacherSubmissions` still contains legacy task pre-query behavior and should be cleaned up or made bounded.
 
-Status: Open  
+### PERF-FINDING-003: active teacher export is now database-bounded
+
+Status: Mitigated on active service path  
 Severity: High  
-Affected file: `backend/src/repositories/submission.repository.ts`  
-Affected method: `listTeacherSubmissions`  
-Related path: `teacherExport`
+Affected active method: `SubmissionsService.teacherExport`
 
-Risk: teacher submissions and exports are scoped, and service-layer output is now capped, but the repository fetch remains unbounded. Scoped does not mean scalable.
+Evidence:
 
-Required fix:
+- `backend/src/submissions/submissions.service.ts` queries `MAX_TEACHER_EXPORT_ROWS + 1` rows to detect truncation.
+- Export returns up to 1000 rows with `truncated` and `maxRows` metadata.
+- `backend/test/security/teacher-export-scope.spec.ts` asserts bounded teacher export DB query behavior and verifies the legacy repository list method is not used.
 
-- Add page/limit for normal list routes.
-- Add repository-level export cap, queue, or streaming strategy for exports.
-- Add tests for database query bounds.
+Remaining cleanup:
+
+- Replace service-layer export cap with queued/streaming exports if school-scale UX requires large full exports.
 
 ## School-scale registered-user acceptance requirements
 
@@ -116,8 +116,7 @@ Required fix:
 
 - [ ] Synthetic dataset has at least 20,000 registered student users.
 - [ ] Matching teacher/admin/section/subject/submission/file/notification volume exists.
-- [ ] All high-volume list routes are bounded at the database query layer.
-- [ ] Submission list/export blocker #34 is resolved.
+- [ ] All high-volume active service list routes are bounded at the database query layer.
 - [ ] Slow-query/index evidence is recorded.
 - [ ] Database connection and memory trends are recorded.
 
@@ -137,15 +136,16 @@ Current security/performance tests include:
 - `backend/test/security/teacher-export-scope.spec.ts`
 - `backend/test/security/submission-list-response-bounds.spec.ts`
 
-`performance-bounds.spec.ts` still documents current open repository-level blockers. The response-cap tests prove payload caps only, not database-query scalability.
+`performance-bounds.spec.ts` still documents legacy repository-level blockers. The active service-path tests now prove bounded DB reads for student list, teacher list, and teacher export.
 
 ## Required performance checks
 
 ### Database/query checks
 
-- [ ] No unbounded user-facing `findMany()` list routes.
-- [ ] List routes use database-level pagination or bounded limits.
-- [ ] Teacher/admin exports are scoped and bounded at the data-access layer.
+- [x] Student submission active list path uses database-level bound.
+- [x] Teacher submission active list path uses database-level bound.
+- [x] Teacher export active path is scoped and database-bounded.
+- [ ] Legacy repository list methods are cleaned up or made bounded.
 - [ ] Dashboard queries are bounded and indexed.
 - [ ] Search/filter routes have allowlisted fields.
 - [ ] No database queries inside large loops without batching or documented bounds.
@@ -190,26 +190,24 @@ Current security/performance tests include:
 
 `PERF-GATE` fails if:
 
-- Issue #34 remains unresolved.
 - Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
-- Any critical route has unbounded database list queries.
+- Any critical active service path has unbounded database list queries.
 - Any high-volume route performs database queries inside unbounded loops.
-- Teacher/admin exports are unbounded at the database layer.
+- Teacher/admin exports are unbounded at the active database path.
 - Expensive routes have no rate limit, bound, timeout, or queue.
 - Load tests are not run but capacity claims are made.
 - Load tests fail thresholds without documented mitigation.
 
 ## Current blockers
 
-1. Student submission list needs database-level pagination.
-2. Teacher task pre-query needs redesign or database-level bounds.
-3. Teacher submission list/export path needs repository-level pagination/export cap/queue/streaming plan.
-4. Broader query audit is incomplete.
-5. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
-6. No slow-query/index review is recorded.
-7. No database connection/memory trend is recorded.
-8. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
+1. Legacy repository list methods should be bounded or removed to prevent future misuse.
+2. Broader query audit is incomplete.
+3. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
+4. No slow-query/index review is recorded.
+5. No database connection/memory trend is recorded.
+6. Synthetic load seeder exists but has no recorded 1k, 20k, or 50k run evidence.
+7. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
 
 ## Current acceptance decision
 
-Not accepted. API response caps are a useful defensive improvement, but performance/readiness claims must remain conservative until database-level query bounds, synthetic 20k/50k data evidence, and load-test evidence exist.
+Not accepted. High-volume submission list/export active service paths are now database-bounded, but school-scale claims remain blocked until broader query audit, synthetic 20k/50k data evidence, slow-query/index evidence, and load-test evidence exist.
