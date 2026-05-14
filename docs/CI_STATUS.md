@@ -79,6 +79,18 @@ Current structure:
 
 Risk note: because it runs on `main`, it should be treated as a pre-merge/merge-adjacent gate, not a substitute for protecting `main` from unverified `2nd-main` changes.
 
+### `.github/workflows/school-scale-validation.yml`
+
+Purpose: manual data-volume, migration, seed, and query-plan validation for 1k, 20k, and 50k registered-user tiers.
+
+Evidence target: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
+
+### `.github/workflows/load-validation.yml`
+
+Purpose: manual k6 runtime concurrency validation for smoke, 300, 500, 1000, 2000 VU, and soak-style runs.
+
+Evidence target: `docs/LOAD_TEST_RESULTS.md`
+
 ## Security test gate
 
 A dedicated backend security test command exists:
@@ -93,14 +105,31 @@ CI integration:
 - `production-checks.yml` backend job runs `npm run test:security`.
 - `production-candidate.yml` backend job runs `npm run test:security`.
 
-Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, and performance-bound blocker tests.
+Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, and performance-bound tests.
+
+## Capacity claim gate
+
+A dedicated capacity claim check exists:
+
+```bash
+npm run check:capacity-claims
+```
+
+It is also called by:
+
+```bash
+npm run check:release-hygiene
+```
+
+Purpose: prevent unsupported README/product-facing claims such as 20k-50k support, 1000 concurrent-user support, school-scale readiness, or production readiness before evidence is recorded.
 
 ## Failure visibility
 
 Implemented:
 
 - `ci.yml` now writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
-- The backend summary explicitly calls out unresolved `PERF-GATE` blocker #34.
+- Manual school-scale and load-validation workflows write GitHub step summaries.
+- Backend summaries explicitly call out unresolved performance/capacity evidence gaps.
 
 Still missing:
 
@@ -121,14 +150,16 @@ npm ci
 npm run typecheck
 npm run build
 npm run security:secrets
+npm run check:release-hygiene
+npm run check:capacity-claims
 npm run security:audit
-npm --prefix backend ci
 npm --prefix backend run prisma:validate
 npm --prefix backend run prisma:generate
 npm --prefix backend run build
 npm --prefix backend run test
 npm --prefix backend run test:unit
 npm --prefix backend run test:security
+npm --prefix backend run check:query-plans
 npm run e2e:responsive
 ```
 
@@ -139,8 +170,9 @@ npm run e2e:responsive
 3. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
 4. Smoke tests depend on configured smoke account secrets.
 5. README badge verification is static; live badge status still depends on Actions results.
-6. `PERF-GATE` blocker #34 remains open: submission list/export paths are scoped but unbounded.
-7. Load-test scaffold exists, but no target run evidence exists.
+6. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
+7. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+8. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
@@ -149,10 +181,12 @@ npm run e2e:responsive
 - [ ] Production-gate failure notification routing exists.
 - [ ] Dependency audit passes or exceptions are documented.
 - [ ] Secret scan passes.
+- [ ] Capacity claim check passes.
 - [ ] Security tests pass in CI.
-- [ ] `PERF-GATE` blocker #34 is fixed or explicitly risk-accepted.
+- [ ] School-scale validation evidence is recorded for any claimed tier.
+- [ ] Load-test evidence is recorded for any concurrency claim.
 - [ ] This document contains current run links or summaries.
 
 ## Current verdict
 
-CI now includes an executable security gate and basic workflow summaries. It is still not final-gate complete until live passing runs, production notification routing, and the performance blocker are resolved.
+CI now includes security, hygiene, and capacity-claim guardrails plus manual validation workflows. It is still not final-gate complete until live passing runs, production notification routing, school-scale evidence, and load evidence are recorded.
