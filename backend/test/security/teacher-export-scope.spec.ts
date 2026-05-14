@@ -46,7 +46,7 @@ function buildSubmissionsService() {
 }
 
 describe('teacher export scope security gate', () => {
-  it('routes teacher exports through teacherList with teacherId filters intact', async () => {
+  it('routes teacher exports through the teacher-scoped repository path with filters intact', async () => {
     const { service, submissionRepository } = buildSubmissionsService();
     submissionRepository.listTeacherSubmissions.mockResolvedValue([]);
 
@@ -99,5 +99,44 @@ describe('teacher export scope security gate', () => {
 
     expect(result.rows).toHaveLength(1);
     expect(result.rows[0]).toMatchObject({ id: 'submission-1', section: 'Section A' });
+  });
+
+  it('caps teacher exports and returns truncation metadata', async () => {
+    const { service, submissionRepository } = buildSubmissionsService();
+    submissionRepository.listTeacherSubmissions.mockResolvedValue(
+      Array.from({ length: 1005 }, (_, index) => ({
+        id: `submission-${index}`,
+        title: `Submission ${index}`,
+        subjectId: 'subject-1',
+        studentUserId: undefined,
+        studentId: undefined,
+        student: null,
+        files: [],
+        events: [],
+      })),
+    );
+
+    const result = await service.teacherExport({ teacherId: 'teacher-user-1' });
+
+    expect(result.rows).toHaveLength(1000);
+    expect(result.truncated).toBe(true);
+    expect(result.maxRows).toBe(1000);
+  });
+
+  it('caps teacher list responses to prevent unbounded API payloads', async () => {
+    const { service, submissionRepository } = buildSubmissionsService();
+    submissionRepository.listTeacherSubmissions.mockResolvedValue(
+      Array.from({ length: 150 }, (_, index) => ({
+        id: `submission-${index}`,
+        title: `Submission ${index}`,
+        subjectId: 'subject-1',
+        files: [],
+        events: [],
+      })),
+    );
+
+    const result = await service.teacherList({ teacherId: 'teacher-user-1' });
+
+    expect(result).toHaveLength(100);
   });
 });
