@@ -16,6 +16,8 @@ function buildSubmissionsService() {
   const filesService = { resolvePendingUploadsForSubmission: jest.fn() } as any;
   const mailService = { queueTransactional: jest.fn() } as any;
   const prisma = {
+    submission: { findMany: jest.fn(async () => []) },
+    teacherProfile: { findUnique: jest.fn() },
     systemSetting: { findFirst: jest.fn() },
     submissionEvent: { create: jest.fn() },
     studentProfile: { findUnique: jest.fn() },
@@ -42,29 +44,37 @@ function buildSubmissionsService() {
     submissionRepository,
     subjectRepository,
     userRepository,
+    prisma,
   };
 }
 
 describe('teacher export scope security gate', () => {
-  it('routes teacher exports through the teacher-scoped repository path with filters intact', async () => {
-    const { service, submissionRepository } = buildSubmissionsService();
-    submissionRepository.listTeacherSubmissions.mockResolvedValue([]);
+  it('uses bounded teacher-scoped database query for teacher exports', async () => {
+    const { service, submissionRepository, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValueOnce({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
 
     await expect(
       service.teacherExport({ teacherId: 'teacher-user-1', section: 'Section A', status: 'SUBMITTED', subjectId: 'subject-1' }),
     ).resolves.toMatchObject({ rows: [] });
 
-    expect(submissionRepository.listTeacherSubmissions).toHaveBeenCalledWith({
-      teacherId: 'teacher-user-1',
-      section: 'Section A',
-      status: 'SUBMITTED',
-      subjectId: 'subject-1',
-    });
+    expect(submissionRepository.listTeacherSubmissions).not.toHaveBeenCalled();
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 1001 }));
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'SUBMITTED',
+          subjectId: 'subject-1',
+          task: { subject: { teacherId: 'teacher-profile-1' } },
+        }),
+      }),
+    );
   });
 
   it('does not fetch teacher export rows through an unscoped repository path', async () => {
-    const { service, submissionRepository } = buildSubmissionsService();
-    submissionRepository.listTeacherSubmissions.mockResolvedValue([
+    const { service, submissionRepository, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValueOnce({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([
       {
         id: 'submission-1',
         title: 'Scoped submission',
@@ -78,33 +88,31 @@ describe('teacher export scope security gate', () => {
     await service.teacherExport({ teacherId: 'teacher-user-1' });
 
     expect(submissionRepository.findSubmissionById).not.toHaveBeenCalled();
-    expect(submissionRepository.listTeacherSubmissions).toHaveBeenCalledTimes(1);
+    expect(submissionRepository.listTeacherSubmissions).not.toHaveBeenCalled();
+    expect(prisma.submission.findMany).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps section filtering applied after decoration for teacher exports', async () => {
-    const { service, submissionRepository, subjectRepository, userRepository } = buildSubmissionsService();
-    submissionRepository.listTeacherSubmissions.mockResolvedValue([
-      { id: 'submission-1', title: 'A', subjectId: 'subject-1', studentUserId: 'student-a', files: [], events: [] },
-      { id: 'submission-2', title: 'B', subjectId: 'subject-1', studentUserId: 'student-b', files: [], events: [] },
-    ]);
-    subjectRepository.findSubjectById.mockResolvedValue({ id: 'subject-1', name: 'Subject 1' });
-    userRepository.findById.mockImplementation(async (id: string) => ({
-      id,
-      firstName: id === 'student-a' ? 'Student' : 'Other',
-      lastName: id === 'student-a' ? 'A' : 'B',
-      section: id === 'student-a' ? 'Section A' : 'Section B',
-    }));
+  it('keeps section filtering applied for teacher exports at the query boundary', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValueOnce({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
 
-    const result = await service.teacherExport({ teacherId: 'teacher-user-1', section: 'Section A' });
+    await service.teacherExport({ teacherId: 'teacher-user-1', section: 'Section A' });
 
-    expect(result.rows).toHaveLength(1);
-    expect(result.rows[0]).toMatchObject({ id: 'submission-1', section: 'Section A' });
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.any(Array),
+        }),
+      }),
+    );
   });
 
   it('caps teacher exports and returns truncation metadata', async () => {
-    const { service, submissionRepository } = buildSubmissionsService();
-    submissionRepository.listTeacherSubmissions.mockResolvedValue(
-      Array.from({ length: 1005 }, (_, index) => ({
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValueOnce({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue(
+      Array.from({ length: 1001 }, (_, index) => ({
         id: `submission-${index}`,
         title: `Submission ${index}`,
         subjectId: 'subject-1',
@@ -123,10 +131,11 @@ describe('teacher export scope security gate', () => {
     expect(result.maxRows).toBe(1000);
   });
 
-  it('caps teacher list responses to prevent unbounded API payloads', async () => {
-    const { service, submissionRepository } = buildSubmissionsService();
-    submissionRepository.listTeacherSubmissions.mockResolvedValue(
-      Array.from({ length: 150 }, (_, index) => ({
+  it('uses bounded teacher list database query', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValueOnce({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue(
+      Array.from({ length: 100 }, (_, index) => ({
         id: `submission-${index}`,
         title: `Submission ${index}`,
         subjectId: 'subject-1',
@@ -138,5 +147,6 @@ describe('teacher export scope security gate', () => {
     const result = await service.teacherList({ teacherId: 'teacher-user-1' });
 
     expect(result).toHaveLength(100);
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
   });
 });
