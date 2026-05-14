@@ -18,9 +18,9 @@ This document links the blocking evidence issues that must be resolved before me
 | #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE |
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims |
 
-## Local evidence helper
+## Evidence helpers
 
-A local evidence runner exists:
+### Local runner
 
 ```bash
 npm run evidence:local
@@ -32,7 +32,18 @@ It runs the release/capacity/security/build checks for issues #37 and #38 and wr
 evidence/local-evidence-*.md
 ```
 
-The generated report should be used to update:
+### GitHub Actions runner
+
+Manual workflow:
+
+```text
+Evidence Gates
+.github/workflows/evidence-gates.yml
+```
+
+It runs the same local-equivalent evidence gate command in GitHub Actions, uploads the generated report as the `local-evidence-report` artifact, and writes a GitHub step summary.
+
+Use either the local report or the GitHub artifact to update:
 
 - `docs/CI_STATUS.md`
 - `docs/SECURITY_ACCEPTANCE_GATE.md`
@@ -53,8 +64,8 @@ Do not close an evidence issue just because a workflow, command, or runner exist
 
 | Issue | Primary evidence document | Secondary documents |
 |---:|---|---|
-| #37 | `docs/CI_STATUS.md` | `docs/FINAL_MERGE_GATE.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `evidence/local-evidence-*.md` |
-| #38 | `docs/SECURITY_ACCEPTANCE_GATE.md` | `docs/CI_STATUS.md`, `docs/2ND_MAIN_IMPROVEMENTS.md`, `evidence/local-evidence-*.md` |
+| #37 | `docs/CI_STATUS.md` | `docs/FINAL_MERGE_GATE.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `evidence/local-evidence-*.md`, Evidence Gates artifact |
+| #38 | `docs/SECURITY_ACCEPTANCE_GATE.md` | `docs/CI_STATUS.md`, `docs/2ND_MAIN_IMPROVEMENTS.md`, `evidence/local-evidence-*.md`, Evidence Gates artifact |
 | #39 | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md` |
 | #40 | `docs/LOAD_TEST_RESULTS.md` | `docs/LOAD_TEST_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | #41 | `docs/CI_STATUS.md` | `docs/OPERATIONAL_READINESS.md`, `docs/FINAL_MERGE_GATE.md` |
