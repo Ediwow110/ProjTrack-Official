@@ -17,7 +17,7 @@ Summary:
 - [ ] I reviewed `docs/FINAL_MERGE_GATE.md`.
 - [ ] This PR does not mark a blocked gate as passed without recorded evidence.
 - [ ] This PR updates evidence docs if it changes gate status.
-- [ ] This PR does not bypass issues #37, #38, #39, #40, #41, or #42.
+- [ ] This PR does not bypass issues #37, #38, #39, #40, #41, #42, #43, #44, or #45.
 
 ## Evidence issues
 
@@ -29,6 +29,9 @@ Check any evidence issue affected by this PR:
 - [ ] #40 load validation smoke
 - [ ] #41 production-check failure visibility
 - [ ] #42 school-scale validation tiers `20k` / `50k`
+- [ ] #43 branch protection and CODEOWNERS enforcement verification
+- [ ] #44 subject/submission route-boundary and query-plan evidence
+- [ ] #45 failing Vercel external status resolution or non-blocking risk classification
 - [ ] Not applicable
 
 Evidence links or notes:
@@ -78,4 +81,4 @@ Do not approve merge into `main` if:
 - a 20k/50k claim appears without matching validation evidence,
 - a concurrency claim appears without matching load evidence,
 - production-readiness is claimed without CI/security/ops evidence,
-- blocked issues #37-#42 are ignored.
+- blocked issues #37-#45 are ignored.
