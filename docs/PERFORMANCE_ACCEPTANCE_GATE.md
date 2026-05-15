@@ -34,10 +34,12 @@ Implemented:
 - Legacy teacher repository helper no longer preloads all teacher task IDs before querying submissions.
 - User repository list helpers now enforce default/hard caps and skip bounds.
 - Audit-log repository list helper now enforces default/hard caps and skip bounds.
+- Subject, subject-activity, subject-group, student-subject, and teacher-subject repository list helpers now enforce default/hard caps and skip bounds.
+- Subject activity reads use submission counts instead of loading full submission arrays.
 - Dashboard summary paths now use database `count()` queries instead of loading subject/submission/user arrays into application memory.
 - Dashboard upcoming-deadline path is capped with `DASHBOARD_DEADLINE_LIMIT = 50`.
 - Dashboard audit-activity path now requests only `DASHBOARD_ACTIVITY_LIMIT = 10` rows at the repository/database layer.
-- Static regression tests assert active service paths do not call legacy list helpers, assert legacy/user/audit helpers remain bounded, and block dashboard summary/activity regressions.
+- Static regression tests assert active service paths do not call legacy list helpers, assert legacy/user/audit/subject helpers remain bounded, and block dashboard summary/activity regressions.
 - Additive school-scale index migration exists at `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`.
 - Query-plan checker exists at `backend/scripts/check-school-scale-query-plans.cjs` and is wired as `npm --prefix backend run check:query-plans`.
 - Manual school-scale validation workflow exists at `.github/workflows/school-scale-validation.yml`.
@@ -75,6 +77,7 @@ npm --prefix backend run test:security
 - [x] Manual school-scale validation workflow added
 - [x] Legacy submission repository list helpers bounded
 - [x] User and audit-log repository list helpers bounded
+- [x] Subject repository list helpers bounded
 - [x] Dashboard summary/deadline/activity paths bounded
 - [ ] Tier 1 workflow result recorded
 - [ ] Tier 2 workflow result recorded
@@ -171,6 +174,23 @@ Remaining cleanup:
 
 - Record `npm --prefix backend run test:security` evidence after this change.
 
+### PERF-FINDING-006: subject repository list helpers are bounded
+
+Status: Mitigated pending test evidence  
+Severity: High  
+Affected methods: `SubjectRepository.listSubjects`, `SubjectRepository.listActivitiesBySubject`, `SubjectRepository.listGroupsBySubject`, `SubjectRepository.listSubjectsForStudent`, `SubjectRepository.listSubjectsForTeacher`
+
+Evidence:
+
+- `backend/src/repositories/subject.repository.ts` clamps `take` and `skip` with hard maximums of 500 rows for subject, activity, and group list helpers.
+- `backend/src/repositories/subject.repository.ts` uses `_count` for activity submissions instead of loading full submission arrays.
+- `backend/test/security/repository-list-bounds.spec.ts` asserts subject repository list bounds and blocks full submission array loading for subject activity listing.
+
+Remaining cleanup:
+
+- Record `npm --prefix backend run test:security` evidence after this change.
+- Validate representative subject/activity/group query plans against seeded data.
+
 ## School-scale registered-user acceptance requirements
 
 ### Tier 1 baseline
@@ -208,7 +228,7 @@ Current security/performance tests include:
 - `backend/test/security/dashboard-static-bounds.spec.ts`
 - `backend/test/security/repository-list-bounds.spec.ts`
 
-Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit repository list helpers remain hard bounded, and dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior.
+Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit/subject repository list helpers remain hard bounded, dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior, and subject activity listing does not load full submission arrays.
 
 ## Required performance checks
 
@@ -223,9 +243,11 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] Legacy repository list methods are bounded.
 - [x] User repository list methods are bounded.
 - [x] Audit-log repository list methods are bounded.
+- [x] Subject repository list methods are bounded.
 - [x] Dashboard queries are bounded.
 - [ ] Tiered workflow results are recorded.
 - [ ] Dashboard query plans are validated against seeded data.
+- [ ] Subject/activity/group query plans are validated against seeded data.
 - [ ] Search/filter routes have allowlisted fields.
 - [ ] No database queries inside large loops without batching or documented bounds.
 - [ ] Common filters have supporting indexes or explicit acceptance.
@@ -289,7 +311,8 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 7. No database connection/memory trend is recorded.
 8. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
 9. Dashboard query-plan validation against seeded data remains open.
+10. Subject/activity/group query-plan validation against seeded data remains open.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit repository list helpers are bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject repository list helpers are bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
