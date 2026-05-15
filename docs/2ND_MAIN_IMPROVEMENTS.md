@@ -80,7 +80,7 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | CAPACITY-06 school-scale validation results ledger | Done | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` |
 | CAPACITY-07 validation/runbook evidence docs | In Progress | `docs/EVIDENCE_DOCS_INDEX.md`, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md`, `docs/LOAD_VALIDATION_RUNBOOK.md`, `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`, `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md` |
 | PERF-02 performance acceptance gate | Done | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
-| PERF-03 bounded database list/export cleanup | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/src/repositories/submission.repository.ts`, `backend/test/security/submission-service-static-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
+| PERF-03 bounded database list/export cleanup | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/src/repositories/submission.repository.ts`, `backend/src/dashboard/dashboard.service.ts`, `backend/test/security/submission-service-static-bounds.spec.ts`, `backend/test/security/dashboard-static-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
@@ -103,8 +103,9 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | PERF-01 unbounded query audit | In Progress | `backend/test/security/performance-bounds.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `npm --prefix backend run test:security` |
 | PERF-03 legacy submission repository bounds | In Progress | `backend/src/repositories/submission.repository.ts`, `backend/test/security/submission-service-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | PERF-04 bounded submission service DB paths | In Progress | `backend/src/submissions/submissions.service.ts`, `backend/test/security/teacher-export-scope.spec.ts`, `backend/test/security/submission-list-response-bounds.spec.ts` | `npm --prefix backend run test:security` |
-| PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
-| PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
+| PERF-05 dashboard query bounds | In Progress | `backend/src/dashboard/dashboard.service.ts`, `backend/test/security/dashboard-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
+| PERF-06 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
+| PERF-07 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
 | PERF-08 static bounded submission service guard | In Progress | `backend/test/security/submission-service-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `scripts/run-local-evidence-gates.mjs`, `package.json` | GitHub Actions `Evidence Gates` or `npm run evidence:local` |
@@ -167,20 +168,20 @@ Tracking issue: #43
 Merge blocker: Before merge to main or production-readiness claim  
 Notes: Configure and verify GitHub repository settings for required PRs, Code Owner review, required checks, stale approval dismissal, branch up-to-date requirement, conversation resolution, and force-push/deletion restrictions.
 
-### LIVE-EVIDENCE-08 Record security/performance test evidence after repository bounds cleanup
+### LIVE-EVIDENCE-08 Record security/performance test evidence after repository/dashboard bounds cleanup
 Status: Not Started  
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/CI_STATUS.md`  
 Tracking issue: #38  
 Merge blocker: Yes  
-Notes: Run `npm --prefix backend run test:security` or GitHub Actions `Evidence Gates` after the repository bounds patch and record the result.
+Notes: Run `npm --prefix backend run test:security` or GitHub Actions `Evidence Gates` after the repository/dashboard bounds patch and record the result.
 
-### PERF-03 Finish dashboard/query scale cleanup
+### PERF-03 Finish broader query scale cleanup
 Status: In Progress  
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
-Notes: Active submission list/export paths and legacy submission repository list helpers are bounded. Remaining performance cleanup is dashboard summary/count paths, broader query audit, and evidence from security/performance tests.
+Notes: Active submission list/export paths, legacy submission repository list helpers, and dashboard summary/deadline paths are bounded. Remaining performance cleanup is broader query audit, query-plan validation, and evidence from security/performance tests.
 
 ### SEC-14 Complete remaining security hardening backlog
 Status: In Progress  
