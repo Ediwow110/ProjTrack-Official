@@ -57,16 +57,19 @@ Do not run `50k` before `1k` and `20k` have passed or have documented blockers.
 - student submission list by owner,
 - teacher submission list by teacher-owned subject,
 - subject submissions by status and time,
-- notification list by user read state.
+- notification list by user read state,
+- teacher students enrollment roster by teacher-owned subject,
+- teacher sections by teacher-owned enrollment,
+- teacher student submission progress by teacher-owned subject,
+- teacher students enrollment roster by section filter,
+- student calendar or submit-catalog activities by subject,
+- student submit-catalog groups by subject.
 
-Current coverage gap:
+Current coverage limits:
 
-- It does not yet check the `GET /teacher/students` path.
-- It does not yet check the `GET /teacher/sections` path.
-- It does not yet check student calendar fanout.
-- It does not yet check student submit-catalog fanout.
-
-This means a passing School Scale Validation run is not enough to close issue #44 unless additional query-plan evidence is added or separately recorded for those paths.
+- These are representative `EXPLAIN` probes, not full end-to-end route execution.
+- They must be run against seeded data before being counted as evidence.
+- A passing checker improves #44 evidence, but `test:security` and route-boundary evidence are still required.
 
 ## After the run
 
@@ -83,8 +86,10 @@ Update `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` with:
 - seed result,
 - query-plan checker result,
 - query-plan warning count,
-- whether teacher-students query-plan evidence exists,
-- whether teacher-sections query-plan evidence exists,
+- teacher-students query-plan result,
+- teacher-sections query-plan result,
+- student calendar/query fanout result,
+- student submit-catalog query-plan result,
 - verdict,
 - required fixes.
 
@@ -107,7 +112,7 @@ A tier passes only if:
 - backend build succeeds,
 - query-plan checker succeeds,
 - warnings are zero or explicitly risk-accepted,
-- any claim dependent on #44 also has teacher-students/teacher-sections route-boundary/query-plan evidence.
+- any claim dependent on #44 also has teacher-students/teacher-sections route-boundary/query-plan evidence recorded.
 
 ## Fail handling
 
@@ -121,4 +126,4 @@ If the workflow fails:
 
 ## Claim rule
 
-Passing this workflow proves only data-volume/query-plan validation for the selected tier and only for the paths actually covered by the query-plan checker. It does not prove runtime concurrency, and it does not close issue #44 unless missing teacher-students, teacher-sections, calendar, and submit-catalog query-plan evidence is also recorded.
+Passing this workflow proves only data-volume/query-plan validation for the selected tier and only for the paths covered by the query-plan checker. It does not prove runtime concurrency, and it does not close issue #44 unless route-boundary review, security test evidence, and the relevant query-plan results are recorded.
