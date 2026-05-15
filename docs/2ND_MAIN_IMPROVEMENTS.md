@@ -24,6 +24,16 @@ Do not confuse registered users with concurrent users:
 
 Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41, #42, #43, and #44.
 
+## Latest observed external status
+
+Checked commit: `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9`
+
+| Context | State | Gate impact |
+|---|---|---|
+| Vercel | failure | External deployment/check blocker. Target URL points to a Vercel build-rate-limit upgrade page. This is not evidence that backend security/performance tests failed, but it blocks any claim that current external checks are green. |
+
+No GitHub Actions workflow runs were found attached to the checked commit through the connector. Evidence Gates and backend security/performance evidence remain unrecorded.
+
 ## Gate summary
 
 | Gate | Blocks merge? | Evidence document | Current status |
@@ -86,6 +96,7 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37 |
+| CI-08 latest external status check | In Progress | `docs/CI_STATUS.md`, Vercel failure on checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 | CAPACITY-08 route-boundary and query-plan evidence issue | Done | issue #44, `backend/test/security/route-boundary-evidence.spec.ts` |
@@ -116,6 +127,7 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | PERF-13 route-boundary and query-plan safety | In Progress | issue #44, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts` | Route-boundary review + `npm --prefix backend run test:security` + seeded query-plan evidence |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `scripts/run-local-evidence-gates.mjs`, `package.json` | GitHub Actions `Evidence Gates` or `npm run evidence:local` |
+| CI-08 external status check | In Progress | `docs/CI_STATUS.md` | Resolve or risk-classify failing Vercel status |
 | CTRL-06 branch protection policy | In Progress | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md` | GitHub repository settings verification, issue #43 |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
 | LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `load-tests/k6.mixed.js` | GitHub Actions manual workflow dispatch |
@@ -191,6 +203,13 @@ Tracking issue: #44
 Merge blocker: Before 20k/50k registered-user claim  
 Notes: Record route-boundary review and seeded query-plan evidence for subject, submission, section, calendar, and teacher-student list paths.
 
+### LIVE-EVIDENCE-10 Resolve or risk-classify failing Vercel status
+Status: Not Started  
+Priority: High  
+Evidence document: `docs/CI_STATUS.md`  
+Merge blocker: Before merge readiness claim  
+Notes: Latest inspected commit status has `Vercel` failure with target URL indicating Vercel build-rate-limit. This is not backend test evidence, but it must be resolved or documented as non-blocking before claiming green external checks.
+
 ### PERF-03 Finish broader query scale cleanup
 Status: In Progress  
 Priority: Critical  
@@ -207,4 +226,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
+Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, resolve or risk-classify the failing Vercel status, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
