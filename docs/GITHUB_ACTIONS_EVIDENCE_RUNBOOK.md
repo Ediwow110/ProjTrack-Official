@@ -1,15 +1,29 @@
 # GitHub Actions Evidence Runbook
 
 Branch: `2nd-main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Purpose
 
-Use this runbook to execute the manual evidence workflows that unblock the final merge gate, security gate, school-scale gate, and load gate.
+Use this runbook to execute, inspect, and record the manual evidence workflows that unblock the final merge gate, security gate, school-scale gate, and load gate.
+
+## Current connector limitation
+
+The ChatGPT GitHub connector can inspect existing workflow runs, jobs, logs, steps, and artifacts when a run ID exists. It can rerun existing failed jobs/runs when a run ID exists. It does not expose a workflow-dispatch tool here for starting the manual `Evidence Gates` workflow.
+
+Therefore, a human must manually dispatch the workflow from GitHub Actions, or run the local evidence command, before issues #37 and #38 can be closed.
 
 ## General rule
 
-A workflow run does not count as evidence until its result is recorded in the relevant evidence document and tracking issue.
+A workflow run does not count as evidence until:
+
+1. The workflow or local command actually runs.
+2. The result, artifact, or report is reviewed.
+3. The result is recorded in the relevant evidence document.
+4. The related issue is updated with run/report details.
+5. Any failure is fixed or explicitly risk-accepted.
+
+A workflow file, package script, checklist, issue comment, or runbook is not evidence by itself.
 
 ## Workflow 1: Evidence Gates
 
@@ -17,15 +31,95 @@ Use this first to resolve or update issues #37 and #38.
 
 ### UI steps
 
-1. Open GitHub repository.
+1. Open the GitHub repository.
 2. Go to **Actions**.
 3. Select **Evidence Gates**.
 4. Click **Run workflow**.
 5. Select branch `2nd-main`.
 6. Start the workflow.
 7. Open the completed run.
-8. Download artifact `local-evidence-report`.
-9. Review the report.
+8. Confirm the run is attached to the intended `2nd-main` commit SHA.
+9. Confirm the job status is `success` or capture the exact failure.
+10. Download artifact `local-evidence-report`.
+11. Review the report contents.
+12. Copy the workflow run URL, commit SHA, job status, and artifact name.
+
+### Local fallback
+
+If GitHub Actions cannot be dispatched, run locally from repository root:
+
+```bash
+npm run evidence:local
+```
+
+The local command must produce:
+
+```text
+evidence/local-evidence-*.md
+```
+
+If no report is produced, the local run is invalid evidence.
+
+### Artifact validity rules
+
+The workflow is now hardened so missing report artifacts fail instead of warning. Treat a run as invalid evidence if:
+
+- `local-evidence-report` is missing,
+- `evidence/local-evidence-*.md` is missing,
+- the artifact cannot be opened,
+- the artifact is from the wrong branch,
+- the artifact is from the wrong commit,
+- the report omits any required #37/#38 command.
+
+A failed Evidence Gates run is still useful evidence, but it keeps the affected gate blocked until fixed or risk-accepted.
+
+### Required #37 evidence
+
+Issue #37 can close only after the report proves these passed or were explicitly risk-accepted:
+
+- `npm run check:capacity-claims`
+- `npm run check:release-guard-wiring`
+- `npm run check:release-hygiene`
+
+Record in `docs/CI_STATUS.md`:
+
+```text
+Evidence Gates run URL:
+Commit SHA:
+Artifact name: local-evidence-report
+Artifact reviewed: yes/no
+Capacity claim check: pass/fail/risk-accepted
+Release guard wiring: pass/fail/risk-accepted
+Release hygiene: pass/fail/risk-accepted
+Reviewer:
+Decision:
+```
+
+### Required #38 evidence
+
+Issue #38 can close only after the report proves these passed or were explicitly risk-accepted:
+
+- `npm --prefix backend run build`
+- `npm --prefix backend run test:unit`
+- `npm --prefix backend run test:security`
+- `npm run security:secrets`
+- `npm run security:audit`
+
+Record in `docs/SECURITY_ACCEPTANCE_GATE.md` and `docs/CI_STATUS.md`:
+
+```text
+Evidence Gates run URL:
+Commit SHA:
+Artifact name: local-evidence-report
+Artifact reviewed: yes/no
+Backend build: pass/fail/risk-accepted
+Backend unit tests: pass/fail/risk-accepted
+Backend security tests: pass/fail/risk-accepted
+Secret scan: pass/fail/risk-accepted
+Dependency audit: pass/fail/risk-accepted
+Reviewer:
+Decision:
+```
 
 ### Update targets
 
@@ -37,7 +131,7 @@ Use this first to resolve or update issues #37 and #38.
 
 ### Close criteria
 
-Close #37 only if capacity claim, release guard wiring, and release hygiene checks pass and are recorded.
+Close #37 only if capacity claim, release guard wiring, and release hygiene checks pass or are explicitly risk-accepted and recorded.
 
 Close #38 only if backend build, backend security tests, backend unit tests, secret scan, and dependency audit pass or failures are explicitly fixed/risk-accepted and recorded.
 
@@ -149,4 +243,4 @@ Close #41 only after production-check failure issue creation is live-verified or
 
 ## Hard rule
 
-Do not close #37, #38, #39, #40, #41, or #42 merely because the workflows exist. Close only after recorded evidence exists.
+Do not close #37, #38, #39, #40, #41, #42, #43, #44, or #45 merely because workflows, runbooks, scripts, policies, templates, or comments exist. Close only after recorded evidence exists.
