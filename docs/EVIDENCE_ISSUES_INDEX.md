@@ -1,7 +1,7 @@
 # Evidence Issues Index
 
 Branch: `2nd-main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Purpose
 
@@ -17,6 +17,7 @@ This document links the blocking evidence issues that must be resolved before me
 | #40 | `Load Validation` smoke test | LOAD-GATE baseline |
 | #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE |
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims |
+| #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims |
 
 ## Evidence helpers
 
@@ -70,12 +71,26 @@ Load Validation
 
 It writes a GitHub step summary and comments on issue #40 with run URL, commit SHA, branch/ref, dataset tier, VUs, duration, and job status.
 
+### Branch protection verification
+
+Issue #43 tracks manual GitHub repository setting verification for:
+
+- required pull requests,
+- required approvals,
+- Code Owner review,
+- stale approval dismissal,
+- required status checks,
+- branch up-to-date requirement,
+- conversation resolution,
+- force-push restriction,
+- branch deletion restriction.
+
 ## Resolution rule
 
-Do not close an evidence issue just because a workflow, command, runner, artifact, summary, or automatic issue comment exists. Close only after:
+Do not close an evidence issue just because a workflow, command, runner, artifact, summary, automatic issue comment, policy, or template exists. Close only after:
 
-1. The command/workflow has run.
-2. The artifact/report/logs have been reviewed.
+1. The command/workflow/check has run or the repository setting has been verified.
+2. The artifact/report/logs/settings have been reviewed.
 3. The result has been recorded in the correct evidence document.
 4. Any failure has been fixed or explicitly risk-accepted.
 5. `docs/2ND_MAIN_IMPROVEMENTS.md` is updated if gate status changes.
@@ -90,6 +105,7 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 | #40 | `docs/LOAD_TEST_RESULTS.md` | `docs/LOAD_TEST_PLAN.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, Load Validation summary/comment |
 | #41 | `docs/CI_STATUS.md` | `docs/OPERATIONAL_READINESS.md`, `docs/FINAL_MERGE_GATE.md` |
 | #42 | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, School Scale Validation summary/comment |
+| #43 | `docs/CI_STATUS.md` | `docs/BRANCH_PROTECTION_POLICY.md`, `docs/FINAL_MERGE_GATE.md`, `docs/2ND_MAIN_IMPROVEMENTS.md` |
 
 ## Current verdict
 
