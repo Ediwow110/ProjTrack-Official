@@ -17,6 +17,7 @@ Do not claim school-scale support, 20k-50k registered-user support, 1000+ concur
 - CI/security/build evidence belongs in `docs/CI_STATUS.md` and `docs/SECURITY_ACCEPTANCE_GATE.md`.
 - Blocking evidence issues are tracked in `docs/EVIDENCE_ISSUES_INDEX.md`.
 - Manual GitHub Actions execution steps are tracked in `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`.
+- Branch protection expectations are tracked in `docs/BRANCH_PROTECTION_POLICY.md`.
 - Unsupported capacity/readiness claims are blocked by `scripts/capacity-claim-check.mjs`, which runs through `npm run check:release-hygiene`.
 - Release evidence and claim review checklists must be used before any public readiness/capacity wording changes.
 
@@ -39,6 +40,8 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `Evidence Gates` workflow run recorded or equivalent local evidence report recorded
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
+- [ ] Branch protection for `main` configured and verified
+- [ ] CODEOWNERS review enforcement verified
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
 - [ ] Issue #37 resolved with recorded command evidence
@@ -46,7 +49,7 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] Issue #41 resolved with production-check failure visibility evidence
 - [ ] `npm run check:release-hygiene` passing, including capacity-claim and guard-wiring checks
 
-Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
+Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`
 
 ## SEC-GATE
 
@@ -201,11 +204,13 @@ Evidence:
 - [ ] Release guard wiring check passes
 - [ ] Issue #37 resolved with release guard evidence
 - [ ] Release evidence checklist reviewed
+- [ ] Branch protection policy documented and verified
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
 - [ ] `docs/EVIDENCE_ISSUES_INDEX.md` is current
 - [ ] `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` is current
+- [ ] `docs/BRANCH_PROTECTION_POLICY.md` is current
 - [ ] `docs/2ND_MAIN_IMPROVEMENTS.md` updated
 - [ ] `docs/CODE_AUDIT.md` complete
 - [ ] `docs/SECURITY_REVIEW.md` complete
@@ -224,8 +229,9 @@ Evidence:
 - `docs/EVIDENCE_DOCS_INDEX.md`
 - `docs/EVIDENCE_ISSUES_INDEX.md`
 - `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
+- `docs/BRANCH_PROTECTION_POLICY.md`
 - `docs/RELEASE_EVIDENCE_CHECKLIST.md`
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, and a manual GitHub Actions execution runbook, but the required passing evidence is not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, a manual GitHub Actions execution runbook, and branch-protection policy, but the required passing evidence and repository-settings verification are not recorded yet.
