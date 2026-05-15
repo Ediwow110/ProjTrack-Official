@@ -1,7 +1,19 @@
 # CI Status
 
 Branch: `2nd-main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
+
+## Latest observed commit status
+
+Checked commit: `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9`
+
+Observed status checks:
+
+| Context | State | Notes |
+|---|---|---|
+| Vercel | failure | Target URL points to Vercel build-rate-limit upgrade page. Treat as an external deployment/check blocker, not as evidence that backend security/performance tests failed. |
+
+GitHub Actions workflow runs attached to this checked commit were not found through the connector. Evidence Gates, security/performance tests, school-scale validation, and load validation therefore remain unrecorded for this commit.
 
 ## Workflows
 
@@ -163,7 +175,7 @@ CI integration:
 - `production-candidate.yml` backend job runs `npm run test:security`.
 - `evidence-gates.yml` runs `npm --prefix backend run test:security` through `npm run evidence:local`.
 
-Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, static bounded-submission service guard, and performance-bound tests.
+Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, static bounded-submission service guard, repository list bounds, dashboard static bounds, file list bounds, route-boundary evidence guard, and performance-bound tests.
 
 ## Capacity claim gate
 
@@ -224,7 +236,7 @@ Still missing:
 
 ## Current Status
 
-Not fully verified in this document yet. Workflow files, package scripts, CODEOWNERS, PR template, and branch-protection policy have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
+Not fully verified. The latest inspected commit has a failing Vercel status due to a build-rate-limit target URL, and no GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
 
 ## Verification Commands
 
@@ -252,21 +264,24 @@ npm run e2e:responsive
 
 ## Known Gaps
 
-1. Current workflow run URLs and results are not yet recorded here.
-2. Evidence Gates workflow exists, but no result/artifact is recorded here.
-3. Production-gate failure issue path is implemented but not live-verified.
-4. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
-5. Branch protection and Code Owner enforcement are documented but not verified.
-6. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-7. Smoke tests depend on configured smoke account secrets.
-8. README badge verification is static; live badge status still depends on Actions results.
-9. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
-10. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-11. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+1. Latest checked commit status includes a failing Vercel context due to build-rate-limit blocking.
+2. Current GitHub Actions workflow run URLs and results are not yet recorded here.
+3. Evidence Gates workflow exists, but no result/artifact is recorded here.
+4. Production-gate failure issue path is implemented but not live-verified.
+5. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
+6. Branch protection and Code Owner enforcement are documented but not verified.
+7. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+8. Smoke tests depend on configured smoke account secrets.
+9. README badge verification is static; live badge status still depends on Actions results.
+10. Security/performance test evidence is not recorded after repository/dashboard/file/route-boundary guard changes.
+11. Issue #44 route-boundary and seeded query-plan evidence is not recorded.
+12. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+13. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
+- [ ] Latest failing Vercel status is resolved or explicitly documented as non-blocking for the merge target.
 - [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
@@ -275,10 +290,11 @@ npm run e2e:responsive
 - [ ] Secret scan passes.
 - [ ] Capacity claim check passes.
 - [ ] Security tests pass in CI.
+- [ ] Issue #44 route-boundary/query-plan evidence is resolved before any 20k-50k registered-user claim.
 - [ ] School-scale validation evidence is recorded for any claimed tier.
 - [ ] Load-test evidence is recorded for any concurrency claim.
 - [ ] This document contains current run links or summaries.
 
 ## Current verdict
 
-CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, and a branch-protection policy. It is still not final-gate complete until live passing runs, production failure notification verification, repository settings verification, school-scale evidence, and load evidence are recorded.
+CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, branch-protection policy, and additional scale-hardening regression guards. It is still not final-gate complete until the failing Vercel status is resolved or risk-classified, live passing runs are recorded, production failure notification verification is complete, repository settings are verified, school-scale evidence is recorded, load evidence is recorded, and issue #44 evidence is complete.
