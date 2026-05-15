@@ -36,13 +36,15 @@ Implemented:
 - Audit-log repository list helper now enforces default/hard caps and skip bounds.
 - Subject, subject-activity, subject-group, student-subject, and teacher-subject repository list helpers now enforce default/hard caps and skip bounds.
 - Notification feed repository list helper now enforces default/hard caps and skip bounds.
+- Notification feed controller and service now pass explicit bounded `take`/`skip` pagination to the repository.
 - File metadata listing now enforces default/hard caps and skip bounds.
+- File listing controller now passes explicit bounded `take`/`skip` pagination to the service.
 - Admin storage object listing now caps local directory walks and S3 pagination.
 - Subject activity reads use submission counts instead of loading full submission arrays.
 - Dashboard summary paths now use database `count()` queries instead of loading subject/submission/user arrays into application memory.
 - Dashboard upcoming-deadline path is capped with `DASHBOARD_DEADLINE_LIMIT = 50`.
 - Dashboard audit-activity path now requests only `DASHBOARD_ACTIVITY_LIMIT = 10` rows at the repository/database layer.
-- Static regression tests assert active service paths do not call legacy list helpers, assert legacy/user/audit/subject/notification helpers remain bounded, block file metadata/storage listing regressions, and block dashboard summary/activity regressions.
+- Static regression tests assert active service paths do not call legacy list helpers, assert legacy/user/audit/subject/notification helpers remain bounded, block file metadata/storage listing regressions, guard API pagination boundaries, and block dashboard summary/activity regressions.
 - Additive school-scale index migration exists at `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`.
 - Query-plan checker exists at `backend/scripts/check-school-scale-query-plans.cjs` and is wired as `npm --prefix backend run check:query-plans`.
 - Manual school-scale validation workflow exists at `.github/workflows/school-scale-validation.yml`.
@@ -82,7 +84,9 @@ npm --prefix backend run test:security
 - [x] User and audit-log repository list helpers bounded
 - [x] Subject repository list helpers bounded
 - [x] Notification feed repository list helper bounded
+- [x] Notification feed API pagination boundary guarded
 - [x] File metadata and storage object listing bounded
+- [x] File listing API pagination boundary guarded
 - [x] Dashboard summary/deadline/activity paths bounded
 - [ ] Tier 1 workflow result recorded
 - [ ] Tier 2 workflow result recorded
@@ -196,34 +200,37 @@ Remaining cleanup:
 - Record `npm --prefix backend run test:security` evidence after this change.
 - Validate representative subject/activity/group query plans against seeded data.
 
-### PERF-FINDING-007: notification feed list helper is bounded
+### PERF-FINDING-007: notification feed list path is bounded
 
 Status: Mitigated pending test evidence  
 Severity: High  
-Affected method: `NotificationRepository.listForUser`
+Affected methods: `NotificationRepository.listForUser`, `NotificationsService.listForUser`, `NotificationsController.studentNotifications`, `NotificationsController.teacherNotifications`
 
 Evidence:
 
 - `backend/src/repositories/notification.repository.ts` clamps `take` and `skip` with a hard maximum of 200 rows and a default of 50 rows.
-- `backend/test/security/repository-list-bounds.spec.ts` asserts notification feed repository list bounds.
+- `backend/src/notifications/notifications.service.ts` passes pagination options through to the repository.
+- `backend/src/notifications/notifications.controller.ts` parses explicit `take` and `skip` query parameters for student and teacher feeds.
+- `backend/test/security/repository-list-bounds.spec.ts` asserts notification feed repository bounds and controller/service pagination pass-through.
 
 Remaining cleanup:
 
 - Record `npm --prefix backend run test:security` evidence after this change.
-- Review notification route/controller query parameters if feed pagination is exposed to the frontend.
+- Validate notification feed query plan against seeded data.
 
 ### PERF-FINDING-008: file metadata and storage object listing are bounded
 
 Status: Mitigated pending test evidence  
 Severity: High  
-Affected methods: `FilesService.list`, `FilesService.listLocalObjects`, `FilesService.listS3Objects`
+Affected methods: `FilesService.list`, `FilesService.listLocalObjects`, `FilesService.listS3Objects`, `FilesController.list`
 
 Evidence:
 
 - `backend/src/files/files.service.ts` clamps file metadata `take` and `skip` with a hard maximum of 500 rows and a default of 100 rows.
 - `backend/src/files/files.service.ts` caps admin local storage directory walking.
 - `backend/src/files/files.service.ts` caps S3 listing with `MaxKeys` and stops pagination when the cap is reached.
-- `backend/test/security/file-list-bounds.spec.ts` asserts file metadata, local storage, S3 object listing, and final response caps.
+- `backend/src/files/files.controller.ts` parses explicit `take` and `skip` query parameters and passes them into `FilesService.list`.
+- `backend/test/security/file-list-bounds.spec.ts` asserts file metadata, local storage, S3 object listing, controller pagination, and final response caps.
 
 Remaining cleanup:
 
@@ -268,7 +275,7 @@ Current security/performance tests include:
 - `backend/test/security/repository-list-bounds.spec.ts`
 - `backend/test/security/file-list-bounds.spec.ts`
 
-Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit/subject/notification repository list helpers remain hard bounded, dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior, subject activity listing does not load full submission arrays, and file metadata/storage listing remains bounded.
+Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit/subject/notification repository list helpers remain hard bounded, notification and file-list API pagination boundaries remain explicit, dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior, subject activity listing does not load full submission arrays, and file metadata/storage listing remains bounded.
 
 ## Required performance checks
 
@@ -302,7 +309,9 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] Teacher submission list API response is capped.
 - [x] Teacher export response is capped and reports truncation.
 - [x] Notification feed response is capped at repository layer.
+- [x] Notification feed API pagination boundary is explicit.
 - [x] File listing response is capped.
+- [x] File listing API pagination boundary is explicit.
 - [ ] External provider calls have timeouts.
 - [ ] Expensive routes have rate limits or queueing.
 - [ ] File upload limits are enforced.
@@ -363,4 +372,4 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
