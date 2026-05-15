@@ -14,6 +14,7 @@ This gate defines the minimum performance and scalability evidence required befo
 - Issue #34 tracks the bounded submission list/export blocker.
 - Issue #35 tracks the 1000+ capacity evidence gate.
 - Issue #36 tracks the 20k-50k registered-user school-scale gate.
+- Issue #44 tracks subject/submission route-boundary pagination and seeded query-plan safety.
 - `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` records tiered validation evidence.
 
 Required distinction:
@@ -53,6 +54,7 @@ Implemented:
 Still open:
 
 - Security/performance test run evidence is not recorded after the repository/dashboard/file bounds cleanup.
+- Issue #44 route-boundary and query-plan evidence is not recorded.
 - Index migration must be deployed and validated with query-plan evidence.
 - Tiered school-scale workflow results are not recorded.
 - Broader query audit remains incomplete.
@@ -88,6 +90,8 @@ npm --prefix backend run test:security
 - [x] File metadata and storage object listing bounded
 - [x] File listing API pagination boundary guarded
 - [x] Dashboard summary/deadline/activity paths bounded
+- [ ] Issue #44 route-boundary review recorded
+- [ ] Issue #44 subject/submission seeded query-plan evidence recorded
 - [ ] Tier 1 workflow result recorded
 - [ ] Tier 2 workflow result recorded
 - [ ] Tier 3 workflow result recorded
@@ -237,6 +241,23 @@ Remaining cleanup:
 - Record `npm --prefix backend run test:security` evidence after this change.
 - Validate file metadata and storage listing behavior against seeded/large-file datasets.
 
+### PERF-FINDING-009: subject/submission route-boundary and query-plan safety remains open
+
+Status: Open / tracked by issue #44  
+Severity: Critical for 20k-50k registered-user claims  
+Affected areas: subject list/detail/catalog/calendar endpoints, teacher student/section/master-list endpoints, student/teacher submission list endpoints
+
+Evidence required:
+
+- Route-boundary review showing which endpoints expose `take`/`skip`, which intentionally use fixed defaults, and why.
+- `npm --prefix backend run test:security` evidence after route-boundary changes.
+- Seeded query-plan validation for subject, submission, section, calendar, and teacher-student list paths.
+- Documentation of any endpoint that remains default-only, including the maximum bound and rationale.
+
+Remaining cleanup:
+
+- Resolve issue #44 before any 20k-50k registered-user claim.
+
 ## School-scale registered-user acceptance requirements
 
 ### Tier 1 baseline
@@ -246,6 +267,7 @@ Remaining cleanup:
 - [ ] 300 VU target run is recorded.
 - [ ] 500 VU stretch run is recorded.
 - [ ] 1000 VU capacity exploration is recorded before any 1000-concurrent-user claim.
+- [ ] Issue #44 route-boundary review is recorded before escalating beyond baseline claims.
 
 ### Tier 2 school-scale
 
@@ -253,6 +275,7 @@ Remaining cleanup:
 - [ ] Result is recorded in `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`.
 - [ ] Query-plan checker result is recorded against the 20k tier.
 - [ ] Database connection and memory trends are recorded.
+- [ ] Issue #44 is resolved or explicitly blocks the claim.
 
 ### Tier 3 upper school-scale
 
@@ -261,6 +284,7 @@ Remaining cleanup:
 - [ ] 50k seed completion time and resource usage are recorded.
 - [ ] Query-plan checker result is recorded against the 50k tier.
 - [ ] Load-test evidence is recorded against the 50k dataset.
+- [ ] Issue #44 is resolved or explicitly blocks the claim.
 - [ ] Any architecture bottlenecks are documented with mitigation or rejection of the claim.
 
 ## Executable regression evidence
@@ -294,6 +318,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] Notification feed list method is bounded.
 - [x] File metadata listing is bounded.
 - [x] Dashboard queries are bounded.
+- [ ] Issue #44 route-boundary and query-plan evidence is recorded.
 - [ ] Tiered workflow results are recorded.
 - [ ] Dashboard query plans are validated against seeded data.
 - [ ] Subject/activity/group query plans are validated against seeded data.
@@ -312,6 +337,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] Notification feed API pagination boundary is explicit.
 - [x] File listing response is capped.
 - [x] File listing API pagination boundary is explicit.
+- [ ] Subject/submission route-boundary review is recorded in issue #44.
 - [ ] External provider calls have timeouts.
 - [ ] Expensive routes have rate limits or queueing.
 - [ ] File upload limits are enforced.
@@ -347,6 +373,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 `PERF-GATE` fails if:
 
 - Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
+- Issue #44 is unresolved for a 20k-50k registered-user claim.
 - Any critical active service path has unbounded database list queries.
 - Any high-volume route performs database queries inside unbounded loops.
 - Teacher/admin exports are unbounded at the active database path.
@@ -361,15 +388,16 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 2. Tier 2 school-scale validation workflow result is not recorded.
 3. Tier 3 school-scale validation workflow result is not recorded.
 4. Security/performance test evidence is not recorded after repository/dashboard/file bounds cleanup.
-5. Broader query audit is incomplete.
-6. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
-7. No database connection/memory trend is recorded.
-8. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
-9. Dashboard query-plan validation against seeded data remains open.
-10. Subject/activity/group query-plan validation against seeded data remains open.
-11. Notification feed query-plan validation against seeded data remains open.
-12. File metadata/storage listing validation against large datasets remains open.
+5. Issue #44 route-boundary/query-plan evidence is not recorded.
+6. Broader query audit is incomplete.
+7. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
+8. No database connection/memory trend is recorded.
+9. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
+10. Dashboard query-plan validation against seeded data remains open.
+11. Subject/activity/group query-plan validation against seeded data remains open.
+12. Notification feed query-plan validation against seeded data remains open.
+13. File metadata/storage listing validation against large datasets remains open.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results, load-test evidence, and issue #44 route-boundary/query-plan evidence are recorded.
