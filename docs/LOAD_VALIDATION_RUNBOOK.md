@@ -61,22 +61,24 @@ Currently covered routes:
 - `GET /student/dashboard/charts`
 - `GET /student/submissions`
 - `GET /student/subjects`
+- `GET /student/submit-catalog`
+- `GET /student/calendar/events`
 - `GET /teacher/dashboard/summary`
 - `GET /teacher/submissions`
 - `GET /teacher/subjects`
+- `GET /teacher/students?take=100&skip=0`
+- `GET /teacher/sections?take=100&skip=0`
 - `GET /admin/dashboard/summary`
 - `GET /admin/users`
 - `GET /admin/settings`
 
 Current coverage gap:
 
-- It does not hit `GET /teacher/students`.
-- It does not hit `GET /teacher/sections`.
-- It does not hit student calendar fanout.
-- It does not hit student submit-catalog fanout.
 - It does not cover write-heavy upload/submission flows.
+- It does not prove DB-level query safety for `teacherStudents` or `teacherSections`; it only exercises the routes at runtime.
+- It does not replace seeded query-plan evidence for #44.
 
-This means a passing smoke run can close #40 only for baseline smoke/load workflow evidence. It does not close #44 and does not prove runtime behavior for the uncovered high-risk subject routes.
+This means a passing smoke run can close #40 only for baseline smoke/load workflow evidence after results are reviewed and recorded. It can provide useful runtime coverage for the #44 subject routes, but it still does not close #44 without DB-level/query-plan evidence.
 
 ## After each run
 
@@ -125,4 +127,4 @@ A run passes only if:
 
 ## Claim rule
 
-A passing load test proves runtime behavior only for the tested VU count, duration, environment, dataset tier, and script coverage. It does not prove 20k-50k registered-user readiness by itself. It does not prove uncovered route behavior.
+A passing load test proves runtime behavior only for the tested VU count, duration, environment, dataset tier, and script coverage. It does not prove 20k-50k registered-user readiness by itself. It does not prove DB-level query-plan safety for #44 by itself.
