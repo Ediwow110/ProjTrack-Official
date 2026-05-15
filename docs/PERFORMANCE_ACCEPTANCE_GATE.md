@@ -1,7 +1,7 @@
 # Performance Acceptance Gate
 
 Branch: `2nd-main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Gate verdict
 
@@ -29,8 +29,10 @@ Implemented:
 - Student submission list active service path uses bounded Prisma query with `take: 100`.
 - Teacher submission list active service path uses bounded Prisma query with `take: 100`.
 - Teacher export active service path uses bounded Prisma query with `take: 1001`, returns up to 1000 rows, and reports truncation metadata.
-- Teacher list/export path uses relational teacher filtering instead of the old unbounded task-ID pre-query.
-- Tests assert student list, teacher list, and teacher export use bounded database reads and do not call the old repository list paths.
+- Teacher list/export active path uses relational teacher filtering instead of the old unbounded task-ID pre-query.
+- Legacy submission repository list helpers now enforce default/hard caps and skip bounds.
+- Legacy teacher repository helper no longer preloads all teacher task IDs before querying submissions.
+- Static regression tests assert active service paths do not call legacy list helpers and assert legacy helpers remain bounded.
 - Additive school-scale index migration exists at `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`.
 - Query-plan checker exists at `backend/scripts/check-school-scale-query-plans.cjs` and is wired as `npm --prefix backend run check:query-plans`.
 - Manual school-scale validation workflow exists at `.github/workflows/school-scale-validation.yml`.
@@ -38,10 +40,11 @@ Implemented:
 
 Still open:
 
-- Repository helper methods still contain legacy unbounded list methods and should be cleaned up or made bounded to prevent future misuse.
+- Security/performance test run evidence is not recorded after the legacy repository cleanup.
 - Index migration must be deployed and validated with query-plan evidence.
 - Tiered school-scale workflow results are not recorded.
 - Broader query audit remains incomplete.
+- Dashboard queries still need a scale-specific review because some dashboard methods use repository list helpers for summary counts.
 - Load evidence is not recorded.
 
 ## Required command evidence
@@ -66,16 +69,17 @@ npm --prefix backend run test:security
 - [x] School-scale index migration added
 - [x] Query-plan checker added
 - [x] Manual school-scale validation workflow added
+- [x] Legacy submission repository list helpers bounded
 - [ ] Tier 1 workflow result recorded
 - [ ] Tier 2 workflow result recorded
 - [ ] Tier 3 workflow result recorded
-- [ ] Load test results recorded in `docs/LOAD_TEST_PLAN.md` or a dedicated results document
+- [ ] Load test results recorded in `docs/LOAD_TEST_RESULTS.md`
 
 ## Query audit findings
 
 ### PERF-FINDING-001: active student submission list is now database-bounded
 
-Status: Mitigated on active service path  
+Status: Mitigated on active service path and legacy repository helper  
 Severity: High  
 Affected active method: `SubmissionsService.studentList`
 
@@ -83,30 +87,32 @@ Evidence:
 
 - `backend/src/submissions/submissions.service.ts` uses bounded Prisma query with `take: 100`.
 - `backend/test/security/submission-list-response-bounds.spec.ts` asserts the bounded query and verifies the legacy repository list method is not called by `studentList`.
+- `backend/src/repositories/submission.repository.ts::listStudentSubmissions` now clamps `take` and `skip` with a hard maximum of 500 rows.
+- `backend/test/security/submission-service-static-bounds.spec.ts` asserts legacy repository list helper bounds.
 - Index migration adds `Submission_studentId_createdAt_idx` and `Submission_groupId_createdAt_idx`.
 - Query-plan checker probes the student submission list path.
 
 Remaining cleanup:
 
-- `backend/src/repositories/submission.repository.ts::listStudentSubmissions` still should be made bounded or removed to prevent future misuse.
 - Validate index usage against seeded data.
 
 ### PERF-FINDING-002: active teacher submission list no longer uses unbounded task pre-query
 
-Status: Mitigated on active service path  
+Status: Mitigated on active service path and legacy repository helper  
 Severity: High  
 Affected active method: `SubmissionsService.teacherList`
 
 Evidence:
 
 - `backend/src/submissions/submissions.service.ts` uses relational filtering through `task.subject.teacherId` and bounded Prisma query with `take: 100`.
+- `backend/src/repositories/submission.repository.ts::listTeacherSubmissions` now uses relational teacher filtering, clamps `take`/`skip`, and no longer preloads all teacher task IDs.
 - `backend/test/security/teacher-export-scope.spec.ts` asserts bounded teacher list DB query behavior.
+- `backend/test/security/submission-service-static-bounds.spec.ts` asserts the legacy task-ID pre-query does not return.
 - Index migration adds task, subject, submission, enrollment, section, and group-member support indexes.
 - Query-plan checker probes teacher-owned subject submission listing.
 
 Remaining cleanup:
 
-- `backend/src/repositories/submission.repository.ts::listTeacherSubmissions` still contains legacy task pre-query behavior and should be cleaned up or made bounded.
 - Validate query plans against 1k/20k/50k seeded tiers.
 
 ### PERF-FINDING-003: active teacher export is now database-bounded
@@ -158,8 +164,9 @@ Current security/performance tests include:
 - `backend/test/security/performance-bounds.spec.ts`
 - `backend/test/security/teacher-export-scope.spec.ts`
 - `backend/test/security/submission-list-response-bounds.spec.ts`
+- `backend/test/security/submission-service-static-bounds.spec.ts`
 
-`performance-bounds.spec.ts` still documents legacy repository-level blockers. The active service-path tests now prove bounded DB reads for student list, teacher list, and teacher export.
+Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers and that the legacy repository list helpers remain hard bounded.
 
 ## Required performance checks
 
@@ -171,8 +178,8 @@ Current security/performance tests include:
 - [x] Initial school-scale index migration exists.
 - [x] Query-plan checker exists.
 - [x] Manual school-scale validation workflow exists.
+- [x] Legacy repository list methods are bounded.
 - [ ] Tiered workflow results are recorded.
-- [ ] Legacy repository list methods are cleaned up or made bounded.
 - [ ] Dashboard queries are bounded and indexed.
 - [ ] Search/filter routes have allowlisted fields.
 - [ ] No database queries inside large loops without batching or documented bounds.
@@ -231,12 +238,13 @@ Current security/performance tests include:
 1. Tier 1 school-scale validation workflow result is not recorded.
 2. Tier 2 school-scale validation workflow result is not recorded.
 3. Tier 3 school-scale validation workflow result is not recorded.
-4. Legacy repository list methods should be bounded or removed to prevent future misuse.
+4. Security/performance test evidence is not recorded after repository bounds cleanup.
 5. Broader query audit is incomplete.
 6. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
 7. No database connection/memory trend is recorded.
 8. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
+9. Dashboard query scale review remains open.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, legacy submission repository list helpers are bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results and load-test evidence are recorded.
