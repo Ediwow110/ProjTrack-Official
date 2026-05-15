@@ -5,15 +5,15 @@ Last updated: 2026-05-15
 
 ## Latest observed commit status
 
-Latest checked commit: `7b0a305506c55ff0568d2c019dd6d7ceef3596d4`
+Latest checked commit: `81a1bd63eb3719c60bac5c7b2c858c08f7330730`
 
 Observed status checks:
 
 | Context | State | Notes |
 |---|---|---|
-| Vercel | success | Latest checked commit reports successful Vercel status. This confirms the earlier Vercel build-rate-limit blocker tracked by issue #45 remains resolved on the newest checked CI-status commit. |
+| Vercel | failure | Target URL points to Vercel build-rate-limit upgrade page. Issue #45 is reopened for the latest checked commit. Treat as an external deployment/check blocker, not as backend build/security evidence. |
 
-Earlier checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` had `Vercel = failure` with a target URL pointing to a Vercel build-rate-limit upgrade page. Issue #45 was closed after rechecking newer commits and recording `Vercel = success` in the issue thread.
+Earlier checked commit `7b0a305506c55ff0568d2c019dd6d7ceef3596d4` had `Vercel = success`, but the latest checked Evidence Gates hardening commit regressed to `Vercel = failure`.
 
 GitHub Actions workflow runs attached to the latest checked commit were not found through the connector. Evidence Gates, security/performance tests, school-scale validation, and load validation therefore remain unrecorded for this commit.
 
@@ -75,6 +75,7 @@ Current structure:
 - backend dependency install
 - Prisma generate/migrate
 - `npm run evidence:local`
+- explicit check that `evidence/local-evidence-*.md` exists
 - upload generated `local-evidence-report` artifact
 - GitHub step summary
 - automatic comments on issues #37 and #38
@@ -88,6 +89,8 @@ Evidence targets:
 - issue #38
 
 Risk note: this workflow produces evidence artifacts and issue comments. It does not automatically mark gates passed. A human must review the artifact and update the evidence documents.
+
+Artifact rule: the workflow now treats a missing `local-evidence-report` artifact as invalid evidence. `if-no-files-found` is set to `error`, and a separate step fails if `evidence/local-evidence-*.md` does not exist.
 
 ### `.github/workflows/production-checks.yml`
 
@@ -223,6 +226,7 @@ Implemented:
 
 - `ci.yml` writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
 - `evidence-gates.yml` uploads a local-equivalent evidence report artifact and comments on issues #37/#38.
+- `evidence-gates.yml` fails missing report artifacts instead of warning.
 - `school-scale-validation.yml` comments on issue #39 or #42 depending on tier.
 - `load-validation.yml` comments on issue #40.
 - `production-checks.yml` creates or updates a GitHub issue when a production gate fails.
@@ -238,7 +242,7 @@ Still missing:
 
 ## Current Status
 
-Not fully verified. The latest inspected commit reports `Vercel = success`, confirming issue #45 remains resolved, but no GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
+Not fully verified. The latest inspected commit reports `Vercel = failure` due to a build-rate-limit target URL, so issue #45 is reopened. No GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
 
 ## Verification Commands
 
@@ -266,23 +270,24 @@ npm run e2e:responsive
 
 ## Known Gaps
 
-1. Current GitHub Actions workflow run URLs and results are not yet recorded here.
-2. Evidence Gates workflow exists, but no result/artifact is recorded here.
-3. Production-gate failure issue path is implemented but not live-verified.
-4. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
-5. Branch protection and Code Owner enforcement are documented but not verified.
-6. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-7. Smoke tests depend on configured smoke account secrets.
-8. README badge verification is static; live badge status still depends on Actions results.
-9. Security/performance test evidence is not recorded after repository/dashboard/file/route-boundary guard changes.
-10. Issue #44 route-boundary and seeded query-plan evidence is not recorded.
-11. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-12. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+1. Latest checked commit has failing Vercel status due to build-rate-limit target URL.
+2. Current GitHub Actions workflow run URLs and results are not yet recorded here.
+3. Evidence Gates workflow exists, but no result/artifact is recorded here.
+4. Production-gate failure issue path is implemented but not live-verified.
+5. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
+6. Branch protection and Code Owner enforcement are documented but not verified.
+7. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+8. Smoke tests depend on configured smoke account secrets.
+9. README badge verification is static; live badge status still depends on Actions results.
+10. Security/performance test evidence is not recorded after repository/dashboard/file/route-boundary guard changes.
+11. Issue #44 route-boundary and seeded query-plan evidence is not recorded.
+12. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+13. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
-- [x] Latest checked Vercel status is resolved for commit `7b0a305506c55ff0568d2c019dd6d7ceef3596d4`.
+- [ ] Latest checked Vercel status is resolved or risk-classified for commit `81a1bd63eb3719c60bac5c7b2c858c08f7330730`.
 - [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
@@ -298,4 +303,4 @@ npm run e2e:responsive
 
 ## Current verdict
 
-CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, branch-protection policy, additional scale-hardening regression guards, and latest checked Vercel success. It is still not final-gate complete until live passing GitHub Actions/evidence runs are recorded, production failure notification verification is complete, repository settings are verified, school-scale evidence is recorded, load evidence is recorded, and issue #44 evidence is complete.
+CI now includes security, hygiene, capacity-claim guardrails, a stricter manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, branch-protection policy, and additional scale-hardening regression guards. It is still not final-gate complete until the Vercel status is resolved or risk-classified, live passing GitHub Actions/evidence runs are recorded, production failure notification verification is complete, repository settings are verified, school-scale evidence is recorded, load evidence is recorded, and issue #44 evidence is complete.
