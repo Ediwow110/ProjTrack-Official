@@ -47,6 +47,8 @@ export default function (data) {
       getOk('student dashboard charts', '/student/dashboard/charts', data.student);
       getOk('student submissions list', '/student/submissions', data.student);
       getOk('student subjects', '/student/subjects', data.student);
+      getOk('student submit catalog', '/student/submit-catalog', data.student);
+      getOk('student calendar events', '/student/calendar/events', data.student);
       sleep(1);
     });
     return;
@@ -57,6 +59,8 @@ export default function (data) {
       getOk('teacher dashboard summary', '/teacher/dashboard/summary', data.teacher);
       getOk('teacher submissions list', '/teacher/submissions', data.teacher);
       getOk('teacher subjects', '/teacher/subjects', data.teacher);
+      getOk('teacher students list', '/teacher/students?take=100&skip=0', data.teacher);
+      getOk('teacher sections list', '/teacher/sections?take=100&skip=0', data.teacher);
       sleep(1);
     });
     return;
