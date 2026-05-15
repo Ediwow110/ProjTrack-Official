@@ -18,6 +18,14 @@ describe('repository list bounds guard', () => {
     join(process.cwd(), 'src', 'repositories', 'notification.repository.ts'),
     'utf8',
   );
+  const notificationServiceSource = readFileSync(
+    join(process.cwd(), 'src', 'notifications', 'notifications.service.ts'),
+    'utf8',
+  );
+  const notificationControllerSource = readFileSync(
+    join(process.cwd(), 'src', 'notifications', 'notifications.controller.ts'),
+    'utf8',
+  );
 
   it('keeps audit log listing hard bounded', () => {
     expect(auditRepositorySource).toContain('MAX_AUDIT_LOG_LIST_TAKE = 500');
@@ -47,6 +55,16 @@ describe('repository list bounds guard', () => {
     expect(notificationRepositorySource).toContain('DEFAULT_NOTIFICATION_LIST_TAKE = 50');
     expect(notificationRepositorySource).toContain('take: this.clampListTake(options.take)');
     expect(notificationRepositorySource).toContain('skip: this.clampListSkip(options.skip)');
+  });
+
+  it('keeps notification feed pagination explicit through service and controller', () => {
+    expect(notificationServiceSource).toContain('type NotificationListOptions');
+    expect(notificationServiceSource).toContain('listForUser(userId: string, options: NotificationListOptions = {})');
+    expect(notificationServiceSource).toContain('this.notificationRepository.listForUser(userId, options)');
+    expect(notificationControllerSource).toContain("@Query('take') take: string | undefined");
+    expect(notificationControllerSource).toContain("@Query('skip') skip: string | undefined");
+    expect(notificationControllerSource).toContain('parseOptionalPositiveInt(take)');
+    expect(notificationControllerSource).toContain('parseOptionalPositiveInt(skip)');
   });
 
   it('does not load full submissions arrays for subject activity listing', () => {
