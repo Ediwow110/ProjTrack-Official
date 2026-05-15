@@ -5,15 +5,15 @@ Last updated: 2026-05-15
 
 ## Latest observed commit status
 
-Latest checked commit: `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2`
+Latest checked commit: `ee2abc1d69ed196a249e0a43520a0f02d387aa55`
 
 Observed status checks:
 
 | Context | State | Notes |
 |---|---|---|
-| Vercel | success | Latest checked commit reports successful Vercel status. This resolves the earlier Vercel build-rate-limit blocker tracked by issue #45 for the latest checked commit. |
+| Vercel | success | Latest checked commit reports successful Vercel status. This confirms the earlier Vercel build-rate-limit blocker tracked by issue #45 remains resolved on the newest checked tracker commit. |
 
-Earlier checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` had `Vercel = failure` with a target URL pointing to a Vercel build-rate-limit upgrade page. Issue #45 was closed after rechecking the newer commit above and recording `Vercel = success` in the issue thread.
+Earlier checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` had `Vercel = failure` with a target URL pointing to a Vercel build-rate-limit upgrade page. Issue #45 was closed after rechecking newer commits and recording `Vercel = success` in the issue thread.
 
 GitHub Actions workflow runs attached to the latest checked commit were not found through the connector. Evidence Gates, security/performance tests, school-scale validation, and load validation therefore remain unrecorded for this commit.
 
@@ -238,7 +238,7 @@ Still missing:
 
 ## Current Status
 
-Not fully verified. The latest inspected commit reports `Vercel = success`, resolving issue #45 for the latest checked commit, but no GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
+Not fully verified. The latest inspected commit reports `Vercel = success`, confirming issue #45 remains resolved, but no GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
 
 ## Verification Commands
 
@@ -282,7 +282,7 @@ npm run e2e:responsive
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
-- [x] Latest checked Vercel status is resolved for commit `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2`.
+- [x] Latest checked Vercel status is resolved for commit `ee2abc1d69ed196a249e0a43520a0f02d387aa55`.
 - [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
