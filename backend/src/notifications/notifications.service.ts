@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationRepository } from '../repositories/notification.repository';
 
+type NotificationListOptions = {
+  take?: number;
+  skip?: number;
+};
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly notificationRepository: NotificationRepository) {}
@@ -20,8 +25,8 @@ export class NotificationsService {
     };
   }
 
-  listForUser(userId: string) {
-    return this.notificationRepository.listForUser(userId);
+  listForUser(userId: string, options: NotificationListOptions = {}) {
+    return this.notificationRepository.listForUser(userId, options);
   }
 
   markRead(userId: string, id: string) {
@@ -32,4 +37,3 @@ export class NotificationsService {
     return this.notificationRepository.markAllRead(userId);
   }
 }
-
