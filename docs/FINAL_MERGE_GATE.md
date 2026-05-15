@@ -33,7 +33,10 @@ The following GitHub issues are merge/claim blockers until resolved with recorde
 - #42: `School Scale Validation` tier `20k` and `50k` evidence.
 - #43: branch protection and CODEOWNERS enforcement verification.
 - #44: subject/submission route-boundary and seeded query-plan evidence.
-- #45: failing Vercel external status resolution or explicit non-blocking risk classification.
+
+Resolved external-status issue:
+
+- #45: closed after latest checked Vercel status passed on commit `166ef2594d623261ea7561cfdfa449333eccb82f`.
 
 Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
@@ -43,11 +46,11 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `Evidence Gates` workflow run recorded or equivalent local evidence report recorded
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
-- [ ] Latest external Vercel status resolved or explicitly risk-classified as non-blocking
+- [x] Latest external Vercel status resolved for commit `166ef2594d623261ea7561cfdfa449333eccb82f`
 - [ ] Branch protection for `main` configured and verified
 - [ ] CODEOWNERS review enforcement verified
 - [ ] Issue #43 resolved with repository-setting verification evidence
-- [ ] Issue #45 resolved with external-status evidence or risk classification
+- [x] Issue #45 resolved with external-status evidence
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
 - [ ] Issue #37 resolved with recorded command evidence
@@ -222,7 +225,7 @@ Evidence:
 - [ ] Release evidence checklist reviewed
 - [ ] Branch protection policy documented and verified
 - [ ] Issue #43 resolved with branch protection and CODEOWNERS verification evidence
-- [ ] Issue #45 resolved with external status evidence or explicit non-blocking risk classification
+- [x] Issue #45 resolved with external status evidence
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
@@ -252,4 +255,4 @@ Evidence:
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, a manual GitHub Actions execution runbook, branch-protection policy, expanded #44 query-plan probes, and broader load route coverage. The required passing evidence, external-status resolution, and repository-settings verification are not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, a manual GitHub Actions execution runbook, branch-protection policy, expanded #44 query-plan probes, broader load route coverage, and a green Vercel status for the latest checked commit. The required passing GitHub Actions/evidence results and repository-settings verification are still not recorded.
