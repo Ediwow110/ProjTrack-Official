@@ -77,13 +77,23 @@ jobs:
       - name: Run evidence gates
         run: npm run evidence:local
 
+      - name: Verify evidence report exists
+        if: always()
+        run: |
+          if ! ls evidence/local-evidence-*.md >/dev/null 2>&1; then
+            echo "Evidence Gates did not produce evidence/local-evidence-*.md" >&2
+            exit 1
+          fi
+          echo "Evidence report found:"
+          ls evidence/local-evidence-*.md
+
       - name: Upload evidence report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: local-evidence-report
           path: evidence/local-evidence-*.md
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Evidence summary
         if: always()
@@ -107,6 +117,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Do not close #37 or #38 merely because this workflow ran. Close only after the artifact is reviewed and the evidence documents are updated." >> "$GITHUB_STEP_SUMMARY"
           echo "A failed workflow is still useful evidence, but it keeps the related gate blocked until fixed or risk-accepted." >> "$GITHUB_STEP_SUMMARY"
+          echo "If the local-evidence-report artifact is missing, this workflow is invalid evidence even if earlier steps ran." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment on evidence issues
         if: always()
@@ -118,6 +129,6 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          body="Evidence Gates workflow completed.\n\nRun: ${RUN_URL}\nCommit: ${SHA}\nBranch/ref: ${REF_NAME}\nJob status: ${JOB_STATUS}\nArtifact: local-evidence-report\n\nReview the artifact and update docs/CI_STATUS.md, docs/SECURITY_ACCEPTANCE_GATE.md, and docs/2ND_MAIN_IMPROVEMENTS.md before closing this issue."
+          body="Evidence Gates workflow completed.\n\nRun: ${RUN_URL}\nCommit: ${SHA}\nBranch/ref: ${REF_NAME}\nJob status: ${JOB_STATUS}\nArtifact: local-evidence-report\n\nReview the artifact and update docs/CI_STATUS.md, docs/SECURITY_ACCEPTANCE_GATE.md, and docs/2ND_MAIN_IMPROVEMENTS.md before closing this issue. If the artifact is missing, this run is invalid evidence and the issue must remain open."
           gh issue comment 37 --repo "$REPO" --body "$body"
           gh issue comment 38 --repo "$REPO" --body "$body"
