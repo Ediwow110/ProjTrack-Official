@@ -2,7 +2,7 @@
 
 Branch: `2nd-main`  
 Target protected branch: `main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Purpose
 
@@ -62,6 +62,9 @@ Do not merge if these issues are open without explicit risk acceptance:
 - #40 load validation smoke
 - #41 production-check failure visibility
 - #42 school-scale validation tiers `20k` / `50k` before matching claims
+- #43 branch protection and CODEOWNERS enforcement verification
+- #44 subject/submission route-boundary and query-plan evidence before 20k-50k registered-user claims
+- #45 failing Vercel external status resolution or non-blocking risk classification
 
 ## Bypass policy
 
@@ -89,7 +92,8 @@ Record branch protection verification in:
 - `docs/CI_STATUS.md`
 - `docs/FINAL_MERGE_GATE.md`
 - `docs/2ND_MAIN_IMPROVEMENTS.md`
+- issue #43
 
 ## Current verdict
 
-Policy documented. Actual GitHub branch protection settings still need to be configured and verified in the repository UI/settings.
+Policy documented. CODEOWNERS and PR template exist. Actual GitHub branch protection settings still need to be configured and verified in the repository UI/settings before #43 can close.
