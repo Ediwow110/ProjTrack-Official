@@ -16,6 +16,7 @@
 /.github/workflows/                              @Ediwow110
 /.github/workflows/*.yml                         @Ediwow110
 /.github/CODEOWNERS                              @Ediwow110
+/.github/pull_request_template.md                @Ediwow110
 
 # ----- Container build -----
 /Dockerfile.backend                              @Ediwow110
@@ -45,12 +46,29 @@
 /backend/src/files/files.service.ts              @Ediwow110
 /backend/src/files/storage.config.ts             @Ediwow110
 
+# ----- Submission list/export and school-scale hot paths -----
+/backend/src/submissions/                        @Ediwow110
+/backend/test/security/                          @Ediwow110
+/load-tests/                                     @Ediwow110
+
+# ----- Database, migrations, fixtures, and query-plan tooling -----
+/backend/prisma/migrations/                      @Ediwow110
+/backend/scripts/check-school-scale-query-plans.cjs @Ediwow110
+/backend/scripts/seed-load-fixtures.cjs          @Ediwow110
+
 # ----- Operational scripts (boot probes, smoke wrappers, backup drill) -----
 /backend/scripts/                                @Ediwow110
 /backend/scripts/production-runtime-check.cjs    @Ediwow110
 /backend/scripts/worker-boot-smoke.cjs           @Ediwow110
 /backend/scripts/staging-smoke-summary.mjs       @Ediwow110
 /backend/scripts/backup-restore-drill.mjs        @Ediwow110
+
+# ----- Evidence and release guard scripts -----
+/scripts/capacity-claim-check.mjs                @Ediwow110
+/scripts/check-release-guard-wiring.mjs          @Ediwow110
+/scripts/release-hygiene-check.mjs               @Ediwow110
+/scripts/run-local-evidence-gates.mjs            @Ediwow110
+/evidence/README.md                              @Ediwow110
 
 # ----- Environment templates -----
 /docs/env/                                       @Ediwow110
@@ -67,3 +85,33 @@
 /DEPLOYMENT.md                                   @Ediwow110
 /BACKUP_RUNBOOK.md                               @Ediwow110
 /MAILRELAY_RUNBOOK.md                            @Ediwow110
+
+# ----- 2nd-main final gates, evidence, security, performance, and capacity docs -----
+/docs/2ND_MAIN_IMPROVEMENTS.md                   @Ediwow110
+/docs/FINAL_MERGE_GATE.md                        @Ediwow110
+/docs/CI_STATUS.md                               @Ediwow110
+/docs/EVIDENCE_DOCS_INDEX.md                     @Ediwow110
+/docs/EVIDENCE_ISSUES_INDEX.md                   @Ediwow110
+/docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md         @Ediwow110
+/docs/RELEASE_EVIDENCE_CHECKLIST.md              @Ediwow110
+/docs/EVIDENCE_UPDATE_CHECKLIST.md               @Ediwow110
+/docs/SECURITY_ACCEPTANCE_GATE.md                @Ediwow110
+/docs/SECURITY_HARDENING_BACKLOG.md              @Ediwow110
+/docs/CAPACITY_CLAIM_WORDING_GUIDE.md            @Ediwow110
+/docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md     @Ediwow110
+/docs/SCHOOL_SCALE_VALIDATION_RESULTS.md         @Ediwow110
+/docs/SCHOOL_SCALE_VALIDATION_RUNBOOK.md         @Ediwow110
+/docs/SCHOOL_SCALE_OPERATIONAL_ASSUMPTIONS.md    @Ediwow110
+/docs/LOAD_TEST_RESULTS.md                       @Ediwow110
+/docs/LOAD_TEST_PLAN.md                          @Ediwow110
+/docs/LOAD_VALIDATION_RUNBOOK.md                 @Ediwow110
+/docs/SYNTHETIC_LOAD_DATA_PLAN.md                @Ediwow110
+/docs/PERFORMANCE_ACCEPTANCE_GATE.md             @Ediwow110
+/docs/QUERY_BOUND_AUDIT_CHECKLIST.md             @Ediwow110
+/docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md       @Ediwow110
+/docs/ADR_SUBMISSION_LIST_BOUNDS.md              @Ediwow110
+/docs/ADR_EXPORT_STRATEGY.md                     @Ediwow110
+/docs/OPERATIONAL_READINESS.md                   @Ediwow110
+/docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md         @Ediwow110
+/docs/MIGRATION_DEPLOYMENT_EVIDENCE_TEMPLATE.md  @Ediwow110
+/docs/BACKEND_BUILD_SECURITY_EVIDENCE_TEMPLATE.md @Ediwow110
