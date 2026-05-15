@@ -18,6 +18,10 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -114,3 +118,28 @@ jobs:
           echo "- Notifications: ${LOAD_FIXTURE_NOTIFICATIONS:-not-set}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Query-plan warnings fail build: ${{ inputs.fail_on_query_plan_warning }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- This workflow does not prove user concurrency. It validates migration, seed data volume, build, and representative query plans." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Evidence update targets" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/SCHOOL_SCALE_VALIDATION_RESULTS.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/PERFORMANCE_ACCEPTANCE_GATE.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/SYNTHETIC_LOAD_DATA_PLAN.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/2ND_MAIN_IMPROVEMENTS.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- issue #39 for tier 1k, issue #42 for tiers 20k/50k" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on school-scale evidence issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          JOB_STATUS: ${{ job.status }}
+          TIER: ${{ inputs.tier }}
+        run: |
+          issue="39"
+          if [ "$TIER" != "1k" ]; then
+            issue="42"
+          fi
+          body="School Scale Validation workflow completed.\n\nRun: ${RUN_URL}\nCommit: ${SHA}\nBranch/ref: ${REF_NAME}\nTier: ${TIER}\nJob status: ${JOB_STATUS}\n\nReview the run summary/logs and update docs/SCHOOL_SCALE_VALIDATION_RESULTS.md, docs/PERFORMANCE_ACCEPTANCE_GATE.md, docs/SYNTHETIC_LOAD_DATA_PLAN.md, and docs/2ND_MAIN_IMPROVEMENTS.md before closing this issue."
+          gh issue comment "$issue" --repo "$REPO" --body "$body"
