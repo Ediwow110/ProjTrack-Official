@@ -55,6 +55,8 @@ Still open:
 
 - Security/performance test run evidence is not recorded after the repository/dashboard/file bounds cleanup.
 - Issue #44 route-boundary and query-plan evidence is not recorded.
+- `SubjectsService.teacherStudents` remains a high-risk #44 path because it aggregates enrollments in memory and performs a submission progress `findMany` without an explicit `take`.
+- `SubjectsService.teacherSections` remains a high-risk #44 path because it performs direct `section.findMany` with included students/enrollments and no explicit `take`.
 - Index migration must be deployed and validated with query-plan evidence.
 - Tiered school-scale workflow results are not recorded.
 - Broader query audit remains incomplete.
@@ -254,9 +256,15 @@ Evidence required:
 - Seeded query-plan validation for subject, submission, section, calendar, and teacher-student list paths.
 - Documentation of any endpoint that remains default-only, including the maximum bound and rationale.
 
+Current highest-risk unresolved paths:
+
+- `SubjectsService.teacherStudents`: aggregates enrollments in memory and performs a submission progress `findMany` without explicit `take`.
+- `SubjectsService.teacherSections`: performs direct `section.findMany` with included students/enrollments and no explicit `take`.
+
 Remaining cleanup:
 
 - Resolve issue #44 before any 20k-50k registered-user claim.
+- Refactor, cap, or explicitly risk-accept `teacherStudents` and `teacherSections` with seeded query-plan evidence.
 
 ## School-scale registered-user acceptance requirements
 
@@ -298,8 +306,9 @@ Current security/performance tests include:
 - `backend/test/security/dashboard-static-bounds.spec.ts`
 - `backend/test/security/repository-list-bounds.spec.ts`
 - `backend/test/security/file-list-bounds.spec.ts`
+- `backend/test/security/route-boundary-evidence.spec.ts`
 
-Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit/subject/notification repository list helpers remain hard bounded, notification and file-list API pagination boundaries remain explicit, dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior, subject activity listing does not load full submission arrays, and file metadata/storage listing remains bounded.
+Active service-path tests prove bounded DB reads for student list, teacher list, and teacher export. Static bounds tests assert active paths do not route through legacy list helpers, legacy/user/audit/subject/notification repository list helpers remain hard bounded, notification and file-list API pagination boundaries remain explicit, dashboard summaries/activity do not regress to full-array counting or fetch-then-slice behavior, subject activity listing does not load full submission arrays, file metadata/storage listing remains bounded, and issue #44 high-risk route-boundary evidence stays visible.
 
 ## Required performance checks
 
@@ -319,6 +328,8 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] File metadata listing is bounded.
 - [x] Dashboard queries are bounded.
 - [ ] Issue #44 route-boundary and query-plan evidence is recorded.
+- [ ] `SubjectsService.teacherStudents` is capped/refactored or risk-accepted with seeded evidence.
+- [ ] `SubjectsService.teacherSections` is capped/refactored or risk-accepted with seeded evidence.
 - [ ] Tiered workflow results are recorded.
 - [ ] Dashboard query plans are validated against seeded data.
 - [ ] Subject/activity/group query plans are validated against seeded data.
@@ -374,6 +385,8 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 
 - Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
 - Issue #44 is unresolved for a 20k-50k registered-user claim.
+- `SubjectsService.teacherStudents` remains uncapped, unrefactored, or unvalidated for a school-scale claim.
+- `SubjectsService.teacherSections` remains uncapped, unrefactored, or unvalidated for a school-scale claim.
 - Any critical active service path has unbounded database list queries.
 - Any high-volume route performs database queries inside unbounded loops.
 - Teacher/admin exports are unbounded at the active database path.
@@ -389,15 +402,17 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 3. Tier 3 school-scale validation workflow result is not recorded.
 4. Security/performance test evidence is not recorded after repository/dashboard/file bounds cleanup.
 5. Issue #44 route-boundary/query-plan evidence is not recorded.
-6. Broader query audit is incomplete.
-7. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
-8. No database connection/memory trend is recorded.
-9. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
-10. Dashboard query-plan validation against seeded data remains open.
-11. Subject/activity/group query-plan validation against seeded data remains open.
-12. Notification feed query-plan validation against seeded data remains open.
-13. File metadata/storage listing validation against large datasets remains open.
+6. `SubjectsService.teacherStudents` remains uncapped/unvalidated for school-scale claims.
+7. `SubjectsService.teacherSections` remains uncapped/unvalidated for school-scale claims.
+8. Broader query audit is incomplete.
+9. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
+10. No database connection/memory trend is recorded.
+11. Large teacher/admin export UX still needs queued/streaming strategy if full exports above 1000 rows are required.
+12. Dashboard query-plan validation against seeded data remains open.
+13. Subject/activity/group query-plan validation against seeded data remains open.
+14. Notification feed query-plan validation against seeded data remains open.
+15. File metadata/storage listing validation against large datasets remains open.
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results, load-test evidence, and issue #44 route-boundary/query-plan evidence are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results, load-test evidence, issue #44 route-boundary/query-plan evidence, and explicit resolution of the `teacherStudents` and `teacherSections` route risks are recorded.
