@@ -32,6 +32,8 @@ The following GitHub issues are merge/claim blockers until resolved with recorde
 - #41: production-check failure issue creation live verification.
 - #42: `School Scale Validation` tier `20k` and `50k` evidence.
 - #43: branch protection and CODEOWNERS enforcement verification.
+- #44: subject/submission route-boundary and seeded query-plan evidence.
+- #45: failing Vercel external status resolution or explicit non-blocking risk classification.
 
 Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
@@ -41,9 +43,11 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `Evidence Gates` workflow run recorded or equivalent local evidence report recorded
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
+- [ ] Latest external Vercel status resolved or explicitly risk-classified as non-blocking
 - [ ] Branch protection for `main` configured and verified
 - [ ] CODEOWNERS review enforcement verified
 - [ ] Issue #43 resolved with repository-setting verification evidence
+- [ ] Issue #45 resolved with external-status evidence or risk classification
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
 - [ ] Issue #37 resolved with recorded command evidence
@@ -96,9 +100,10 @@ Evidence: `docs/AUTHORIZATION_MATRIX.md`, `docs/SECURITY_HARDENING_BACKLOG.md`
 - [ ] Critical auth/authorization paths tested
 - [ ] Coverage generated
 - [ ] Static bounded-submission service guard test included in security test evidence
+- [ ] Route-boundary evidence guard included in security test evidence
 - [ ] Issue #38 resolved with backend test/build evidence
 
-Evidence: `docs/TESTING_STRATEGY.md`, `backend/test/security/submission-service-static-bounds.spec.ts`
+Evidence: `docs/TESTING_STRATEGY.md`, `backend/test/security/submission-service-static-bounds.spec.ts`, `backend/test/security/route-boundary-evidence.spec.ts`
 
 ## OPS-GATE
 
@@ -133,9 +138,13 @@ Evidence:
 - [x] Active teacher export path is database-bounded and capped
 - [x] School-scale performance index migration exists
 - [x] Query-plan checker exists
+- [x] Query-plan checker includes representative #44 teacher-students, teacher-sections, calendar/activity, and submit-catalog probes
 - [x] Static guard prevents active submission service paths from returning to legacy unbounded helpers
+- [x] Teacher students and teacher sections routes have controller-level response caps
 - [ ] School-scale index migration deployment result recorded
 - [ ] Query-plan checker results recorded for seeded data
+- [ ] `npm --prefix backend run test:security` evidence recorded after route-boundary/query-plan changes
+- [ ] Issue #44 resolved with route-boundary review and seeded query-plan evidence before any 20k/50k registered-user claim
 - [ ] Issue #39 resolved for baseline migration/seed/query-plan evidence
 - [ ] Issue #42 resolved before any 20k/50k registered-user claim
 - [ ] Legacy unbounded repository list helpers removed or bounded
@@ -154,17 +163,20 @@ Evidence:
 - `docs/ADR_EXPORT_STRATEGY.md`
 - `docs/QUERY_PLAN_WARNING_TRIAGE_RUNBOOK.md`
 - `backend/test/security/submission-service-static-bounds.spec.ts`
+- `backend/test/security/route-boundary-evidence.spec.ts`
+- `backend/scripts/check-school-scale-query-plans.cjs`
 - `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`
 
 ## SCHOOL-SCALE DATA GATE
 
-- [ ] Manual `School Scale Validation` workflow exists
+- [x] Manual `School Scale Validation` workflow exists
 - [ ] Tier `1k` workflow result recorded and passing
 - [ ] Issue #39 resolved before any school-scale baseline claim
 - [ ] Tier `20k` workflow result recorded and passing before any 20k registered-user claim
 - [ ] Tier `50k` workflow result recorded and passing before any 50k registered-user claim
 - [ ] Issue #42 resolved before any 20k/50k registered-user claim
 - [ ] Query-plan warnings are zero or explicitly risk-accepted with mitigation
+- [ ] #44 route-boundary/query-plan evidence recorded for teacher-students, teacher-sections, calendar/activity, and submit-catalog paths
 - [ ] Seed duration/resource impact is acceptable for the claimed tier
 - [ ] Claim wording reviewed with `docs/SCHOOL_SCALE_CLAIM_REVIEW_CHECKLIST.md`
 
@@ -179,9 +191,9 @@ Evidence:
 
 ## LOAD-GATE
 
-- [ ] Load test plan exists
-- [ ] Manual `Load Validation` workflow exists
-- [ ] Realistic flows tested
+- [x] Load test plan exists
+- [x] Manual `Load Validation` workflow exists
+- [x] k6 script covers teacher-students, teacher-sections, student calendar, and submit-catalog read paths
 - [ ] Smoke run recorded
 - [ ] Issue #40 resolved before any load-stage escalation
 - [ ] 300-user test passes or blocker recorded
@@ -210,6 +222,7 @@ Evidence:
 - [ ] Release evidence checklist reviewed
 - [ ] Branch protection policy documented and verified
 - [ ] Issue #43 resolved with branch protection and CODEOWNERS verification evidence
+- [ ] Issue #45 resolved with external status evidence or explicit non-blocking risk classification
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
@@ -239,4 +252,4 @@ Evidence:
 
 ## Current verdict
 
-Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, a manual GitHub Actions execution runbook, and branch-protection policy, but the required passing evidence and repository-settings verification are not recorded yet.
+Not mergeable. The branch now has stronger security, performance, school-scale validation, load-validation infrastructure, operational-readiness blockers, executable guardrails, runbooks, automated claim checks, issue-level evidence tracking, a manual GitHub Actions execution runbook, branch-protection policy, expanded #44 query-plan probes, and broader load route coverage. The required passing evidence, external-status resolution, and repository-settings verification are not recorded yet.
