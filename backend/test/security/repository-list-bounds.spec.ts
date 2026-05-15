@@ -14,6 +14,10 @@ describe('repository list bounds guard', () => {
     join(process.cwd(), 'src', 'repositories', 'subject.repository.ts'),
     'utf8',
   );
+  const notificationRepositorySource = readFileSync(
+    join(process.cwd(), 'src', 'repositories', 'notification.repository.ts'),
+    'utf8',
+  );
 
   it('keeps audit log listing hard bounded', () => {
     expect(auditRepositorySource).toContain('MAX_AUDIT_LOG_LIST_TAKE = 500');
@@ -36,6 +40,13 @@ describe('repository list bounds guard', () => {
     expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE');
     expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_ACTIVITY_LIST_TAKE');
     expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_GROUP_LIST_TAKE');
+  });
+
+  it('keeps notification feed listing hard bounded', () => {
+    expect(notificationRepositorySource).toContain('MAX_NOTIFICATION_LIST_TAKE = 200');
+    expect(notificationRepositorySource).toContain('DEFAULT_NOTIFICATION_LIST_TAKE = 50');
+    expect(notificationRepositorySource).toContain('take: this.clampListTake(options.take)');
+    expect(notificationRepositorySource).toContain('skip: this.clampListSkip(options.skip)');
   });
 
   it('does not load full submissions arrays for subject activity listing', () => {
