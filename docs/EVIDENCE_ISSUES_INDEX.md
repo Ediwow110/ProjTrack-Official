@@ -19,12 +19,7 @@ This document links the evidence issues that must be resolved before merge, prod
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims | Open |
 | #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims | Open |
 | #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Open |
-
-## Resolved evidence issues
-
-| Issue | Evidence area | Resolution |
-|---:|---|---|
-| #45 | Failing Vercel external status on `2nd-main` | Closed after latest checked commit `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2` reported `Vercel = success`. This only resolves the external Vercel status blocker; it does not prove GitHub Actions, backend security tests, route-boundary/query-plan safety, school-scale validation, or load validation. |
+| #45 | Failing Vercel external status on `2nd-main` | CI-GATE, DOC-GATE, merge-readiness claims | Reopened |
 
 ## Evidence helpers
 
@@ -49,7 +44,7 @@ Evidence Gates
 .github/workflows/evidence-gates.yml
 ```
 
-It runs the same local-equivalent evidence gate command in GitHub Actions, uploads the generated report as the `local-evidence-report` artifact, writes a GitHub step summary, and comments on issues #37 and #38 with the run URL, commit SHA, branch/ref, job status, and artifact name.
+It runs the same local-equivalent evidence gate command in GitHub Actions, requires `evidence/local-evidence-*.md` to exist, uploads the generated report as the `local-evidence-report` artifact with missing-file behavior set to `error`, writes a GitHub step summary, and comments on issues #37 and #38 with the run URL, commit SHA, branch/ref, job status, and artifact name.
 
 ### School Scale Validation workflow
 
@@ -98,7 +93,7 @@ Issue #44 tracks route-boundary pagination and query-plan safety evidence for hi
 
 ### External status verification
 
-Issue #45 tracked the observed failing Vercel status on `2nd-main`. It was closed only after the latest checked commit was rechecked and the Vercel status returned success.
+Issue #45 tracks the currently observed failing Vercel status on `2nd-main`. It was previously closed after a successful Vercel status on an older commit, but was reopened after commit `81a1bd63eb3719c60bac5c7b2c858c08f7330730` reported `Vercel = failure` with a build-rate-limit target URL.
 
 ## Resolution rule
 
@@ -126,4 +121,4 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 
 ## Current verdict
 
-Issues #37-#44 remain open. The latest checked Vercel blocker tracked by #45 is resolved, but the branch remains not mergeable and cannot honestly claim production readiness, fully green GitHub Actions/evidence gates, 1000+ concurrency, or 20k-50k school-scale support until the remaining open issues are resolved with reviewed and recorded evidence.
+Issues #37-#45 remain open. The branch remains not mergeable and cannot honestly claim production readiness, green external checks, fully green GitHub Actions/evidence gates, 1000+ concurrency, or 20k-50k school-scale support until the relevant open issues are resolved with reviewed and recorded evidence.
