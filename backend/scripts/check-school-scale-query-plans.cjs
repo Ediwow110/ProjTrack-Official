@@ -34,7 +34,7 @@ function summarizePlanNode(node, depth = 0, rows = []) {
 function hasScanWarning(rows) {
   return rows.some((row) =>
     ['Seq Scan', 'Parallel Seq Scan'].includes(row.nodeType) &&
-    ['Submission', 'Notification', 'Enrollment', 'GroupMember', 'SubmissionTask'].includes(row.relation)
+    ['Submission', 'Notification', 'Enrollment', 'GroupMember', 'SubmissionTask', 'Section', 'Subject'].includes(row.relation)
   );
 }
 
@@ -64,6 +64,7 @@ async function main() {
   const teacherId = await sampleValue('SELECT "teacherId" AS value FROM "Subject" WHERE "teacherId" IS NOT NULL LIMIT 1');
   const subjectId = await sampleValue('SELECT "subjectId" AS value FROM "Submission" LIMIT 1');
   const notificationUserId = await sampleValue('SELECT "userId" AS value FROM "Notification" LIMIT 1');
+  const teacherSectionId = await sampleValue('SELECT e."sectionId" AS value FROM "Enrollment" e JOIN "Subject" s ON s."id" = e."subjectId" WHERE s."teacherId" IS NOT NULL AND e."sectionId" IS NOT NULL LIMIT 1');
 
   let warnings = 0;
 
@@ -84,9 +85,38 @@ async function main() {
       'SELECT s."id", s."createdAt" FROM "Submission" s JOIN "SubmissionTask" t ON t."id" = s."taskId" JOIN "Subject" sub ON sub."id" = t."subjectId" WHERE sub."teacherId" = $1 ORDER BY s."createdAt" DESC LIMIT 100',
       [teacherId],
     ));
+
+    warnings += Number(await explain(
+      'teacher students enrollment roster by teacher-owned subject',
+      'SELECT e."studentId", e."subjectId", e."sectionId" FROM "Enrollment" e JOIN "Subject" sub ON sub."id" = e."subjectId" WHERE sub."teacherId" = $1 ORDER BY e."studentId" ASC LIMIT 100',
+      [teacherId],
+    ));
+
+    warnings += Number(await explain(
+      'teacher sections by teacher-owned enrollment',
+      'SELECT DISTINCT e."sectionId" FROM "Enrollment" e JOIN "Subject" sub ON sub."id" = e."subjectId" WHERE sub."teacherId" = $1 AND e."sectionId" IS NOT NULL LIMIT 100',
+      [teacherId],
+    ));
+
+    warnings += Number(await explain(
+      'teacher student submission progress by teacher-owned subject',
+      'SELECT s."studentId", s."subjectId", s."status" FROM "Submission" s JOIN "Subject" sub ON sub."id" = s."subjectId" WHERE sub."teacherId" = $1 AND s."studentId" IS NOT NULL LIMIT 100',
+      [teacherId],
+    ));
   } else {
-    console.log('\nteacher submission list by teacher-owned subject');
+    console.log('\nteacher-owned route query plans');
     console.log('skipped: no teacherId sample found');
+  }
+
+  if (teacherId && teacherSectionId) {
+    warnings += Number(await explain(
+      'teacher students enrollment roster by section filter',
+      'SELECT e."studentId", e."subjectId", e."sectionId" FROM "Enrollment" e JOIN "Subject" sub ON sub."id" = e."subjectId" WHERE sub."teacherId" = $1 AND e."sectionId" = $2 ORDER BY e."studentId" ASC LIMIT 100',
+      [teacherId, teacherSectionId],
+    ));
+  } else {
+    console.log('\nteacher students enrollment roster by section filter');
+    console.log('skipped: no teacherId or section sample found');
   }
 
   if (subjectId) {
@@ -95,8 +125,20 @@ async function main() {
       'SELECT "id", "createdAt" FROM "Submission" WHERE "subjectId" = $1 AND "status" = $2 ORDER BY "createdAt" DESC LIMIT 100',
       [subjectId, 'SUBMITTED'],
     ));
+
+    warnings += Number(await explain(
+      'student calendar or submit-catalog activities by subject',
+      'SELECT "id", "deadline", "dueAt", "createdAt" FROM "SubmissionTask" WHERE "subjectId" = $1 ORDER BY "createdAt" DESC LIMIT 100',
+      [subjectId],
+    ));
+
+    warnings += Number(await explain(
+      'student submit-catalog groups by subject',
+      'SELECT "id", "createdAt" FROM "Group" WHERE "subjectId" = $1 ORDER BY "createdAt" DESC LIMIT 100',
+      [subjectId],
+    ));
   } else {
-    console.log('\nsubject submissions by status and time');
+    console.log('\nsubject route query plans');
     console.log('skipped: no subjectId sample found');
   }
 
