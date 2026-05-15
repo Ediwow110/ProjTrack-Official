@@ -19,6 +19,7 @@ This document links the blocking evidence issues that must be resolved before me
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims |
 | #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims |
 | #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims |
+| #45 | Failing Vercel external status on `2nd-main` | CI-GATE, DOC-GATE, merge-readiness claims |
 
 ## Evidence helpers
 
@@ -90,6 +91,10 @@ Issue #43 tracks manual GitHub repository setting verification for:
 
 Issue #44 tracks route-boundary pagination and query-plan safety evidence for high-volume subject/submission endpoints. It must not be closed until subject, submission, section, calendar, and teacher-student list paths have explicit bounded behavior and seeded-data query-plan evidence.
 
+### External status verification
+
+Issue #45 tracks the observed failing Vercel status on `2nd-main`. It must not be closed until the latest relevant commit is rechecked and the Vercel status either passes or is explicitly documented as non-blocking with rationale.
+
 ## Resolution rule
 
 Do not close an evidence issue just because a workflow, command, runner, artifact, summary, automatic issue comment, policy, or template exists. Close only after:
@@ -112,7 +117,8 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 | #42 | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, School Scale Validation summary/comment |
 | #43 | `docs/CI_STATUS.md` | `docs/BRANCH_PROTECTION_POLICY.md`, `docs/FINAL_MERGE_GATE.md`, `docs/2ND_MAIN_IMPROVEMENTS.md` |
 | #44 | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `docs/2ND_MAIN_IMPROVEMENTS.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, query-plan checker output, `npm --prefix backend run test:security` evidence |
+| #45 | `docs/CI_STATUS.md` | `docs/2ND_MAIN_IMPROVEMENTS.md`, latest commit status output, Vercel status/risk classification |
 
 ## Current verdict
 
-All listed issues are open. The branch remains not mergeable and cannot honestly claim production readiness, 1000+ concurrency, or 20k-50k school-scale support until the relevant issues are resolved with reviewed and recorded evidence.
+All listed issues are open. The branch remains not mergeable and cannot honestly claim production readiness, green external checks, 1000+ concurrency, or 20k-50k school-scale support until the relevant issues are resolved with reviewed and recorded evidence.
