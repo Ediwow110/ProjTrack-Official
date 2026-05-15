@@ -28,15 +28,15 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 
 | Gate | Blocks merge? | Evidence document | Current status |
 |---|---:|---|---|
-| CI-GATE | Yes | `docs/CI_STATUS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #37, issue #38, issue #41 | Blocked |
+| CI-GATE | Yes | `docs/CI_STATUS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37, issue #38, issue #41 | Blocked |
 | SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/SECURITY_HARDENING_BACKLOG.md`, issue #38 | Blocked |
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md`, issue #38 | Blocked |
-| OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #41 | Blocked |
+| OPS-GATE | Yes | `docs/OPERATIONAL_READINESS.md`, `docs/INCIDENT_RESPONSE.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #41 | Blocked |
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #39, issue #42, migration `20260514000100_school_scale_performance_indexes` | Blocked |
 | LOAD-GATE | Before production | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #40, `load-tests/README.md`, `load-tests/k6.mixed.js` | Blocked |
 | CAPACITY-GATE | Before 20k-50k claim | issues #35/#36/#39/#40/#42, `.github/workflows/school-scale-validation.yml`, `.github/workflows/load-validation.yml`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
-| DOC-GATE | Yes | This tracker, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #37 | Blocked |
+| DOC-GATE | Yes | This tracker, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37 | Blocked |
 
 ## Blocking evidence issues
 
@@ -58,6 +58,7 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | CTRL-03 final merge gate | Done | `docs/FINAL_MERGE_GATE.md` |
 | CTRL-04 evidence issues index | Done | `docs/EVIDENCE_ISSUES_INDEX.md`, issues #37-#42 |
 | CTRL-05 GitHub Actions evidence runbook | Done | `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` |
+| CTRL-06 branch protection policy | Done | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md` |
 | CI-01 README badge/truth audit | Done | `README.md`, `docs/CI_STATUS.md` |
 | CI-05 CI status document | Done | `docs/CI_STATUS.md` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38 |
@@ -104,6 +105,7 @@ Tracking issues: #35 and #36. Blocking evidence issues: #37, #38, #39, #40, #41,
 | PERF-08 static bounded submission service guard | In Progress | `backend/test/security/submission-service-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `scripts/run-local-evidence-gates.mjs`, `package.json` | GitHub Actions `Evidence Gates` or `npm run evidence:local` |
+| CTRL-06 branch protection policy | In Progress | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md` | GitHub repository settings verification |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
 | LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `load-tests/k6.mixed.js` | GitHub Actions manual workflow dispatch |
 | CI-02 run security gate in CI | In Progress | `.github/workflows/ci.yml`, `.github/workflows/production-checks.yml`, `.github/workflows/production-candidate.yml`, `backend/package.json` | GitHub Actions + `npm --prefix backend run test:security` |
@@ -154,6 +156,13 @@ Evidence document: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
 Tracking issue: #42  
 Merge blocker: Before 20k/50k claim
 
+### LIVE-EVIDENCE-07 Verify branch protection and CODEOWNERS enforcement
+Status: Not Started  
+Priority: Critical  
+Evidence document: `docs/CI_STATUS.md`, `docs/BRANCH_PROTECTION_POLICY.md`  
+Merge blocker: Before merge to main or production-readiness claim  
+Notes: Configure and verify GitHub repository settings for required PRs, Code Owner review, required checks, stale approval dismissal, branch up-to-date requirement, conversation resolution, and force-push/deletion restrictions.
+
 ### PERF-03 Finish bounded database list/export cleanup
 Status: In Progress  
 Priority: Critical  
@@ -170,4 +179,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38 first, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 is resolved with recorded evidence.
+Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38 first, verify branch protection/CODEOWNERS settings, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 is resolved with recorded evidence.
