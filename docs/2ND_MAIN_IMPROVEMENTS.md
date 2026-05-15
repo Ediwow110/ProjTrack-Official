@@ -61,7 +61,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | #41 | OPS-GATE, CI-GATE | production-check failure issue creation live-verified |
 | #42 | 20k/50k registered-user claims | `School Scale Validation` tier `20k` and `50k` results recorded |
 | #43 | CI-GATE, DOC-GATE, production-readiness claims | branch protection and CODEOWNERS enforcement verified |
-| #44 | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Subject/submission route-boundary pagination review and seeded query-plan evidence recorded |
+| #44 | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Subject/submission route-boundary pagination review, `SubjectsService.teacherStudents` and `SubjectsService.teacherSections` risk resolution, and seeded query-plan evidence recorded |
 | #45 | CI-GATE, DOC-GATE, merge-readiness claims | Failing Vercel external status resolved or explicitly risk-classified as non-blocking |
 
 ## Done this phase
@@ -99,6 +99,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
+| PERF-13 high-risk route-boundary blockers guarded | In Progress | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts`; guards `SubjectsService.teacherStudents` and `SubjectsService.teacherSections` as unresolved #44 risks |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37; now guards Evidence Gates artifact requirements |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
@@ -127,7 +128,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-10 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql` | `npm --prefix backend run prisma:migrate:deploy` |
 | PERF-11 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` | `npm --prefix backend run check:query-plans` |
 | PERF-12 static bounded submission service guard | In Progress | `backend/test/security/submission-service-static-bounds.spec.ts` | `npm --prefix backend run test:security` |
-| PERF-13 route-boundary and query-plan safety | In Progress | issue #44, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts` | Route-boundary review + `npm --prefix backend run test:security` + seeded query-plan evidence |
+| PERF-13 route-boundary and query-plan safety | In Progress | issue #44, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts`; includes high-risk `teacherStudents` and `teacherSections` blockers | Route-boundary review + `npm --prefix backend run test:security` + seeded query-plan evidence |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `scripts/run-local-evidence-gates.mjs`, `package.json` | GitHub Actions `Evidence Gates` or `npm run evidence:local` |
 | CI-08 external status check | In Progress | `docs/CI_STATUS.md`, issue #45 | Resolve or risk-classify failing Vercel status |
@@ -204,7 +205,7 @@ Priority: Critical
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`  
 Tracking issue: #44  
 Merge blocker: Before 20k/50k registered-user claim  
-Notes: Record route-boundary review and seeded query-plan evidence for subject, submission, section, calendar, and teacher-student list paths.
+Notes: Record route-boundary review, explicit resolution of `SubjectsService.teacherStudents` and `SubjectsService.teacherSections`, and seeded query-plan evidence for subject, submission, section, calendar, and teacher-student list paths.
 
 ### LIVE-EVIDENCE-10 Resolve or risk-classify failing Vercel status
 Status: Not Started  
@@ -219,7 +220,7 @@ Status: In Progress
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`  
 Merge blocker: Yes  
-Notes: Active submission list/export paths, legacy submission repository list helpers, dashboard summary/deadline/activity paths, user/audit/subject repository list helpers, notification feed list helpers, and file metadata/storage listing are bounded. Remaining performance cleanup is route-boundary review, broader query audit, query-plan validation, and evidence from security/performance tests.
+Notes: Active submission list/export paths, legacy submission repository list helpers, dashboard summary/deadline/activity paths, user/audit/subject repository list helpers, notification feed list helpers, and file metadata/storage listing are bounded. Remaining performance cleanup is route-boundary review, high-risk `teacherStudents`/`teacherSections` cleanup, broader query audit, query-plan validation, and evidence from security/performance tests.
 
 ### SEC-14 Complete remaining security hardening backlog
 Status: In Progress  
@@ -230,4 +231,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, resolve or risk-classify issue #45 failing Vercel status, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
+Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, resolve or risk-classify issue #45 failing Vercel status, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence including `teacherStudents` and `teacherSections`, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
