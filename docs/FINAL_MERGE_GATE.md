@@ -2,7 +2,7 @@
 
 Branch under review: `2nd-main`  
 Target branch after approval: `main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Merge rule
 
@@ -31,6 +31,7 @@ The following GitHub issues are merge/claim blockers until resolved with recorde
 - #40: `Load Validation` smoke evidence.
 - #41: production-check failure issue creation live verification.
 - #42: `School Scale Validation` tier `20k` and `50k` evidence.
+- #43: branch protection and CODEOWNERS enforcement verification.
 
 Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
 
@@ -42,6 +43,7 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `production-candidate.yml` reviewed
 - [ ] Branch protection for `main` configured and verified
 - [ ] CODEOWNERS review enforcement verified
+- [ ] Issue #43 resolved with repository-setting verification evidence
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
 - [ ] Issue #37 resolved with recorded command evidence
@@ -108,6 +110,7 @@ Evidence: `docs/TESTING_STRATEGY.md`, `backend/test/security/submission-service-
 - [ ] Monitoring/alerts documented
 - [ ] Production-check failure issue path live-verified
 - [ ] Issue #41 resolved with recorded failure-visibility evidence
+- [ ] Branch protection and CODEOWNERS enforcement verified before production-readiness claim
 - [ ] Incident tabletop/drill evidence recorded
 - [ ] Backup/restore drill evidence recorded or explicitly deferred with owner/date
 - [ ] Correlation/request ID logging verified end-to-end
@@ -121,6 +124,7 @@ Evidence:
 - `docs/INCIDENT_RESPONSE.md`
 - `docs/PRODUCTION_CHECK_FAILURE_RUNBOOK.md`
 - `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`
+- `docs/BRANCH_PROTECTION_POLICY.md`
 
 ## PERF-GATE
 
@@ -205,6 +209,7 @@ Evidence:
 - [ ] Issue #37 resolved with release guard evidence
 - [ ] Release evidence checklist reviewed
 - [ ] Branch protection policy documented and verified
+- [ ] Issue #43 resolved with branch protection and CODEOWNERS verification evidence
 - [ ] No README/product claim says 20k-50k support until school-scale evidence passes
 - [ ] No README/product claim says 1000+ concurrent users until load evidence passes
 - [ ] `docs/EVIDENCE_DOCS_INDEX.md` is current
