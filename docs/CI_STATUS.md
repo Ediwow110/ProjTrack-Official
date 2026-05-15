@@ -63,6 +63,7 @@ Current structure:
 - `npm run evidence:local`
 - upload generated `local-evidence-report` artifact
 - GitHub step summary
+- automatic comments on issues #37 and #38
 
 Evidence targets:
 
@@ -72,7 +73,7 @@ Evidence targets:
 - issue #37
 - issue #38
 
-Risk note: this workflow produces evidence artifacts. It does not automatically mark gates passed. A human must review the artifact and update the evidence documents.
+Risk note: this workflow produces evidence artifacts and issue comments. It does not automatically mark gates passed. A human must review the artifact and update the evidence documents.
 
 ### `.github/workflows/production-checks.yml`
 
@@ -116,11 +117,36 @@ Purpose: manual data-volume, migration, seed, and query-plan validation for 1k, 
 
 Evidence target: `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`
 
+Traceability:
+
+- tier `1k` comments on issue #39.
+- tiers `20k` and `50k` comment on issue #42.
+
 ### `.github/workflows/load-validation.yml`
 
 Purpose: manual k6 runtime concurrency validation for smoke, 300, 500, 1000, 2000 VU, and soak-style runs.
 
 Evidence target: `docs/LOAD_TEST_RESULTS.md`
+
+Traceability:
+
+- every run comments on issue #40.
+
+## Repository protection
+
+Policy document: `docs/BRANCH_PROTECTION_POLICY.md`
+
+Required before production-readiness or merge readiness:
+
+- `main` requires pull requests before merge.
+- Code Owner review is enforced.
+- Required status checks are configured.
+- Stale approvals are dismissed on new commits.
+- Branches must be up to date before merge.
+- Conversations must be resolved before merge.
+- Force pushes and deletions are restricted.
+
+Current status: policy documented, repository setting verification not yet recorded.
 
 ## Security test gate
 
@@ -175,14 +201,16 @@ or manually run GitHub Actions workflow:
 Evidence Gates
 ```
 
-The generated report or artifact must be reviewed and summarized into this document and `docs/SECURITY_ACCEPTANCE_GATE.md`. Do not mark #37 or #38 resolved just because the workflow exists.
+The generated report or artifact must be reviewed and summarized into this document and `docs/SECURITY_ACCEPTANCE_GATE.md`. Do not mark #37 or #38 resolved just because the workflow exists or comments on the issues.
 
 ## Failure visibility
 
 Implemented:
 
 - `ci.yml` writes frontend, backend, and E2E job summaries to `GITHUB_STEP_SUMMARY`.
-- `evidence-gates.yml` uploads a local-equivalent evidence report artifact.
+- `evidence-gates.yml` uploads a local-equivalent evidence report artifact and comments on issues #37/#38.
+- `school-scale-validation.yml` comments on issue #39 or #42 depending on tier.
+- `load-validation.yml` comments on issue #40.
 - `production-checks.yml` creates or updates a GitHub issue when a production gate fails.
 - Manual school-scale and load-validation workflows write GitHub step summaries.
 - Backend summaries explicitly call out unresolved performance/capacity evidence gaps.
@@ -192,10 +220,11 @@ Still missing:
 - Live verification that the production-check failure issue path works in GitHub Actions.
 - Owner/escalation routing beyond the GitHub issue.
 - Recorded latest workflow run URLs/results.
+- Verification that branch protection and Code Owner review enforcement are enabled in repository settings.
 
 ## Current Status
 
-Not fully verified in this document yet. Workflow files and package scripts have been updated, but current GitHub Actions run results still need to be recorded after the branch runs.
+Not fully verified in this document yet. Workflow files, package scripts, CODEOWNERS, PR template, and branch-protection policy have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
 
 ## Verification Commands
 
@@ -227,12 +256,13 @@ npm run e2e:responsive
 2. Evidence Gates workflow exists, but no result/artifact is recorded here.
 3. Production-gate failure issue path is implemented but not live-verified.
 4. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
-5. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
-6. Smoke tests depend on configured smoke account secrets.
-7. README badge verification is static; live badge status still depends on Actions results.
-8. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
-9. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-10. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+5. Branch protection and Code Owner enforcement are documented but not verified.
+6. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+7. Smoke tests depend on configured smoke account secrets.
+8. README badge verification is static; live badge status still depends on Actions results.
+9. Active submission list/export paths are bounded, but legacy repository list helpers still need cleanup or risk acceptance.
+10. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+11. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
@@ -240,6 +270,7 @@ npm run e2e:responsive
 - [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
+- [ ] Branch protection and Code Owner review enforcement are verified.
 - [ ] Dependency audit passes or exceptions are documented.
 - [ ] Secret scan passes.
 - [ ] Capacity claim check passes.
@@ -250,4 +281,4 @@ npm run e2e:responsive
 
 ## Current verdict
 
-CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, and production-check failure issue creation. It is still not final-gate complete until live passing runs, production failure notification verification, school-scale evidence, and load evidence are recorded.
+CI now includes security, hygiene, capacity-claim guardrails, a manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, and a branch-protection policy. It is still not final-gate complete until live passing runs, production failure notification verification, repository settings verification, school-scale evidence, and load evidence are recorded.
