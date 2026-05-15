@@ -163,7 +163,13 @@ Required before production-readiness or merge readiness:
 - Conversations must be resolved before merge.
 - Force pushes and deletions are restricted.
 
-Current status: policy documented, repository setting verification not yet recorded.
+File-level controls present:
+
+- `.github/CODEOWNERS` exists and covers workflows, final/evidence docs, release/security/capacity scripts, backend security tests, school-scale/load workflows, and performance-critical backend paths.
+- `.github/pull_request_template.md` exists and now references evidence issues #37-#45 in the final-gate checklist and reviewer hard stop.
+- `docs/BRANCH_PROTECTION_POLICY.md` now lists #37-#45 as issues that must not be bypassed without explicit risk acceptance.
+
+Current status: policy and file-level controls are documented, but actual GitHub branch protection setting verification is not yet recorded. Issue #43 remains open.
 
 ## Security test gate
 
