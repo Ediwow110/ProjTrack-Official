@@ -11,6 +11,8 @@ import {
   TeacherActivityDto,
 } from './dto/subject-action.dto';
 
+const DEFAULT_TEACHER_STUDENTS_TAKE = 100;
+const MAX_TEACHER_STUDENTS_TAKE = 500;
 const DEFAULT_TEACHER_SECTIONS_TAKE = 100;
 const MAX_TEACHER_SECTIONS_TAKE = 500;
 
@@ -74,8 +76,17 @@ export class SubjectsController {
 
   @Roles('TEACHER')
   @Get('teacher/students')
-  teacherStudents(@Req() req: any, @Query('search') search?: string, @Query('section') section?: string) {
-    return this.subjects.teacherStudents(req.user?.sub, search, section);
+  async teacherStudents(
+    @Req() req: any,
+    @Query('search') search?: string,
+    @Query('section') section?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    const rows = await this.subjects.teacherStudents(req.user?.sub, search, section);
+    const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_STUDENTS_TAKE, MAX_TEACHER_STUDENTS_TAKE);
+    const boundedSkip = parsePositiveInt(skip, 0);
+    return rows.slice(boundedSkip, boundedSkip + boundedTake);
   }
 
   @Roles('TEACHER')
