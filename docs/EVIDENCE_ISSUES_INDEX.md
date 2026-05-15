@@ -5,21 +5,26 @@ Last updated: 2026-05-15
 
 ## Purpose
 
-This document links the blocking evidence issues that must be resolved before merge, production-readiness, or school-scale claims.
+This document links the evidence issues that must be resolved before merge, production-readiness, or school-scale claims.
 
 ## Blocking evidence issues
 
-| Issue | Evidence area | Blocks |
+| Issue | Evidence area | Blocks | Status |
+|---:|---|---|---|
+| #37 | Capacity claim, release guard wiring, release hygiene checks | DOC-GATE, CI-GATE, capacity/readiness claims | Open |
+| #38 | Backend build, security tests, unit tests, secret scan, dependency audit | SEC-GATE, TEST-GATE, CI-GATE | Open |
+| #39 | `School Scale Validation` tier `1k` | CAPACITY-GATE baseline | Open |
+| #40 | `Load Validation` smoke test | LOAD-GATE baseline | Open |
+| #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE | Open |
+| #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims | Open |
+| #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims | Open |
+| #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Open |
+
+## Resolved evidence issues
+
+| Issue | Evidence area | Resolution |
 |---:|---|---|
-| #37 | Capacity claim, release guard wiring, release hygiene checks | DOC-GATE, CI-GATE, capacity/readiness claims |
-| #38 | Backend build, security tests, unit tests, secret scan, dependency audit | SEC-GATE, TEST-GATE, CI-GATE |
-| #39 | `School Scale Validation` tier `1k` | CAPACITY-GATE baseline |
-| #40 | `Load Validation` smoke test | LOAD-GATE baseline |
-| #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE |
-| #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims |
-| #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims |
-| #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims |
-| #45 | Failing Vercel external status on `2nd-main` | CI-GATE, DOC-GATE, merge-readiness claims |
+| #45 | Failing Vercel external status on `2nd-main` | Closed after latest checked commit `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2` reported `Vercel = success`. This only resolves the external Vercel status blocker; it does not prove GitHub Actions, backend security tests, route-boundary/query-plan safety, school-scale validation, or load validation. |
 
 ## Evidence helpers
 
@@ -93,7 +98,7 @@ Issue #44 tracks route-boundary pagination and query-plan safety evidence for hi
 
 ### External status verification
 
-Issue #45 tracks the observed failing Vercel status on `2nd-main`. It must not be closed until the latest relevant commit is rechecked and the Vercel status either passes or is explicitly documented as non-blocking with rationale.
+Issue #45 tracked the observed failing Vercel status on `2nd-main`. It was closed only after the latest checked commit was rechecked and the Vercel status returned success.
 
 ## Resolution rule
 
@@ -121,4 +126,4 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 
 ## Current verdict
 
-All listed issues are open. The branch remains not mergeable and cannot honestly claim production readiness, green external checks, 1000+ concurrency, or 20k-50k school-scale support until the relevant issues are resolved with reviewed and recorded evidence.
+Issues #37-#44 remain open. The latest checked Vercel blocker tracked by #45 is resolved, but the branch remains not mergeable and cannot honestly claim production readiness, fully green GitHub Actions/evidence gates, 1000+ concurrency, or 20k-50k school-scale support until the remaining open issues are resolved with reviewed and recorded evidence.
