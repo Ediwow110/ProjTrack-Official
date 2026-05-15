@@ -188,6 +188,8 @@ CI integration:
 
 Current security test files include auth abuse, session abuse, authorization guardrails, service-level authorization, file access, input hardening, health redaction, webhook abuse, admin runtime authorization, teacher export scope, static bounded-submission service guard, repository list bounds, dashboard static bounds, file list bounds, route-boundary evidence guard, and performance-bound tests.
 
+Recent route-boundary hardening includes controller-level response caps for `GET /teacher/students` and `GET /teacher/sections`. These are partial mitigations only: both paths still require DB-level cap/query-plan evidence before issue #44 can close or before any 20k-50k registered-user claim.
+
 ## Capacity claim gate
 
 A dedicated capacity claim check exists:
@@ -248,7 +250,7 @@ Still missing:
 
 ## Current Status
 
-Not fully verified. The latest inspected commit reports `Vercel = failure` due to a build-rate-limit target URL, so issue #45 is reopened. No GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
+Not fully verified. The latest inspected commit reports `Vercel = failure` due to a build-rate-limit target URL, so issue #45 is reopened. No GitHub Actions workflow runs were found attached to that commit through the connector. Workflow files, package scripts, CODEOWNERS, PR template, branch-protection policy, route-boundary response caps, and scale-hardening tests have been updated, but current GitHub Actions run results and repository settings verification still need to be recorded.
 
 ## Verification Commands
 
@@ -287,8 +289,9 @@ npm run e2e:responsive
 9. README badge verification is static; live badge status still depends on Actions results.
 10. Security/performance test evidence is not recorded after repository/dashboard/file/route-boundary guard changes.
 11. Issue #44 route-boundary and seeded query-plan evidence is not recorded.
-12. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
-13. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
+12. `GET /teacher/students` and `GET /teacher/sections` are response-capped but still require DB-level cap/query-plan evidence.
+13. School-scale validation workflow exists, but no 1k/20k/50k result is recorded.
+14. Load-validation workflow exists, but no smoke/300/500/1000/2000 result is recorded.
 
 ## Required Before Merge to Main
 
@@ -309,4 +312,4 @@ npm run e2e:responsive
 
 ## Current verdict
 
-CI now includes security, hygiene, capacity-claim guardrails, a stricter manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, branch-protection policy, and additional scale-hardening regression guards. It is still not final-gate complete until the Vercel status is resolved or risk-classified, live passing GitHub Actions/evidence runs are recorded, production failure notification verification is complete, repository settings are verified, school-scale evidence is recorded, load evidence is recorded, and issue #44 evidence is complete.
+CI now includes security, hygiene, capacity-claim guardrails, a stricter manual evidence-gates workflow, manual validation workflows, issue-comment traceability, production-check failure issue creation, CODEOWNERS, PR template, branch-protection policy, additional scale-hardening regression guards, and controller-level response caps for teacher students/sections. It is still not final-gate complete until the Vercel status is resolved or risk-classified, live passing GitHub Actions/evidence runs are recorded, production failure notification verification is complete, repository settings are verified, school-scale evidence is recorded, load evidence is recorded, and issue #44 DB-level/query-plan evidence is complete.
