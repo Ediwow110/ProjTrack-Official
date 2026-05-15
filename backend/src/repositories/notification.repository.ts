@@ -1,9 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+const DEFAULT_NOTIFICATION_LIST_TAKE = 50;
+const MAX_NOTIFICATION_LIST_TAKE = 200;
+
+type NotificationListOptions = {
+  take?: number;
+  skip?: number;
+};
+
 @Injectable()
 export class NotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private clampListTake(take?: number) {
+    if (!Number.isFinite(take)) return DEFAULT_NOTIFICATION_LIST_TAKE;
+    return Math.max(1, Math.min(Math.floor(Number(take)), MAX_NOTIFICATION_LIST_TAKE));
+  }
+
+  private clampListSkip(skip?: number) {
+    if (!Number.isFinite(skip)) return 0;
+    return Math.max(0, Math.floor(Number(skip)));
+  }
 
   async create(input: {
     userId: string;
@@ -43,8 +61,10 @@ export class NotificationRepository {
     });
   }
 
-  async listForUser(userId: string) {
+  async listForUser(userId: string, options: NotificationListOptions = {}) {
     return this.prisma.notification.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
