@@ -22,17 +22,17 @@ Do not confuse registered users with concurrent users:
 - 1000+ concurrent active users requires passing load-test evidence, database connection headroom, memory stability, and slow-query review.
 - 20k-50k concurrent active users is not claimed and would require a separate architecture program.
 
-Tracking issues: #35 and #36. Open blocking evidence issues: #37, #38, #39, #40, #41, #42, #43, and #44. Resolved evidence issue: #45.
+Tracking issues: #35 and #36. Open blocking evidence issues: #37, #38, #39, #40, #41, #42, #43, #44, and #45.
 
 ## Latest observed external status
 
-Latest checked commit: `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2`
+Latest checked commit: `81a1bd63eb3719c60bac5c7b2c858c08f7330730`
 
 | Context | State | Gate impact |
 |---|---|---|
-| Vercel | success | External Vercel status is resolved for the latest checked commit. This resolves issue #45 only; it does not prove GitHub Actions, backend security tests, Evidence Gates, route-boundary/query-plan safety, school-scale validation, or load validation. |
+| Vercel | failure | External deployment/check blocker. Target URL points to a Vercel build-rate-limit upgrade page. This is not evidence that backend security/performance tests failed, but it blocks any claim that current external checks are green. Issue #45 is reopened. |
 
-Earlier checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` had `Vercel = failure` with a target URL pointing to a Vercel build-rate-limit upgrade page. Issue #45 was closed after the newer commit reported `Vercel = success` and the result was recorded in the issue thread.
+Earlier checked commit `7b0a305506c55ff0568d2c019dd6d7ceef3596d4` had `Vercel = success`, but the latest checked Evidence Gates hardening commit regressed to `Vercel = failure`.
 
 No GitHub Actions workflow runs were found attached to the latest checked commit through the connector. Evidence Gates and backend security/performance evidence remain unrecorded.
 
@@ -40,7 +40,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 
 | Gate | Blocks merge? | Evidence document | Current status |
 |---|---:|---|---|
-| CI-GATE | Yes | `docs/CI_STATUS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37, issue #38, issue #41, issue #43 | Blocked |
+| CI-GATE | Yes | `docs/CI_STATUS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37, issue #38, issue #41, issue #43, issue #45 | Blocked |
 | SEC-GATE | Yes | `docs/THREAT_MODEL.md`, `docs/SECURITY_TEST_PLAN.md`, `docs/SECURITY_REVIEW.md`, `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/SECURITY_HARDENING_BACKLOG.md`, issue #38 | Blocked |
 | AUTHZ-GATE | Yes | `docs/AUTHORIZATION_MATRIX.md` | In Progress |
 | TEST-GATE | Yes | `docs/TESTING_STRATEGY.md`, issue #38 | Blocked |
@@ -48,7 +48,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-GATE | Yes | `docs/CODE_AUDIT.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #39, issue #42, issue #44, migration `20260514000100_school_scale_performance_indexes` | Blocked |
 | LOAD-GATE | Before production | `.github/workflows/load-validation.yml`, `docs/LOAD_TEST_PLAN.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, issue #40, `load-tests/README.md`, `load-tests/k6.mixed.js` | Blocked |
 | CAPACITY-GATE | Before 20k-50k claim | issues #35/#36/#39/#40/#42/#44, `.github/workflows/school-scale-validation.yml`, `.github/workflows/load-validation.yml`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, `docs/LOAD_TEST_RESULTS.md`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | Blocked |
-| DOC-GATE | Yes | This tracker, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37, issue #43 | Blocked |
+| DOC-GATE | Yes | This tracker, `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`, issue #37, issue #43, issue #45 | Blocked |
 
 ## Blocking evidence issues
 
@@ -62,12 +62,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | #42 | 20k/50k registered-user claims | `School Scale Validation` tier `20k` and `50k` results recorded |
 | #43 | CI-GATE, DOC-GATE, production-readiness claims | branch protection and CODEOWNERS enforcement verified |
 | #44 | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Subject/submission route-boundary pagination review and seeded query-plan evidence recorded |
-
-## Resolved evidence issues
-
-| Issue | Resolution |
-|---:|---|
-| #45 | Closed after latest checked commit `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2` reported `Vercel = success`. This resolves only the external Vercel status blocker. |
+| #45 | CI-GATE, DOC-GATE, merge-readiness claims | Failing Vercel external status resolved or explicitly risk-classified as non-blocking |
 
 ## Done this phase
 
@@ -76,13 +71,13 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | CTRL-01 master tracker | Done | `docs/2ND_MAIN_IMPROVEMENTS.md` |
 | CTRL-02 code audit | Done | `docs/CODE_AUDIT.md` |
 | CTRL-03 final merge gate | Done | `docs/FINAL_MERGE_GATE.md` |
-| CTRL-04 evidence issues index | Done | `docs/EVIDENCE_ISSUES_INDEX.md`, open issues #37-#44, resolved issue #45 |
+| CTRL-04 evidence issues index | Done | `docs/EVIDENCE_ISSUES_INDEX.md`, open issues #37-#45 |
 | CTRL-05 GitHub Actions evidence runbook | Done | `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` |
 | CTRL-06 branch protection policy | Done | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue #43 |
 | CI-01 README badge/truth audit | Done | `README.md`, `docs/CI_STATUS.md` |
 | CI-05 CI status document | Done | `docs/CI_STATUS.md` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38 |
-| CI-08 latest external status check | Done | `docs/CI_STATUS.md`, issue #45, Vercel success on checked commit `6ec6c8ba6c3007fe63151dcfcd6696798c9aaba2` |
+| CI-08 latest external status check | In Progress | `docs/CI_STATUS.md`, issue #45, Vercel failure on checked commit `81a1bd63eb3719c60bac5c7b2c858c08f7330730` |
 | SEC-01 threat model | Done | `docs/THREAT_MODEL.md` |
 | SEC-02 authorization matrix | Done | `docs/AUTHORIZATION_MATRIX.md` |
 | SEC-03 security test plan | Done | `docs/SECURITY_TEST_PLAN.md` |
@@ -135,7 +130,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-13 route-boundary and query-plan safety | In Progress | issue #44, `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts` | Route-boundary review + `npm --prefix backend run test:security` + seeded query-plan evidence |
 | CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json` | `npm run check:release-hygiene` |
 | CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `scripts/run-local-evidence-gates.mjs`, `package.json` | GitHub Actions `Evidence Gates` or `npm run evidence:local` |
-| CI-08 external status check | Done | `docs/CI_STATUS.md`, issue #45 | Latest checked Vercel status succeeded |
+| CI-08 external status check | In Progress | `docs/CI_STATUS.md`, issue #45 | Resolve or risk-classify failing Vercel status |
 | CTRL-06 branch protection policy | In Progress | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md` | GitHub repository settings verification, issue #43 |
 | CAPACITY-05 manual school-scale validation workflow | In Progress | `.github/workflows/school-scale-validation.yml` | GitHub Actions manual workflow dispatch |
 | LOAD-06 manual load validation workflow | In Progress | `.github/workflows/load-validation.yml`, `load-tests/k6.mixed.js` | GitHub Actions manual workflow dispatch |
@@ -211,6 +206,14 @@ Tracking issue: #44
 Merge blocker: Before 20k/50k registered-user claim  
 Notes: Record route-boundary review and seeded query-plan evidence for subject, submission, section, calendar, and teacher-student list paths.
 
+### LIVE-EVIDENCE-10 Resolve or risk-classify failing Vercel status
+Status: Not Started  
+Priority: High  
+Evidence document: `docs/CI_STATUS.md`  
+Tracking issue: #45  
+Merge blocker: Before merge readiness claim  
+Notes: Latest inspected commit status has `Vercel` failure with target URL indicating Vercel build-rate-limit. This is not backend test evidence, but it must be resolved or documented as non-blocking before claiming green external checks.
+
 ### PERF-03 Finish broader query scale cleanup
 Status: In Progress  
 Priority: Critical  
@@ -227,4 +230,4 @@ Notes: Rate-limit runtime, signed URL TTL, malware fail-closed, pagination/sort/
 
 ## Immediate next move
 
-Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
+Run GitHub Actions `Evidence Gates` or `npm run evidence:local` to resolve issues #37 and #38, resolve or risk-classify issue #45 failing Vercel status, verify branch protection/CODEOWNERS settings through issue #43, complete issue #44 route-boundary/query-plan evidence, then run issue #39 baseline school-scale validation and issue #40 load smoke validation. Do not claim 20k-50k school-scale support until issue #42 and issue #44 are resolved with recorded evidence.
