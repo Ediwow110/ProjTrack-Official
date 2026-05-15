@@ -10,6 +10,14 @@ import { UploadBase64Dto, UploadScopeDto } from './dto/upload-file.dto';
 export class FilesController {
   constructor(private readonly files: FilesService) {}
 
+  private parseOptionalPositiveInt(value: unknown) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return undefined;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return undefined;
+    return Math.max(0, Math.floor(parsed));
+  }
+
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', {
@@ -41,8 +49,16 @@ export class FilesController {
 
   @Roles('TEACHER', 'ADMIN')
   @Get()
-  list(@Query('scope') scope: string | undefined, @Req() req: any) {
-    return this.files.list(scope, { userId: req.user?.sub, role: req.user?.role });
+  list(
+    @Query('scope') scope: string | undefined,
+    @Query('take') take: string | undefined,
+    @Query('skip') skip: string | undefined,
+    @Req() req: any,
+  ) {
+    return this.files.list(scope, { userId: req.user?.sub, role: req.user?.role }, {
+      take: this.parseOptionalPositiveInt(take),
+      skip: this.parseOptionalPositiveInt(skip),
+    });
   }
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
