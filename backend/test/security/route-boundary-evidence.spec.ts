@@ -6,6 +6,10 @@ describe('route-boundary evidence guard', () => {
     join(process.cwd(), 'src', 'subjects', 'subjects.controller.ts'),
     'utf8',
   );
+  const subjectsServiceSource = readFileSync(
+    join(process.cwd(), 'src', 'subjects', 'subjects.service.ts'),
+    'utf8',
+  );
   const submissionsControllerSource = readFileSync(
     join(process.cwd(), 'src', 'submissions', 'submissions.controller.ts'),
     'utf8',
@@ -34,5 +38,14 @@ describe('route-boundary evidence guard', () => {
     expect(performanceGateSource).toContain('Issue #44 tracks subject/submission route-boundary pagination and seeded query-plan safety.');
     expect(performanceGateSource).toContain('PERF-FINDING-009: subject/submission route-boundary and query-plan safety remains open');
     expect(performanceGateSource).toContain('Issue #44 is unresolved for a 20k-50k registered-user claim.');
+  });
+
+  it('keeps the highest-risk subject service route-boundary blockers explicit', () => {
+    expect(subjectsServiceSource).toContain('async teacherStudents(');
+    expect(subjectsServiceSource).toContain('async teacherSections(');
+    expect(performanceGateSource).toContain('SubjectsService.teacherStudents');
+    expect(performanceGateSource).toContain('submission progress `findMany` without an explicit `take`');
+    expect(performanceGateSource).toContain('SubjectsService.teacherSections');
+    expect(performanceGateSource).toContain('direct `section.findMany` with included students/enrollments and no explicit `take`');
   });
 });
