@@ -40,12 +40,21 @@ describe('route-boundary evidence guard', () => {
     expect(performanceGateSource).toContain('Issue #44 is unresolved for a 20k-50k registered-user claim.');
   });
 
-  it('keeps the highest-risk subject service route-boundary blockers explicit', () => {
+  it('keeps teacher sections route response pagination explicit', () => {
+    expect(subjectsControllerSource).toContain('DEFAULT_TEACHER_SECTIONS_TAKE = 100');
+    expect(subjectsControllerSource).toContain('MAX_TEACHER_SECTIONS_TAKE = 500');
+    expect(subjectsControllerSource).toContain("@Query('take') take?: string");
+    expect(subjectsControllerSource).toContain("@Query('skip') skip?: string");
+    expect(subjectsControllerSource).toContain('parseBoundedTake(take, DEFAULT_TEACHER_SECTIONS_TAKE, MAX_TEACHER_SECTIONS_TAKE)');
+    expect(subjectsControllerSource).toContain('rows.slice(boundedSkip, boundedSkip + boundedTake)');
+  });
+
+  it('keeps the remaining highest-risk subject service blockers explicit', () => {
     expect(subjectsServiceSource).toContain('async teacherStudents(');
     expect(subjectsServiceSource).toContain('async teacherSections(');
     expect(performanceGateSource).toContain('SubjectsService.teacherStudents');
     expect(performanceGateSource).toContain('submission progress `findMany` without an explicit `take`');
     expect(performanceGateSource).toContain('SubjectsService.teacherSections');
-    expect(performanceGateSource).toContain('direct `section.findMany` with included students/enrollments and no explicit `take`');
+    expect(performanceGateSource).toContain('controller-level response-capped but still requires DB-level cap/query-plan evidence');
   });
 });
