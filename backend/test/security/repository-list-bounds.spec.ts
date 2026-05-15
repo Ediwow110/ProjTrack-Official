@@ -10,6 +10,10 @@ describe('repository list bounds guard', () => {
     join(process.cwd(), 'src', 'repositories', 'user.repository.ts'),
     'utf8',
   );
+  const subjectRepositorySource = readFileSync(
+    join(process.cwd(), 'src', 'repositories', 'subject.repository.ts'),
+    'utf8',
+  );
 
   it('keeps audit log listing hard bounded', () => {
     expect(auditRepositorySource).toContain('MAX_AUDIT_LOG_LIST_TAKE = 500');
@@ -22,5 +26,20 @@ describe('repository list bounds guard', () => {
     expect(userRepositorySource).toContain('take: this.clampListTake(options.take)');
     expect(userRepositorySource).toContain('skip: this.clampListSkip(options.skip)');
     expect(userRepositorySource).toContain("return this.listByRole('STUDENT', options)");
+  });
+
+  it('keeps subject, activity, and group listing hard bounded', () => {
+    expect(subjectRepositorySource).toContain('MAX_SUBJECT_REPOSITORY_LIST_TAKE = 500');
+    expect(subjectRepositorySource).toContain('MAX_SUBJECT_ACTIVITY_LIST_TAKE = 500');
+    expect(subjectRepositorySource).toContain('MAX_SUBJECT_GROUP_LIST_TAKE = 500');
+    expect(subjectRepositorySource).toContain('skip: this.clampListSkip(options.skip)');
+    expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE');
+    expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_ACTIVITY_LIST_TAKE');
+    expect(subjectRepositorySource).toContain('DEFAULT_SUBJECT_GROUP_LIST_TAKE');
+  });
+
+  it('does not load full submissions arrays for subject activity listing', () => {
+    expect(subjectRepositorySource).not.toContain('include: { submissions: true }');
+    expect(subjectRepositorySource).toContain('include: { _count: { select: { submissions: true } } }');
   });
 });
