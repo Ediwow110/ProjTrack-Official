@@ -36,6 +36,7 @@ Implemented:
 - User repository list helpers now enforce default/hard caps and skip bounds.
 - Audit-log repository list helper now enforces default/hard caps and skip bounds.
 - Subject, subject-activity, subject-group, student-subject, and teacher-subject repository list helpers now enforce default/hard caps and skip bounds.
+- Teacher students controller now exposes bounded `take`/`skip` response pagination with default `take = 100` and max `take = 500`.
 - Teacher sections controller now exposes bounded `take`/`skip` response pagination with default `take = 100` and max `take = 500`.
 - Notification feed repository list helper now enforces default/hard caps and skip bounds.
 - Notification feed controller and service now pass explicit bounded `take`/`skip` pagination to the repository.
@@ -56,7 +57,7 @@ Still open:
 
 - Security/performance test run evidence is not recorded after the repository/dashboard/file bounds cleanup.
 - Issue #44 route-boundary and query-plan evidence is not recorded.
-- `SubjectsService.teacherStudents` remains a high-risk #44 path because it aggregates enrollments in memory and performs a submission progress `findMany` without an explicit `take`.
+- `SubjectsService.teacherStudents` is controller-level response-capped but still requires DB-level cap/query-plan evidence because it aggregates enrollments in memory and performs a submission progress `findMany` without an explicit `take` before slicing.
 - `SubjectsService.teacherSections` is controller-level response-capped but still requires DB-level cap/query-plan evidence because the service performs direct `section.findMany` with included students/enrollments before slicing.
 - Index migration must be deployed and validated with query-plan evidence.
 - Tiered school-scale workflow results are not recorded.
@@ -88,6 +89,7 @@ npm --prefix backend run test:security
 - [x] Legacy submission repository list helpers bounded
 - [x] User and audit-log repository list helpers bounded
 - [x] Subject repository list helpers bounded
+- [x] Teacher students controller response pagination guarded
 - [x] Teacher sections controller response pagination guarded
 - [x] Notification feed repository list helper bounded
 - [x] Notification feed API pagination boundary guarded
@@ -118,13 +120,13 @@ Evidence required:
 
 Current highest-risk unresolved paths:
 
-- `SubjectsService.teacherStudents`: aggregates enrollments in memory and performs a submission progress `findMany` without explicit `take`.
+- `SubjectsService.teacherStudents`: teacher students route is controller-level response-capped but still requires DB-level cap/query-plan evidence because the service aggregates enrollments in memory and performs a submission progress `findMany` without explicit `take` before slicing.
 - `SubjectsService.teacherSections`: controller-level response-capped but still requires DB-level cap/query-plan evidence because the service performs direct `section.findMany` with included students/enrollments before slicing.
 
 Remaining cleanup:
 
 - Resolve issue #44 before any 20k-50k registered-user claim.
-- Refactor, cap, or explicitly risk-accept `teacherStudents` with seeded query-plan evidence.
+- Add DB-level cap/query-plan evidence for `teacherStudents` before treating it as fully mitigated.
 - Add DB-level cap/query-plan evidence for `teacherSections` before treating it as fully mitigated.
 
 ## Executable regression evidence
@@ -156,12 +158,13 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] User repository list methods are bounded.
 - [x] Audit-log repository list methods are bounded.
 - [x] Subject repository list methods are bounded.
+- [x] Teacher students route response pagination is controller-bounded.
 - [x] Teacher sections route response pagination is controller-bounded.
 - [x] Notification feed list method is bounded.
 - [x] File metadata listing is bounded.
 - [x] Dashboard queries are bounded.
 - [ ] Issue #44 route-boundary and query-plan evidence is recorded.
-- [ ] `SubjectsService.teacherStudents` is capped/refactored or risk-accepted with seeded evidence.
+- [ ] `SubjectsService.teacherStudents` has DB-level cap/query-plan evidence recorded.
 - [ ] `SubjectsService.teacherSections` has DB-level cap/query-plan evidence recorded.
 - [ ] Tiered workflow results are recorded.
 - [ ] Dashboard query plans are validated against seeded data.
@@ -177,6 +180,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 - [x] Student submission list API response is capped.
 - [x] Teacher submission list API response is capped.
 - [x] Teacher export response is capped and reports truncation.
+- [x] Teacher students API response is capped with bounded `take`/`skip` parsing.
 - [x] Teacher sections API response is capped with bounded `take`/`skip` parsing.
 - [x] Notification feed response is capped at repository layer.
 - [x] Notification feed API pagination boundary is explicit.
@@ -195,7 +199,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 
 - Issue #35 or #36 has no recorded capacity evidence for the claimed tier.
 - Issue #44 is unresolved for a 20k-50k registered-user claim.
-- `SubjectsService.teacherStudents` remains uncapped, unrefactored, or unvalidated for a school-scale claim.
+- `SubjectsService.teacherStudents` lacks DB-level cap/query-plan evidence for a school-scale claim.
 - `SubjectsService.teacherSections` lacks DB-level cap/query-plan evidence for a school-scale claim.
 - Any critical active service path has unbounded database list queries.
 - Any high-volume route performs database queries inside unbounded loops.
@@ -212,7 +216,7 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 3. Tier 3 school-scale validation workflow result is not recorded.
 4. Security/performance test evidence is not recorded after repository/dashboard/file bounds cleanup.
 5. Issue #44 route-boundary/query-plan evidence is not recorded.
-6. `SubjectsService.teacherStudents` remains uncapped/unvalidated for school-scale claims.
+6. `SubjectsService.teacherStudents` has route response pagination but still needs DB-level cap/query-plan evidence.
 7. `SubjectsService.teacherSections` has route response pagination but still needs DB-level cap/query-plan evidence.
 8. Broader query audit is incomplete.
 9. No 300-user, 500-user, 1000-user, or 2000-user evidence exists.
@@ -225,4 +229,4 @@ Active service-path tests prove bounded DB reads for student list, teacher list,
 
 ## Current acceptance decision
 
-Not accepted. High-volume submission list/export active service paths are database-bounded, teacher sections route responses are capped, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results, load-test evidence, issue #44 route-boundary/query-plan evidence, explicit resolution of `teacherStudents`, and DB-level cap/query-plan evidence for `teacherSections` are recorded.
+Not accepted. High-volume submission list/export active service paths are database-bounded, teacher students and teacher sections route responses are capped, legacy/user/audit/subject/notification repository list helpers are bounded, notification and file listing API pagination boundaries are explicit, file metadata/storage listing is bounded, dashboard summaries/activity are count-based and bounded, indexes exist, query-plan validation is executable, and a manual school-scale workflow exists. School-scale claims remain blocked until tiered workflow results, load-test evidence, issue #44 route-boundary/query-plan evidence, and DB-level cap/query-plan evidence for `teacherStudents` and `teacherSections` are recorded.
