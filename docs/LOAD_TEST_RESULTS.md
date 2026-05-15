@@ -14,7 +14,7 @@ This document records concurrency/load evidence. It is separate from `docs/SCHOO
 - School-scale validation proves synthetic registered-user data volume and representative query plans.
 - Load testing proves runtime behavior under concurrent traffic for the specific script coverage, target environment, duration, and VU count.
 - 20k-50k registered users does not mean 20k-50k concurrent users.
-- Passing current load validation does not prove uncovered route behavior.
+- Passing current load validation does not prove DB-level query-plan safety.
 
 ## Manual load validation workflow
 
@@ -46,22 +46,23 @@ Covered routes:
 - `GET /student/dashboard/charts`
 - `GET /student/submissions`
 - `GET /student/subjects`
+- `GET /student/submit-catalog`
+- `GET /student/calendar/events`
 - `GET /teacher/dashboard/summary`
 - `GET /teacher/submissions`
 - `GET /teacher/subjects`
+- `GET /teacher/students?take=100&skip=0`
+- `GET /teacher/sections?take=100&skip=0`
 - `GET /admin/dashboard/summary`
 - `GET /admin/users`
 - `GET /admin/settings`
 
 Uncovered route risks:
 
-- `GET /teacher/students`
-- `GET /teacher/sections`
-- student calendar fanout
-- student submit-catalog fanout
 - write-heavy upload/submission flows
+- DB-level query-plan safety for `teacherStudents` and `teacherSections`
 
-A passing smoke run can establish baseline load workflow evidence for #40. It does not resolve #44 route-boundary/query-plan evidence for the uncovered subject routes.
+A passing smoke run can establish baseline load workflow evidence for #40 and provide runtime coverage for the subject-route hot paths. It does not resolve #44 DB-level route-boundary/query-plan evidence by itself.
 
 ## Required load sequence
 
@@ -146,8 +147,8 @@ Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=10, duration=5m
 Script path: load-tests/k6.mixed.js
-Route coverage summary:
-Uncovered route risks: teacher/students, teacher/sections, student calendar, student submit-catalog, write-heavy flows
+Route coverage summary: includes teacher/students, teacher/sections, student calendar, student submit-catalog
+Uncovered route risks: write-heavy upload/submission flows; DB-level query-plan safety for teacherStudents/teacherSections
 Virtual users: 10 expected
 Duration: 5m expected
 Passed thresholds? yes/no
@@ -359,13 +360,13 @@ Allowed only if 1000 VU run passes thresholds, DB/memory trends are stable, auth
 
 ### 20k-50k registered-user school-scale claim
 
-Requires school-scale validation results plus load-test evidence. Passing load tests alone does not prove registered-user data volume; passing seed/query-plan validation alone does not prove concurrency. Current load script coverage also does not prove #44 teacher-students/teacher-sections behavior.
+Requires school-scale validation results plus load-test evidence. Passing load tests alone does not prove registered-user data volume; passing seed/query-plan validation alone does not prove concurrency. Current load script coverage exercises #44 subject routes at runtime but does not prove their DB-level query-plan safety.
 
 ## Current blockers
 
 1. Load Validation workflow has not been run.
 2. No smoke load result recorded.
-3. Current k6 script does not cover #44 teacher-students/teacher-sections routes.
+3. Current k6 script covers #44 teacher-students/teacher-sections routes at runtime, but DB-level query-plan evidence is still missing.
 4. No 300 VU result recorded.
 5. No 500 VU result recorded.
 6. No 1000 VU result recorded.
