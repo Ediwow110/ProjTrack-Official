@@ -73,10 +73,10 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | CTRL-03 final merge gate | Done | `docs/FINAL_MERGE_GATE.md` |
 | CTRL-04 evidence issues index | Done | `docs/EVIDENCE_ISSUES_INDEX.md`, open issues #37-#45 |
 | CTRL-05 GitHub Actions evidence runbook | Done | `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md` |
-| CTRL-06 branch protection policy | Done | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue #43 |
+| CTRL-06 branch protection policy | In Progress | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue #43; file-level controls updated, repository settings still unverified |
 | CI-01 README badge/truth audit | Done | `README.md`, `docs/CI_STATUS.md` |
 | CI-05 CI status document | Done | `docs/CI_STATUS.md` |
-| CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38 |
+| CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38; missing artifact now fails instead of warning |
 | CI-08 latest external status check | In Progress | `docs/CI_STATUS.md`, issue #45, Vercel failure on checked commit `81a1bd63eb3719c60bac5c7b2c858c08f7330730` |
 | SEC-01 threat model | Done | `docs/THREAT_MODEL.md` |
 | SEC-02 authorization matrix | Done | `docs/AUTHORIZATION_MATRIX.md` |
@@ -99,7 +99,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-05 school-scale index migration | In Progress | `backend/prisma/migrations/20260514000100_school_scale_performance_indexes/migration.sql`, `docs/PERFORMANCE_ACCEPTANCE_GATE.md` |
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json` |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
-| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37 |
+| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37; now guards Evidence Gates artifact requirements |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 | CAPACITY-08 route-boundary and query-plan evidence issue | Done | issue #44, `backend/test/security/route-boundary-evidence.spec.ts` |
@@ -188,7 +188,7 @@ Priority: Critical
 Evidence document: `docs/CI_STATUS.md`, `docs/BRANCH_PROTECTION_POLICY.md`  
 Tracking issue: #43  
 Merge blocker: Before merge to main or production-readiness claim  
-Notes: Configure and verify GitHub repository settings for required PRs, Code Owner review, required checks, stale approval dismissal, branch up-to-date requirement, conversation resolution, and force-push/deletion restrictions.
+Notes: File-level controls exist and cover #37-#45, but GitHub repository settings still need verification for required PRs, Code Owner review, required checks, stale approval dismissal, branch up-to-date requirement, conversation resolution, and force-push/deletion restrictions.
 
 ### LIVE-EVIDENCE-08 Record security/performance test evidence after repository/dashboard/file bounds cleanup
 Status: Not Started  
