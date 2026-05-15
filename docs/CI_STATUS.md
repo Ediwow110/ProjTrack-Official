@@ -5,13 +5,13 @@ Last updated: 2026-05-15
 
 ## Latest observed commit status
 
-Latest checked commit: `ee2abc1d69ed196a249e0a43520a0f02d387aa55`
+Latest checked commit: `7b0a305506c55ff0568d2c019dd6d7ceef3596d4`
 
 Observed status checks:
 
 | Context | State | Notes |
 |---|---|---|
-| Vercel | success | Latest checked commit reports successful Vercel status. This confirms the earlier Vercel build-rate-limit blocker tracked by issue #45 remains resolved on the newest checked tracker commit. |
+| Vercel | success | Latest checked commit reports successful Vercel status. This confirms the earlier Vercel build-rate-limit blocker tracked by issue #45 remains resolved on the newest checked CI-status commit. |
 
 Earlier checked commit `1acd031bb54b8cc87e7b832871b0d84bb70a2bd9` had `Vercel = failure` with a target URL pointing to a Vercel build-rate-limit upgrade page. Issue #45 was closed after rechecking newer commits and recording `Vercel = success` in the issue thread.
 
@@ -282,7 +282,7 @@ npm run e2e:responsive
 ## Required Before Merge to Main
 
 - [ ] Latest `ci.yml` run on `2nd-main` passes.
-- [x] Latest checked Vercel status is resolved for commit `ee2abc1d69ed196a249e0a43520a0f02d387aa55`.
+- [x] Latest checked Vercel status is resolved for commit `7b0a305506c55ff0568d2c019dd6d7ceef3596d4`.
 - [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [ ] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
