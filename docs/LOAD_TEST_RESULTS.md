@@ -1,7 +1,7 @@
 # Load Test Results
 
 Branch: `2nd-main`  
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 ## Verdict
 
@@ -12,8 +12,9 @@ This document records concurrency/load evidence. It is separate from `docs/SCHOO
 ## Critical distinction
 
 - School-scale validation proves synthetic registered-user data volume and representative query plans.
-- Load testing proves runtime behavior under concurrent traffic.
+- Load testing proves runtime behavior under concurrent traffic for the specific script coverage, target environment, duration, and VU count.
 - 20k-50k registered users does not mean 20k-50k concurrent users.
+- Passing current load validation does not prove uncovered route behavior.
 
 ## Manual load validation workflow
 
@@ -34,6 +35,33 @@ Required secrets:
 - `LOAD_ADMIN_TOKEN`
 
 This workflow proves runtime concurrency for the supplied target URL only. It does not seed data and does not prove registered-user data-volume readiness.
+
+## Current k6 route coverage
+
+Script: `load-tests/k6.mixed.js`
+
+Covered routes:
+
+- `GET /student/dashboard/summary`
+- `GET /student/dashboard/charts`
+- `GET /student/submissions`
+- `GET /student/subjects`
+- `GET /teacher/dashboard/summary`
+- `GET /teacher/submissions`
+- `GET /teacher/subjects`
+- `GET /admin/dashboard/summary`
+- `GET /admin/users`
+- `GET /admin/settings`
+
+Uncovered route risks:
+
+- `GET /teacher/students`
+- `GET /teacher/sections`
+- student calendar fanout
+- student submit-catalog fanout
+- write-heavy upload/submission flows
+
+A passing smoke run can establish baseline load workflow evidence for #40. It does not resolve #44 route-boundary/query-plan evidence for the uncovered subject routes.
 
 ## Required load sequence
 
@@ -75,10 +103,15 @@ base_url: target API URL
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs:
+Script path:
+Route coverage summary:
+Uncovered route risks:
 Virtual users:
 Duration:
 Passed thresholds? yes/no
@@ -106,10 +139,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=10, duration=5m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks: teacher/students, teacher/sections, student calendar, student submit-catalog, write-heavy flows
 Virtual users: 10 expected
 Duration: 5m expected
 Passed thresholds? yes/no
@@ -137,10 +175,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=300, duration=20m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks:
 Virtual users: 300 expected
 Duration: 20m expected
 Passed thresholds? yes/no
@@ -168,10 +211,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=500, duration=20m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks:
 Virtual users: 500 expected
 Duration: 20m expected
 Passed thresholds? yes/no
@@ -199,10 +247,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=1000, duration=20m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks:
 Virtual users: 1000 expected
 Duration: 20m expected
 Passed thresholds? yes/no
@@ -230,10 +283,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=2000, duration=20m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks:
 Virtual users: 2000 expected
 Duration: 20m expected
 Passed thresholds? yes/no
@@ -261,10 +319,15 @@ Status: Not run.
 Date:
 Commit SHA:
 Workflow run URL:
+Workflow run ID:
+Branch/ref:
 Environment:
 Dataset tier:
 Registered synthetic users:
 Command or workflow inputs: Load Validation, vus=100, duration=60m
+Script path: load-tests/k6.mixed.js
+Route coverage summary:
+Uncovered route risks:
 Virtual users: 100 expected
 Duration: 60m expected
 Passed thresholds? yes/no
@@ -288,22 +351,23 @@ Owner:
 
 ### 300-500 VU claim
 
-Allowed only if 300 and 500 VU runs pass thresholds and are recorded.
+Allowed only if 300 and 500 VU runs pass thresholds and are recorded for the claimed environment, dataset tier, and route coverage.
 
 ### 1000 concurrent-user claim
 
-Allowed only if 1000 VU run passes thresholds, DB/memory trends are stable, and authorization shortcuts were not used.
+Allowed only if 1000 VU run passes thresholds, DB/memory trends are stable, authorization shortcuts were not used, and route coverage limitations are explicitly documented.
 
 ### 20k-50k registered-user school-scale claim
 
-Requires school-scale validation results plus load-test evidence. Passing load tests alone does not prove registered-user data volume; passing seed/query-plan validation alone does not prove concurrency.
+Requires school-scale validation results plus load-test evidence. Passing load tests alone does not prove registered-user data volume; passing seed/query-plan validation alone does not prove concurrency. Current load script coverage also does not prove #44 teacher-students/teacher-sections behavior.
 
 ## Current blockers
 
 1. Load Validation workflow has not been run.
 2. No smoke load result recorded.
-3. No 300 VU result recorded.
-4. No 500 VU result recorded.
-5. No 1000 VU result recorded.
-6. No 2000 VU result recorded.
-7. No soak result recorded.
+3. Current k6 script does not cover #44 teacher-students/teacher-sections routes.
+4. No 300 VU result recorded.
+5. No 500 VU result recorded.
+6. No 1000 VU result recorded.
+7. No 2000 VU result recorded.
+8. No soak result recorded.
