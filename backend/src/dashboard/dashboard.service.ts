@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PENDING_REVIEW_STATUSES } from '../access/policies/submission-access.policy';
 
 const DASHBOARD_DEADLINE_LIMIT = 50;
+const DASHBOARD_ACTIVITY_LIMIT = 10;
 const pendingReviewStatuses = [...PENDING_REVIEW_STATUSES];
 const studentPendingStatuses = ['NOT_STARTED', 'DRAFT', 'NEEDS_REVISION', ...pendingReviewStatuses];
 const studentSubmittedStatuses = ['GRADED', ...pendingReviewStatuses];
@@ -153,7 +154,6 @@ export class DashboardService {
   }
 
   async adminActivity() {
-    const logs: any[] = await this.auditLogRepository.listAuditLogs();
-    return logs.slice(0, 10);
+    return this.auditLogRepository.listAuditLogs({ take: DASHBOARD_ACTIVITY_LIMIT });
   }
 }
