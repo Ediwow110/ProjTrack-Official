@@ -27,4 +27,10 @@ describe('dashboard static bounds guard', () => {
     expect(dashboardSource).toContain('DASHBOARD_DEADLINE_LIMIT = 50');
     expect(dashboardSource).toContain('take: DASHBOARD_DEADLINE_LIMIT');
   });
+
+  it('caps dashboard audit activity at the repository query layer', () => {
+    expect(dashboardSource).toContain('DASHBOARD_ACTIVITY_LIMIT = 10');
+    expect(dashboardSource).toContain('listAuditLogs({ take: DASHBOARD_ACTIVITY_LIMIT })');
+    expect(dashboardSource).not.toContain('.slice(0, 10)');
+  });
 });
