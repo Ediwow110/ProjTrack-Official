@@ -18,6 +18,7 @@ This document links the blocking evidence issues that must be resolved before me
 | #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE |
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims |
 | #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims |
+| #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims |
 
 ## Evidence helpers
 
@@ -85,6 +86,10 @@ Issue #43 tracks manual GitHub repository setting verification for:
 - force-push restriction,
 - branch deletion restriction.
 
+### Subject/submission route-boundary verification
+
+Issue #44 tracks route-boundary pagination and query-plan safety evidence for high-volume subject/submission endpoints. It must not be closed until subject, submission, section, calendar, and teacher-student list paths have explicit bounded behavior and seeded-data query-plan evidence.
+
 ## Resolution rule
 
 Do not close an evidence issue just because a workflow, command, runner, artifact, summary, automatic issue comment, policy, or template exists. Close only after:
@@ -106,6 +111,7 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 | #41 | `docs/CI_STATUS.md` | `docs/OPERATIONAL_READINESS.md`, `docs/FINAL_MERGE_GATE.md` |
 | #42 | `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md` | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/SYNTHETIC_LOAD_DATA_PLAN.md`, School Scale Validation summary/comment |
 | #43 | `docs/CI_STATUS.md` | `docs/BRANCH_PROTECTION_POLICY.md`, `docs/FINAL_MERGE_GATE.md`, `docs/2ND_MAIN_IMPROVEMENTS.md` |
+| #44 | `docs/PERFORMANCE_ACCEPTANCE_GATE.md` | `docs/2ND_MAIN_IMPROVEMENTS.md`, `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, query-plan checker output, `npm --prefix backend run test:security` evidence |
 
 ## Current verdict
 
