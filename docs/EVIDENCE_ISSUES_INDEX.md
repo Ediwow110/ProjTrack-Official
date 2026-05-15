@@ -19,7 +19,12 @@ This document links the evidence issues that must be resolved before merge, prod
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims | Open |
 | #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims | Open |
 | #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Open |
-| #45 | Failing Vercel external status on `2nd-main` | CI-GATE, DOC-GATE, merge-readiness claims | Reopened |
+
+## Resolved evidence issues
+
+| Issue | Evidence area | Resolution |
+|---:|---|---|
+| #45 | Failing Vercel external status on `2nd-main` | Closed after commit `166ef2594d623261ea7561cfdfa449333eccb82f` reported `Vercel = success`. This resolves only the external Vercel status blocker, not GitHub Actions, Evidence Gates, backend security/build, school-scale, load, branch-protection, production-failure, or #44 seeded query-plan evidence. |
 
 ## Evidence helpers
 
@@ -89,11 +94,11 @@ Issue #43 tracks manual GitHub repository setting verification for:
 
 ### Subject/submission route-boundary verification
 
-Issue #44 tracks route-boundary pagination and query-plan safety evidence for high-volume subject/submission endpoints. It must not be closed until subject, submission, section, calendar, and teacher-student list paths have explicit bounded behavior and seeded-data query-plan evidence.
+Issue #44 tracks route-boundary pagination and query-plan safety evidence for high-volume subject/submission endpoints. It must not be closed until subject, submission, section, calendar, and teacher-student list paths have explicit bounded behavior, `test:security` evidence, and seeded-data query-plan evidence.
 
 ### External status verification
 
-Issue #45 tracks the currently observed failing Vercel status on `2nd-main`. It was previously closed after a successful Vercel status on an older commit, but was reopened after commit `81a1bd63eb3719c60bac5c7b2c858c08f7330730` reported `Vercel = failure` with a build-rate-limit target URL.
+Issue #45 is closed for the latest checked Vercel status. If a later merge-candidate commit regresses to `Vercel = failure`, reopen #45 or create a new external-status blocker and record the checked commit.
 
 ## Resolution rule
 
@@ -121,4 +126,4 @@ Do not close an evidence issue just because a workflow, command, runner, artifac
 
 ## Current verdict
 
-Issues #37-#45 remain open. The branch remains not mergeable and cannot honestly claim production readiness, green external checks, fully green GitHub Actions/evidence gates, 1000+ concurrency, or 20k-50k school-scale support until the relevant open issues are resolved with reviewed and recorded evidence.
+Issues #37-#44 remain open. Issue #45 is closed for the latest checked Vercel status. The branch remains not mergeable and cannot honestly claim production readiness, fully green GitHub Actions/evidence gates, 1000+ concurrency, or 20k-50k school-scale support until the remaining open issues are resolved with reviewed and recorded evidence.
