@@ -113,7 +113,6 @@ export class DashboardService {
         deadline: true,
         subjectId: true,
         isOpen: true,
-        windowStatus: true,
       },
       orderBy: { deadline: 'asc' },
       take: DASHBOARD_DEADLINE_LIMIT,

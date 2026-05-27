@@ -912,4 +912,84 @@ export class FilesService {
       meta,
     };
   }
+
+  async listForSubmission(submissionId: string, actor?: { userId?: string; role?: string }) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { id: true },
+    });
+    if (!submission) throw new NotFoundException('Submission not found.');
+    if (actor?.role === 'STUDENT') {
+      await this.access.requireStudentCanAccessSubmission(actor.userId, submissionId);
+    } else if (actor?.role === 'TEACHER') {
+      await this.access.requireTeacherCanReviewSubmission(actor.userId, submissionId);
+    } else if (actor?.role !== 'ADMIN') {
+      throw new ForbiddenException('You do not have access to this submission.');
+    }
+    return this.prisma.submissionFile.findMany({
+      where: { submissionId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async removeStorageObjectOnly(relativePath: string, actor?: { userId?: string; role?: string }) {
+    const normalized = this.normalizeRelativePath(relativePath);
+    await this.deleteObject(normalized);
+    await this.auditLogs.record({
+      actorUserId: actor?.userId,
+      actorRole: String(actor?.role || 'UNKNOWN'),
+      action: 'FILE_STORAGE_OBJECT_DELETED',
+      module: 'Files',
+      target: normalized,
+      result: 'Success',
+      details: 'Deleted an orphaned storage object after associated database metadata was removed.',
+    });
+    return { success: true, removed: normalized };
+  }
+
+  async remove(relativePath: string, actor?: { userId?: string; role?: string }) {
+    const normalized = this.normalizeRelativePath(relativePath);
+    const meta = await this.access.requireUserCanDownloadFile(actor?.userId, actor?.role, normalized);
+    let markedDeleted = false;
+    if (meta?.id) {
+      await this.prisma.submissionFile.update({
+        where: { id: meta.id },
+        data: { deletedAt: new Date() },
+      });
+      markedDeleted = true;
+    }
+    let storageAlreadyMissing = false;
+    try {
+      await this.deleteObject(normalized);
+    } catch (error) {
+      if (error instanceof NotFoundException && markedDeleted) {
+        storageAlreadyMissing = true;
+      } else {
+        await this.auditLogs.record({
+          actorUserId: actor?.userId,
+          actorRole: String(actor?.role || 'UNKNOWN'),
+          action: 'FILE_DELETE_STORAGE_FAILED',
+          module: 'Files',
+          target: normalized,
+          entityId: meta?.id,
+          result: 'Failed',
+          details: error instanceof Error ? error.message : 'Storage delete failed.',
+        });
+        throw new BadRequestException('File metadata was marked deleted, but the storage object could not be removed. Review file inventory for cleanup.');
+      }
+    }
+    await this.auditLogs.record({
+      actorUserId: actor?.userId,
+      actorRole: String(actor?.role || 'UNKNOWN'),
+      action: 'FILE_DELETED',
+      module: 'Files',
+      target: normalized,
+      entityId: meta?.id,
+      result: storageAlreadyMissing ? 'Partial' : 'Success',
+      details: storageAlreadyMissing
+        ? 'Database metadata deleted; storage object was already missing.'
+        : undefined,
+    });
+    return { success: true, deletedMetadata: markedDeleted, removedStorageObject: !storageAlreadyMissing };
+  }
 }
