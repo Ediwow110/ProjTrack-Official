@@ -59,7 +59,7 @@ describe('route-boundary evidence guard', () => {
     expect(subjectsServiceSource).toContain('async teacherStudents(');
     expect(subjectsServiceSource).toContain('async teacherSections(');
     expect(performanceGateSource).toContain('SubjectsService.teacherStudents');
-    expect(performanceGateSource).toContain('teacher students route is controller-level response-capped but still requires DB-level cap/query-plan evidence');
+    expect(performanceGateSource).toContain('teacher students route is controller-level response-capped but still requires actual DB-level query-plan evidence');
     expect(performanceGateSource).toContain('SubjectsService.teacherSections');
     expect(performanceGateSource).toContain('controller-level response-capped but still requires DB-level cap/query-plan evidence');
   });

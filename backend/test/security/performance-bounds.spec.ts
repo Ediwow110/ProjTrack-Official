@@ -16,29 +16,37 @@ function buildRepository() {
 }
 
 describe('performance bounds gate', () => {
-  it('documents current blocker: student submission list is not paginated yet', async () => {
+  it('verified: student submission list is paginated (take is present)', async () => {
     const { repo, prisma } = buildRepository();
 
     await repo.listStudentSubmissions('student-user-1');
 
-    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.not.objectContaining({ take: expect.any(Number) }));
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: expect.any(Number) }),
+    );
   });
 
-  it('documents current blocker: teacher task pre-query is not bounded yet', async () => {
+  it('verified: teacher submission list uses single paginated query (no separate unbounded task pre-query)', async () => {
     const { repo, prisma } = buildRepository();
     prisma.teacherProfile.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'teacher-profile-1' });
 
     await repo.listTeacherSubmissions({ teacherId: 'teacher-user-1' });
 
-    expect(prisma.submissionTask.findMany).toHaveBeenCalledWith(expect.not.objectContaining({ take: expect.any(Number) }));
+    // Teacher submission list was refactored into a single paginated submission.findMany call
+    expect(prisma.submissionTask.findMany).not.toHaveBeenCalled();
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: expect.any(Number) }),
+    );
   });
 
-  it('documents current blocker: teacher submission list is not paginated yet', async () => {
+  it('verified: teacher submission list is paginated (take is present)', async () => {
     const { repo, prisma } = buildRepository();
     prisma.teacherProfile.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'teacher-profile-1' });
 
     await repo.listTeacherSubmissions({ teacherId: 'teacher-user-1' });
 
-    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.not.objectContaining({ take: expect.any(Number) }));
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: expect.any(Number) }),
+    );
   });
 });

@@ -4,9 +4,9 @@ import { StudentSubmitDto } from '../../src/submissions/dto/submission.dto';
 import { LoginDto } from '../../src/auth/dto/login.dto';
 import { inspectRuntimeConfiguration } from '../../src/config/runtime-safety';
 
-async function validationErrors(dtoClass: any, payload: Record<string, unknown>) {
+async function validationErrors(dtoClass: new (...args: any[]) => object, payload: Record<string, unknown>) {
   const instance = plainToInstance(dtoClass, payload);
-  return validate(instance, {
+  return validate(instance as object, {
     whitelist: true,
     forbidNonWhitelisted: true,
     forbidUnknownValues: true,

@@ -219,6 +219,9 @@ jobs:
       - name: Smoke env preflight
         run: npm run check:smoke-env
 
+      - name: Seed deterministic smoke fixtures
+        run: npm run seed:smoke
+
       - name: Full E2E Smoke Tests
         run: npm run e2e:smoke
         timeout-minutes: 15

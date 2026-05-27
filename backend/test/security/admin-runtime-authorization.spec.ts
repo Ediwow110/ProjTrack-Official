@@ -27,7 +27,7 @@ function buildContext(options: { headers?: Record<string, string>; handler?: Fun
   const request: any = { headers: options.headers ?? {} };
   return {
     switchToHttp: () => ({ getRequest: () => request }),
-    getHandler: () => options.handler ?? AdminController.prototype.stats,
+    getHandler: () => options.handler ?? AdminController.prototype.users,
     getClass: () => options.controllerClass ?? AdminController,
     request,
   } as any;

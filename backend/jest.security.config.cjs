@@ -3,6 +3,7 @@ module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['<rootDir>/test/security/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
+  setupFiles: ['reflect-metadata'],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
@@ -22,4 +23,5 @@ module.exports = {
     ],
   },
   clearMocks: true,
+  transformIgnorePatterns: [],
 };
