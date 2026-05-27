@@ -89,9 +89,7 @@ jobs:
       - run: npm run check:boot:production
       - run: npm run check:boot:worker
       - run: npm run test
-      - name: Security tests (informational — known pre-existing failures)
-        continue-on-error: true
-        run: npm run test:security
+      - run: npm run test:security
       - run: npm audit --audit-level=high
 
   docker:
