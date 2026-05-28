@@ -42,11 +42,12 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # ---------- Stage 3: runtime image ----------
+FROM node:20-alpine AS runner
+
 # Build arg: pass the git commit SHA at build time so the image label carries it.
 # Usage: docker build --build-arg VCS_REF=$(git rev-parse HEAD) ...
 # Default is 'unknown' so omitting the arg does not break CI builds.
 ARG VCS_REF=unknown
-FROM node:20-alpine AS runner
 
 # tini gives us proper PID 1 signal handling so SIGTERM reaches Node and
 # in-flight requests / worker jobs can drain.
