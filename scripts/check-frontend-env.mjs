@@ -45,6 +45,9 @@ if (prod) {
     if (/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(parsed.hostname)) {
       failures.push(`${key} cannot point to localhost for production builds.`);
     }
+    if (key === 'VITE_API_BASE_URL' && parsed.hostname === 'api-staging.projtrack.codes') {
+      failures.push(`${key} cannot point to staging API for production builds.`);
+    }
     if (isPlaceholderHost(parsed.hostname)) {
       failures.push(`${key} still uses the placeholder example domain.`);
     }

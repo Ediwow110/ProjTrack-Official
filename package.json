@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node ./scripts/check-frontend-env.mjs && vite build",
     "build:production-fixture": "node ./scripts/build-production-fixture.mjs",
     "backend:local": "node ./scripts/backend-local.mjs",
     "check:click-targets": "node ./scripts/check-click-targets.mjs",
@@ -19,6 +19,7 @@
     "dev": "vite",
     "doctor:local": "node ./scripts/doctor-local.mjs",
     "e2e:smoke": "node ./scripts/check-smoke-env.mjs && node ./scripts/run-e2e-smoke.mjs",
+    "smoke:post-deploy": "node ./scripts/post-deploy-smoke.mjs",
     "e2e:responsive": "playwright test --config=playwright.responsive.config.ts",
     "e2e:responsive:auth": "node ./scripts/check-smoke-env.mjs && playwright test tests/e2e/authenticated-responsive.spec.ts --project chromium",
     "check:smoke-deps": "node ./scripts/check-smoke-deps.mjs",
