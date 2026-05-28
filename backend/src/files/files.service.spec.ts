@@ -20,7 +20,7 @@ function emptyAccess(): AccessService {
   return {} as AccessService;
 }
 function emptyAudit(): AuditLogsService {
-  return {} as AuditLogsService;
+  return { record: jest.fn() } as unknown as AuditLogsService;
 }
 
 function makeService() {
