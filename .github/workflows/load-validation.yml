@@ -14,9 +14,9 @@ on:
       dataset_tier:
         description: Dataset tier already seeded in the target environment
         required: true
-        default: "manual"
+        default: "1k"
       base_url:
-        description: Target base URL for the API under test
+        description: Target base URL for the API under test (ignored for local run)
         required: true
         default: "http://127.0.0.1:3001"
 
@@ -29,22 +29,154 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      BASE_URL: ${{ inputs.base_url }}
-      VUS: ${{ inputs.vus }}
-      DURATION: ${{ inputs.duration }}
-      LOAD_STUDENT_TOKEN: ${{ secrets.LOAD_STUDENT_TOKEN }}
-      LOAD_TEACHER_TOKEN: ${{ secrets.LOAD_TEACHER_TOKEN }}
-      LOAD_ADMIN_TOKEN: ${{ secrets.LOAD_ADMIN_TOKEN }}
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      JWT_ACCESS_SECRET: load-access-secret-for-tests-only-not-production-000000000000
+      JWT_REFRESH_SECRET: load-refresh-secret-for-tests-only-not-production-0000000000
+      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      APP_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:3001
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      MAIL_PROVIDER: stub
+      MAIL_FROM: noreply@projtrack.local
+      MAIL_WORKER_ENABLED: "false"
+      MAIL_WORKER_POLL_MS: "60000"
+      FILE_STORAGE_MODE: local
+      OBJECT_STORAGE_MODE: local
+      HTTP_RATE_LIMIT_STORE: memory
+      FILE_MALWARE_SCAN_MODE: disabled
+      APP_ENV: test
+      NODE_ENV: test
+      BACKUP_WORKER_ENABLED: "false"
+      BACKUP_SCHEDULE_ENABLED: "false"
+      BACKUP_WORKER_POLL_MS: "60000"
+      ALLOW_LOAD_FIXTURE_SEED: "true"
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Validate load test credentials
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci --prefer-offline
+        working-directory: backend
+
+      - name: Configure synthetic dataset tier
         run: |
-          test -n "$LOAD_STUDENT_TOKEN"
-          test -n "$LOAD_TEACHER_TOKEN"
-          test -n "$LOAD_ADMIN_TOKEN"
+          case "${{ inputs.dataset_tier }}" in
+            "1k")
+              echo "LOAD_FIXTURE_STUDENTS=1000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=50" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=50" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=150" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=10000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=10000" >> "$GITHUB_ENV"
+              ;;
+            "20k")
+              echo "LOAD_FIXTURE_STUDENTS=20000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=800" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=20" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=800" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=2400" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=200000" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=200000" >> "$GITHUB_ENV"
+              ;;
+            *)
+              # Default small dataset for smoke manual tests
+              echo "LOAD_FIXTURE_STUDENTS=10" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TEACHERS=2" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_ADMINS=1" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SECTIONS=2" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBJECTS=5" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_TASKS_PER_SUBJECT=2" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_SUBMISSIONS=20" >> "$GITHUB_ENV"
+              echo "LOAD_FIXTURE_NOTIFICATIONS=20" >> "$GITHUB_ENV"
+              ;;
+          esac
+
+      - run: npm run prisma:validate
+        working-directory: backend
+      - run: npm run prisma:generate
+        working-directory: backend
+      - run: npm run prisma:migrate:deploy
+        working-directory: backend
+      - run: npm run build
+        working-directory: backend
+      - run: npm run seed:load
+        working-directory: backend
+
+      - name: Start backend server
+        run: |
+          npm run start > backend.log 2>&1 &
+          echo "BACKEND_PID=$!" >> "$GITHUB_ENV"
+        working-directory: backend
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:3001/health > /dev/null; then
+              echo "Backend is ready!"
+              exit 0
+            fi
+            echo "Waiting for backend..."
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat backend.log
+          exit 1
+        working-directory: backend
+
+      - name: Generate load test tokens
+        id: tokens
+        run: |
+          node -e "
+            const getTok = async (email, role) => {
+              const res = await fetch('http://127.0.0.1:3001/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: email, password: 'SyntheticLoadPassword-DoNotUseForHumans-123!', expectedRole: role })
+              });
+              if (!res.ok) {
+                console.error('Login failed for ' + email, await res.text());
+                process.exit(1);
+              }
+              const data = await res.json();
+              return data.accessToken;
+            };
+            const main = async () => {
+              const student = await getTok('load-fixture-student-00001@example.invalid', 'STUDENT');
+              const teacher = await getTok('load-fixture-teacher-00001@example.invalid', 'TEACHER');
+              const admin = await getTok('load-fixture-admin-00001@example.invalid', 'ADMIN');
+              console.log('LOAD_STUDENT_TOKEN=' + student.slice(0, 10) + '...');
+              require('fs').appendFileSync(process.env.GITHUB_ENV, 'LOAD_STUDENT_TOKEN=' + student + '\n');
+              require('fs').appendFileSync(process.env.GITHUB_ENV, 'LOAD_TEACHER_TOKEN=' + teacher + '\n');
+              require('fs').appendFileSync(process.env.GITHUB_ENV, 'LOAD_ADMIN_TOKEN=' + admin + '\n');
+            };
+            main();
+          "
+        working-directory: backend
 
       - name: Install k6
         run: |
@@ -56,13 +188,25 @@ jobs:
 
       - name: Run mixed load test
         run: k6 run load-tests/k6.mixed.js
+        env:
+          BASE_URL: http://127.0.0.1:3001
+          VUS: ${{ inputs.vus }}
+          DURATION: ${{ inputs.duration }}
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -n "$BACKEND_PID" ]; then
+            kill "$BACKEND_PID" || true
+          fi
+        working-directory: backend
 
       - name: Load validation summary
         if: always()
         run: |
           echo "## Load Validation" >> "$GITHUB_STEP_SUMMARY"
           echo "- Dataset tier: ${{ inputs.dataset_tier }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Base URL: ${{ inputs.base_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Base URL: http://127.0.0.1:3001" >> "$GITHUB_STEP_SUMMARY"
           echo "- Virtual users: ${{ inputs.vus }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Duration: ${{ inputs.duration }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Script: load-tests/k6.mixed.js" >> "$GITHUB_STEP_SUMMARY"
@@ -78,7 +222,7 @@ jobs:
       - name: Comment on load evidence issue
         if: always()
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.sha }}

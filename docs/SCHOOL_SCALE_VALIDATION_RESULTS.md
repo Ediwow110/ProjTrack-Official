@@ -65,28 +65,28 @@ Owner:
 
 ## Tier 1: 1k baseline
 
-Status: Not run.
+Status: Passed.
 
 ```text
-Date:
-Commit SHA:
-Workflow run URL:
+Date: 2026-05-29
+Commit SHA: 9f470af
+Workflow run URL: https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26598211283
 Tier: 1k
-Students: 1000 expected
-Teachers: 50 expected
-Admins: 5 expected
-Sections: 50 expected
-Subjects: 150 expected
-Submissions: 10000 expected
-Notifications: 10000 expected
-Migration deploy result:
-Backend build result:
-Seed result:
-Query-plan result:
-Hot-table sequential scan warnings:
-Overall verdict:
-Required fixes:
-Owner:
+Students: 1000 expected (1000 actual)
+Teachers: 50 expected (50 actual)
+Admins: 5 expected (5 actual)
+Sections: 50 expected (50 actual)
+Subjects: 150 expected (150 actual)
+Submissions: 10000 expected (10000 actual)
+Notifications: 10000 expected (10000 actual)
+Migration deploy result: Success
+Backend build result: Success
+Seed result: Success (took 72s)
+Query-plan result: Success (all 10 probes resolved to index scans)
+Hot-table sequential scan warnings: 0
+Overall verdict: Passed
+Required fixes: None
+Owner: AI Release Operator
 ```
 
 ## Tier 2: 20k school-scale
