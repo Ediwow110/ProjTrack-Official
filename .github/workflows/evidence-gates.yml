@@ -1,0 +1,134 @@
+name: Evidence Gates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  evidence:
+    name: Local-equivalent evidence gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: projtrack
+          POSTGRES_USER: projtrack
+          POSTGRES_PASSWORD: projtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projtrack -d projtrack"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: "true"
+      NODE_ENV: test
+      APP_ENV: test
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      JWT_ACCESS_SECRET: evidence-access-secret-for-ci-only-000000000000000000
+      JWT_REFRESH_SECRET: evidence-refresh-secret-for-ci-only-00000000000000000
+      ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      APP_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:3001
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      MAIL_PROVIDER: stub
+      MAIL_FROM: noreply@projtrack.local
+      MAIL_WORKER_ENABLED: "false"
+      MAIL_WORKER_POLL_MS: "60000"
+      OBJECT_STORAGE_MODE: local
+      FILE_STORAGE_MODE: local
+      HTTP_RATE_LIMIT_STORE: memory
+      FILE_MALWARE_SCAN_MODE: disabled
+      BACKUP_WORKER_ENABLED: "false"
+      BACKUP_SCHEDULE_ENABLED: "false"
+      BACKUP_WORKER_POLL_MS: "60000"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --include=dev
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci --include=dev
+
+      - name: Prepare backend database
+        run: |
+          npm --prefix backend run prisma:generate
+          npm --prefix backend run prisma:migrate:deploy
+
+      - name: Run evidence gates
+        run: npm run evidence:local
+
+      - name: Verify evidence report exists
+        if: always()
+        run: |
+          if ! ls evidence/local-evidence-*.md >/dev/null 2>&1; then
+            echo "Evidence Gates did not produce evidence/local-evidence-*.md" >&2
+            exit 1
+          fi
+          echo "Evidence report found:"
+          ls evidence/local-evidence-*.md
+
+      - name: Upload evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-evidence-report
+          path: evidence/local-evidence-*.md
+          if-no-files-found: error
+
+      - name: Evidence summary
+        if: always()
+        run: |
+          echo "## Evidence Gates" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch/ref: ${{ github.ref_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Report artifact: local-evidence-report" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Primary issues: #37 and #38" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Evidence update targets" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/CI_STATUS.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/SECURITY_ACCEPTANCE_GATE.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- docs/2ND_MAIN_IMPROVEMENTS.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GitHub issue #37" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GitHub issue #38" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Rules" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Do not close #37 or #38 merely because this workflow ran. Close only after the artifact is reviewed and the evidence documents are updated." >> "$GITHUB_STEP_SUMMARY"
+          echo "A failed workflow is still useful evidence, but it keeps the related gate blocked until fixed or risk-accepted." >> "$GITHUB_STEP_SUMMARY"
+          echo "If the local-evidence-report artifact is missing, this workflow is invalid evidence even if earlier steps ran." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on evidence issues
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          body="Evidence Gates workflow completed.\n\nRun: ${RUN_URL}\nCommit: ${SHA}\nBranch/ref: ${REF_NAME}\nJob status: ${JOB_STATUS}\nArtifact: local-evidence-report\n\nReview the artifact and update docs/CI_STATUS.md, docs/SECURITY_ACCEPTANCE_GATE.md, and docs/2ND_MAIN_IMPROVEMENTS.md before closing this issue. If the artifact is missing, this run is invalid evidence and the issue must remain open."
+          gh issue comment 37 --repo "$REPO" --body "$body"
+          gh issue comment 38 --repo "$REPO" --body "$body"

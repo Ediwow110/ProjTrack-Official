@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { NotificationsService } from './notifications.service';
@@ -8,10 +8,25 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
+  private parseOptionalPositiveInt(value: unknown) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return undefined;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return undefined;
+    return Math.max(0, Math.floor(parsed));
+  }
+
   @Roles('STUDENT')
   @Get('student/notifications')
-  studentNotifications(@Req() req: any) {
-    return this.notifications.listForUser(req.user?.sub);
+  studentNotifications(
+    @Req() req: any,
+    @Query('take') take: string | undefined,
+    @Query('skip') skip: string | undefined,
+  ) {
+    return this.notifications.listForUser(req.user?.sub, {
+      take: this.parseOptionalPositiveInt(take),
+      skip: this.parseOptionalPositiveInt(skip),
+    });
   }
 
   @Roles('STUDENT')
@@ -28,8 +43,15 @@ export class NotificationsController {
 
   @Roles('TEACHER')
   @Get('teacher/notifications')
-  teacherNotifications(@Req() req: any) {
-    return this.notifications.listForUser(req.user?.sub);
+  teacherNotifications(
+    @Req() req: any,
+    @Query('take') take: string | undefined,
+    @Query('skip') skip: string | undefined,
+  ) {
+    return this.notifications.listForUser(req.user?.sub, {
+      take: this.parseOptionalPositiveInt(take),
+      skip: this.parseOptionalPositiveInt(skip),
+    });
   }
 
   @Roles('TEACHER')

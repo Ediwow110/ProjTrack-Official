@@ -2,12 +2,20 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UserStatus } from '../prisma/prisma-compat';
 
+const DEFAULT_USER_REPOSITORY_LIST_TAKE = 100;
+const MAX_USER_REPOSITORY_LIST_TAKE = 500;
+
 type UserPatch = {
   password?: string | null;
   status?: UserStatus;
   updatedAt?: string;
   firstName?: string;
   lastName?: string;
+};
+
+type UserRepositoryListOptions = {
+  take?: number;
+  skip?: number;
 };
 
 type StudentPlacementInput = {
@@ -24,6 +32,16 @@ type StudentPlacementInput = {
 @Injectable()
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private clampListTake(take?: number) {
+    if (!Number.isFinite(take)) return DEFAULT_USER_REPOSITORY_LIST_TAKE;
+    return Math.max(1, Math.min(Math.floor(Number(take)), MAX_USER_REPOSITORY_LIST_TAKE));
+  }
+
+  private clampListSkip(skip?: number) {
+    if (!Number.isFinite(skip)) return 0;
+    return Math.max(0, Math.floor(Number(skip)));
+  }
 
   getPrimaryLoginIdentifier(user: any) {
     if (user.role === 'STUDENT') {
@@ -74,8 +92,10 @@ export class UserRepository {
     });
   }
 
-  async listAll() {
+  async listAll(options: UserRepositoryListOptions = {}) {
     return this.prisma.user.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       include: {
         studentProfile: {
           include: {
@@ -95,8 +115,10 @@ export class UserRepository {
     });
   }
 
-  async listByRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
+  async listByRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT', options: UserRepositoryListOptions = {}) {
     return this.prisma.user.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       where: { role },
       include: {
         studentProfile: {
@@ -117,8 +139,8 @@ export class UserRepository {
     });
   }
 
-  async listStudents() {
-    return this.listByRole('STUDENT');
+  async listStudents(options: UserRepositoryListOptions = {}) {
+    return this.listByRole('STUDENT', options);
   }
 
   async findAcademicYearByName(name: string) {

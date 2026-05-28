@@ -3,12 +3,30 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 import { hasPrismaErrorCode } from '../prisma/prisma-compat';
 
+const DEFAULT_SUBMISSION_REPOSITORY_LIST_TAKE = 100;
+const MAX_SUBMISSION_REPOSITORY_LIST_TAKE = 500;
+
+type SubmissionRepositoryListOptions = {
+  take?: number;
+  skip?: number;
+};
+
 @Injectable()
 export class SubmissionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private isUniqueConstraintError(error: unknown) {
     return hasPrismaErrorCode(error, 'P2002');
+  }
+
+  private clampListTake(take?: number) {
+    if (!Number.isFinite(take)) return DEFAULT_SUBMISSION_REPOSITORY_LIST_TAKE;
+    return Math.max(1, Math.min(Math.floor(Number(take)), MAX_SUBMISSION_REPOSITORY_LIST_TAKE));
+  }
+
+  private clampListSkip(skip?: number) {
+    if (!Number.isFinite(skip)) return 0;
+    return Math.max(0, Math.floor(Number(skip)));
   }
 
   private async resolveTeacherProfileId(teacherId?: string) {
@@ -19,8 +37,10 @@ export class SubmissionRepository {
     return byUser?.id ?? teacherId;
   }
 
-  async listSubmissions() {
+  async listSubmissions(options: SubmissionRepositoryListOptions = {}) {
     return this.prisma.submission.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       include: {
         task: true,
         files: true,
@@ -46,8 +66,14 @@ export class SubmissionRepository {
     });
   }
 
-  async listStudentSubmissions(userId: string, status?: string) {
+  async listStudentSubmissions(
+    userId: string,
+    status?: string,
+    options: SubmissionRepositoryListOptions = {},
+  ) {
     return this.prisma.submission.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       where: {
         ...(status ? { status } : {}),
         OR: [{ studentId: userId }, { group: { members: { some: { studentId: userId } } } }],
@@ -75,24 +101,24 @@ export class SubmissionRepository {
     });
   }
 
-  async listTeacherSubmissions(filters?: {
-    teacherId?: string;
-    section?: string;
-    status?: string;
-    subjectId?: string;
-  }) {
+  async listTeacherSubmissions(
+    filters?: {
+      teacherId?: string;
+      section?: string;
+      status?: string;
+      subjectId?: string;
+    },
+    options: SubmissionRepositoryListOptions = {},
+  ) {
     const resolvedTeacherId = await this.resolveTeacherProfileId(filters?.teacherId);
-    const tasks = await this.prisma.submissionTask.findMany({
-      where: resolvedTeacherId ? { subject: { teacherId: resolvedTeacherId } } : undefined,
-      select: { id: true },
-    });
-    const taskIds = tasks.map((task) => task.id);
 
     return this.prisma.submission.findMany({
+      take: this.clampListTake(options.take),
+      skip: this.clampListSkip(options.skip),
       where: {
         ...(filters?.status ? { status: filters.status } : {}),
         ...(filters?.subjectId ? { subjectId: filters.subjectId } : {}),
-        ...(resolvedTeacherId ? { taskId: { in: taskIds } } : {}),
+        ...(resolvedTeacherId ? { task: { subject: { teacherId: resolvedTeacherId } } } : {}),
         ...(filters?.section
           ? {
               OR: [

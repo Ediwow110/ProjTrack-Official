@@ -10,6 +10,11 @@ import { getS3Config, getStorageSummary } from './storage.config';
 import { AccessService } from '../access/access.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
+const DEFAULT_FILE_LIST_TAKE = 100;
+const MAX_FILE_LIST_TAKE = 500;
+const DEFAULT_STORAGE_OBJECT_LIST_TAKE = 100;
+const MAX_STORAGE_OBJECT_LIST_TAKE = 500;
+
 export type PendingUploadForSubmission = {
   id: string;
   userId: string;
@@ -22,6 +27,11 @@ export type PendingUploadForSubmission = {
   sizeBytes: number;
   sha256: string | null;
   expiresAt: Date;
+};
+
+type FileListOptions = {
+  take?: number;
+  skip?: number;
 };
 
 @Injectable()
@@ -68,6 +78,16 @@ export class FilesService {
     const dir = join(this.storageRoot, scope);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     return dir;
+  }
+
+  private clampTake(take: number | undefined, defaultTake: number, maxTake: number) {
+    if (!Number.isFinite(take)) return defaultTake;
+    return Math.max(1, Math.min(Math.floor(Number(take)), maxTake));
+  }
+
+  private clampSkip(skip?: number) {
+    if (!Number.isFinite(skip)) return 0;
+    return Math.max(0, Math.floor(Number(skip)));
   }
 
   private normalizeRelativePath(relativePath: string) {
@@ -582,6 +602,17 @@ export class FilesService {
         })
       : null;
 
+    await this.auditLogs.record({
+      actorUserId: input.uploadedByUserId,
+      actorRole: String(input.uploadedByRole || 'UNKNOWN'),
+      action: 'FILE_UPLOADED',
+      module: 'Files',
+      target: relativePath,
+      entityId: pendingUpload?.id || id,
+      result: 'Success',
+      details: `Uploaded ${safeName} (${(buffer.byteLength / 1024).toFixed(1)} KB) to ${scope}`,
+    });
+
     return {
       id,
       uploadId: pendingUpload?.id || id,
@@ -687,8 +718,13 @@ export class FilesService {
     return { expired: expired.length, deletedStorageObjects, warnings };
   }
 
-  async list(scope?: string, actor?: { userId?: string; role?: string }) {
+  async list(scope?: string, actor?: { userId?: string; role?: string }, options: FileListOptions = {}) {
+    const take = this.clampTake(options.take, DEFAULT_FILE_LIST_TAKE, MAX_FILE_LIST_TAKE);
+    const skip = this.clampSkip(options.skip);
+    const storageTake = this.clampTake(options.take, DEFAULT_STORAGE_OBJECT_LIST_TAKE, MAX_STORAGE_OBJECT_LIST_TAKE);
     const scopedFiles = await this.prisma.submissionFile.findMany({
+      take,
+      skip,
       where: {
         deletedAt: null,
         ...(scope ? { relativePath: { startsWith: `${scope}/` } } : {}),
@@ -739,38 +775,44 @@ export class FilesService {
 
     const storageRows = actor?.role === 'ADMIN'
       ? this.storage.mode === 's3'
-        ? await this.listS3Objects(scope)
-        : this.listLocalObjects(scope)
+        ? await this.listS3Objects(scope, storageTake)
+        : this.listLocalObjects(scope, storageTake)
       : [];
 
     for (const row of storageRows) {
       if (!indexed.has(row.relativePath)) {
         indexed.set(row.relativePath, row);
       }
+      if (indexed.size >= take) break;
     }
 
-    return Array.from(indexed.values()).sort((a, b) =>
-      String(b.uploadedAt || b.modifiedAt || '').localeCompare(String(a.uploadedAt || a.modifiedAt || '')),
-    );
+    return Array.from(indexed.values())
+      .sort((a, b) => String(b.uploadedAt || b.modifiedAt || '').localeCompare(String(a.uploadedAt || a.modifiedAt || '')))
+      .slice(0, take);
   }
 
-  private listLocalObjects(scope?: string) {
+  private listLocalObjects(scope?: string, limit = DEFAULT_STORAGE_OBJECT_LIST_TAKE) {
+    const take = this.clampTake(limit, DEFAULT_STORAGE_OBJECT_LIST_TAKE, MAX_STORAGE_OBJECT_LIST_TAKE);
     const baseDir = scope ? join(this.storageRoot, scope) : this.storageRoot;
     if (!existsSync(baseDir)) return [];
 
-    const collect = (dir: string, prefix = ''): Array<any> => {
-      return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const rows: Array<any> = [];
+    const collect = (dir: string, prefix = ''): void => {
+      if (rows.length >= take) return;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (rows.length >= take) return;
         const nextPath = join(dir, entry.name);
         const relative = join(prefix, entry.name).replace(/\\/g, '/');
         if (entry.isDirectory()) {
-          if (entry.name.startsWith('.')) return [];
-          return collect(nextPath, relative);
+          if (entry.name.startsWith('.')) continue;
+          collect(nextPath, relative);
+          continue;
         }
-        if (!entry.isFile()) return [];
+        if (!entry.isFile()) continue;
         const stat = statSync(nextPath);
         const normalized = (scope ? join(scope, relative) : relative).replace(/\\/g, '/');
-        if (normalized.startsWith('.health/')) return [];
-        return [{
+        if (normalized.startsWith('.health/')) continue;
+        rows.push({
           storedName: basename(normalized),
           fileName: basename(normalized),
           scope: normalized.split('/')[0] || 'general',
@@ -778,16 +820,18 @@ export class FilesService {
           modifiedAt: stat.mtime.toISOString(),
           uploadedAt: stat.mtime.toISOString(),
           relativePath: normalized,
-        }];
-      });
+        });
+      }
     };
 
-    return collect(baseDir);
+    collect(baseDir);
+    return rows;
   }
 
-  private async listS3Objects(scope?: string) {
+  private async listS3Objects(scope?: string, limit = DEFAULT_STORAGE_OBJECT_LIST_TAKE) {
     if (!this.s3Client || !this.s3Config.bucket) return [];
 
+    const take = this.clampTake(limit, DEFAULT_STORAGE_OBJECT_LIST_TAKE, MAX_STORAGE_OBJECT_LIST_TAKE);
     const prefix = scope ? `${scope.replace(/^\/+/, '').replace(/\/+$/, '')}/` : undefined;
     const rows: any[] = [];
     let continuationToken: string | undefined;
@@ -798,9 +842,11 @@ export class FilesService {
           Bucket: this.s3Config.bucket,
           Prefix: prefix,
           ContinuationToken: continuationToken,
+          MaxKeys: Math.min(take - rows.length, 1000),
         }),
       );
       for (const item of response.Contents || []) {
+        if (rows.length >= take) break;
         const key = String(item.Key || '').trim();
         if (!key || key.endsWith('/') || key.startsWith('.health/')) continue;
         rows.push({
@@ -813,8 +859,8 @@ export class FilesService {
           relativePath: key,
         });
       }
-      continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
-    } while (continuationToken);
+      continuationToken = response.IsTruncated && rows.length < take ? response.NextContinuationToken : undefined;
+    } while (continuationToken && rows.length < take);
 
     return rows;
   }
@@ -876,56 +922,6 @@ export class FilesService {
       fileName: meta?.fileName || basename(target),
       meta,
     };
-  }
-
-  async validateUploadedFileReferences(relativePaths: string[]) {
-    const normalizedPaths = Array.from(
-      new Set(relativePaths.map((item) => this.normalizeRelativePath(item))),
-    );
-    const missingStorage: string[] = [];
-    for (const relativePath of normalizedPaths) {
-      if (!(await this.hasObject(relativePath))) {
-        missingStorage.push(relativePath);
-      }
-    }
-    if (missingStorage.length) {
-      throw new BadRequestException('One or more uploaded files are missing from storage.');
-    }
-    return normalizedPaths;
-  }
-
-  async ensureFilesAttachedToSubmission(input: {
-    relativePaths: string[];
-    submissionId: string;
-    activityId?: string;
-    subjectId?: string;
-  }) {
-    const relativePaths = await this.validateUploadedFileReferences(input.relativePaths);
-    if (!relativePaths.length) return [];
-
-    const rows = await this.prisma.submissionFile.findMany({
-      where: {
-        submissionId: input.submissionId,
-        relativePath: { in: relativePaths },
-        deletedAt: null,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    const found = new Set(rows.map((row) => row.relativePath).filter(Boolean) as string[]);
-    const missingMetadata = relativePaths.filter((item) => !found.has(item));
-    if (missingMetadata.length) {
-      throw new BadRequestException('One or more uploaded files are not linked to the saved submission.');
-    }
-    return rows;
-  }
-
-  async attachFilesToSubmission(input: {
-    relativePaths: string[];
-    submissionId: string;
-    activityId?: string;
-    subjectId?: string;
-  }) {
-    return this.ensureFilesAttachedToSubmission(input);
   }
 
   async listForSubmission(submissionId: string, actor?: { userId?: string; role?: string }) {
@@ -1000,11 +996,11 @@ export class FilesService {
       module: 'Files',
       target: normalized,
       entityId: meta?.id,
-      result: 'Success',
-      details: meta?.submissionId
-        ? `Deleted file metadata linked to submission ${meta.submissionId}.${storageAlreadyMissing ? ' Storage object was already missing.' : ''}`
-        : 'Deleted untracked storage object.',
+      result: storageAlreadyMissing ? 'Partial' : 'Success',
+      details: storageAlreadyMissing
+        ? 'Database metadata deleted; storage object was already missing.'
+        : undefined,
     });
-    return { success: true, removed: normalized };
+    return { success: true, deletedMetadata: markedDeleted, removedStorageObject: !storageAlreadyMissing };
   }
 }

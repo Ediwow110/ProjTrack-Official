@@ -14,7 +14,9 @@
     "check:boot:worker": "node scripts/check-worker-boot.cjs",
     "test": "node scripts/production-hardening-checks.cjs",
     "test:unit": "jest",
+    "test:security": "jest --config jest.security.config.cjs --runInBand",
     "check:runtime:prod": "node scripts/production-runtime-check.cjs",
+    "check:query-plans": "node scripts/check-school-scale-query-plans.cjs",
     "smoke:worker": "node scripts/worker-boot-smoke.cjs",
     "smoke:staging:summary": "node scripts/staging-smoke-summary.mjs",
     "drill:backup-restore": "node scripts/backup-restore-drill.mjs",
@@ -23,6 +25,7 @@
     "smoke": "node scripts/smoke.js",
     "smoke:admin:ensure": "node scripts/ensure-smoke-admin.js",
     "seed:smoke": "node scripts/ensure-smoke-fixtures.js",
+    "seed:load": "node scripts/seed-load-fixtures.cjs",
     "smoke:local": "node scripts/smoke.js --local-accounts",
     "smoke:real": "node scripts/smoke.js --real-accounts",
     "smoke:storage": "node scripts/object-storage-smoke.js",
@@ -72,7 +75,7 @@
     "resend": "6.12.3",
     "rxjs": "^7.8.1",
     "svix": "^1.93.0",
-    "uuid": "^14.0.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
@@ -87,7 +90,8 @@
   "overrides": {
     "multer": "2.1.1",
     "exceljs": {
-      "uuid": "14.0.0"
-    }
+      "uuid": "9.0.1"
+    },
+    "tmp": "0.2.6"
   }
 }

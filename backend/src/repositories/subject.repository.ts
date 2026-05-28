@@ -4,12 +4,34 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 import { hasPrismaErrorCode } from '../prisma/prisma-compat';
 
+const DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE = 100;
+const MAX_SUBJECT_REPOSITORY_LIST_TAKE = 500;
+const DEFAULT_SUBJECT_ACTIVITY_LIST_TAKE = 100;
+const MAX_SUBJECT_ACTIVITY_LIST_TAKE = 500;
+const DEFAULT_SUBJECT_GROUP_LIST_TAKE = 100;
+const MAX_SUBJECT_GROUP_LIST_TAKE = 500;
+
+type RepositoryListOptions = {
+  take?: number;
+  skip?: number;
+};
+
 @Injectable()
 export class SubjectRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private isUniqueConstraintError(error: unknown) {
     return hasPrismaErrorCode(error, 'P2002');
+  }
+
+  private clampListTake(take: number | undefined, defaultTake: number, maxTake: number) {
+    if (!Number.isFinite(take)) return defaultTake;
+    return Math.max(1, Math.min(Math.floor(Number(take)), maxTake));
+  }
+
+  private clampListSkip(skip?: number) {
+    if (!Number.isFinite(skip)) return 0;
+    return Math.max(0, Math.floor(Number(skip)));
   }
 
   private buildInviteCode() {
@@ -45,8 +67,14 @@ export class SubjectRepository {
     return byUser?.id ?? userId;
   }
 
-  async listSubjects() {
+  async listSubjects(options: RepositoryListOptions = {}) {
     return this.prisma.subject.findMany({
+      take: this.clampListTake(
+        options.take,
+        DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE,
+        MAX_SUBJECT_REPOSITORY_LIST_TAKE,
+      ),
+      skip: this.clampListSkip(options.skip),
       include: {
         teacher: { include: { user: { select: SAFE_USER_SELECT } } },
         tasks: true,
@@ -72,20 +100,32 @@ export class SubjectRepository {
   async findActivityById(id: string) {
     return this.prisma.submissionTask.findUnique({
       where: { id },
-      include: { submissions: true },
+      include: { _count: { select: { submissions: true } } },
     });
   }
 
-  async listActivitiesBySubject(subjectId: string) {
+  async listActivitiesBySubject(subjectId: string, options: RepositoryListOptions = {}) {
     return this.prisma.submissionTask.findMany({
+      take: this.clampListTake(
+        options.take,
+        DEFAULT_SUBJECT_ACTIVITY_LIST_TAKE,
+        MAX_SUBJECT_ACTIVITY_LIST_TAKE,
+      ),
+      skip: this.clampListSkip(options.skip),
       where: { subjectId },
-      include: { submissions: true },
+      include: { _count: { select: { submissions: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async listGroupsBySubject(subjectId: string) {
+  async listGroupsBySubject(subjectId: string, options: RepositoryListOptions = {}) {
     return this.prisma.group.findMany({
+      take: this.clampListTake(
+        options.take,
+        DEFAULT_SUBJECT_GROUP_LIST_TAKE,
+        MAX_SUBJECT_GROUP_LIST_TAKE,
+      ),
+      skip: this.clampListSkip(options.skip),
       where: { subjectId },
       include: {
         members: {
@@ -102,9 +142,15 @@ export class SubjectRepository {
     });
   }
 
-  async listSubjectsForStudent(userId: string) {
+  async listSubjectsForStudent(userId: string, options: RepositoryListOptions = {}) {
     const resolvedStudentId = await this.resolveStudentProfileId(userId);
     const enrollments = await this.prisma.enrollment.findMany({
+      take: this.clampListTake(
+        options.take,
+        DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE,
+        MAX_SUBJECT_REPOSITORY_LIST_TAKE,
+      ),
+      skip: this.clampListSkip(options.skip),
       where: { studentId: resolvedStudentId },
       include: {
         subject: {
@@ -124,9 +170,15 @@ export class SubjectRepository {
     }));
   }
 
-  async listSubjectsForTeacher(teacherId: string) {
+  async listSubjectsForTeacher(teacherId: string, options: RepositoryListOptions = {}) {
     const resolvedTeacherId = await this.resolveTeacherProfileId(teacherId);
     return this.prisma.subject.findMany({
+      take: this.clampListTake(
+        options.take,
+        DEFAULT_SUBJECT_REPOSITORY_LIST_TAKE,
+        MAX_SUBJECT_REPOSITORY_LIST_TAKE,
+      ),
+      skip: this.clampListSkip(options.skip),
       where: { teacherId: resolvedTeacherId },
       include: {
         teacher: { include: { user: { select: SAFE_USER_SELECT } } },
