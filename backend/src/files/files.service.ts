@@ -602,6 +602,17 @@ export class FilesService {
         })
       : null;
 
+    await this.auditLogs.record({
+      actorUserId: input.uploadedByUserId,
+      actorRole: String(input.uploadedByRole || 'UNKNOWN'),
+      action: 'FILE_UPLOADED',
+      module: 'Files',
+      target: relativePath,
+      entityId: pendingUpload?.id || id,
+      result: 'Success',
+      details: `Uploaded ${safeName} (${(buffer.byteLength / 1024).toFixed(1)} KB) to ${scope}`,
+    });
+
     return {
       id,
       uploadId: pendingUpload?.id || id,
