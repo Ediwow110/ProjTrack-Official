@@ -150,7 +150,7 @@ async function main() {
     );
 
     const liveHealth = await request('/health/live');
-    expect(liveHealth.status === 200, `Unexpected /health/live status: ${liveHealth.status}`);
+    expect(liveHealth.status === 200, `Unexpected /health/live status: ${liveHealth.status}. Body: ${JSON.stringify(liveHealth.body)}`);
     expect(liveHealth.body?.ok === true, `Liveness check failed: ${JSON.stringify(liveHealth.body)}`);
 
     const publicDatabaseHealth = await request('/health/database');
@@ -160,7 +160,7 @@ async function main() {
     );
 
     const readyHealth = await request('/health/ready');
-    expect(readyHealth.status === 200, `Unexpected /health/ready status: ${readyHealth.status}`);
+    expect(readyHealth.status === 200, `Unexpected /health/ready status: ${readyHealth.status}. Body: ${JSON.stringify(readyHealth.body)}`);
     expect(readyHealth.body?.checks?.database === true, `Readiness database check failed: ${JSON.stringify(readyHealth.body)}`);
     if (expectReady) {
       expect(readyHealth.body?.ok === true, `Expected /health/ready to pass: ${JSON.stringify(readyHealth.body)}`);

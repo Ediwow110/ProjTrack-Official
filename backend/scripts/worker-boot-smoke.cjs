@@ -76,8 +76,10 @@ function bootWorker(env, { expectReady }) {
     const onReady = () => {
       if (resolved) return;
       ready = true;
-      // Send SIGTERM and wait for clean exit.
-      try { child.kill('SIGTERM'); } catch (_) {}
+      // Wait 2 seconds to allow background heartbeat writes to complete.
+      setTimeout(() => {
+        try { child.kill('SIGTERM'); } catch (_) {}
+      }, 2000);
     };
 
     child.stdout.on('data', (c) => {
