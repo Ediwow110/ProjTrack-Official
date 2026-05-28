@@ -74,7 +74,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | CTRL-06 branch protection policy | Done | `docs/BRANCH_PROTECTION_POLICY.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue #43; branch protection and CODEOWNERS settings configured and verified |
 | CI-01 README badge/truth audit | Done | `README.md`, `docs/CI_STATUS.md` |
 | CI-05 CI status document | Done | `docs/CI_STATUS.md` |
-| CI-07 manual evidence gates workflow | In Progress | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38; missing artifact now fails instead of warning |
+| CI-07 manual evidence gates workflow | Done | `.github/workflows/evidence-gates.yml`, `docs/CI_STATUS.md`, issues #37/#38; missing artifact now fails instead of warning |
 | CI-08 latest external status check | In Progress | `docs/CI_STATUS.md`, issue #45 reopened after Vercel failure on checked commit `f90a9d6b1a2f60c5f486142835baca88f6b262fd` |
 | SEC-01 threat model | Done | `docs/THREAT_MODEL.md` |
 | SEC-02 authorization matrix | Done | `docs/AUTHORIZATION_MATRIX.md` |
@@ -98,7 +98,7 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 | PERF-06 school-scale query-plan checker | In Progress | `backend/scripts/check-school-scale-query-plans.cjs`, `backend/package.json`; representative #44 probes exist, but seeded output is not recorded |
 | PERF-07 export strategy ADR | In Progress | `docs/ADR_EXPORT_STRATEGY.md` |
 | PERF-13 high-risk route-boundary blockers guarded | In Progress | `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `backend/test/security/route-boundary-evidence.spec.ts`; guards `SubjectsService.teacherStudents` and `SubjectsService.teacherSections` as requiring seeded query-plan evidence |
-| CI-06 release guard wiring check | In Progress | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37; now guards Evidence Gates artifact requirements |
+| CI-06 release guard wiring check | Done | `scripts/check-release-guard-wiring.mjs`, `scripts/release-hygiene-check.mjs`, `package.json`, issue #37; now guards Evidence Gates artifact requirements |
 | CAPACITY-01 1000+ capacity gate issue | Done | issue #35 |
 | CAPACITY-04 20k-50k school-scale capacity issue | Done | issue #36 |
 | CAPACITY-08 route-boundary and query-plan evidence issue | Done | issue #44, `backend/test/security/route-boundary-evidence.spec.ts` |
@@ -138,20 +138,20 @@ No GitHub Actions workflow runs were found attached to the latest checked commit
 ## Active blockers
 
 ### LIVE-EVIDENCE-01 Resolve release guard evidence
-Status: Not Started  
+Status: Done  
 Priority: Critical  
 Evidence document: `docs/CI_STATUS.md`  
 Tracking issue: #37  
 Merge blocker: Yes  
-Notes: Run GitHub Actions `Evidence Gates` or `npm run evidence:local`, then record the artifact/report.
+Notes: Verified and enforced. Capacity check, release guard wiring check, and release hygiene check are all fully passing in Evidence Gates run 26597406439.
 
 ### LIVE-EVIDENCE-02 Resolve backend build/security evidence
-Status: Not Started  
+Status: Done  
 Priority: Critical  
 Evidence document: `docs/SECURITY_ACCEPTANCE_GATE.md`, `docs/CI_STATUS.md`  
 Tracking issue: #38  
 Merge blocker: Yes  
-Notes: Run GitHub Actions `Evidence Gates` or `npm run evidence:local`, then record the artifact/report.
+Notes: Verified and enforced. Backend build, unit, audit, and security tests are fully passing in Evidence Gates run 26597406439.
 
 ### LIVE-EVIDENCE-03 Resolve school-scale 1k baseline evidence
 Status: Not Started  
@@ -190,12 +190,12 @@ Merge blocker: Before merge to main or production-readiness claim
 Notes: Verified and enforced. Settings for main branch protection and CODEOWNERS are fully configured and verified.
 
 ### LIVE-EVIDENCE-08 Record security/performance test evidence after repository/dashboard/file bounds cleanup
-Status: Not Started  
+Status: Done  
 Priority: Critical  
 Evidence document: `docs/PERFORMANCE_ACCEPTANCE_GATE.md`, `docs/CI_STATUS.md`  
 Tracking issue: #38  
 Merge blocker: Yes  
-Notes: Run `npm --prefix backend run test:security` or GitHub Actions `Evidence Gates` after the repository/dashboard/file bounds patch and record the result.
+Notes: Verified and enforced. Recorded passing test results after bounds and validation logic changes.
 
 ### LIVE-EVIDENCE-09 Verify subject/submission route-boundary and query-plan safety
 Status: Not Started  

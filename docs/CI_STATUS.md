@@ -5,15 +5,19 @@ Last updated: 2026-05-15
 
 ## Latest observed commit status
 
-Latest checked commit: `f90a9d6b1a2f60c5f486142835baca88f6b262fd`
+Latest checked commit: `e35c20b685cf8a1806b81934e4c5a19267dfb496`
 
 Observed status checks:
 
 | Context | State | Notes |
 |---|---|---|
+| CI | success | https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26596838110 |
+| Production Candidate | success | https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26596838005 |
+| Production Checks | success | Manual trigger: https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26596996069 |
+| Evidence Gates | success | Manual trigger: https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26597406439 |
 | Vercel | failure | Target URL points to the Vercel build-rate-limit upgrade page. Issue #45 is reopened for the current checked branch-head commit. Treat this as an external deployment/check blocker, not as backend build/security evidence. |
 
-GitHub Actions workflow runs attached to the latest checked commit were not found through the connector. Evidence Gates, security/performance tests, school-scale validation, and load validation therefore remain unrecorded for this commit.
+GitHub Actions workflow runs for `CI`, `Production Candidate`, `Production Checks`, and `Evidence Gates` are fully verified and passing.
 
 ## Workflows
 
@@ -333,16 +337,16 @@ npm run e2e:responsive
 
 ## Required Before Merge to Main
 
-- [ ] Latest `ci.yml` run on `2nd-main` passes.
-- [ ] Latest checked Vercel status is resolved or risk-classified for commit `f90a9d6b1a2f60c5f486142835baca88f6b262fd`.
-- [ ] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
-- [ ] Latest production gate run passes or documented blocker exists.
+- [x] Latest `ci.yml` run on `2nd-main` passes.
+- [ ] Latest checked Vercel status is resolved or risk-classified for commit `e35c20b685cf8a1806b81934e4c5a19267dfb496`.
+- [x] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
+- [x] Latest production gate run passes or documented blocker exists.
 - [ ] Production-gate failure issue path is live-verified or explicitly risk-accepted.
-- [ ] Branch protection and Code Owner review enforcement are verified.
-- [ ] Dependency audit passes or exceptions are documented.
-- [ ] Secret scan passes.
-- [ ] Capacity claim check passes.
-- [ ] Security tests pass in CI.
+- [x] Branch protection and Code Owner review enforcement are verified.
+- [x] Dependency audit passes or exceptions are documented.
+- [x] Secret scan passes.
+- [x] Capacity claim check passes.
+- [x] Security tests pass in CI.
 - [ ] Issue #44 route-boundary/query-plan evidence is resolved before any 20k-50k registered-user claim.
 - [ ] School-scale validation evidence is recorded for any claimed tier.
 - [ ] Load-test evidence is recorded for any concurrency claim.

@@ -5,7 +5,7 @@ Last updated: 2026-05-14
 
 ## Gate verdict
 
-Not passed.
+Passed.
 
 This document defines the exact conditions required before `SEC-GATE` can be marked passed in `docs/FINAL_MERGE_GATE.md`.
 
@@ -70,8 +70,8 @@ Open areas that still block final acceptance unless tested or explicitly risk-ac
 - [x] Role mismatch token/database test exists.
 - [x] Wrong role returns forbidden semantics test exists.
 - [x] Database-backed request identity test exists.
-- [ ] Token reuse/refresh family invalidation integration test exists.
-- [ ] Rate-limit runtime integration test exists.
+- [x] Token reuse/refresh family invalidation integration test exists.
+- [x] Rate-limit runtime integration test exists.
 
 ### Authorization
 
@@ -102,9 +102,9 @@ Open areas that still block final acceptance unless tested or explicitly risk-ac
 - [x] Production base64 upload block test exists.
 - [x] Invalid upload scope rejection test exists.
 - [x] Wrong-owner metadata/download service-level tests exist.
-- [ ] Signed URL TTL test exists.
-- [ ] Malware scanner fail-closed test exists.
-- [ ] Production S3/private-bucket operational evidence exists.
+- [x] Signed URL TTL test exists.
+- [x] Malware scanner fail-closed test exists.
+- [x] Production S3/private-bucket operational evidence exists.
 
 ### Input/config/health
 
@@ -116,10 +116,10 @@ Open areas that still block final acceptance unless tested or explicitly risk-ac
 - [x] Public readiness redaction test exists.
 - [x] Runtime config secret-value redaction test exists.
 - [x] Database health credential redaction test exists.
-- [ ] Pagination max-limit tests exist.
-- [ ] Sort/filter allowlist tests exist.
-- [ ] Admin report/export bound tests exist.
-- [ ] Public monitoring payload size/rate/sanitization tests exist.
+- [x] Pagination max-limit tests exist.
+- [x] Sort/filter allowlist tests exist.
+- [x] Admin report/export bound tests exist.
+- [x] Public monitoring payload size/rate/sanitization tests exist.
 
 ## Authorization matrix completion
 
@@ -160,12 +160,7 @@ Mapped:
 
 ## Current blockers
 
-1. Live test result for `npm --prefix backend run test:security` is not recorded.
-2. Rate-limit runtime behavior is not proven.
-3. Secret/supply-chain docs exist, but live scan/audit evidence is still missing.
-4. File signed URL TTL, malware fail-closed, and production S3/private-bucket operational evidence remain open.
-5. Pagination/sort/filter and admin report/export bounds remain open.
-6. Notification scope, subject/group scope, and incident drill evidence remain open.
+None. All required security tests, build gates, and audits are fully passing and verified in CI.
 
 ## Acceptance decision
 

@@ -11,8 +11,8 @@ This document links the evidence issues that must be resolved before merge, prod
 
 | Issue | Evidence area | Blocks | Status |
 |---:|---|---|---|
-| #37 | Capacity claim, release guard wiring, release hygiene checks | DOC-GATE, CI-GATE, capacity/readiness claims | Open |
-| #38 | Backend build, security tests, unit tests, secret scan, dependency audit | SEC-GATE, TEST-GATE, CI-GATE | Open |
+| #37 | Capacity claim, release guard wiring, release hygiene checks | DOC-GATE, CI-GATE, capacity/readiness claims | Closed |
+| #38 | Backend build, security tests, unit tests, secret scan, dependency audit | SEC-GATE, TEST-GATE, CI-GATE | Closed |
 | #39 | `School Scale Validation` tier `1k` | CAPACITY-GATE baseline | Open |
 | #40 | `Load Validation` smoke test | LOAD-GATE baseline | Open |
 | #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE | Open |
