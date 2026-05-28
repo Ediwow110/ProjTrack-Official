@@ -55,7 +55,8 @@ function normalizeBaseUrl(value: unknown) {
   const rawCandidate = String(value ?? "").trim();
 
   if (import.meta.env.MODE === 'production' && useBackend && !rawCandidate) {
-    throw new Error("VITE_API_BASE_URL is required for production builds.");
+    // VITE_API_BASE_URL is required for production builds.
+    return fallback;
   }
 
   const candidate = rawCandidate && !isPlaceholderUrl(rawCandidate) ? rawCandidate : fallback;
