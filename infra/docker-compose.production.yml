@@ -10,6 +10,10 @@ services:
     build:
       context: ./repo
       dockerfile: Dockerfile.backend
+      args:
+        # Pass git commit SHA so the image carries an OCI revision label.
+        # Override at build time: VCS_REF=$(git rev-parse HEAD) docker compose build backend
+        VCS_REF: ${VCS_REF:-unknown}
     image: projtrack/backend:latest
     container_name: projtrack-backend
     restart: unless-stopped

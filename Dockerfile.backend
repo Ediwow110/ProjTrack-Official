@@ -42,6 +42,10 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # ---------- Stage 3: runtime image ----------
+# Build arg: pass the git commit SHA at build time so the image label carries it.
+# Usage: docker build --build-arg VCS_REF=$(git rev-parse HEAD) ...
+# Default is 'unknown' so omitting the arg does not break CI builds.
+ARG VCS_REF=unknown
 FROM node:20-alpine AS runner
 
 # tini gives us proper PID 1 signal handling so SIGTERM reaches Node and
@@ -52,6 +56,11 @@ RUN apk add --no-cache tini openssl \
     && adduser -S -G projtrack -u 10001 -h /home/projtrack projtrack
 
 WORKDIR /app
+
+# OCI image revision label — readable via:
+#   docker inspect <container> --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'
+LABEL org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.source="https://github.com/Ediwow110/ProjTrack-Official"
 
 ENV NODE_ENV=production \
     PORT=3001 \
