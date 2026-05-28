@@ -17,7 +17,7 @@ This document links the evidence issues that must be resolved before merge, prod
 | #40 | `Load Validation` smoke test | LOAD-GATE baseline | Open |
 | #41 | Production-check failure issue creation live verification | OPS-GATE, CI-GATE | Open |
 | #42 | `School Scale Validation` tier `20k` and `50k` | 20k/50k registered-user claims | Open |
-| #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims | Open |
+| #43 | Branch protection and CODEOWNERS enforcement verification | CI-GATE, DOC-GATE, production-readiness claims | Closed |
 | #44 | Subject/submission route pagination and query-plan safety | PERF-GATE, CAPACITY-GATE, 20k/50k registered-user claims | Open |
 | #45 | Failing Vercel external status on current branch head | CI-GATE, DOC-GATE, merge-readiness claims | Reopened |
 

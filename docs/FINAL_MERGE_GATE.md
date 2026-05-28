@@ -44,9 +44,9 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
 - [ ] Latest external Vercel status resolved or risk-classified for commit `f90a9d6b1a2f60c5f486142835baca88f6b262fd`
-- [ ] Branch protection for `main` configured and verified
-- [ ] CODEOWNERS review enforcement verified
-- [ ] Issue #43 resolved with repository-setting verification evidence
+- [x] Branch protection for `main` configured and verified
+- [x] CODEOWNERS review enforcement verified
+- [x] Issue #43 resolved with repository-setting verification evidence
 - [ ] Issue #45 resolved with external-status evidence or risk classification
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`

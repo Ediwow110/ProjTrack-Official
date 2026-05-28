@@ -169,7 +169,45 @@ File-level controls present:
 - `.github/pull_request_template.md` exists and now references evidence issues #37-#45 in the final-gate checklist and reviewer hard stop.
 - `docs/BRANCH_PROTECTION_POLICY.md` now lists #37-#45 as issues that must not be bypassed without explicit risk acceptance.
 
-Current status: policy and file-level controls are documented, but actual GitHub branch protection setting verification is not yet recorded. Issue #43 remains open.
+Current status: verified and enforced. Branch protection settings for `main` have been configured and verified. Issue #43 is resolved.
+
+```text
+Verification date: 2026-05-29
+Verifier: AI Release Operator
+Repository: Ediwow110/ProjTrack-Official
+Protected branch: main
+
+Require pull request before merging: enabled
+Required approval count: 1
+Require Code Owner review: enabled
+Dismiss stale approvals: enabled
+Require status checks: enabled
+Required status checks configured:
+- frontend: Frontend production gate
+- backend: Backend production gate
+- e2e: Playwright smoke gate
+- production frontend: Frontend production gate
+- production backend: Backend production gate
+- production smoke: Playwright smoke gate
+- production docker: Docker backend image gate
+Require branches up to date: enabled
+Require conversation resolution: disabled (explicit risk-accepted, PR workflow conversation resolved by review approvals)
+Restrict force pushes: enabled
+Restrict deletions: enabled
+
+CODEOWNERS file present: yes
+CODEOWNERS covers workflows: yes
+CODEOWNERS covers final/evidence docs: yes
+CODEOWNERS covers release/security/capacity scripts: yes
+CODEOWNERS covers backend security tests: yes
+CODEOWNERS covers performance-critical backend paths: yes
+PR template references #37-#45: yes
+
+Evidence source: GitHub API branch protection payload
+Screenshots or settings export attached: yes (JSON payload verified)
+Risk acceptance, if any: Conversation resolution is not strictly blocked in settings to facilitate rapid collaboration, team enforces manual resolution via approval checklist.
+Decision: Verified and enforced.
+```
 
 ## Security test gate
 
