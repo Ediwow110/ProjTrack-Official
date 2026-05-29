@@ -313,8 +313,8 @@ function SidebarContent({
         {isMobile ? (
           <button onClick={onClose}
             aria-label={`Close ${cfg.label} navigation`}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-400 hover:text-slate-600 hover:bg-white dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800">
-            <X size={15} />
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-500 hover:text-slate-700 hover:bg-white dark:border-slate-700/60 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800">
+            <X size={17} />
           </button>
         ) : null}
       </div>
@@ -571,7 +571,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             <motion.div key="drawer" initial="hidden" animate="visible" exit="exit"
               variants={slideInVariants(reducedMotion, { axis: "x", distance: -296 })}
               transition={springTransition(reducedMotion, { stiffness: 380, damping: 40 })}
-              className="portal-mobile-drawer fixed top-0 left-0 bottom-0 z-50 w-[min(280px,calc(100vw-1rem))] p-3">
+              className="portal-mobile-drawer fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[calc(100vw-1rem)] p-3">
               <SidebarContent
                 role={role}
                 collapsed={false}
@@ -668,7 +668,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
         </header>
 
         {/* Page content */}
-        <main className="portal-theme-surface relative flex-1 overflow-y-auto pt-4">
+        <main className="portal-theme-surface relative flex-1 overflow-y-auto pt-4" tabIndex={0} aria-label={`${cfg.label} page content`}>
           <Outlet />
         </main>
       </div>

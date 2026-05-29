@@ -254,7 +254,7 @@
   --role-accent-border: rgba(139, 92, 246, 0.3);
   --role-accent-text: #6d28d9;
   --role-accent-text-dark: #ede9fe;
-  --role-button-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  --role-button-gradient: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
   --role-logo-glow: rgba(139, 92, 246, 0.34);
   --role-dot: #a78bfa;
   --role-indicator: #7c3aed;
@@ -284,14 +284,14 @@
 }
 
 .portal-role-admin {
-  --role-accent: #ff7900;
-  --role-accent-strong: #c2410c;
+  --role-accent: #c2410c;
+  --role-accent-strong: #9a3412;
   --role-accent-soft: rgba(255, 121, 0, 0.12);
   --role-accent-soft-strong: rgba(255, 121, 0, 0.2);
   --role-accent-border: rgba(255, 121, 0, 0.3);
   --role-accent-text: #c2410c;
   --role-accent-text-dark: #ffedd5;
-  --role-button-gradient: linear-gradient(135deg, #ff7900 0%, #ff9d00 100%);
+  --role-button-gradient: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
   --role-logo-glow: rgba(255, 121, 0, 0.34);
   --role-dot: #ff9d00;
   --role-indicator: #ea580c;

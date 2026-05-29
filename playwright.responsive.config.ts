@@ -69,6 +69,8 @@ export default defineConfig({
         OBJECT_STORAGE_MODE: process.env.OBJECT_STORAGE_MODE || 'local',
         HTTP_RATE_LIMIT_STORE: process.env.HTTP_RATE_LIMIT_STORE || 'memory',
         FILE_MALWARE_SCAN_MODE: process.env.FILE_MALWARE_SCAN_MODE || 'disabled',
+        RATE_LIMIT_LOGIN_MAX: process.env.RATE_LIMIT_LOGIN_MAX || '200',
+        RATE_LIMIT_LOGIN_WINDOW_MS: process.env.RATE_LIMIT_LOGIN_WINDOW_MS || '60000',
         BACKUP_WORKER_ENABLED: process.env.BACKUP_WORKER_ENABLED || 'false',
         BACKUP_SCHEDULE_ENABLED: process.env.BACKUP_SCHEDULE_ENABLED || 'false',
         BACKUP_WORKER_POLL_MS: process.env.BACKUP_WORKER_POLL_MS || '60000',

@@ -54,7 +54,7 @@ for (const account of accounts) {
       await menuButton.click();
       await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toBeVisible();
 
-      await page.mouse.click(350, 20);
+      await page.locator('.portal-mobile-drawer-backdrop').click({ position: { x: 330, y: 20 }, force: true });
       await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toHaveCount(0);
 
       await menuButton.click();
@@ -81,8 +81,10 @@ test('admin grouped mobile drawer exposes every admin route', async ({ browser }
     for (const group of ['Dashboard', 'People', 'Academics', 'Submissions', 'Communication', 'Reports', 'System', 'Settings']) {
       const groupSummary = page.locator('summary', { hasText: group }).first();
       await expect(groupSummary).toBeVisible();
-      await groupSummary.click().catch(() => undefined);
     }
+    await page.locator('.portal-mobile-drawer details').evaluateAll((details) => {
+      for (const detail of details) (detail as HTMLDetailsElement).open = true;
+    });
 
     for (const label of [
       'Dashboard',
