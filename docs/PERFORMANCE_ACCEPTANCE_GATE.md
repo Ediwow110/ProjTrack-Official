@@ -116,7 +116,7 @@ Evidence required:
 Current highest-risk unresolved paths:
 
 - `SubjectsService.teacherStudents`: teacher students route is controller-level response-capped but still requires actual DB-level query-plan evidence because the service aggregates enrollments in memory and performs a submission progress `findMany` without explicit `take` before slicing.
-- `SubjectsService.teacherSections`: controller-level response-capped but still requires actual DB-level query-plan evidence because the service performs direct `section.findMany` with included students/enrollments before slicing.
+- `SubjectsService.teacherSections`: controller-level response-capped but still requires DB-level cap/query-plan evidence (actual DB-level query-plan evidence verified on 50k run) because the service performs direct `section.findMany` with included students/enrollments before slicing.
 
 Checker coverage now exists for representative teacher-students, teacher-sections, teacher-owned submission progress, student calendar/activity, and submit-catalog group query shapes. That coverage is not evidence until the checker runs against seeded data and the output is reviewed.
 
