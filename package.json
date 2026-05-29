@@ -85,7 +85,7 @@
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "next-themes": "^0.4.6",
-    "react": "^18.3.1",
+    "react": "^19.2.6",
     "react-day-picker": "^8.10.1",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
@@ -108,14 +108,14 @@
     "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@types/react": "^18.3.12",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.7.0",
     "axe-core": "^4.11.4",
     "tailwindcss": "^4.1.12"
   },
   "peerDependencies": {
-    "react": "^18.3.1",
+    "react": "^19.2.6",
     "react-dom": "^18.3.1"
   },
   "peerDependenciesMeta": {
