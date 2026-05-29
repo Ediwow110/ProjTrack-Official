@@ -77,7 +77,8 @@ async function login(page, config) {
   const url = new URL(config.loginPath, baseUrl).toString();
   await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
   await page.getByLabel(config.identifierLabel).fill(config.identifier);
-  await page.getByLabel(/Password/i).fill(config.password);
+  // Use exact regex to avoid matching "Show password" button
+  await page.getByLabel(/^Password$/i).fill(config.password);
   await page.getByRole('button', { name: config.buttonName }).click();
   // Wait for redirect or dashboard indicator.
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
@@ -85,11 +86,11 @@ async function login(page, config) {
 }
 
 for (const viewport of viewports) {
-  console.log(`[baseline] Starting viewport ${viewport.width}x${viewport.height}`);
+  console.log(`[baseline] Starting viewport ${viewport.width}x${viewport.height}`);      
   for (const [role, config] of Object.entries(roleConfigs)) {
     const context = await browser.newContext({ viewport });
     const page = await context.newPage();
-    
+
     const isAuthenticated = await login(page, config).catch((err) => {
       console.error(`[baseline] Login failed for ${role}: ${err.message}`);
       return false;
@@ -98,13 +99,15 @@ for (const viewport of viewports) {
     for (const route of config.routes) {
       const safeName = `${role}-${route.replace(/^\//, '').replace(/\//g, '-')}-${viewport.width}x${viewport.height}.png`;
       const url = new URL(route, baseUrl).toString();
-      
-      console.log(`[baseline] Capturing ${url} (authenticated: ${isAuthenticated})`);
-      await page.goto(url, { waitUntil: 'load', timeout: 30_000 }).catch((error) => {      
-        console.error(`[baseline] Navigation failed for ${url}: ${error.message}`);        
+
+      console.log(`[baseline] Capturing ${url} (authenticated: ${isAuthenticated})`);    
+      await page.goto(url, { waitUntil: 'load', timeout: 30_000 }).catch((error) => {    
+
+        console.error(`[baseline] Navigation failed for ${url}: ${error.message}`);      
+
       });
       await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
-      
+
       const path = join(outputDir, safeName);
       await page.screenshot({ path, fullPage: true });
       manifest.screenshots.push({ role, route, viewport, path, authenticated: isAuthenticated });
