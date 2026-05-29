@@ -26,6 +26,7 @@ jobs:
 
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run check:bundle-budget
 
       - name: Cache Playwright browsers
         uses: actions/cache@v5
@@ -37,8 +38,8 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - name: Auth responsive tests
-        run: npm run e2e:responsive
+      - name: Responsive harness discovery
+        run: npm run e2e:responsive -- --list
         timeout-minutes: 10
 
       - run: npm run security:audit
@@ -230,11 +231,15 @@ jobs:
         run: npm run e2e:smoke
         timeout-minutes: 15
 
+      - name: Authenticated responsive QA
+        run: npm run e2e:responsive
+        timeout-minutes: 15
+
       - run: npm audit --audit-level=high
 
       - name: E2E CI summary
         if: always()
         run: |
           echo "## E2E CI" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Backend build, smoke env preflight, Playwright smoke, and audit steps completed or failed above." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backend build, smoke env preflight, Playwright smoke, authenticated responsive QA, and audit steps completed or failed above." >> "$GITHUB_STEP_SUMMARY"
           echo "- E2E success is not a substitute for security/performance gate evidence." >> "$GITHUB_STEP_SUMMARY"

@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
       >
         {pendingRows.length ? (
           <div className="space-y-4">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Pending review queue table">
               <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/70">

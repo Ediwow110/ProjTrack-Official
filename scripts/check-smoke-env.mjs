@@ -44,9 +44,10 @@ console.error("Bash:");
 console.error('  export SMOKE_ADMIN_IDENTIFIER=admin.smoke@example.test');
 console.error("  export SMOKE_ADMIN_PASSWORD='<strong test-only password>'");
 console.error("");
-console.error("Then provision fixtures and run smoke:");
+console.error("Then provision fixtures and run smoke/responsive checks:");
 console.error("  npm run seed:smoke");
 console.error("  npm run e2e:smoke");
+console.error("  npm run e2e:responsive");
 console.error("");
 console.error("Notes:");
 console.error("  * These vars are for local or staging only. Never reuse production credentials.");
@@ -57,5 +58,5 @@ console.error(
 console.error(
   "  * Optional local overrides still exist for SMOKE_TEACHER_* and SMOKE_STUDENT_*, but they are not required.",
 );
-console.error("  * npm run e2e:responsive does NOT require these vars; it tests auth pages only.");
+console.error("  * npm run e2e:responsive requires these vars because it tests authenticated dashboards.");
 process.exit(1);

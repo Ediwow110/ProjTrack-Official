@@ -45,6 +45,20 @@ Evidence links or notes:
 - [ ] If this PR changes release hygiene, `npm run check:release-hygiene` passes.
 - [ ] If this PR changes claim wording, `docs/CAPACITY_CLAIM_WORDING_GUIDE.md` was followed.
 
+## Frontend mobile readiness
+
+Required for frontend UI changes:
+
+- [ ] Tested at `390px` mobile width or documented why not applicable.
+- [ ] No document-level horizontal overflow.
+- [ ] Data-heavy views use mobile cards instead of phone-only horizontal table scroll for primary workflows.
+- [ ] Icon-only controls have accessible names.
+- [ ] Keyboard support and visible focus states are preserved.
+- [ ] Heavy animation respects reduced motion.
+- [ ] Screenshots or Playwright artifacts are attached for changed critical routes.
+- [ ] `npm run e2e:responsive` was run, or blocker is documented.
+- [ ] `npm run check:bundle-budget` was run after build, or blocker is documented.
+
 ## Security and tests
 
 Check what was run or why it was not run:

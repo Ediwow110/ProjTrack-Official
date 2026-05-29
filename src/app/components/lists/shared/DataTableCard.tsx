@@ -201,7 +201,91 @@ export function DataTableCard<T>({
         <div className="p-5 sm:p-6">{emptyState}</div>
       ) : (
         <>
-          <div className="w-full overflow-x-auto">
+          <div className="space-y-3 p-4 sm:hidden" data-testid="mobile-card-list">
+            {visibleRows.map((row) => {
+              const key = rowKey(row);
+              const actions =
+                typeof rowActions === "function" ? rowActions(row) : (rowActions ?? []);
+              const visibleActions = actions.filter((item) => !item.hidden?.(row));
+              const primaryColumn = columns[0];
+              const secondaryColumns = columns.slice(1, 4);
+
+              return (
+                <article
+                  key={key}
+                  className="rounded-[var(--radius-card)] border border-slate-200/80 bg-white/88 p-4 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.5)] dark:border-slate-700/70 dark:bg-slate-900/85"
+                  aria-label={`Data row ${key}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                        {primaryColumn?.header ?? "Record"}
+                      </p>
+                      <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {primaryColumn ? primaryColumn.renderCell(row) : key}
+                      </div>
+                    </div>
+                    {selectable ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedRowKeys.includes(key)}
+                        aria-label={`Select row ${key}`}
+                        onChange={() => onToggleRow?.(key)}
+                        className="mt-1 h-5 w-5 rounded border-slate-300 text-[var(--role-accent)]"
+                      />
+                    ) : null}
+                  </div>
+
+                  {secondaryColumns.length > 0 ? (
+                    <dl className="mt-3 grid gap-2 text-sm">
+                      {secondaryColumns.map((column) => (
+                        <div key={column.key} className="flex items-start justify-between gap-3 border-t border-slate-100 pt-2 dark:border-slate-800">
+                          <dt className="shrink-0 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+                            {column.header}
+                          </dt>
+                          <dd className="min-w-0 text-right text-slate-700 dark:text-slate-200">
+                            {column.renderCell(row)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {onRowClick ? (
+                      <Button type="button" variant="outline" size="sm" onClick={() => onRowClick(row)}>
+                        View details
+                      </Button>
+                    ) : null}
+                    {visibleActions.map((item) => {
+                      const label = typeof item.label === "function" ? item.label(row) : item.label;
+                      const ariaLabel =
+                        typeof item.ariaLabel === "function"
+                          ? item.ariaLabel(row)
+                          : (item.ariaLabel ?? label);
+                      const disabled = item.disabled?.(row);
+                      return (
+                        <Button
+                          key={item.key}
+                          type="button"
+                          variant={item.tone === "danger" ? "destructive" : "outline"}
+                          size="sm"
+                          title={label}
+                          aria-label={ariaLabel}
+                          disabled={disabled}
+                          onClick={() => item.onClick(row)}
+                        >
+                          {label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden w-full overflow-x-auto sm:block">
           <Table className={cn("min-w-[1040px]", tableClassName)}>
             <TableHeader className="portal-table-header">
               <TableRow className="hover:bg-transparent">

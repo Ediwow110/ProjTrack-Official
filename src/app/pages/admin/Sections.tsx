@@ -816,7 +816,7 @@ export default function AdminSections() {
                   No students in this section.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0} aria-label="Section students table">
                   <table className="w-full min-w-[760px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-200/70 bg-slate-50/85 dark:border-slate-700/70 dark:bg-slate-900/70">

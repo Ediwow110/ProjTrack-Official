@@ -36,7 +36,7 @@ Current structure:
   - `npm run typecheck`
   - `npm run build`
   - Playwright browser install
-  - `npm run e2e:responsive`
+  - `npm run e2e:responsive -- --list` (responsive harness discovery)
   - `npm run security:audit`
   - `GITHUB_STEP_SUMMARY` frontend summary
 
@@ -63,6 +63,7 @@ Current structure:
   - backend build
   - smoke environment preflight
   - `npm run e2e:smoke`
+  - `npm run e2e:responsive` (authenticated dashboard responsive QA)
   - audit
   - `GITHUB_STEP_SUMMARY` E2E summary
 

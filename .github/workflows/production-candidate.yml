@@ -28,6 +28,7 @@ jobs:
       - run: npm run check:frontend-env:production
       - run: npm run typecheck
       - run: npm run build:production-fixture
+      - run: npm run check:bundle-budget
       - run: npm audit --audit-level=high
 
   backend:
