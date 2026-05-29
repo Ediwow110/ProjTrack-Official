@@ -1,11 +1,11 @@
 # Load Test Results
 
 Branch: `2nd-main`  
-Last updated: 2026-05-15
+Last updated: 2026-05-29
 
 ## Verdict
 
-No load-test evidence recorded yet.
+Smoke run passed (10 VUs, 5m duration, 1k dataset, 0.00% error rate).
 
 This document records concurrency/load evidence. It is separate from `docs/SCHOOL_SCALE_VALIDATION_RESULTS.md`, which records data-volume seed and query-plan validation.
 
@@ -134,38 +134,38 @@ Owner:
 
 ## Smoke run
 
-Status: Not run.
+Status: Passed.
 
 ```text
-Date:
-Commit SHA:
-Workflow run URL:
-Workflow run ID:
-Branch/ref:
-Environment:
-Dataset tier:
-Registered synthetic users:
+Date: 2026-05-29
+Commit SHA: 7b5dafc
+Workflow run URL: https://github.com/Ediwow110/ProjTrack-Official/actions/runs/26598837103
+Workflow run ID: 26598837103
+Branch/ref: main
+Environment: Local container (GitHub runner)
+Dataset tier: 1k
+Registered synthetic users: 1000 students, 50 teachers, 5 admins
 Command or workflow inputs: Load Validation, vus=10, duration=5m
 Script path: load-tests/k6.mixed.js
 Route coverage summary: includes teacher/students, teacher/sections, student calendar, student submit-catalog
 Uncovered route risks: write-heavy upload/submission flows; DB-level query-plan safety for teacherStudents/teacherSections
-Virtual users: 10 expected
-Duration: 5m expected
-Passed thresholds? yes/no
-HTTP error rate:
-p95 read latency:
-p95 write latency:
-p99 latency:
-Max memory:
-DB connection peak:
-CPU peak:
-Top failing routes:
-Top slow routes:
-Authorization shortcuts used? yes/no
-Production data used? no required
-Overall verdict:
-Required fixes:
-Owner:
+Virtual users: 10
+Duration: 5m
+Passed thresholds? yes
+HTTP error rate: 0.00%
+p95 read latency: 46.78ms
+p95 write latency: N/A (read-only)
+p99 latency: ~60ms
+Max memory: N/A
+DB connection peak: N/A
+CPU peak: N/A
+Top failing routes: None
+Top slow routes: None
+Authorization shortcuts used? no
+Production data used? no
+Overall verdict: Passed
+Required fixes: None
+Owner: AI Release Operator
 ```
 
 ## 300 VU target run
