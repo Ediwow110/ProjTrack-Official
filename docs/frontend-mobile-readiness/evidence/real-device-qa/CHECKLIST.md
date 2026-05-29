@@ -1,29 +1,36 @@
-# Real-Device QA Checklist - Issue #75
+# Real-Device QA Checklist
 
-## Test Environment
-- **Target**: https://www.projtrack.codes
-- **API**: https://api.projtrack.codes
+Issue: #75
+Status: NOT PERFORMED — OWNER RISK ACCEPTED
 
-## Device Matrix
+## Physical device matrix
 
-| Device | OS | Browser | Orientation | Route/Flow | Result | Notes |
-|--------|----|---------|-------------|------------|--------|-------|
-| iPhone | iOS | Safari | Portrait | /login | PENDING | |
-| iPhone | iOS | Safari | Landscape | /login | PENDING | |
-| Android | Android | Chrome | Portrait | /login | PENDING | |
-| Android | Android | Chrome | Landscape | /login | PENDING | |
-| iPad/Tablet | iOS/iPadOS | Safari | Portrait | /login | PENDING | |
-| iPad/Tablet | iOS/iPadOS | Safari | Landscape | /login | PENDING | |
-| iPhone | iOS | Safari | Portrait | Admin Dashboard | PENDING | |
-| Android | Android | Chrome | Portrait | Admin Dashboard | PENDING | |
+| Device category | Status | Notes |
+|---|---|---|
+| iPhone portrait | NOT TESTED | Owner accepted limitation |
+| iPhone landscape | NOT TESTED | Owner accepted limitation |
+| Android phone portrait | NOT TESTED | Owner accepted limitation |
+| Android phone landscape | NOT TESTED | Owner accepted limitation |
+| Tablet portrait | NOT TESTED | Owner accepted limitation |
+| Tablet landscape | NOT TESTED | Owner accepted limitation |
 
-## Verification Criteria
-- [ ] No horizontal overflow on any page.
-- [ ] Touch targets (buttons, links) are easily tappable.
-- [ ] Mobile drawer/menu opens and closes correctly.
-- [ ] Forms and input fields are usable with virtual keyboard.
-- [ ] Tables and data cards wrap or scroll gracefully.
-- [ ] No visual regressions or "blank screen" issues.
+## Route/flow matrix
 
----
-*Created on 2026-05-29*
+| Route/flow | Status | Notes |
+|---|---|---|
+| /login | AUTOMATED/BROWSER VERIFIED | No physical-device claim |
+| /student/login | AUTOMATED/BROWSER VERIFIED | No student authenticated dashboard claim |
+| /teacher/login | AUTOMATED/BROWSER VERIFIED | No teacher authenticated dashboard claim |
+| /admin/login | AUTOMATED/BROWSER VERIFIED | Admin baseline separately verified |
+| Admin authenticated dashboard | VERIFIED BY AUTOMATED BASELINE | Physical-device behavior not certified |
+| Student authenticated dashboard | NOT CERTIFIED | No stable student smoke secrets |
+| Teacher authenticated dashboard | NOT CERTIFIED | No stable teacher smoke secrets |
+| Mobile drawer/menu | AUTOMATED GUARDRAILS ONLY | No physical-device claim |
+| Tables/data cards | AUTOMATED GUARDRAILS ONLY | No physical-device claim |
+| Forms/input fields | AUTOMATED GUARDRAILS ONLY | No physical-device claim |
+
+## Final assessment
+
+No critical physical-device blockers were found because no physical-device QA was performed.
+
+This file records an accepted limitation, not a physical-device PASS.
