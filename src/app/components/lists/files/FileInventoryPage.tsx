@@ -18,6 +18,8 @@ import {
   type FileInventoryRecord,
 } from "./types";
 
+const EMPTY_FILE_INVENTORY: FileInventoryRecord[] = [];
+
 type FileSortKey = "fileName" | "scope" | "sizeBytes" | "uploadedAt" | "linkState";
 
 function getFileKey(file: FileInventoryRecord) {
@@ -48,7 +50,7 @@ export default function FileInventoryPage() {
     [scopeFilter],
   );
 
-  const allFiles = data ?? [];
+  const allFiles = data ?? EMPTY_FILE_INVENTORY;
   const scopeOptions = useMemo(
     () =>
       Array.from(

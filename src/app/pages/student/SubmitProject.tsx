@@ -6,6 +6,8 @@ import { isEditableSubmissionStatus } from "../../lib/submissionRules";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import { getAuthSession } from "../../lib/mockAuth";
 
+const EMPTY_SUBJECTS: string[] = [];
+
 export default function StudentSubmitProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -23,7 +25,7 @@ export default function StudentSubmitProject() {
   const [draftSaved, setDraftSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const subjects = data?.subjects ?? [];
+  const subjects = data?.subjects ?? EMPTY_SUBJECTS;
   const requestedSubject = searchParams.get("subject") || "";
   const requestedSubjectId = searchParams.get("subjectId") || "";
     const requestedActivityId = searchParams.get("activityId") || "";
