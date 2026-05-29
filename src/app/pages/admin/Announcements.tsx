@@ -14,6 +14,7 @@ import { AppModal } from "../../components/ui/app-modal";
 import { Checkbox } from "../../components/ui/checkbox";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
+import type { AdminAnnouncementRecord } from "../../lib/api/contracts";
 
 type DeliveryMode = "now" | "schedule";
 
@@ -59,6 +60,8 @@ function newAnnouncementForm() {
   };
 }
 
+const EMPTY_ANNOUNCEMENTS: AdminAnnouncementRecord[] = [];
+
 const announcementFieldClassName =
   "portal-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:focus:border-blue-400 dark:focus:ring-blue-400/20";
 
@@ -85,7 +88,7 @@ export default function AdminAnnouncements() {
     [filter],
   );
   const { data, loading, error, setData, reload } = useAsyncData(fetchAnnouncements, [fetchAnnouncements]);
-  const items = data ?? [];
+  const items = data ?? EMPTY_ANNOUNCEMENTS;
   const busy = loading || submitState.saving;
   const counts = {
     total: items.length,

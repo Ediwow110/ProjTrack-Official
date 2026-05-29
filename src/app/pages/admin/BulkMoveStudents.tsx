@@ -17,7 +17,7 @@ import {
 } from "../../lib/academicStructure";
 import { adminOpsService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
-import type { BulkMoveSectionRecord } from "../../lib/api/contracts";
+import type { BulkMoveAcademicYearRecord, BulkMoveSectionRecord } from "../../lib/api/contracts";
 
 type StructureSelection = {
   academicYearId: string;
@@ -25,6 +25,9 @@ type StructureSelection = {
   yearLevelId: string;
   sectionId: string;
 };
+
+const EMPTY_ACADEMIC_YEARS: BulkMoveAcademicYearRecord[] = [];
+const EMPTY_SECTIONS: BulkMoveSectionRecord[] = [];
 
 const emptySelection: StructureSelection = {
   academicYearId: "",
@@ -40,8 +43,8 @@ export default function AdminBulkMoveStudents() {
     () => adminOpsService.getBulkMoveData(),
     [],
   );
-  const academicYears = data?.academicYears ?? [];
-  const sections = data?.sections ?? [];
+  const academicYears = data?.academicYears ?? EMPTY_ACADEMIC_YEARS;
+  const sections = data?.sections ?? EMPTY_SECTIONS;
   const [sourceSelection, setSourceSelection] = useState<StructureSelection>(emptySelection);
   const [destSelection, setDestSelection] = useState<StructureSelection>(emptySelection);
   const [search, setSearch] = useState("");

@@ -7,6 +7,8 @@ import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import type { AdminNotificationRecord } from "../../lib/api/contracts";
 import { invalidateNotificationBadge } from "../../lib/notificationBadges";
 
+const EMPTY_NOTIFICATIONS: AdminNotificationRecord[] = [];
+
 const typeIcon: Record<string, LucideIcon> = {
   account: UserPlus,
   request: FileText,
@@ -25,7 +27,7 @@ export default function AdminNotifications() {
   const [actionState, setActionState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const fetchNotifications = useMemo(() => () => adminService.getNotifications({ type: filter }), [filter]);
   const { data, loading, error, setData, reload } = useAsyncData(fetchNotifications, [fetchNotifications]);
-  const notifications = data ?? [];
+  const notifications = data ?? EMPTY_NOTIFICATIONS;
   const unread = notifications.filter((n) => !n.read).length;
   const selectedCount = selectedIds.length;
   const types = ["All", "Account", "Request", "System"];
