@@ -314,7 +314,7 @@ export default function AdminBulkMoveStudents() {
               No students in this section.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Source students table">
             <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/70">

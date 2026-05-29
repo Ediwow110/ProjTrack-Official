@@ -228,7 +228,7 @@ export default function AdminSubjects() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} aria-label="Subjects table">
             <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="portal-border portal-table-header border-b">

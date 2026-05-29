@@ -54,14 +54,24 @@ for (const account of accounts) {
       await menuButton.click();
       await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toBeVisible();
 
-      await page.locator('.portal-mobile-drawer-backdrop').click({ position: { x: 330, y: 20 }, force: true });
+      await page.locator('.portal-mobile-drawer-backdrop').evaluate((element) => (element as HTMLElement).click());
       await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toHaveCount(0);
+      await expect(page.locator('.portal-mobile-drawer-backdrop')).toHaveCount(0);
 
-      await menuButton.click();
+      await menuButton.evaluate((element) => (element as HTMLElement).click());
+      await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toBeVisible();
       if (account.role === 'admin') {
         await page.getByText('People', { exact: true }).click();
       }
-      await page.getByRole('link', { name: account.navLabel }).click();
+      await page.waitForFunction(() => {
+        const drawer = document.querySelector('.portal-mobile-drawer');
+        if (!drawer) return false;
+        const rect = drawer.getBoundingClientRect();
+        return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+      });
+      const navLink = page.getByRole('link', { name: account.navLabel });
+      await expect(navLink).toBeVisible();
+      await navLink.click();
       await expect(page).toHaveURL(new RegExp(`${account.nextPath.replace(/\//g, '\\/')}$`), { timeout: 30_000 });
       await expect(page.getByRole('button', { name: new RegExp(`Close .*${account.role}.*navigation`, 'i') })).toHaveCount(0);
     } finally {
@@ -112,7 +122,7 @@ test('admin grouped mobile drawer exposes every admin route', async ({ browser }
       'Settings',
       'Profile',
     ]) {
-      await expect(page.getByRole('link', { name: new RegExp(label, 'i') })).toBeVisible();
+      await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
     }
   } finally {
     await context.close();

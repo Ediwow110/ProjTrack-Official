@@ -169,7 +169,7 @@ export default function AdminReports() {
               </div>
               <p className="text-[11px] text-slate-400 dark:text-slate-300">{data.tableRows.length} rows</p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Admin report rows table">
             <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-100 dark:border-slate-700/70">

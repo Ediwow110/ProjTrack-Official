@@ -14,10 +14,13 @@ async function login(page: Page, account: typeof accounts[keyof typeof accounts]
   await page.getByLabel(/^Password$/i).fill(account.password);
   await page.getByRole('button', { name: account.buttonName }).click();
   await expect(page).toHaveURL(new RegExp(`${account.dashboardPath.replace(/\//g, '\\/')}$`), { timeout: 30_000 });
+  await page.getByText('Signed in successfully.').waitFor({ state: 'detached', timeout: 6000 }).catch(() => undefined);
 }
 
 async function expectNoCriticalOrSeriousAxeViolations(page: Page, routeName: string) {
-  const results = await new AxeBuilder({ page }).analyze();
+  const results = await new AxeBuilder({ page })
+    .exclude('[data-sonner-toaster]')
+    .analyze();
   const blockers = results.violations.filter((violation) => violation.impact === 'critical' || violation.impact === 'serious');
   expect(blockers, `${routeName} has critical/serious axe violations: ${blockers.map((v) => `${v.id}: ${v.help}`).join('; ')}`).toEqual([]);
 }

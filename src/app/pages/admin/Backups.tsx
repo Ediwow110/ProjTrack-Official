@@ -512,7 +512,7 @@ export default function AdminBackups() {
             className="border-slate-200 bg-slate-50/80 dark:border-slate-700/60 dark:bg-slate-900/70"
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} aria-label="Backup history table">
             <table className="w-full min-w-[1080px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200/70 dark:border-slate-700/60">
