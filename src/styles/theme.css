@@ -247,8 +247,8 @@
 }
 
 .portal-role-teacher {
-  --role-accent: #8b5cf6;
-  --role-accent-strong: #6d28d9;
+  --role-accent: #6d28d9;
+  --role-accent-strong: #5b21b6;
   --role-accent-soft: rgba(139, 92, 246, 0.12);
   --role-accent-soft-strong: rgba(139, 92, 246, 0.2);
   --role-accent-border: rgba(139, 92, 246, 0.3);
@@ -1160,6 +1160,42 @@
 }
 
 @media (max-width: 1023px) {
+  .mobile-perf-safe .portal-mobile-decorative-glow {
+    opacity: 0.42;
+    filter: none;
+  }
+
+  .mobile-perf-safe .blur-3xl {
+    filter: blur(24px);
+  }
+
+  .mobile-perf-safe .portal-sidebar-shell,
+  .mobile-perf-safe header,
+  .mobile-perf-safe .portal-card,
+  .mobile-perf-safe .portal-table-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 14px 36px -30px rgba(15, 23, 42, 0.55) !important;
+  }
+
+  .mobile-perf-safe .portal-mobile-drawer-backdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .mobile-perf-safe .hover\:-translate-y-1:hover,
+  .mobile-perf-safe .hover\:-translate-y-0\.5:hover {
+    transform: none !important;
+  }
+
+  .portal-mobile-nav-group + .portal-mobile-nav-group {
+    margin-top: 0.5rem;
+  }
+
+  .portal-mobile-nav-group summary::-webkit-details-marker {
+    display: none;
+  }
+
   .auth-shell {
     max-width: 44rem;
   }
@@ -1289,6 +1325,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .mobile-perf-safe *,
+  .mobile-perf-safe *::before,
+  .mobile-perf-safe *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
   .auth-starry-login::before {
     animation: none;
   }

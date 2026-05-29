@@ -70,7 +70,7 @@ Those jobs run:
 1. `npm run check:smoke-env`
 2. `npm run seed:smoke`
 3. `npm run e2e:smoke`
-4. `npm run e2e:responsive:auth`
+4. `npm run e2e:responsive`
 
 If admin secrets are missing, `check:smoke-env` exits nonzero before smoke can skip.
 If teacher/student fixture creation fails, `seed:smoke` exits nonzero and the job fails.
@@ -92,7 +92,7 @@ Treat CI as real-green only when all of the following are true:
 - `check:smoke-env` passes
 - `seed:smoke` passes
 - `e2e:smoke` passes
-- `e2e:responsive:auth` passes
+- `e2e:responsive` passes
 - workflow logs show real tests executed, not skipped
 
 ## 9. Troubleshooting missing secrets
@@ -105,7 +105,7 @@ If CI fails with missing `SMOKE_*` variables:
 
 If CI fails during `seed:smoke`, inspect the fixture-seeding logs. That means teacher/student account creation or reuse failed, which is a real smoke blocker.
 
-If `npm run e2e:responsive` passes while smoke fails, that is expected. Public auth-page responsive QA does not require smoke credentials.
+If `npm run e2e:responsive -- --list` passes while smoke fails, that only proves responsive test discovery. Full `npm run e2e:responsive` requires seeded smoke fixtures and admin smoke credentials because it tests authenticated dashboards.
 
 ## 10. Production credential warning
 

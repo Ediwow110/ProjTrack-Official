@@ -57,31 +57,55 @@ const TEACHER_NAV: NavItem[] = [
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { to: "/admin/dashboard",          icon: LayoutDashboard, label: "Dashboard",          section: "main" },
-  { to: "/admin/users",              icon: UserCog,         label: "Users",              section: "main" },
-  { to: "/admin/students",           icon: GraduationCap,   label: "Students",           section: "main" },
-  { to: "/admin/teachers",           icon: Users,           label: "Teachers",           section: "main" },
-  { to: "/admin/departments",        icon: Building2,       label: "Departments",        section: "main" },
-  { to: "/admin/subjects",           icon: BookOpen,        label: "Subjects",           section: "main" },
-  { to: "/admin/sections",           icon: Grid3X3,         label: "Academic Years",     section: "main" },
-  { to: "/admin/submissions",        icon: FileBadge,       label: "Submissions",        section: "main" },
-  { to: "/admin/reports",            icon: BarChart3,       label: "Reports",            section: "operations" },
-  { to: "/admin/groups",             icon: Users,           label: "Groups",             section: "operations" },
-  { to: "/admin/announcements",      icon: Megaphone,       label: "Announcements",      section: "operations" },
-  { to: "/admin/calendar",           icon: CalendarDays,    label: "Calendar",           section: "operations" },
-  { to: "/admin/academic-settings",  icon: Settings2,       label: "Academic Settings",  section: "operations" },
-  { to: "/admin/notifications",      icon: Bell,            label: "Notifications",      section: "operations" },
+  { to: "/admin/dashboard",          icon: LayoutDashboard, label: "Dashboard",          section: "dashboard" },
+  { to: "/admin/users",              icon: UserCog,         label: "Users",              section: "people" },
+  { to: "/admin/students",           icon: GraduationCap,   label: "Students",           section: "people" },
+  { to: "/admin/teachers",           icon: Users,           label: "Teachers",           section: "people" },
+  { to: "/admin/departments",        icon: Building2,       label: "Departments",        section: "academics" },
+  { to: "/admin/subjects",           icon: BookOpen,        label: "Subjects",           section: "academics" },
+  { to: "/admin/sections",           icon: Grid3X3,         label: "Academic Years",     section: "academics" },
+  { to: "/admin/academic-settings",  icon: Settings2,       label: "Academic Settings",  section: "academics" },
+  { to: "/admin/submissions",        icon: FileBadge,       label: "Submissions",        section: "submissions" },
+  { to: "/admin/groups",             icon: Users,           label: "Groups",             section: "submissions" },
+  { to: "/admin/announcements",      icon: Megaphone,       label: "Announcements",      section: "communication" },
+  { to: "/admin/calendar",           icon: CalendarDays,    label: "Calendar",           section: "communication" },
+  { to: "/admin/notifications",      icon: Bell,            label: "Notifications",      section: "communication" },
+  { to: "/admin/mail-jobs",          icon: Mail,            label: "Mail Jobs",          section: "communication" },
+  { to: "/admin/reports",            icon: BarChart3,       label: "Reports",            section: "reports" },
   { to: "/admin/audit-logs",         icon: ClipboardList,   label: "Audit Logs",         section: "system" },
-  { to: "/admin/settings",           icon: Settings,        label: "Settings",           section: "system" },
   { to: "/admin/system-tools",       icon: Wrench,          label: "System Tools",       section: "system" },
   { to: "/admin/backups",            icon: Database,        label: "Backups",            section: "system" },
-  { to: "/admin/mail-jobs",          icon: Mail,            label: "Mail Jobs",          section: "system" },
   { to: "/admin/file-inventory",      icon: FolderOpen,      label: "File Inventory",     section: "system" },
   { to: "/admin/system-health",       icon: ShieldAlert,    label: "System Health",      section: "system" },
   { to: "/admin/release-status",      icon: ClipboardCheck,  label: "Release Status",     section: "system" },
   { to: "/admin/bootstrap-guide",     icon: ShieldCheck,     label: "Deployment Checklist", section: "system" },
-  { to: "/admin/profile",             icon: UserCircle,      label: "Profile",            section: "account" },
+  { to: "/admin/settings",           icon: Settings,        label: "Settings",           section: "settings" },
+  { to: "/admin/profile",             icon: UserCircle,      label: "Profile",            section: "settings" },
 ];
+
+const ADMIN_MOBILE_SECTION_ORDER = [
+  "dashboard",
+  "people",
+  "academics",
+  "submissions",
+  "communication",
+  "reports",
+  "system",
+  "settings",
+] as const;
+
+const NAV_SECTION_LABELS: Record<string, string> = {
+  main: "Main Menu",
+  dashboard: "Dashboard",
+  people: "People",
+  academics: "Academics",
+  submissions: "Submissions",
+  communication: "Communication",
+  reports: "Reports",
+  system: "System",
+  settings: "Settings",
+  account: "Account",
+};
 
 const roleConfig: Record<PortalRole, {
   nav: NavItem[];
@@ -104,6 +128,24 @@ const roleConfig: Record<PortalRole, {
     user: { name: "Admin Account", sub: "Administrator workspace", initials: "AD" },
   },
 };
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(query);
+    const update = () => setMatches(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, [query]);
+
+  return matches;
+}
 
 function UserAvatar({
   src,
@@ -191,19 +233,65 @@ function SidebarContent({
   const location = useLocation();
   const isCollapsed = isMobile ? false : collapsed;
 
-  const sections: Record<string, string> = {
-    main: "Main Menu",
-    operations: "Operations",
-    system: "System",
-    account: "Account",
-  };
-
   const groupedNav = cfg.nav.reduce<Record<string, NavItem[]>>((acc, item) => {
     const sec = item.section || "main";
     if (!acc[sec]) acc[sec] = [];
     acc[sec].push(item);
     return acc;
   }, {});
+  const sectionEntries = (role === "admin"
+    ? ADMIN_MOBILE_SECTION_ORDER.map((section) => [section, groupedNav[section] ?? []] as const)
+    : Object.entries(groupedNav)
+  ).filter(([, items]) => items.length > 0);
+
+  const renderNavItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
+    const itemBadge =
+      item.to === notificationsTarget
+        ? notificationBadgeCount && notificationBadgeCount > 0
+          ? notificationBadgeCount
+          : undefined
+        : item.badge;
+
+    return (
+      <NavTooltip key={item.to} label={item.label} show={isCollapsed}>
+        <NavLink to={item.to}
+          onClick={() => { if (isMobile && onClose) onClose(); }}
+          className={`relative flex items-center transition-all duration-150 group
+              ${isCollapsed ? "mx-auto h-12 w-12 justify-center rounded-[22px]" : "gap-3.5 px-4 py-3 rounded-[22px]"}
+              ${isActive ? `portal-nav-active ${isCollapsed ? "shadow-sm ring-1 ring-black/5 dark:ring-white/10" : "shadow-[0_16px_36px_-30px_rgba(15,23,42,0.55)]"}` : "text-slate-500 hover:text-slate-800 hover:bg-white/75 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800/75"}`}
+        >
+          {isActive && (
+            <motion.div layoutId={`indicator-${role}`}
+              className={`portal-nav-indicator absolute top-1/2 -translate-y-1/2 rounded-r-full ${isCollapsed ? "left-1 h-6 w-0.5" : "left-0 h-5 w-0.5"}`}
+              transition={{ type: "spring", stiffness: 500, damping: 42 }} />
+          )}
+          <div className={`relative shrink-0 ${isCollapsed ? "flex h-12 w-12 items-center justify-center" : ""}`}>
+            <Icon size={19} strokeWidth={isActive ? 2.2 : 1.9} />
+            {isCollapsed && itemBadge !== undefined && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500" />
+            )}
+          </div>
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }} transition={{ duration: 0.15 }}
+                className="flex-1 flex items-center justify-between overflow-hidden">
+                <span className="text-[15px] font-semibold whitespace-nowrap">{item.label}</span>
+                {itemBadge !== undefined && (
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full shrink-0
+                    ${isActive ? "bg-white/75 text-slate-800 dark:bg-slate-100 dark:text-slate-900" : "bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-200"}`}>
+                    {itemBadge}
+                  </span>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </NavLink>
+      </NavTooltip>
+    );
+  };
 
   return (
     <div className="portal-sidebar-shell relative flex h-full flex-col overflow-hidden rounded-[var(--radius-hero)] border border-white/65 shadow-[var(--shadow-shell)] backdrop-blur-xl dark:border-slate-700/60">
@@ -232,67 +320,48 @@ function SidebarContent({
       </div>
 
       {/* Nav */}
-      <div className={`relative flex-1 overflow-y-auto overflow-x-hidden py-4 scrollbar-none ${isCollapsed ? "px-2.5" : "px-3"}`}>
-        {Object.entries(groupedNav).map(([section, items], si) => (
-          <div key={section} className={si > 0 ? "pt-2" : ""}>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="px-3 pb-2 text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.18em] font-semibold select-none">
-                  {sections[section]}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            {isCollapsed && si > 0 && <div className="my-2 mx-2 border-t border-slate-100 dark:border-slate-700/50" />}
-            {items.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
-              const itemBadge =
-                item.to === notificationsTarget
-                  ? notificationBadgeCount && notificationBadgeCount > 0
-                    ? notificationBadgeCount
-                    : undefined
-                  : item.badge;
-              return (
-                <NavTooltip key={item.to} label={item.label} show={isCollapsed}>
-                  <NavLink to={item.to}
-                    onClick={() => { if (isMobile && onClose) onClose(); }}
-                  className={`relative flex items-center transition-all duration-150 group
-                      ${isCollapsed ? "mx-auto h-12 w-12 justify-center rounded-[22px]" : "gap-3.5 px-4 py-3 rounded-[22px]"}
-                      ${isActive ? `portal-nav-active ${isCollapsed ? "shadow-sm ring-1 ring-black/5 dark:ring-white/10" : "shadow-[0_16px_36px_-30px_rgba(15,23,42,0.55)]"}` : "text-slate-500 hover:text-slate-800 hover:bg-white/75 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800/75"}`}
-                  >
-                    {isActive && (
-                      <motion.div layoutId={`indicator-${role}`}
-                        className={`portal-nav-indicator absolute top-1/2 -translate-y-1/2 rounded-r-full ${isCollapsed ? "left-1 h-6 w-0.5" : "left-0 h-5 w-0.5"}`}
-                        transition={{ type: "spring", stiffness: 500, damping: 42 }} />
-                    )}
-                    <div className={`relative shrink-0 ${isCollapsed ? "flex h-12 w-12 items-center justify-center" : ""}`}>
-                      <Icon size={19} strokeWidth={isActive ? 2.2 : 1.9} />
-                      {isCollapsed && itemBadge !== undefined && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500" />
-                      )}
-                    </div>
-                    <AnimatePresence>
-                      {!isCollapsed && (
-                        <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }}
-                          exit={{ opacity: 0, width: 0 }} transition={{ duration: 0.15 }}
-                          className="flex-1 flex items-center justify-between overflow-hidden">
-                          <span className="text-[15px] font-semibold whitespace-nowrap">{item.label}</span>
-                          {itemBadge !== undefined && (
-                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full shrink-0
-                              ${isActive ? "bg-white/75 text-slate-800 dark:bg-slate-100 dark:text-slate-900" : "bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-200"}`}>
-                              {itemBadge}
-                            </span>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </NavLink>
-                </NavTooltip>
-              );
-            })}
-          </div>
-        ))}
+      <div
+        className={`relative flex-1 overflow-y-auto overflow-x-hidden py-4 scrollbar-none ${isCollapsed ? "px-2.5" : "px-3"}`}
+        tabIndex={0}
+        aria-label={`${cfg.label} navigation links`}
+      >
+        {sectionEntries.map(([section, items], si) => {
+          const sectionLabel = NAV_SECTION_LABELS[section] ?? section;
+          const hasActiveChild = items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"));
+
+          if (role === "admin" && isMobile) {
+            return (
+              <details
+                key={section}
+                open={hasActiveChild || section === "dashboard"}
+                className="portal-mobile-nav-group rounded-[20px] border border-slate-200/70 bg-white/55 px-2 py-1.5 dark:border-slate-700/60 dark:bg-slate-900/45"
+              >
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-[16px] px-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 outline-none focus-visible:ring-2 focus-visible:ring-[var(--role-accent)] dark:text-slate-300">
+                  <span>{sectionLabel}</span>
+                  <span aria-hidden="true" className="text-base leading-none">⌄</span>
+                </summary>
+                <div className="space-y-1 pt-1">
+                  {items.map(renderNavItem)}
+                </div>
+              </details>
+            );
+          }
+
+          return (
+            <div key={section} className={si > 0 ? "pt-2" : ""}>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="px-3 pb-2 text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.18em] font-semibold select-none">
+                    {sectionLabel}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              {isCollapsed && si > 0 && <div className="my-2 mx-2 border-t border-slate-100 dark:border-slate-700/50" />}
+              {items.map(renderNavItem)}
+            </div>
+          );
+        })}
       </div>
 
       {/* User footer */}
@@ -348,7 +417,7 @@ function SidebarContent({
 export function PortalLayout({ role }: { role: PortalRole }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 1023px)");
   const [topbarSearch, setTopbarSearch] = useState("");
   const [notificationBadgeCount, setNotificationBadgeCount] = useState<number | null>(null);
   const [session, setSession] = useState<AuthSession | null>(() => getAuthSession());
@@ -362,13 +431,6 @@ export function PortalLayout({ role }: { role: PortalRole }) {
     return subscribeAuthSession((nextSession) => {
       setSession(nextSession);
     });
-  }, []);
-
-  useEffect(() => {
-    const check = () => { setIsMobile(window.innerWidth < 1024); };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
   }, []);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -475,14 +537,15 @@ export function PortalLayout({ role }: { role: PortalRole }) {
     <div
       className={cn(
         "relative flex h-dvh w-full overflow-hidden bg-[var(--surface-canvas)] dark:bg-[var(--surface-canvas)]",
+        isMobile && "mobile-perf-safe",
         `portal-role-${role}`,
       )}
       style={roleThemeStyle(role)}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,41,59,0.8),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(15,23,42,0.8),transparent_28%)]" />
-      <div className="portal-shell-gradient pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />
-      <div className="pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-white/45 blur-3xl dark:bg-blue-900/15" />
-      <div className="pointer-events-none absolute right-[-5rem] top-10 h-80 w-80 rounded-full bg-white/30 blur-3xl dark:bg-slate-700/20" />
+      <div className="portal-mobile-decorative-glow pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,41,59,0.8),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(15,23,42,0.8),transparent_28%)]" />
+      <div className="portal-shell-gradient portal-mobile-decorative-glow pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />
+      <div className="portal-mobile-decorative-glow pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-white/45 blur-3xl dark:bg-blue-900/15" />
+      <div className="portal-mobile-decorative-glow pointer-events-none absolute right-[-5rem] top-10 h-80 w-80 rounded-full bg-white/30 blur-3xl dark:bg-slate-700/20" />
       {/* Desktop sidebar */}
       {!isMobile && (
         <motion.div animate={{ width: collapsed ? 112 : 288 }} transition={springTransition(reducedMotion, { stiffness: 400, damping: 38 })}
@@ -504,11 +567,11 @@ export function PortalLayout({ role }: { role: PortalRole }) {
           <>
             <motion.div key="backdrop" initial="hidden" animate="visible" exit="exit" variants={fadeInVariants(reducedMotion)}
               onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" />
+              className="portal-mobile-drawer-backdrop fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" />
             <motion.div key="drawer" initial="hidden" animate="visible" exit="exit"
               variants={slideInVariants(reducedMotion, { axis: "x", distance: -296 })}
               transition={springTransition(reducedMotion, { stiffness: 380, damping: 40 })}
-              className="fixed top-0 left-0 bottom-0 z-50 w-[min(280px,calc(100vw-1rem))] p-3">
+              className="portal-mobile-drawer fixed top-0 left-0 bottom-0 z-50 w-[min(280px,calc(100vw-1rem))] p-3">
               <SidebarContent
                 role={role}
                 collapsed={false}

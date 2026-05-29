@@ -57,11 +57,29 @@ function readGeneratedRole(role: "teacher" | "student"): RoleCredential {
 
 export const smokeCredentials = {
   admin: {
-    identifier: readRequiredEnv("SMOKE_ADMIN_IDENTIFIER"),
-    password: readRequiredEnv("SMOKE_ADMIN_PASSWORD"),
+    get identifier() {
+      return readRequiredEnv("SMOKE_ADMIN_IDENTIFIER");
+    },
+    get password() {
+      return readRequiredEnv("SMOKE_ADMIN_PASSWORD");
+    },
   },
-  teacher: readGeneratedRole("teacher"),
-  student: readGeneratedRole("student"),
+  teacher: {
+    get identifier() {
+      return readGeneratedRole("teacher").identifier;
+    },
+    get password() {
+      return readGeneratedRole("teacher").password;
+    },
+  },
+  student: {
+    get identifier() {
+      return readGeneratedRole("student").identifier;
+    },
+    get password() {
+      return readGeneratedRole("student").password;
+    },
+  },
 } as const;
 
 export const smokeCredentialsFilePath = generatedCredentialsPath;
