@@ -96,33 +96,33 @@ test('admin grouped mobile drawer exposes every admin route', async ({ browser }
       for (const detail of details) (detail as HTMLDetailsElement).open = true;
     });
 
-    for (const label of [
-      'Dashboard',
-      'Users',
-      'Students',
-      'Teachers',
-      'Departments',
-      'Subjects',
-      'Academic Years',
-      'Academic Settings',
-      'Submissions',
-      'Groups',
-      'Announcements',
-      'Calendar',
-      'Notifications',
-      'Mail Jobs',
-      'Reports',
-      'Audit Logs',
-      'System Tools',
-      'Backups',
-      'File Inventory',
-      'System Health',
-      'Release Status',
-      'Deployment Checklist',
-      'Settings',
-      'Profile',
+    for (const path of [
+      '/admin/dashboard',
+      '/admin/users',
+      '/admin/students',
+      '/admin/teachers',
+      '/admin/departments',
+      '/admin/subjects',
+      '/admin/sections',
+      '/admin/academic-settings',
+      '/admin/submissions',
+      '/admin/groups',
+      '/admin/announcements',
+      '/admin/calendar',
+      '/admin/notifications',
+      '/admin/mail-jobs',
+      '/admin/reports',
+      '/admin/audit-logs',
+      '/admin/system-tools',
+      '/admin/backups',
+      '/admin/file-inventory',
+      '/admin/system-health',
+      '/admin/release-status',
+      '/admin/bootstrap-guide',
+      '/admin/settings',
+      '/admin/profile',
     ]) {
-      await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
+      await expect(page.locator(`.portal-mobile-drawer a[href="${path}"]`)).toBeVisible();
     }
   } finally {
     await context.close();
