@@ -314,7 +314,7 @@ export default function TeacherSubmissions() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Teacher submissions table">
             <table className="w-full min-w-[1180px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/70">

@@ -41,6 +41,9 @@ function studentSubjectLink(subjectId: string) {
   return buildStudentSubjectLink(subjectId);
 }
 
+const DEFAULT_TEACHER_STUDENTS_TAKE = 100;
+const MAX_TEACHER_STUDENTS_TAKE = 500;
+
 @Injectable()
 export class SubjectsService {
   private readonly logger = new Logger(SubjectsService.name);
@@ -299,7 +302,12 @@ export class SubjectsService {
     );
   }
 
-  async teacherStudents(teacherId?: string, search?: string, section?: string) {
+  async teacherStudents(
+    teacherId?: string,
+    search?: string,
+    section?: string,
+    options?: { take?: number; skip?: number },
+  ) {
     const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
     const subjects: any[] = await this.subjectRepository.listSubjectsForTeacher(teacherUserId);
     if (!subjects.length) {
@@ -332,68 +340,90 @@ export class SubjectsService {
       return [];
     }
 
-    const progressRows = await this.prisma.submission.findMany({
-      where: {
-        subjectId: { in: subjectIds },
-        OR: [
-          { studentId: { in: Array.from(byStudent.keys()) } },
-          { group: { members: { some: { studentId: { in: Array.from(byStudent.keys()) } } } } },
-        ],
-      },
-      include: {
-        group: { include: { members: true } },
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
-
     const q = String(search || '').trim().toLowerCase();
-    return Array.from(byStudent.entries())
+    const filteredStudents = Array.from(byStudent.entries())
       .map(([studentUserId, row]) => {
         const user = row.user;
-        const studentSubmissions = progressRows.filter((submission: any) => {
-          if (submission.studentId === studentUserId) return true;
-          return submission.group?.members?.some((member: any) => member.studentId === studentUserId);
-        });
+        const studentIdVal = row.studentProfile?.studentNumber || user.studentNumber || user.id;
+        const name = `${user.firstName} ${user.lastName}`.trim();
+        const email = user.email || '';
         const sectionName = row.sectionName || '—';
         return {
-          id: user.id,
-          studentId: row.studentProfile?.studentNumber || user.studentNumber || user.id,
-          academicYear:
-            row.studentProfile?.academicYear?.name ||
-            row.studentProfile?.section?.academicYear?.name ||
-            '—',
-          name: `${user.firstName} ${user.lastName}`.trim(),
-          email: user.email,
+          studentUserId,
+          row,
+          studentId: studentIdVal,
+          name,
+          email,
           section: sectionName,
-          subjects: row.subjectIds.size,
-          assignedActivities,
-          submittedCount: studentSubmissions.filter((item: any) => ['SUBMITTED', 'PENDING_REVIEW', 'REVIEWED', 'GRADED', 'LATE', 'NEEDS_REVISION'].includes(String(item.status).toUpperCase())).length,
-          gradedCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'GRADED').length,
-          needsRevisionCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'NEEDS_REVISION').length,
-          lateCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'LATE').length,
-          lastSubmissionDate: studentSubmissions[0]?.submittedAt?.toISOString?.() || null,
-          status:
-            user.status === 'ACTIVE'
-              ? 'Active'
-              : String(user.status || 'ACTIVE')
-                  .replace(/_/g, ' ')
-                  .toLowerCase()
-                  .replace(/\b\w/g, (match) => match.toUpperCase()),
         };
       })
-      .filter((user: any) => {
-        return !section || section === 'All' || user.section === section;
+      .filter((item) => {
+        return !section || section === 'All' || item.section === section;
       })
-      .filter(
-        (row: any) =>
-          !q ||
-          row.name.toLowerCase().includes(q) ||
-          row.studentId.toLowerCase().includes(q) ||
-          row.email.toLowerCase().includes(q),
-      );
+      .filter((item) => {
+        return !q ||
+          item.name.toLowerCase().includes(q) ||
+          item.studentId.toLowerCase().includes(q) ||
+          item.email.toLowerCase().includes(q);
+      });
+
+    const take = options?.take !== undefined ? Math.max(1, Math.min(options.take, MAX_TEACHER_STUDENTS_TAKE)) : DEFAULT_TEACHER_STUDENTS_TAKE;
+    const skip = options?.skip !== undefined ? Math.max(0, options.skip) : 0;
+    const paginatedStudents = filteredStudents.slice(skip, skip + take);
+    const paginatedStudentIds = paginatedStudents.map(item => item.studentUserId);
+
+    let progressRows: any[] = [];
+    if (paginatedStudentIds.length > 0) {
+      progressRows = await this.prisma.submission.findMany({
+        where: {
+          subjectId: { in: subjectIds },
+          OR: [
+            { studentId: { in: paginatedStudentIds } },
+            { group: { members: { some: { studentId: { in: paginatedStudentIds } } } } },
+          ],
+        },
+        include: {
+          group: { include: { members: true } },
+        },
+        orderBy: { submittedAt: 'desc' },
+      });
+    }
+
+    return paginatedStudents.map(({ studentUserId, row, studentId, name, email, section: sectionName }) => {
+      const user = row.user;
+      const studentSubmissions = progressRows.filter((submission: any) => {
+        if (submission.studentId === studentUserId) return true;
+        return submission.group?.members?.some((member: any) => member.studentId === studentUserId);
+      });
+      return {
+        id: user.id,
+        studentId,
+        academicYear:
+          row.studentProfile?.academicYear?.name ||
+          row.studentProfile?.section?.academicYear?.name ||
+          '—',
+        name,
+        email,
+        section: sectionName,
+        subjects: row.subjectIds.size,
+        assignedActivities,
+        submittedCount: studentSubmissions.filter((item: any) => ['SUBMITTED', 'PENDING_REVIEW', 'REVIEWED', 'GRADED', 'LATE', 'NEEDS_REVISION'].includes(String(item.status).toUpperCase())).length,
+        gradedCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'GRADED').length,
+        needsRevisionCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'NEEDS_REVISION').length,
+        lateCount: studentSubmissions.filter((item: any) => String(item.status).toUpperCase() === 'LATE').length,
+        lastSubmissionDate: studentSubmissions[0]?.submittedAt?.toISOString?.() || null,
+        status:
+          user.status === 'ACTIVE'
+            ? 'Active'
+            : String(user.status || 'ACTIVE')
+                .replace(/_/g, ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, (match) => match.toUpperCase()),
+      };
+    });
   }
 
-  async teacherSections(teacherUserId: string) {
+  async teacherSections(teacherUserId: string, options?: { take?: number; skip?: number }) {
     const teacherProfile = await this.prisma.teacherProfile.findFirst({
       where: { userId: teacherUserId },
     });
@@ -401,7 +431,12 @@ export class SubjectsService {
       return [];
     }
 
+    const take = options?.take !== undefined ? Math.max(1, Math.min(options.take, 500)) : 100;
+    const skip = options?.skip !== undefined ? Math.max(0, options.skip) : 0;
+
     const sections = await this.prisma.section.findMany({
+      take,
+      skip,
       where: {
         enrollments: {
           some: {

@@ -83,19 +83,18 @@ export class SubjectsController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
-    const rows = await this.subjects.teacherStudents(req.user?.sub, search, section);
     const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_STUDENTS_TAKE, MAX_TEACHER_STUDENTS_TAKE);
     const boundedSkip = parsePositiveInt(skip, 0);
-    return rows.slice(boundedSkip, boundedSkip + boundedTake);
+    return this.subjects.teacherStudents(req.user?.sub, search, section, { take: boundedTake, skip: boundedSkip });
   }
 
   @Roles('TEACHER')
   @Get('teacher/sections')
   async teacherSections(@Req() req: any, @Query('take') take?: string, @Query('skip') skip?: string) {
-    const rows = await this.subjects.teacherSections(req.user?.sub);
     const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_SECTIONS_TAKE, MAX_TEACHER_SECTIONS_TAKE);
     const boundedSkip = parsePositiveInt(skip, 0);
-    return rows.slice(boundedSkip, boundedSkip + boundedTake);
+    // rows.slice(boundedSkip, boundedSkip + boundedTake)
+    return this.subjects.teacherSections(req.user?.sub, { take: boundedTake, skip: boundedSkip });
   }
 
   @Roles('TEACHER')

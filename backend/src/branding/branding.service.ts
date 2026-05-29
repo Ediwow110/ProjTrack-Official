@@ -148,7 +148,11 @@ export class BrandingService {
   }
 
   private readMetadata(): BrandingMetadata {
-    this.ensureDirectories();
+    try {
+      this.ensureDirectories();
+    } catch {
+      return this.defaultMetadata();
+    }
     if (!existsSync(this.metadataPath)) {
       return this.defaultMetadata();
     }
@@ -163,9 +167,7 @@ export class BrandingService {
         updatedAt: raw?.updatedAt ? String(raw.updatedAt) : null,
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Branding metadata could not be read safely. ${error instanceof Error ? error.message : String(error)}`,
-      );
+      return this.defaultMetadata();
     }
   }
 

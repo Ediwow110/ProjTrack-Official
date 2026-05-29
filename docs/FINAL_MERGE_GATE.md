@@ -44,16 +44,16 @@ Evidence: `docs/EVIDENCE_ISSUES_INDEX.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK
 - [ ] `production-checks.yml` passing or intentionally scoped with documented reason
 - [ ] `production-candidate.yml` reviewed
 - [ ] Latest external Vercel status resolved or risk-classified for commit `f90a9d6b1a2f60c5f486142835baca88f6b262fd`
-- [ ] Branch protection for `main` configured and verified
-- [ ] CODEOWNERS review enforcement verified
-- [ ] Issue #43 resolved with repository-setting verification evidence
+- [x] Branch protection for `main` configured and verified
+- [x] CODEOWNERS review enforcement verified
+- [x] Issue #43 resolved with repository-setting verification evidence
 - [ ] Issue #45 resolved with external-status evidence or risk classification
 - [ ] Failure visibility configured and live-verified
 - [ ] Verification commands recorded in `docs/CI_STATUS.md`
-- [ ] Issue #37 resolved with recorded command evidence
-- [ ] Issue #38 resolved with recorded CI/build/security evidence
+- [x] Issue #37 resolved with recorded command evidence
+- [x] Issue #38 resolved with recorded CI/build/security evidence
 - [ ] Issue #41 resolved with production-check failure visibility evidence
-- [ ] `npm run check:release-hygiene` passing, including capacity-claim and guard-wiring checks
+- [x] `npm run check:release-hygiene` passing, including capacity-claim and guard-wiring checks
 
 Evidence: `docs/CI_STATUS.md`, `docs/RELEASE_EVIDENCE_CHECKLIST.md`, `docs/GITHUB_ACTIONS_EVIDENCE_RUNBOOK.md`, `docs/BRANCH_PROTECTION_POLICY.md`
 

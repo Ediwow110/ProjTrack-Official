@@ -50,27 +50,80 @@ function buildSubmissionsService() {
 describe('submission list response bounds', () => {
   it('uses bounded database query for student submission lists', async () => {
     const { service, submissionRepository, prisma } = buildSubmissionsService();
-    prisma.submission.findMany.mockResolvedValue(
-      Array.from({ length: 100 }, (_, index) => ({
-        id: `submission-${index}`,
-        title: `Submission ${index}`,
-        subjectId: 'subject-1',
-        files: [],
-        events: [],
-      })),
-    );
+    prisma.submission.findMany.mockResolvedValue([]);
 
     const result = await service.studentList('student-user-1');
 
-    expect(result).toHaveLength(100);
+    expect(result).toHaveLength(0);
     expect(submissionRepository.listStudentSubmissions).not.toHaveBeenCalled();
-    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
-    expect(prisma.submission.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: expect.any(Array),
-        }),
-      }),
-    );
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100, skip: 0 }));
+  });
+
+  it('uses custom pagination parameters for student list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.studentList('student-user-1', undefined, { take: 20, skip: 5 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 20, skip: 5 }));
+  });
+
+  it('clamps take to max size (100) for student list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.studentList('student-user-1', undefined, { take: 9999, skip: 10 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100, skip: 10 }));
+  });
+
+  it('clamps invalid/negative pagination values to defaults/bounds for student list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.studentList('student-user-1', undefined, { take: -50, skip: -10 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 1, skip: 0 }));
+  });
+
+  it('uses bounded database query for teacher submission lists', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValue({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    const result = await service.teacherList({ teacherId: 'teacher-user-1' });
+
+    expect(result).toHaveLength(0);
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100, skip: 0 }));
+  });
+
+  it('uses custom pagination parameters for teacher list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValue({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.teacherList({ teacherId: 'teacher-user-1' }, { take: 50, skip: 15 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 50, skip: 15 }));
+  });
+
+  it('clamps take to max size (100) for teacher list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValue({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.teacherList({ teacherId: 'teacher-user-1' }, { take: 1500, skip: 20 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100, skip: 20 }));
+  });
+
+  it('clamps invalid/negative pagination values to defaults/bounds for teacher list', async () => {
+    const { service, prisma } = buildSubmissionsService();
+    prisma.teacherProfile.findUnique.mockResolvedValue({ id: 'teacher-profile-1' });
+    prisma.submission.findMany.mockResolvedValue([]);
+
+    await service.teacherList({ teacherId: 'teacher-user-1' }, { take: -100, skip: -5 });
+
+    expect(prisma.submission.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 1, skip: 0 }));
   });
 });

@@ -79,9 +79,10 @@ export class SubmissionsService {
     };
   }
 
-  private async boundedStudentSubmissionRows(userId: string, status?: string) {
+  private async boundedStudentSubmissionRows(userId: string, status?: string, options?: { take?: number; skip?: number }) {
     return this.prisma.submission.findMany({
-      take: MAX_SUBMISSION_LIST_RESPONSE_ROWS,
+      take: options?.take ?? MAX_SUBMISSION_LIST_RESPONSE_ROWS, // take: MAX_SUBMISSION_LIST_RESPONSE_ROWS
+      skip: options?.skip ?? 0,
       where: {
         ...(status ? { status } : {}),
         OR: [{ studentId: userId }, { group: { members: { some: { studentId: userId } } } }],
@@ -94,10 +95,12 @@ export class SubmissionsService {
   private async boundedTeacherSubmissionRows(
     filters: { teacherId?: string; section?: string; status?: string; subjectId?: string } | undefined,
     maxRows: number,
+    options?: { skip?: number },
   ) {
     const resolvedTeacherId = await this.resolveTeacherProfileId(filters?.teacherId);
     return this.prisma.submission.findMany({
       take: Math.max(1, Math.min(maxRows, MAX_TEACHER_EXPORT_ROWS + 1)),
+      skip: options?.skip ?? 0,
       where: {
         ...(filters?.status ? { status: filters.status } : {}),
         ...(filters?.subjectId ? { subjectId: filters.subjectId } : {}),
@@ -149,9 +152,11 @@ export class SubmissionsService {
     }
   }
 
-  async studentList(userId?: string, status?: string) {
+  async studentList(userId?: string, status?: string, options?: { take?: number; skip?: number }) {
     const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
-    const rows: any[] = await this.boundedStudentSubmissionRows(studentUserId, status);
+    const take = options?.take !== undefined ? Math.max(1, Math.min(options.take, MAX_SUBMISSION_LIST_RESPONSE_ROWS)) : MAX_SUBMISSION_LIST_RESPONSE_ROWS;
+    const skip = options?.skip !== undefined ? Math.max(0, options.skip) : 0;
+    const rows: any[] = await this.boundedStudentSubmissionRows(studentUserId, status, { take, skip });
     return Promise.all(rows.map((row) => this.decorate(row)));
   }
 
@@ -258,8 +263,13 @@ export class SubmissionsService {
     return this.decorate(record);
   }
 
-  async teacherList(filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string }) {
-    const rows: any[] = await this.boundedTeacherSubmissionRows(filters, MAX_SUBMISSION_LIST_RESPONSE_ROWS);
+  async teacherList(
+    filters?: { teacherId?: string; section?: string; status?: string; subjectId?: string },
+    options?: { take?: number; skip?: number },
+  ) {
+    const take = options?.take !== undefined ? Math.max(1, Math.min(options.take, MAX_SUBMISSION_LIST_RESPONSE_ROWS)) : MAX_SUBMISSION_LIST_RESPONSE_ROWS;
+    const skip = options?.skip !== undefined ? Math.max(0, options.skip) : 0;
+    const rows: any[] = await this.boundedTeacherSubmissionRows(filters, take, { skip });
     const decorated = await Promise.all(rows.map((row) => this.decorate(row)));
     if (filters?.section) return decorated.filter((row: any) => row.section === filters.section);
     return decorated;

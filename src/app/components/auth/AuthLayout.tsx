@@ -1,219 +1,147 @@
 import type { ComponentType, ReactNode } from "react";
-  import { Lock } from "lucide-react";
 
-  import { roleThemeStyle, roleThemes, type PortalRole } from "../../lib/roleTheme";
-  import { ProjTrackLogo } from "../brand/ProjTrackLogo";
-  import { cn } from "../ui/utils";
+import { roleThemeStyle, type PortalRole } from "../../lib/roleTheme";
+import { cn } from "../ui/utils";
+import { BrandPanel } from "./BrandPanel";
+import { LoginCard } from "./LoginCard";
+import { ProjTrackLogo } from "../brand/ProjTrackLogo";
+import type { AuthFeature } from "./FeatureHighlights";
 
-  type AuthIcon = ComponentType<{
-    size?: string | number;
-    className?: string;
-    strokeWidth?: string | number;
-  }>;
+type AuthIcon = ComponentType<{
+  size?: string | number;
+  className?: string;
+  strokeWidth?: string | number;
+}>;
 
-  export type AuthFeature = {
-    icon: AuthIcon;
-    label: string;
-    sub: string;
-  };
+export type { AuthFeature };
 
-  const roleNames: Record<PortalRole, string> = {
-    student: "Student",
-    teacher: "Teacher",
-    admin: "Admin",
-  };
+export function AuthLayout({
+  role,
+  portalEyebrow,
+  cardKicker,
+  headlineL1,
+  headlineL2Pre,
+  headlineAccent,
+  description,
+  icon: Icon,
+  features = [],
+  securityBadge,
+  children,
+  footer,
+}: {
+  role: PortalRole;
+  portalEyebrow: string;
+  cardKicker: string;
+  headlineL1: string;
+  headlineL2Pre: string;
+  headlineAccent: string;
+  description: string;
+  icon: AuthIcon;
+  features?: AuthFeature[];
+  securityBadge?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  const year = new Date().getFullYear();
 
-  export function AuthLayout({
-    role,
-    portalEyebrow,
-    cardKicker,
-    headlineL1,
-    headlineL2Pre,
-    headlineAccent,
-    description,
-    icon: Icon,
-    features = [],
-    securityBadge,
-    children,
-    footer,
-  }: {
-    role: PortalRole;
-    portalEyebrow: string;
-    cardKicker: string;
-    headlineL1: string;
-    headlineL2Pre: string;
-    headlineAccent: string;
-    description: string;
-    icon: AuthIcon;
-    features?: AuthFeature[];
-    securityBadge?: string;
-    children: ReactNode;
-    footer?: ReactNode;
-  }) {
-    const theme = roleThemes[role];
-    const year = new Date().getFullYear();
-    void theme;
+  return (
+    <div
+      className={cn(
+        "auth-login-page auth-starry-login min-h-dvh overflow-x-hidden text-white",
+        `portal-role-${role}`,
+      )}
+      style={roleThemeStyle(role)}
+      data-auth-role={role}
+    >
+      {/* Background layers: campus silhouette + starfield + dots framed to composition */}
+      <div className="auth-campus-bg" aria-hidden="true" />
+      <div className="auth-campus-skyline" aria-hidden="true" />
+      <div className="auth-campus-glow" aria-hidden="true" />
+      <div className="auth-starfield" aria-hidden="true" />
+      <div className="auth-dot-grid" aria-hidden="true" />
+      <div className="auth-space-glow auth-space-glow-primary" aria-hidden="true" />
+      <div className="auth-space-glow auth-space-glow-secondary" aria-hidden="true" />
+      <div className="auth-leaf auth-leaf-bl" aria-hidden="true" />
+      <div className="auth-leaf auth-leaf-br" aria-hidden="true" />
 
-    return (
-      <div
-        className={cn(
-          "auth-login-page auth-starry-login min-h-dvh overflow-x-hidden text-white",
-          `portal-role-${role}`,
-        )}
-        style={roleThemeStyle(role)}
-        data-auth-role={role}
-      >
-        {/* Background layers: campus silhouette + starfield + dots framed to composition */}
-        <div className="auth-campus-bg" aria-hidden="true" />
-        <div className="auth-campus-skyline" aria-hidden="true" />
-        <div className="auth-campus-glow" aria-hidden="true" />
-        <div className="auth-starfield" aria-hidden="true" />
-        <div className="auth-dot-grid" aria-hidden="true" />
-        <div className="auth-space-glow auth-space-glow-primary" aria-hidden="true" />
-        <div className="auth-space-glow auth-space-glow-secondary" aria-hidden="true" />
-        <div className="auth-leaf auth-leaf-bl" aria-hidden="true" />
-        <div className="auth-leaf auth-leaf-br" aria-hidden="true" />
+      <div className="auth-shell relative z-10 mx-auto flex min-h-dvh w-full max-w-[1240px] flex-col px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        {/* Curved glowing arc divider — visible only at lg+ */}
+        <span className="auth-arc" aria-hidden="true" />
+        <span className="auth-arc auth-arc-soft" aria-hidden="true" />
 
-        <div className="auth-shell relative z-10 mx-auto flex min-h-dvh w-full max-w-[1240px] flex-col px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-          {/* Curved glowing arc divider — visible only at lg+ */}
-          <span className="auth-arc" aria-hidden="true" />
-          <span className="auth-arc auth-arc-soft" aria-hidden="true" />
+        <div className="auth-grid relative grid flex-1 items-center gap-10 py-4 md:py-6 lg:gap-14">
+          <BrandPanel
+            role={role}
+            logo={
+              <ProjTrackLogo
+                role={role}
+                inverse
+                subtitle="PROJECT SUBMISSION MANAGEMENT SYSTEM"
+                className="auth-hero-logo"
+                markClassName="h-[4.6rem] w-[4.6rem] rounded-[1.5rem]"
+                textClassName="auth-hero-logo-text"
+              />
+            }
+            portalEyebrow={portalEyebrow}
+            headlineL1={headlineL1}
+            headlineL2Pre={headlineL2Pre}
+            headlineAccent={headlineAccent}
+            description={description}
+            features={features}
+          />
 
-          <div className="auth-grid relative grid flex-1 items-center gap-10 py-4 md:py-6 lg:gap-14">
-            <aside className="auth-login-hero relative z-[2]">
-              <div>
-                <ProjTrackLogo
-                  role={role}
-                  inverse
-                  subtitle="PROJECT SUBMISSION MANAGEMENT SYSTEM"
-                  className="auth-hero-logo"
-                  markClassName="h-[4.6rem] w-[4.6rem] rounded-[1.5rem]"
-                  textClassName="auth-hero-logo-text"
-                />
-              </div>
-
-              <div className="auth-hero-copy">
-                <span className="auth-hero-eyebrow">{portalEyebrow}</span>
-                <h1 className="auth-hero-headline">
-                  <span className="auth-hero-headline-line">{headlineL1}</span>
-                  <span className="auth-hero-headline-line">
-                    {headlineL2Pre}
-                    <span className="auth-hero-headline-accent">{headlineAccent}</span>
-                  </span>
-                </h1>
-                <p className="auth-hero-description">{description}</p>
-                <span className="auth-hero-rule" aria-hidden="true" />
-              </div>
-
-              {features.length ? (
-                <div className="auth-feature-grid">
-                  {features.map((feature) => {
-                    const FeatureIcon = feature.icon;
-                    return (
-                      <div
-                        key={`${feature.label}-${feature.sub}`}
-                        className="auth-feature-card"
-                      >
-                        <div className="auth-feature-icon" aria-hidden="true">
-                          <FeatureIcon size={26} strokeWidth={1.85} />
-                        </div>
-                        <p className="auth-feature-label">
-                          <span>{feature.label}</span>
-                          <span>{feature.sub}</span>
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </aside>
-
-            <main
-              className="auth-login-card relative z-[3]"
-              data-testid="login-card"
-            >
-              <div className="auth-card-icon">
-                <Icon size={46} strokeWidth={1.8} />
-              </div>
-
-              <div>
-                <h2 className="auth-card-title">Welcome Back!</h2>
-                <p className="auth-card-divider">
-                  <span className="auth-card-divider-line" aria-hidden="true" />
-                  <span className="auth-card-divider-text">{cardKicker}</span>
-                  <span className="auth-card-divider-line" aria-hidden="true" />
-                </p>
-              </div>
-
-              <div className="mt-6">
-                {children}
-              </div>
-
-              {securityBadge ? (
-                <div className="auth-security-badge">
-                  <span className="auth-security-divider" aria-hidden="true">
-                    <span />
-                    <span className="auth-security-divider-text">or</span>
-                    <span />
-                  </span>
-                  <p className="auth-security-text">
-                    <Lock size={16} className="shrink-0" aria-hidden="true" />
-                    <span>{securityBadge}</span>
-                  </p>
-                </div>
-              ) : null}
-
-              {footer ? (
-                <div className="auth-footer-text mt-6">
-                  {footer}
-                </div>
-              ) : null}
-
-              <span className="sr-only">{`Sign in to the ${roleNames[role]} portal`}</span>
-            </main>
-          </div>
-
-          <footer className="auth-page-footer">
-            <p>{`© ${year} ProjTrack. All rights reserved.`}</p>
-            <nav aria-label="Legal">
-              <a href="/legal/privacy">Privacy Policy</a>
-              <span aria-hidden="true">•</span>
-              <a href="/legal/terms">Terms of Service</a>
-              <span aria-hidden="true">•</span>
-              <a href="/help">Help Center</a>
-            </nav>
-          </footer>
+          <LoginCard
+            role={role}
+            cardKicker={cardKicker}
+            icon={Icon}
+            securityBadge={securityBadge}
+            footer={footer}
+          >
+            {children}
+          </LoginCard>
         </div>
+
+        <footer className="auth-page-footer">
+          <p>{`© ${year} ProjTrack. All rights reserved.`}</p>
+          <nav aria-label="Legal">
+            <a href="/legal/privacy">Privacy Policy</a>
+            <span aria-hidden="true">•</span>
+            <a href="/legal/terms">Terms of Service</a>
+            <span aria-hidden="true">•</span>
+            <a href="/help">Help Center</a>
+          </nav>
+        </footer>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  export function AuthField({
-    label,
-    htmlFor,
-    icon: Icon,
-    trailing,
-    children,
-  }: {
-    label: string;
-    htmlFor: string;
-    icon: AuthIcon;
-    trailing?: ReactNode;
-    children: ReactNode;
-  }) {
-    return (
-      <label htmlFor={htmlFor} className="block">
-        <span className="auth-field-label mb-2 block text-sm font-semibold text-white">
-          {label}
-        </span>
-        <div className="auth-field-control auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.06] px-4 py-4 shadow-[0_18px_46px_-38px_rgba(2,6,23,0.95)]">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-slate-300">
-            <Icon size={18} />
-          </div>
-          <div className="min-w-0 flex-1">{children}</div>
-          {trailing ? <div className="shrink-0">{trailing}</div> : null}
+// Retain legacy AuthField for potential external imports, although replaced by AuthTextInput in forms.
+export function AuthField({
+  label,
+  htmlFor,
+  icon: Icon,
+  trailing,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  icon: AuthIcon;
+  trailing?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <label htmlFor={htmlFor} className="block">
+      <span className="auth-field-label mb-2 block text-sm font-semibold text-white">
+        {label}
+      </span>
+      <div className="auth-field-control auth-role-focus flex items-center gap-3 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.06] px-4 py-4 shadow-[0_18px_46px_-38px_rgba(2,6,23,0.95)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-slate-300">
+          <Icon size={18} />
         </div>
-      </label>
-    );
-  }
-  
+        <div className="min-w-0 flex-1">{children}</div>
+        {trailing ? <div className="shrink-0">{trailing}</div> : null}
+      </div>
+    </label>
+  );
+}

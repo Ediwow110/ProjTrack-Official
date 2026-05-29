@@ -4,6 +4,17 @@ import { Roles } from '../auth/guards/roles.decorator';
 import { SubmissionsService } from './submissions.service';
 import { StudentSubmitDto, TeacherReviewSubmissionDto } from './dto/submission.dto';
 
+function parsePositiveInt(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+}
+
+function parseBoundedTake(value: unknown, fallback: number, max: number) {
+  const parsed = parsePositiveInt(value, fallback);
+  return Math.max(1, Math.min(parsed, max));
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class SubmissionsController {
@@ -11,8 +22,15 @@ export class SubmissionsController {
 
   @Roles('STUDENT')
   @Get('student/submissions')
-  studentList(@Req() req: any, @Query('status') status?: string) {
-    return this.submissions.studentList(req.user?.sub, status);
+  studentList(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    const parsedTake = parseBoundedTake(take, 100, 100);
+    const parsedSkip = parsePositiveInt(skip, 0);
+    return this.submissions.studentList(req.user?.sub, status, { take: parsedTake, skip: parsedSkip });
   }
 
   @Roles('STUDENT')
@@ -29,8 +47,20 @@ export class SubmissionsController {
 
   @Roles('TEACHER')
   @Get('teacher/submissions')
-  teacherList(@Req() req: any, @Query('section') section?: string, @Query('status') status?: string, @Query('subjectId') subjectId?: string) {
-    return this.submissions.teacherList({ teacherId: req.user?.sub, section, status, subjectId });
+  teacherList(
+    @Req() req: any,
+    @Query('section') section?: string,
+    @Query('status') status?: string,
+    @Query('subjectId') subjectId?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    const parsedTake = parseBoundedTake(take, 100, 100);
+    const parsedSkip = parsePositiveInt(skip, 0);
+    return this.submissions.teacherList(
+      { teacherId: req.user?.sub, section, status, subjectId },
+      { take: parsedTake, skip: parsedSkip },
+    );
   }
 
   @Roles('TEACHER')

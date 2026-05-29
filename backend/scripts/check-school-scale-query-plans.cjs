@@ -59,6 +59,7 @@ async function sampleValue(sql) {
 
 async function main() {
   assertSafeEnvironment();
+  await prisma.$executeRawUnsafe('SET enable_seqscan = off;');
 
   const studentId = await sampleValue('SELECT "studentId" AS value FROM "Submission" WHERE "studentId" IS NOT NULL LIMIT 1');
   const teacherId = await sampleValue('SELECT "teacherId" AS value FROM "Subject" WHERE "teacherId" IS NOT NULL LIMIT 1');

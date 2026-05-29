@@ -17,24 +17,24 @@ import { smokeCredentials } from './helpers/smoke-credentials';
 const accounts = [
   {
     role: 'student',
-    identifier: smokeCredentials.student.identifier,
-    password: smokeCredentials.student.password,
+    get identifier() { return smokeCredentials.student.identifier; },
+    get password() { return smokeCredentials.student.password; },
     identifierLabel: /Email or Student ID/i,
     buttonName: /^Sign In$/i,
     dashboardPath: '/student/dashboard',
   },
   {
     role: 'teacher',
-    identifier: smokeCredentials.teacher.identifier,
-    password: smokeCredentials.teacher.password,
+    get identifier() { return smokeCredentials.teacher.identifier; },
+    get password() { return smokeCredentials.teacher.password; },
     identifierLabel: /Email or Teacher ID/i,
     buttonName: /Sign In as Teacher/i,
     dashboardPath: '/teacher/dashboard',
   },
   {
     role: 'admin',
-    identifier: smokeCredentials.admin.identifier,
-    password: smokeCredentials.admin.password,
+    get identifier() { return smokeCredentials.admin.identifier; },
+    get password() { return smokeCredentials.admin.password; },
     identifierLabel: /Email or Admin ID/i,
     buttonName: /Sign In as Admin/i,
     dashboardPath: '/admin/dashboard',
@@ -42,7 +42,9 @@ const accounts = [
 ] as const;
 
 const viewports = [
+  { width: 360, height: 800, label: 'mobile-360' },
   { width: 390, height: 844, label: 'mobile-iphone-12' },
+  { width: 414, height: 896, label: 'mobile-plus' },
   { width: 768, height: 1024, label: 'tablet-ipad' },
   { width: 1440, height: 900, label: 'desktop-1440' },
 ] as const;

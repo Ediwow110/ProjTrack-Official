@@ -217,7 +217,7 @@ export default function StudentDashboard() {
             contentClassName="px-0 py-0"
           >
             <div className="space-y-4">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" tabIndex={0} aria-label="Recent submissions table">
                 <table className="w-full min-w-[620px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200/70 bg-slate-50/80 dark:border-slate-700/60 dark:bg-slate-900/80">

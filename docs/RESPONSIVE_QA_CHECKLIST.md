@@ -15,12 +15,9 @@ Use this checklist to verify ProjTrack is usable across mobile, tablet, and desk
 
 - `360x800`
 - `390x844`
-- `430x932`
+- `414x896`
 - `768x1024`
-- `1024x768`
-- `1366x768`
 - `1440x900`
-- `1920x1080`
 
 ## 4. Auth/Login Checklist
 
@@ -86,20 +83,17 @@ Use this checklist to verify ProjTrack is usable across mobile, tablet, and desk
 
 | Size | Auth | Student | Teacher | Admin | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `360x800` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
-| `390x844` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `430x932` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
-| `768x1024` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `1024x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
-| `1366x768` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
-| `1440x900` | Pass via `npm run e2e:responsive` | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | Historical Pass on dashboard shell; current rerun blocked | `npm run e2e:responsive:auth` passed 9/9 on pushed commit `9e46249`, but not rerun in this shell. |
-| `1920x1080` | Pass via `npm run e2e:responsive` | Blocked | Blocked | Blocked | Authenticated QA needs admin smoke env plus generated teacher/student fixture credentials from `npm run seed:smoke`. |
+| `360x800` | Not covered by current authenticated harness | Current local pass | Current local pass | Blocked | `npm run e2e:responsive` discovered and ran this viewport; admin blocked by missing `SMOKE_ADMIN_IDENTIFIER` / `SMOKE_ADMIN_PASSWORD`. |
+| `390x844` | Not covered by current authenticated harness | Current local pass | Current local pass | Blocked | `npm run e2e:responsive` discovered and ran this viewport; admin blocked by missing admin smoke env. |
+| `414x896` | Not covered by current authenticated harness | Current local pass | Current local pass | Blocked | `npm run e2e:responsive` discovered and ran this viewport; admin blocked by missing admin smoke env. |
+| `768x1024` | Not covered by current authenticated harness | Current local pass | Current local pass | Blocked | `npm run e2e:responsive` discovered and ran this viewport; admin blocked by missing admin smoke env. |
+| `1440x900` | Not covered by current authenticated harness | Current local pass | Current local pass | Blocked | `npm run e2e:responsive` discovered and ran this viewport; admin blocked by missing admin smoke env. |
 
 ## 11. Known Remaining Issues
 
 - Authenticated route QA requires a working backend plus admin smoke env and generated teacher/student credentials in the current shell.
-- Earlier evidence shows authenticated dashboard shells passed at `390x844`, `768x1024`, and `1440x900`, but that was not rerun after the latest admin Sections fix because the credentials were unavailable locally.
-- Manual visual review is still required for every role dashboard and for the admin Sections drilldown after the nested-button fix.
+- Current harness discovery finds 48 tests in 6 specs. A full local run is not green yet: admin checks are blocked until admin smoke env is supplied, and the latest expanded-suite attempt timed out after partial execution.
+- Manual visual review is still required for every role dashboard and for route-level pages beyond dashboards.
 - Responsive approval is not enough for production readiness while smoke, CI, backup restore, monitoring, and signoff remain incomplete.
 
 ## 12. Signoff Section

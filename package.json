@@ -4,12 +4,14 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node ./scripts/check-frontend-env.mjs && vite build",
     "build:production-fixture": "node ./scripts/build-production-fixture.mjs",
     "backend:local": "node ./scripts/backend-local.mjs",
     "check:click-targets": "node ./scripts/check-click-targets.mjs",
     "check:frontend-env": "node ./scripts/check-frontend-env.mjs",
     "check:frontend-env:production": "node ./scripts/check-frontend-env.mjs --production-fixture",
+    "check:bundle-budget": "node ./scripts/check-bundle-budget.mjs",
+    "evidence:frontend-baseline": "node ./scripts/capture-mobile-baseline.mjs",
     "check:release-hygiene": "node ./scripts/release-hygiene-check.mjs",
     "check:capacity-claims": "node ./scripts/capacity-claim-check.mjs",
     "check:release-guard-wiring": "node ./scripts/check-release-guard-wiring.mjs",
@@ -19,8 +21,9 @@
     "dev": "vite",
     "doctor:local": "node ./scripts/doctor-local.mjs",
     "e2e:smoke": "node ./scripts/check-smoke-env.mjs && node ./scripts/run-e2e-smoke.mjs",
-    "e2e:responsive": "playwright test --config=playwright.responsive.config.ts",
-    "e2e:responsive:auth": "node ./scripts/check-smoke-env.mjs && playwright test tests/e2e/authenticated-responsive.spec.ts --project chromium",
+    "smoke:post-deploy": "node ./scripts/post-deploy-smoke.mjs",
+    "e2e:responsive": "node ./scripts/run-responsive-e2e.mjs",
+    "e2e:responsive:auth": "npm run e2e:responsive",
     "check:smoke-deps": "node ./scripts/check-smoke-deps.mjs",
     "check:smoke-env": "node ./scripts/check-smoke-env.mjs",
     "seed:smoke": "npm --prefix backend run seed:smoke",
@@ -102,11 +105,13 @@
     "vite": "^6.4.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.4",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.7.0",
+    "axe-core": "^4.11.4",
     "tailwindcss": "^4.1.12"
   },
   "peerDependencies": {

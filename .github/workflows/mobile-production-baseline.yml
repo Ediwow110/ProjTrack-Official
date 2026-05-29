@@ -1,0 +1,49 @@
+name: Mobile Production Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Target base URL for production
+        required: true
+        default: "https://www.projtrack.codes"
+
+jobs:
+  baseline:
+    name: Capture Authenticated Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      BASELINE_FRONTEND_URL: ${{ github.event.inputs.base_url }}
+      SMOKE_ADMIN_IDENTIFIER: ${{ secrets.SMOKE_ADMIN_IDENTIFIER }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+      # Add teacher/student if they exist as secrets, or rely on them being optional for now
+      # SMOKE_TEACHER_IDENTIFIER: ${{ secrets.SMOKE_TEACHER_IDENTIFIER }}
+      # SMOKE_TEACHER_PASSWORD: ${{ secrets.SMOKE_TEACHER_PASSWORD }}
+      # SMOKE_STUDENT_IDENTIFIER: ${{ secrets.SMOKE_STUDENT_IDENTIFIER }}
+      # SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Authenticated Baseline
+        run: npm run evidence:frontend-baseline
+
+      - name: Upload Baseline Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-production-baseline
+          path: docs/frontend-mobile-readiness/evidence/baseline/
+          if-no-files-found: error
