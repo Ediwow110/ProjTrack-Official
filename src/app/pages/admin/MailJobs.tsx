@@ -105,6 +105,8 @@ function needsForceRetry(row: MailJobRecord) {
   return row.status === "dead" && row.retryableFailure !== true;
 }
 
+const EMPTY_MAIL_JOBS: MailJobRecord[] = [];
+
 export default function AdminMailJobs() {
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -149,7 +151,7 @@ export default function AdminMailJobs() {
     return () => window.clearInterval(timer);
   }, [pageVisible, reload]);
 
-  const rows = data?.jobs ?? [];
+  const rows = data?.jobs ?? EMPTY_MAIL_JOBS;
   const status = data?.status ?? null;
   const senderConfig = status?.senderConfig;
   const retryableRows = useMemo(
@@ -158,7 +160,12 @@ export default function AdminMailJobs() {
   );
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => retryableRows.includes(id)));
+    setSelectedIds((current) => {
+      const next = current.filter((id) => retryableRows.includes(id));
+      return next.length === current.length && next.every((id, index) => id === current[index])
+        ? current
+        : next;
+    });
   }, [retryableRows]);
 
   const selectedRows = rows.filter((row) => selectedIds.includes(row.id));
