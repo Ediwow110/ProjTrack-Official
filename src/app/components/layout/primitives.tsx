@@ -2,6 +2,7 @@ import {
   createElement,
   type ComponentPropsWithoutRef,
   type ComponentType,
+  type JSX,
   type ReactNode,
 } from "react";
 
