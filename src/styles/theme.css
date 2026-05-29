@@ -1159,6 +1159,28 @@
   transition: none !important;
 }
 
+/* Login performance mode: keep visual design static to reduce mobile GPU/scroll cost. */
+.auth-login-page .auth-starry-login::before,
+.auth-login-page.auth-starry-login::before {
+  animation: none !important;
+}
+
+.auth-login-page .auth-role-button:hover {
+  transform: none;
+}
+
+.auth-login-page .auth-field-control,
+.auth-login-page .auth-login-card .auth-role-button {
+  transition-duration: 80ms;
+}
+
+@media (max-width: 640px) {
+  .auth-login-page .auth-login-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @media (max-width: 1023px) {
   .mobile-perf-safe .portal-mobile-decorative-glow {
     opacity: 0.42;
