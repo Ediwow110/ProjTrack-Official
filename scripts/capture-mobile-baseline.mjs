@@ -11,18 +11,46 @@ if (!baseUrl) {
   process.exit(1);
 }
 
-const routes = [
-  '/student/dashboard',
-  '/student/subjects',
-  '/student/submissions',
-  '/student/submit',
-  '/teacher/dashboard',
-  '/teacher/submissions',
-  '/admin/dashboard',
-  '/admin/users',
-  '/admin/students',
-  '/admin/settings',
-];
+const roleConfigs = {
+  student: {
+    loginPath: '/student/login',
+    identifierLabel: /Email or Student ID/i,
+    buttonName: /Sign In$/i,
+    identifier: process.env.SMOKE_STUDENT_IDENTIFIER,
+    password: process.env.SMOKE_STUDENT_PASSWORD,
+    routes: [
+      '/student/dashboard',
+      '/student/subjects',
+      '/student/submissions',
+      '/student/submit',
+    ],
+  },
+  teacher: {
+    loginPath: '/teacher/login',
+    identifierLabel: /Email or Teacher ID/i,
+    buttonName: /Sign In as Teacher/i,
+    identifier: process.env.SMOKE_TEACHER_IDENTIFIER,
+    password: process.env.SMOKE_TEACHER_PASSWORD,
+    routes: [
+      '/teacher/dashboard',
+      '/teacher/submissions',
+    ],
+  },
+  admin: {
+    loginPath: '/admin/login',
+    identifierLabel: /Email or Admin ID/i,
+    buttonName: /Sign In as Admin/i,
+    identifier: process.env.SMOKE_ADMIN_IDENTIFIER,
+    password: process.env.SMOKE_ADMIN_PASSWORD,
+    routes: [
+      '/admin/dashboard',
+      '/admin/users',
+      '/admin/students',
+      '/admin/settings',
+    ],
+  },
+};
+
 const viewports = [
   { width: 360, height: 800 },
   { width: 390, height: 844 },
@@ -37,28 +65,55 @@ const browser = await chromium.launch({ headless: true });
 const manifest = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  note: 'Screenshots require a valid authenticated session. If routes redirect to login, Phase 0 remains incomplete.',
+  note: 'Screenshots captured with credentialed authentication where available. If routes redirect to login, check SMOKE_* credentials.',
   screenshots: [],
 };
 
-for (const viewport of viewports) {
-  const context = await browser.newContext({ viewport });
-  const page = await context.newPage();
-  for (const route of routes) {
-    const safeName = `${route.replace(/^\//, '').replace(/\//g, '-')}-${viewport.width}x${viewport.height}.png`;
-    const url = new URL(route, baseUrl).toString();
-    await page.goto(url, { waitUntil: 'load', timeout: 30_000 }).catch((error) => {
-      console.error(`[baseline] Navigation failed for ${url}: ${error.message}`);
-    });
-    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
-    const path = join(outputDir, safeName);
-    await page.screenshot({ path, fullPage: true });
-    manifest.screenshots.push({ route, viewport, path });
-    console.log(`[baseline] Saved ${path}`);
+async function login(page, config) {
+  if (!config.identifier || !config.password) {
+    console.log(`[baseline] Skipping login for ${config.loginPath} (credentials missing)`);
+    return false;
   }
-  await context.close();
+  const url = new URL(config.loginPath, baseUrl).toString();
+  await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
+  await page.getByLabel(config.identifierLabel).fill(config.identifier);
+  await page.getByLabel(/Password/i).fill(config.password);
+  await page.getByRole('button', { name: config.buttonName }).click();
+  // Wait for redirect or dashboard indicator.
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
+  return true;
+}
+
+for (const viewport of viewports) {
+  console.log(`[baseline] Starting viewport ${viewport.width}x${viewport.height}`);
+  for (const [role, config] of Object.entries(roleConfigs)) {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    
+    const isAuthenticated = await login(page, config).catch((err) => {
+      console.error(`[baseline] Login failed for ${role}: ${err.message}`);
+      return false;
+    });
+
+    for (const route of config.routes) {
+      const safeName = `${role}-${route.replace(/^\//, '').replace(/\//g, '-')}-${viewport.width}x${viewport.height}.png`;
+      const url = new URL(route, baseUrl).toString();
+      
+      console.log(`[baseline] Capturing ${url} (authenticated: ${isAuthenticated})`);
+      await page.goto(url, { waitUntil: 'load', timeout: 30_000 }).catch((error) => {      
+        console.error(`[baseline] Navigation failed for ${url}: ${error.message}`);        
+      });
+      await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
+      
+      const path = join(outputDir, safeName);
+      await page.screenshot({ path, fullPage: true });
+      manifest.screenshots.push({ role, route, viewport, path, authenticated: isAuthenticated });
+      console.log(`[baseline] Saved ${path}`);
+    }
+    await context.close();
+  }
 }
 
 await browser.close();
-writeFileSync(join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+writeFileSync(join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));      
 console.log(`[baseline] Wrote ${join(outputDir, 'manifest.json')}`);
