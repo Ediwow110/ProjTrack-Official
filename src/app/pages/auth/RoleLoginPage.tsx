@@ -21,8 +21,8 @@ import {
   type AuthFeature,
 } from "../../components/auth/AuthLayout";
 import {
-  AuthTextInput,
-  PasswordInput,
+  AuthField,
+  PasswordField,
   RememberMeRow,
   AuthSubmitButton,
   AuthErrorAlert,
@@ -46,18 +46,25 @@ type RoleConfig = {
   securityBadge?: string;
 };
 
-const studentTeacherFeatures: AuthFeature[] = [
-  { icon: Clock, label: "Real-time", sub: "Submission Tracking" },
-  { icon: Users, label: "Easy Class", sub: "Management" },
-  { icon: Bell, label: "Instant Alerts", sub: "& Reminders" },
-  { icon: ShieldCheck, label: "Secure & Reliable", sub: "Platform" },
+const studentFeatures: AuthFeature[] = [
+  { icon: Clock, label: "Submission", sub: "Tracking" },
+  { icon: Users, label: "Class & Project", sub: "Management" },
+  { icon: Bell, label: "Deadline", sub: "Reminders" },
+  { icon: ShieldCheck, label: "Secure Student", sub: "Portal Access" },
+];
+
+const teacherFeatures: AuthFeature[] = [
+  { icon: Clock, label: "Review", sub: "Submissions" },
+  { icon: Users, label: "Classroom", sub: "Management" },
+  { icon: BarChart3, label: "Progress", sub: "Monitoring" },
+  { icon: ShieldCheck, label: "Feedback &", sub: "Oversight" },
 ];
 
 const adminFeatures: AuthFeature[] = [
-  { icon: User, label: "User", sub: "Management" },
-  { icon: BarChart3, label: "Reports &", sub: "Analytics" },
-  { icon: ShieldCheck, label: "System", sub: "Control" },
-  { icon: Lock, label: "Secure", sub: "Access" },
+  { icon: User, label: "User", sub: "Administration" },
+  { icon: BarChart3, label: "Reporting", sub: "& Insights" },
+  { icon: ShieldCheck, label: "System", sub: "Governance" },
+  { icon: Lock, label: "Privileged", sub: "Secure Access" },
 ];
 
 const cfgMap: Record<AppRole, RoleConfig> = {
@@ -65,44 +72,46 @@ const cfgMap: Record<AppRole, RoleConfig> = {
     portalEyebrow: "STUDENT PORTAL",
     cardKicker: "Student Portal Login",
     headlineL1: "Manage. Submit.",
-    headlineL2Pre: "Achieve. ",
-    headlineAccent: "Together.",
+    headlineL2Pre: "Stay Ready. ",
+    headlineAccent: "Stay On Track.",
     description:
-      "ProjTrack helps students stay organized, submit projects on time, and collaborate seamlessly with their teachers.",
+      "Access your academic workspace to manage submissions, monitor class projects, and stay ahead of upcoming deadlines with confidence.",
     icon: GraduationCap,
     fieldLabel: "Email or Student ID",
     fieldPlaceholder: "Enter your email or student ID",
     submitLabel: "Sign In",
-    features: studentTeacherFeatures,
+    features: studentFeatures,
+    securityBadge: "Protected student access for assignments, records, and secure project activity.",
   },
   teacher: {
     portalEyebrow: "TEACHER PORTAL",
     cardKicker: "Teacher Portal Login",
     headlineL1: "Manage. Review.",
-    headlineL2Pre: "Guide. ",
-    headlineAccent: "Together.",
+    headlineL2Pre: "Guide Learning. ",
+    headlineAccent: "With Clarity.",
     description:
-      "ProjTrack helps teachers review submissions, manage classes, and provide feedback faster and easier.",
+      "Sign in to review coursework, manage classes, monitor learner progress, and deliver timely feedback from one organized portal.",
     icon: GraduationCap,
     fieldLabel: "Email or Teacher ID",
     fieldPlaceholder: "Enter your email or teacher ID",
     submitLabel: "Sign In as Teacher",
-    features: studentTeacherFeatures,
+    features: teacherFeatures,
+    securityBadge: "Faculty tools are secured for assessment workflows, class oversight, and student feedback.",
   },
   admin: {
     portalEyebrow: "ADMIN PORTAL",
     cardKicker: "Admin Portal Login",
     headlineL1: "Manage. Monitor.",
-    headlineL2Pre: "Secure. ",
-    headlineAccent: "Together.",
+    headlineL2Pre: "Control Operations. ",
+    headlineAccent: "Securely.",
     description:
-      "ProjTrack helps administrators manage users, departments, reports, and system access in one secure platform.",
+      "Enter the institutional control center for user administration, reporting, platform oversight, and protected operational access.",
     icon: ShieldCheck,
     fieldLabel: "Email or Admin ID",
     fieldPlaceholder: "Enter your email or admin ID",
     submitLabel: "Sign In as Admin",
     features: adminFeatures,
-    securityBadge: "Your data is protected with enterprise-grade security.",
+    securityBadge: "Administrative access is protected with elevated security controls and audit-aware sign-in.",
   },
 };
 
@@ -208,7 +217,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
       securityBadge={cfg.securityBadge}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <AuthTextInput
+        <AuthField
           label={cfg.fieldLabel}
           htmlFor={identifierInputId}
           icon={Mail}
@@ -229,11 +238,11 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
                 message: "Enter a valid identifier before continuing.",
               },
             })}
-            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
+            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
-        </AuthTextInput>
+        </AuthField>
 
-        <PasswordInput
+        <PasswordField
           label="Password"
           htmlFor={passwordInputId}
           icon={Lock}
@@ -242,7 +251,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
             <button
               type="button"
               onClick={() => setShowPass((value) => !value)}
-              className="rounded-full p-1 text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--role-dot)]"
+              className="rounded-full p-1 text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--role-accent)]"
               aria-label={showPass ? "Hide password" : "Show password"}
             >
               {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -262,12 +271,12 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
                 message: "Password must be at least 8 characters.",
               },
             })}
-            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
+            className="auth-input w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
-        </PasswordInput>
+        </PasswordField>
 
         <RememberMeRow>
-          <label className="auth-remember inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+          <label className="auth-remember inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
             <input
               type="checkbox"
               className="auth-remember-checkbox h-4 w-4 rounded-[4px]"
@@ -284,7 +293,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
         </RememberMeRow>
 
         {retryAfter > 0 ? (
-          <p className="text-sm font-medium text-amber-300">
+          <p className="text-sm font-medium text-amber-600">
             Retry available in {Math.ceil(retryAfter / 60)} minute{Math.ceil(retryAfter / 60) === 1 ? "" : "s"}.
           </p>
         ) : null}

@@ -16,6 +16,7 @@ export function ProjTrackLogo({
   markClassName,
   brandingOverride,
   imageClassName,
+  showSubtitle = true,
 }: {
   role: PortalRole;
   compact?: boolean;
@@ -27,14 +28,15 @@ export function ProjTrackLogo({
   markClassName?: string;
   brandingOverride?: Partial<BrandingResponse>;
   imageClassName?: string;
+  showSubtitle?: boolean;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   const theme = roleThemes[role];
   const label = subtitle ?? theme.logoLabel;
   const { branding } = useBranding();
   const resolvedBranding = { ...defaultBranding, ...branding, ...brandingOverride };
-  const fullLogoUrl = resolvedBranding.logoUrl || resolvedBranding.iconUrl;
-  const iconLogoUrl = resolvedBranding.iconUrl || resolvedBranding.logoUrl;
+  const fullLogoUrl = resolvedBranding.logoUrl;
+  const iconLogoUrl = resolvedBranding.iconUrl || defaultBranding.iconUrl;
   const [fullLogoFailed, setFullLogoFailed] = useState(false);
   const [iconLogoFailed, setIconLogoFailed] = useState(false);
 
@@ -99,29 +101,32 @@ export function ProjTrackLogo({
               onError={() => setFullLogoFailed(true)}
             />
           </motion.div>
-          <p
-            className={cn(
-              "mt-1 flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em]",
-              inverse ? "text-white/70" : "text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)]",
-            )}
-            data-testid="projtrack-role-label"
-          >
-            {showRoleDot ? (
-              <span
-                className="projtrack-role-dot h-2 w-2 shrink-0 rounded-full bg-[var(--role-dot)]"
-                aria-hidden="true"
-              />
-            ) : null}
-            <span className={cn("min-w-0", showRoleDot ? "whitespace-nowrap" : "truncate")}>
-              {label}
-            </span>
-          </p>
+          {showSubtitle && (
+            <p
+              className={cn(
+                "mt-1 flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em]",
+                inverse ? "text-white/70" : "text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)]",
+              )}
+              data-testid="projtrack-role-label"
+            >
+              {showRoleDot ? (
+                <span
+                  className="projtrack-role-dot h-2 w-2 shrink-0 rounded-full bg-[var(--role-dot)]"
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className={cn("min-w-0", showRoleDot ? "whitespace-nowrap" : "truncate")}>
+                {label}
+              </span>
+            </p>
+          )}
         </div>
       ) : (
         <>
           <motion.div
             className={cn(
-              "projtrack-logo-mark relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-[var(--role-accent)] text-white shadow-lg",
+              "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-card)]",
+              (!iconLogoUrl || iconLogoFailed) && "projtrack-logo-mark bg-[var(--role-accent)] text-white shadow-lg",
               markClassName,
             )}
             initial={reducedMotion ? false : { scale: 0.94 }}
@@ -129,39 +134,48 @@ export function ProjTrackLogo({
             transition={{ duration: reducedMotion ? 0 : 0.28 }}
             aria-hidden="true"
           >
-            <span className="relative z-10 font-display text-[13px] font-black tracking-[0.04em]">
-              PT
-            </span>
-            <span className="absolute bottom-2 left-2 right-2 h-0.5 rounded-full bg-white/70" />
-            <span className="absolute -right-3 -top-3 h-9 w-9 rounded-full bg-white/22" />
+            {iconLogoUrl && !iconLogoFailed ? (
+              <img
+                src={iconLogoUrl}
+                alt=""
+                className={cn("h-full w-full object-contain p-0.5", imageClassName)}
+                onError={() => setIconLogoFailed(true)}
+              />
+            ) : (
+              <>
+                <span className="relative z-10 font-display text-[13px] font-black tracking-[0.04em]">
+                  PT
+                </span>
+                <span className="absolute bottom-2 left-2 right-2 h-0.5 rounded-full bg-white/70" />
+                <span className="absolute -right-3 -top-3 h-9 w-9 rounded-full bg-white/22" />
+              </>
+            )}
           </motion.div>
           {!compact ? (
-            <div className={cn("min-w-0", textClassName)}>
-              <p
-                className={cn(
-                  "font-display text-base font-semibold leading-none",
-                  inverse ? "text-white" : "text-slate-900 dark:text-slate-100",
-                )}
-              >
-                {resolvedBranding.brandName || BRAND_NAME}
-              </p>
-              <p
-                className={cn(
-                  "mt-1 flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em]",
-                  inverse ? "text-white/70" : "text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)]",
-                )}
-                data-testid="projtrack-role-label"
-              >
-                {showRoleDot ? (
-                  <span
-                    className="projtrack-role-dot h-2 w-2 shrink-0 rounded-full bg-[var(--role-dot)]"
-                    aria-hidden="true"
-                  />
-                ) : null}
-                <span className={cn("min-w-0", showRoleDot ? "whitespace-nowrap" : "truncate")}>
-                  {label}
-                </span>
-              </p>
+            <div className={cn("flex min-w-0 items-center", textClassName)}>
+              <span className="font-display font-black tracking-[0.08em] text-[19px] uppercase leading-none select-none">
+                <span className={cn(inverse ? "text-white" : "text-slate-900 dark:text-white")}>PROJ</span>
+                <span className="text-[var(--role-accent)]">TRACK</span>
+              </span>
+              {showSubtitle && (
+                <p
+                  className={cn(
+                    "mt-1 flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em]",
+                    inverse ? "text-white/70" : "text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)]",
+                  )}
+                  data-testid="projtrack-role-label"
+                >
+                  {showRoleDot ? (
+                    <span
+                      className="projtrack-role-dot h-2 w-2 shrink-0 rounded-full bg-[var(--role-dot)]"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <span className={cn("min-w-0", showRoleDot ? "whitespace-nowrap" : "truncate")}>
+                    {label}
+                  </span>
+                </p>
+              )}
             </div>
           ) : null}
         </>

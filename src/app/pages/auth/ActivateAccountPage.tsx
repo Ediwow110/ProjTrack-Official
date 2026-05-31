@@ -84,10 +84,8 @@ export default function ActivateAccountPage() {
         <Link to={backTarget} className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800">
           <ArrowLeft size={15} /> Back to login
         </Link>
-        <ProjTrackLogo role={logoRole} subtitle="Account Activation" className="max-w-full" />
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Activate account</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Complete your password setup to activate your PROJTRACK account.</p>
         </div>
         {(!ref || !token) && <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Missing activation reference or token. Open the full activation link from your email.</div>}
         {error && <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">{error}</div>}

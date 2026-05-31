@@ -17,7 +17,7 @@ const roleNames: Record<PortalRole, string> = {
 export function LoginCard({
   role,
   cardKicker,
-  icon: Icon,
+  icon: _Icon,
   securityBadge,
   children,
   footer,
@@ -31,47 +31,52 @@ export function LoginCard({
 }) {
   return (
     <main
-      className="auth-login-card relative z-[3]"
+      className="auth-login-card"
       data-testid="login-card"
     >
-      <div className="auth-card-icon">
-        <Icon size={46} strokeWidth={1.8} />
-      </div>
-
-      <div>
-        <h2 className="auth-card-title">Welcome Back!</h2>
-        <div className="auth-card-divider">
-          <span className="auth-card-divider-line" aria-hidden="true" />
-          <span className="auth-card-divider-text">{cardKicker}</span>
-          <span className="auth-card-divider-line" aria-hidden="true" />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        {children}
-      </div>
-
-      {securityBadge ? (
-        <div className="auth-security-badge">
-          <div className="auth-security-divider" aria-hidden="true">
-            <span />
-            <span className="auth-security-divider-text">or</span>
-            <span />
+      <div className="auth-card-accent-bar" aria-hidden="true" />
+      <div className="auth-card-body">
+        <div>
+          <div className="flex justify-center mb-4">
+            <img
+              src="/branding/projtrack-logo-clean.png"
+              alt="ProjTrack Logo"
+              className="h-16 w-auto object-contain"
+            />
           </div>
-          <div className="auth-security-text">
-            <Lock size={16} className="shrink-0" aria-hidden="true" />
-            <span>{securityBadge}</span>
+          <div className="auth-card-divider">
+            <span className="auth-card-divider-line" aria-hidden="true" />
+            <span className="auth-card-divider-text">{cardKicker}</span>
+            <span className="auth-card-divider-line" aria-hidden="true" />
           </div>
         </div>
-      ) : null}
 
-      {footer ? (
-        <div className="auth-footer-text mt-6">
-          {footer}
+        <div className="auth-card-form">
+          {children}
         </div>
-      ) : null}
 
-      <span className="sr-only">{`Sign in to the ${roleNames[role]} portal`}</span>
+        {securityBadge ? (
+          <div className="auth-security-badge">
+            <div className="auth-security-divider" aria-hidden="true">
+              <span />
+              <span className="auth-security-divider-text">or</span>
+              <span />
+            </div>
+            <div className="auth-security-text">
+              <Lock size={14} className="shrink-0" aria-hidden="true" />
+              <span>{securityBadge}</span>
+            </div>
+          </div>
+        ) : null}
+
+        {footer ? (
+          <div className="auth-footer-text mt-6">
+            {footer}
+          </div>
+        ) : null}
+
+        <span className="sr-only">{`Sign in to the ${roleNames[role]} portal`}</span>
+      </div>
     </main>
   );
 }

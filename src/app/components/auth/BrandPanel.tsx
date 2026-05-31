@@ -22,13 +22,12 @@ export function BrandPanel({
   features: AuthFeature[];
 }) {
   return (
-    <aside className="auth-login-hero relative z-[2]">
-      <div>
+    <aside className="auth-login-hero">
+      <div className="auth-hero-header">
         {logo}
       </div>
 
       <div className="auth-hero-copy">
-        <span className="auth-hero-eyebrow">{portalEyebrow}</span>
         <h1 className="auth-hero-headline">
           <span className="auth-hero-headline-line">{headlineL1}</span>
           <span className="auth-hero-headline-line">
