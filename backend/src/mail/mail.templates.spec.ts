@@ -20,21 +20,21 @@ function withEnv(overrides: NodeJS.ProcessEnv, fn: () => void): void {
 const PROD_RESET_PAYLOAD = {
   firstName: 'Alice',
   resetLink: 'https://www.projtrack.codes/auth/reset-password?token=tok&ref=ref123',
-  expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+  expiresAt: new Date(Date.now() + 900_000).toISOString(),
   isFirstTimeSetup: false,
 };
 
 const PROD_SETUP_PAYLOAD = {
   firstName: 'Bob',
   resetLink: 'https://www.projtrack.codes/auth/reset-password?token=tok&ref=ref456',
-  expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+  expiresAt: new Date(Date.now() + 900_000).toISOString(),
   isFirstTimeSetup: true,
 };
 
 const DEV_RESET_PAYLOAD = {
   firstName: 'Dev User',
   resetLink: 'http://localhost:5173/auth/reset-password?token=tok&ref=ref789',
-  expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+  expiresAt: new Date(Date.now() + 900_000).toISOString(),
   isFirstTimeSetup: false,
 };
 
