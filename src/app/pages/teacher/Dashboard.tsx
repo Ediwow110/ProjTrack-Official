@@ -77,7 +77,7 @@ export default function TeacherDashboard() {
           <>
             <button
               onClick={() => navigate("/teacher/submissions")}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-teal-800 dark:text-teal-200 shadow-lg shadow-slate-950/10 transition hover:bg-teal-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] shadow-lg shadow-slate-950/10 transition hover:bg-[var(--role-accent-soft)]"
             >
               <FileCheck2 size={16} />
               Review Submissions
@@ -124,7 +124,7 @@ export default function TeacherDashboard() {
                   key={`${deadline.subjectId || deadline.subject}-${deadline.activityId || deadline.activity}`}
                   type="button"
                   onClick={() => navigate(buildDeadlineTarget(deadline))}
-                  className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 p-4 text-left transition hover:-translate-y-0.5 hover:border-teal-200 hover:bg-teal-50/70 dark:hover:bg-teal-500/15 hover:shadow-[0_18px_45px_-34px_rgba(13,148,136,0.35)]"
+                  className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 p-4 text-left transition hover:-translate-y-0.5 hover:border-[var(--role-accent-border)] hover:bg-[var(--role-accent-soft)] dark:hover:bg-[var(--role-accent-soft)] hover:shadow-[0_18px_45px_-34px_rgba(77,212,172,0.35)]"
                 >
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {deadline.activity}
@@ -184,7 +184,7 @@ export default function TeacherDashboard() {
                 {visiblePendingRows.map((row) => (
                   <tr
                     key={`${row.title}-${row.student}-${row.submitted}`}
-                    className="cursor-pointer bg-white/70 dark:bg-slate-900/70 transition hover:bg-teal-50/45 dark:hover:bg-teal-500/15"
+                    className="cursor-pointer bg-white/70 dark:bg-slate-900/70 transition hover:bg-[var(--role-accent-soft)] dark:hover:bg-[var(--role-accent-soft)]"
                     onClick={() => navigate(buildPendingTarget(row))}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {

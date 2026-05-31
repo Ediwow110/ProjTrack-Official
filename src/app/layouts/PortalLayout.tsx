@@ -544,8 +544,8 @@ export function PortalLayout({ role }: { role: PortalRole }) {
     >
       <div className="portal-mobile-decorative-glow pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,41,59,0.8),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(15,23,42,0.8),transparent_28%)]" />
       <div className="portal-shell-gradient portal-mobile-decorative-glow pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />
-      <div className="portal-mobile-decorative-glow pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-white/45 blur-3xl dark:bg-blue-900/15" />
-      <div className="portal-mobile-decorative-glow pointer-events-none absolute right-[-5rem] top-10 h-80 w-80 rounded-full bg-white/30 blur-3xl dark:bg-slate-700/20" />
+      <div className="portal-mobile-decorative-glow pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-white/45 blur-3xl dark:bg-[var(--brand-secondary)]/10" />
+      <div className="portal-mobile-decorative-glow pointer-events-none absolute right-[-5rem] top-10 h-80 w-80 rounded-full bg-white/30 blur-3xl dark:bg-[var(--brand-ink)]/20" />
       {/* Desktop sidebar */}
       {!isMobile && (
         <motion.div animate={{ width: collapsed ? 112 : 288 }} transition={springTransition(reducedMotion, { stiffness: 400, damping: 38 })}

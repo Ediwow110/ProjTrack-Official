@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                   onClick={() => navigate(action.to)}
                   className={`w-full rounded-[22px] px-4 py-3 text-left text-sm font-semibold transition ${
                     action.primary
-                      ? "bg-slate-900 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)] hover:bg-slate-950 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                      ? "bg-[var(--brand-secondary)] text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.45)] hover:opacity-90"
                       : "border border-[var(--border-subtle)] bg-[var(--surface-panel-muted)] text-[var(--text-body)] hover:bg-[var(--surface-panel-strong)]"
                   }`}
                 >
