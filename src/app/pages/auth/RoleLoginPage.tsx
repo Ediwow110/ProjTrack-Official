@@ -70,7 +70,7 @@ const adminFeatures: AuthFeature[] = [
 const cfgMap: Record<AppRole, RoleConfig> = {
   student: {
     portalEyebrow: "STUDENT PORTAL",
-    cardKicker: "Student Portal Login",
+    cardKicker: "STUDENT PORTAL LOGIN",
     headlineL1: "Manage. Submit.",
     headlineL2Pre: "Stay Ready. ",
     headlineAccent: "Stay On Track.",
@@ -85,7 +85,7 @@ const cfgMap: Record<AppRole, RoleConfig> = {
   },
   teacher: {
     portalEyebrow: "TEACHER PORTAL",
-    cardKicker: "Teacher Portal Login",
+    cardKicker: "TEACHER PORTAL LOGIN",
     headlineL1: "Manage. Review.",
     headlineL2Pre: "Guide Learning. ",
     headlineAccent: "With Clarity.",
@@ -100,7 +100,7 @@ const cfgMap: Record<AppRole, RoleConfig> = {
   },
   admin: {
     portalEyebrow: "ADMIN PORTAL",
-    cardKicker: "Admin Portal Login",
+    cardKicker: "ADMIN PORTAL LOGIN",
     headlineL1: "Manage. Monitor.",
     headlineL2Pre: "Control Operations. ",
     headlineAccent: "Securely.",
