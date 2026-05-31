@@ -5,8 +5,8 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 export class PasswordService {
   assertStrongPassword(password: string, fieldName = 'Password') {
     const value = String(password ?? '');
-    if (value.length < 12) {
-      throw new BadRequestException(`${fieldName} must be at least 12 characters long.`);
+    if (value.length < 8) {
+      throw new BadRequestException(`${fieldName} must be at least 8 characters long.`);
     }
     if (!/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
       throw new BadRequestException(`${fieldName} must include uppercase, lowercase, number, and special character.`);
