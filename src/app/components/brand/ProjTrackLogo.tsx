@@ -152,7 +152,7 @@ export function ProjTrackLogo({
             )}
           </motion.div>
           {!compact ? (
-            <div className={cn("flex min-w-0 items-center", textClassName)}>
+            <div className={cn("flex min-w-0 flex-col", textClassName)}>
               <span className="font-display font-black tracking-[0.08em] text-[19px] uppercase leading-none select-none">
                 <span className={cn(inverse ? "text-white" : "text-slate-900 dark:text-white")}>PROJ</span>
                 <span className="text-[var(--role-accent)]">TRACK</span>

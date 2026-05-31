@@ -80,40 +80,45 @@
   --motion-slow: 360ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
-  --role-accent: #1d4ed8;
-  --role-accent-strong: #1e3a8a;
+  --brand-primary: #4DD4AC;
+  --brand-secondary: #346069;
+  --brand-ink: #24203B;
+  --brand-neutral: #DDDDDD;
+
+  --role-accent: var(--brand-primary);
+  --role-accent-strong: var(--brand-secondary);
   --role-accent-foreground: #ffffff;
-  --role-accent-soft: rgba(37, 99, 235, 0.12);
-  --role-accent-soft-strong: rgba(37, 99, 235, 0.18);
-  --role-accent-border: rgba(59, 130, 246, 0.22);
-  --role-accent-text: #1e3a8a;
-  --role-accent-text-dark: #dbeafe;
-  --role-button-gradient: linear-gradient(135deg, #2563eb 0%, #08bdf4 100%);
-  --role-logo-glow: rgba(37, 99, 235, 0.34);
-  --role-dot: #08bdf4;
-  --role-indicator: #1e3a8a;
-  --role-indicator-dark: #93c5fd;
+  --role-accent-soft: rgba(77, 212, 172, 0.12);
+  --role-accent-soft-strong: rgba(77, 212, 172, 0.18);
+  --role-accent-border: var(--brand-neutral);
+  --role-accent-text: var(--brand-secondary);
+  --role-accent-text-dark: var(--brand-primary);
+  --role-button-gradient: linear-gradient(135deg, #4DD4AC 0%, #346069 100%);
+  --role-logo-glow: rgba(77, 212, 172, 0.34);
+  --role-dot: var(--brand-primary);
+  --role-indicator: var(--brand-secondary);
+  --role-indicator-dark: var(--brand-primary);
   --role-shell-gradient: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.12) 0%,
-    rgba(224, 242, 254, 0.62) 55%,
-    rgba(129, 140, 248, 0.2) 100%
+    rgba(77, 212, 172, 0.12) 0%,
+    rgba(221, 221, 221, 0.62) 55%,
+    rgba(52, 96, 105, 0.2) 100%
   );
   --role-shell-gradient-dark: linear-gradient(
     135deg,
-    rgba(2, 6, 23, 1) 0%,
-    rgba(30, 58, 138, 0.3) 45%,
-    rgba(15, 23, 42, 1) 100%
+    rgba(36, 32, 59, 1) 0%,
+    rgba(52, 96, 105, 0.3) 45%,
+    rgba(36, 32, 59, 1) 100%
   );
   --role-sidebar-surface: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.96) 0%,
-    rgba(239, 246, 255, 0.95) 100%
+    rgba(221, 221, 221, 0.95) 100%
   );
   --role-sidebar-surface-dark: linear-gradient(
     180deg,
-    rgba(15, 23, 42, 0.96) 0%,
-    rgba(15, 23, 42, 0.92) 100%
+    rgba(36, 32, 59, 0.96) 0%,
+    rgba(36, 32, 59, 0.92) 100%
   );
 }
 
@@ -209,114 +214,42 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-.portal-role-student {
-  --role-accent: #1d4ed8;
-  --role-accent-strong: #1e3a8a;
-  --role-accent-soft: rgba(37, 99, 235, 0.12);
-  --role-accent-soft-strong: rgba(37, 99, 235, 0.18);
-  --role-accent-border: rgba(59, 130, 246, 0.22);
-  --role-accent-text: #1e3a8a;
-  --role-accent-text-dark: #dbeafe;
-  --role-button-gradient: linear-gradient(135deg, #2563eb 0%, #08bdf4 100%);
-  --role-logo-glow: rgba(37, 99, 235, 0.34);
-  --role-dot: #08bdf4;
-  --role-indicator: #1e3a8a;
-  --role-indicator-dark: #93c5fd;
-  --role-shell-gradient: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.12) 0%,
-    rgba(224, 242, 254, 0.62) 55%,
-    rgba(129, 140, 248, 0.2) 100%
-  );
-  --role-shell-gradient-dark: linear-gradient(
-    135deg,
-    rgba(2, 6, 23, 1) 0%,
-    rgba(30, 58, 138, 0.3) 45%,
-    rgba(15, 23, 42, 1) 100%
-  );
-  --role-sidebar-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(239, 246, 255, 0.95) 100%
-  );
-  --role-sidebar-surface-dark: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.96) 0%,
-    rgba(15, 23, 42, 0.92) 100%
-  );
-}
-
-.portal-role-teacher {
-  --role-accent: #8b5cf6;
-  --role-accent-strong: #6d28d9;
-  --role-accent-soft: rgba(139, 92, 246, 0.12);
-  --role-accent-soft-strong: rgba(139, 92, 246, 0.2);
-  --role-accent-border: rgba(139, 92, 246, 0.3);
-  --role-accent-text: #6d28d9;
-  --role-accent-text-dark: #ede9fe;
-  --role-button-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  --role-logo-glow: rgba(139, 92, 246, 0.34);
-  --role-dot: #a78bfa;
-  --role-indicator: #7c3aed;
-  --role-indicator-dark: #c4b5fd;
-  --role-shell-gradient: linear-gradient(
-    135deg,
-    rgba(139, 92, 246, 0.14) 0%,
-    rgba(245, 243, 255, 0.68) 55%,
-    rgba(192, 132, 252, 0.2) 100%
-  );
-  --role-shell-gradient-dark: linear-gradient(
-    135deg,
-    rgba(2, 6, 23, 1) 0%,
-    rgba(109, 40, 217, 0.3) 45%,
-    rgba(15, 23, 42, 1) 100%
-  );
-  --role-sidebar-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(245, 243, 255, 0.95) 100%
-  );
-  --role-sidebar-surface-dark: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.96) 0%,
-    rgba(17, 24, 39, 0.93) 100%
-  );
-}
-
+.portal-role-student,
+.portal-role-teacher,
 .portal-role-admin {
-  --role-accent: #ff7900;
-  --role-accent-strong: #c2410c;
-  --role-accent-soft: rgba(255, 121, 0, 0.12);
-  --role-accent-soft-strong: rgba(255, 121, 0, 0.2);
-  --role-accent-border: rgba(255, 121, 0, 0.3);
-  --role-accent-text: #c2410c;
-  --role-accent-text-dark: #ffedd5;
-  --role-button-gradient: linear-gradient(135deg, #ff7900 0%, #ff9d00 100%);
-  --role-logo-glow: rgba(255, 121, 0, 0.34);
-  --role-dot: #ff9d00;
-  --role-indicator: #ea580c;
-  --role-indicator-dark: #fdba74;
+  --role-accent: var(--brand-primary);
+  --role-accent-strong: var(--brand-secondary);
+  --role-accent-soft: rgba(77, 212, 172, 0.12);
+  --role-accent-soft-strong: rgba(77, 212, 172, 0.18);
+  --role-accent-border: var(--brand-neutral);
+  --role-accent-text: var(--brand-secondary);
+  --role-accent-text-dark: var(--brand-primary);
+  --role-button-gradient: linear-gradient(135deg, #4DD4AC 0%, #346069 100%);
+  --role-logo-glow: rgba(77, 212, 172, 0.34);
+  --role-dot: var(--brand-primary);
+  --role-indicator: var(--brand-secondary);
+  --role-indicator-dark: var(--brand-primary);
   --role-shell-gradient: linear-gradient(
     135deg,
-    rgba(255, 121, 0, 0.14) 0%,
-    rgba(255, 247, 237, 0.68) 55%,
-    rgba(255, 157, 0, 0.2) 100%
+    rgba(77, 212, 172, 0.12) 0%,
+    rgba(221, 221, 221, 0.62) 55%,
+    rgba(52, 96, 105, 0.2) 100%
   );
   --role-shell-gradient-dark: linear-gradient(
     135deg,
-    rgba(2, 6, 23, 1) 0%,
-    rgba(194, 65, 12, 0.32) 45%,
-    rgba(30, 41, 59, 1) 100%
+    rgba(36, 32, 59, 1) 0%,
+    rgba(52, 96, 105, 0.3) 45%,
+    rgba(36, 32, 59, 1) 100%
   );
   --role-sidebar-surface: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.96) 0%,
-    rgba(248, 250, 252, 0.96) 100%
+    rgba(221, 221, 221, 0.95) 100%
   );
   --role-sidebar-surface-dark: linear-gradient(
     180deg,
-    rgba(15, 23, 42, 0.97) 0%,
-    rgba(17, 24, 39, 0.94) 100%
+    rgba(36, 32, 59, 0.96) 0%,
+    rgba(36, 32, 59, 0.92) 100%
   );
 }
 
@@ -414,24 +347,24 @@
 }
 
 .portal-hero {
-  --portal-hero-bg: linear-gradient(135deg, #1e3a8a 0%, #2563eb 56%, #0f766e 100%);
-  --portal-hero-border: rgba(191, 219, 254, 0.55);
+  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 56%, #346069 100%);
+  --portal-hero-border: rgba(77, 212, 172, 0.35);
   --portal-hero-title: #ffffff;
-  --portal-hero-body: rgba(239, 246, 255, 0.86);
-  --portal-hero-muted: rgba(226, 232, 240, 0.72);
+  --portal-hero-body: rgba(221, 221, 221, 0.86);
+  --portal-hero-muted: rgba(221, 221, 221, 0.72);
   --portal-hero-badge-bg: rgba(255, 255, 255, 0.12);
   --portal-hero-badge-border: rgba(255, 255, 255, 0.16);
   --portal-hero-stat-bg: rgba(255, 255, 255, 0.1);
-  --portal-hero-glow: rgba(255, 255, 255, 0.16);
+  --portal-hero-glow: rgba(77, 212, 172, 0.16);
   background: var(--portal-hero-bg);
   border-color: var(--portal-hero-border);
   color: var(--portal-hero-title);
 }
 
 .portal-hero-blue {
-  --portal-hero-bg: linear-gradient(135deg, #1e3a8a 0%, #2563eb 54%, #0284c7 100%);
-  --portal-hero-border: rgba(191, 219, 254, 0.5);
-  --portal-hero-glow: rgba(147, 197, 253, 0.2);
+  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 54%, #346069 100%);
+  --portal-hero-border: rgba(77, 212, 172, 0.35);
+  --portal-hero-glow: rgba(77, 212, 172, 0.2);
 }
 
 .portal-hero-teal {
@@ -447,9 +380,9 @@
 }
 
 .dark .portal-hero-blue {
-  --portal-hero-bg: linear-gradient(135deg, #0f172a 0%, #1e3a8a 58%, #1e293b 100%);
-  --portal-hero-border: rgba(59, 130, 246, 0.24);
-  --portal-hero-glow: rgba(59, 130, 246, 0.16);
+  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 58%, #24203B 100%);
+  --portal-hero-border: rgba(77, 212, 172, 0.24);
+  --portal-hero-glow: rgba(77, 212, 172, 0.16);
 }
 
 .dark .portal-hero-teal {
@@ -587,12 +520,15 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   overflow-x: clip;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0) 36%),
     radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 34%),
     linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
   color: #1e293b;
+  padding: clamp(16px, 3vw, 48px);
 }
 
 .auth-bg-shape,
@@ -637,22 +573,20 @@
   position: relative;
   z-index: 1;
   display: flex;
-  flex: 1;
   flex-direction: column;
-  width: min(100%, 1440px);
+  width: min(100%, 1200px);
   margin-inline: auto;
-  padding: clamp(1rem, 1vw + 0.75rem, 1.75rem) clamp(0.9rem, 1.4vw + 0.7rem, 2rem) clamp(0.75rem, 0.8vw + 0.6rem, 1.5rem);
+  gap: 1.5rem;
 }
 
 .auth-container {
   display: grid;
-  grid-template-columns: minmax(0, 0.4fr) minmax(0, 0.6fr);
+  grid-template-columns: minmax(360px, 480px) minmax(420px, 1fr);
   align-items: stretch;
-  flex: 1;
-  min-height: 0;
+  min-height: clamp(640px, 78svh, 760px);
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: clamp(1.5rem, 2vw, 2rem);
+  border-radius: 28px;
   box-shadow: 0 28px 80px -52px rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(18px);
   overflow: clip;
@@ -667,9 +601,9 @@
   gap: clamp(1.5rem, 2vh, 2.25rem);
   padding: clamp(1.6rem, 1.8vw + 1rem, 2.75rem);
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 34%),
-    linear-gradient(160deg, color-mix(in srgb, var(--role-accent-strong) 88%, #081225) 0%, var(--role-accent) 52%, color-mix(in srgb, var(--role-dot) 55%, var(--role-accent)) 100%);
+    radial-gradient(circle at 20% 30%, rgba(77, 212, 172, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(52, 96, 105, 0.15) 0%, transparent 40%),
+    linear-gradient(160deg, #24203B 0%, #2d4f5a 48%, #346069 100%);
   color: #fff;
 }
 
@@ -710,7 +644,7 @@
 }
 
 .auth-hero-brand-title-main {
-  font-size: clamp(2.2rem, 3.8vw, 3.2rem);
+  font-size: clamp(1.75rem, 2.2vw, 2.75rem);
   font-weight: 850;
   line-height: 1;
   letter-spacing: 0.08em;
@@ -758,16 +692,26 @@
 }
 
 .auth-hero-brand-title-sub {
-  font-size: clamp(0.5rem, 0.82vw, 0.68rem);
+  font-size: clamp(0.55rem, 0.62vw, 0.72rem);
   font-weight: 700;
   color: rgba(255, 255, 255, 0.85);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   margin-top: 0.55rem;
   text-transform: uppercase;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
   line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .auth-hero-brand-title-sub {
+    flex-wrap: wrap;
+    white-space: normal;
+    text-wrap: balance;
+  }
 }
 
 .auth-hero-sub-word {
@@ -789,7 +733,7 @@
   width: 0%;
   background: linear-gradient(90deg, #38bdf8 0%, #f59e0b 100%);
   border-radius: 99px;
-  margin-top: 0.45rem;
+  margin-top: 0.55rem;
   animation: authHeroLineExpand 1s cubic-bezier(0.76, 0, 0.24, 1) forwards;
   animation-delay: 1.3s;
   box-shadow: 0 1px 3px rgba(56, 189, 248, 0.3);
@@ -910,15 +854,16 @@
 
 .auth-login-card {
   min-width: 0;
-  display: grid;
-  place-items: center;
-  padding: clamp(1.4rem, 1.7vw + 1rem, 2.6rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(32px, 5vw, 64px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
 }
 
 .auth-card-body {
-  width: min(100%, 520px);
+  width: min(100%, 460px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1161,7 +1106,8 @@
   }
 
   .auth-container {
-    grid-template-columns: minmax(0, 0.38fr) minmax(0, 0.62fr);
+    grid-template-columns: minmax(360px, 480px) minmax(420px, 1fr);
+    min-height: clamp(560px, 75svh, 680px);
   }
 
   .auth-login-hero {
@@ -1227,6 +1173,7 @@
 
   .auth-container {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .auth-login-card {
