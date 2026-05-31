@@ -1,0 +1,507 @@
+{
+  "generatedAt": "2026-05-29T08:53:39.398Z",
+  "baseUrl": "https://www.projtrack.codes",
+  "note": "Screenshots captured with credentialed authentication where available. If routes redirect to login, check SMOKE_* credentials.",
+  "screenshots": [
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-dashboard-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/subjects",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-subjects-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submissions",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submissions-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submit",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submit-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-dashboard-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/submissions",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-submissions-360x800.png",
+      "authenticated": false
+    },
+    {
+      "role": "admin",
+      "route": "/admin/dashboard",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-dashboard-360x800.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-users-360x800.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/students",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-students-360x800.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-settings-360x800.png",
+      "authenticated": true
+    },
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-dashboard-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/subjects",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-subjects-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submissions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submissions-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submit",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submit-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-dashboard-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/submissions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-submissions-390x844.png",
+      "authenticated": false
+    },
+    {
+      "role": "admin",
+      "route": "/admin/dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-dashboard-390x844.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-users-390x844.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/students",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-students-390x844.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-settings-390x844.png",
+      "authenticated": true
+    },
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-dashboard-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/subjects",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-subjects-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submissions",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submissions-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submit",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submit-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-dashboard-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/submissions",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-submissions-414x896.png",
+      "authenticated": false
+    },
+    {
+      "role": "admin",
+      "route": "/admin/dashboard",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-dashboard-414x896.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-users-414x896.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/students",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-students-414x896.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "viewport": {
+        "width": 414,
+        "height": 896
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-settings-414x896.png",
+      "authenticated": true
+    },
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-dashboard-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/subjects",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-subjects-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submissions",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submissions-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submit",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submit-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-dashboard-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/submissions",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-submissions-768x1024.png",
+      "authenticated": false
+    },
+    {
+      "role": "admin",
+      "route": "/admin/dashboard",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-dashboard-768x1024.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-users-768x1024.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/students",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-students-768x1024.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-settings-768x1024.png",
+      "authenticated": true
+    },
+    {
+      "role": "student",
+      "route": "/student/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-dashboard-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/subjects",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-subjects-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submissions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submissions-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "student",
+      "route": "/student/submit",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/student-student-submit-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-dashboard-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teacher/submissions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/teacher-teacher-submissions-1440x900.png",
+      "authenticated": false
+    },
+    {
+      "role": "admin",
+      "route": "/admin/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-dashboard-1440x900.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-users-1440x900.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/students",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-students-1440x900.png",
+      "authenticated": true
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "path": "docs/frontend-mobile-readiness/evidence/baseline/admin-admin-settings-1440x900.png",
+      "authenticated": true
+    }
+  ]
+}

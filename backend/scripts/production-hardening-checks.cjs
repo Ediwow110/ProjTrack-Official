@@ -398,8 +398,8 @@ assert(roleTheme.includes('admin') && roleTheme.includes('#4DD4AC'), 'Admin role
 assert(roleTheme.includes('student') && roleTheme.includes('#4DD4AC'), 'Student role theme must use brand mint (#4DD4AC).');
 
 const authLayout = readRepo('src/app/components/auth/AuthLayout.tsx');
-assert(authLayout.includes('<ProjTrackLogo') && authLayout.includes('role={role}'), 'Role login pages must use the shared role-colored ProjTrack logo.');
-assert(authLayout.includes('auth-starry-login'), 'Role login pages must keep the approved dark starry login shell.');
+assert(authLayout.includes('auth-hero-brand-lockup') && authLayout.includes('role={role}'), 'Role login pages must include the brand logo lockup with role-based coloring.');
+assert(authLayout.includes('auth-login-page'), 'Role login pages must keep the approved light login shell.');
 assert(!authLayout.includes('auth-role-tabs'), 'Separated role login pages must not render role tabs.');
 assert(!authLayout.includes('NavLink'), 'Separated role login pages must not include a role switcher.');
 
