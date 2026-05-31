@@ -289,6 +289,7 @@
 
 .portal-avatar-accent {
   background: var(--role-accent-strong);
+  background-color: color-mix(in srgb, var(--role-accent-strong) 75%, black);
   color: var(--role-accent-foreground);
 }
 
