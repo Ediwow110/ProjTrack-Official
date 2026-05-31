@@ -17,7 +17,7 @@ Object.assign(process.env, {
   JWT_KEY_ID: process.env.JWT_KEY_ID || 'local-dev',
   ACCOUNT_ACTION_TOKEN_ENC_KEY: process.env.ACCOUNT_ACTION_TOKEN_ENC_KEY || 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
   MAIL_PROVIDER: process.env.MAIL_PROVIDER || 'stub',
-  MAIL_WORKER_ENABLED: process.env.MAIL_WORKER_ENABLED || 'true',
+  MAIL_WORKER_ENABLED: process.env.MAIL_WORKER_ENABLED || 'false',
   MAIL_WORKER_POLL_MS: process.env.MAIL_WORKER_POLL_MS || '60000',
   TESTMAIL_ENABLED: process.env.TESTMAIL_ENABLED || 'false',
   MAIL_FROM_NAME: process.env.MAIL_FROM_NAME || 'ProjTrack',

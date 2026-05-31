@@ -17,7 +17,7 @@ import {
 import { detectLocalBackendEnvSources, withLocalBackendEnv } from "./local-backend-env.mjs";
 const args = new Set(process.argv.slice(2));
 const prepareOnly = args.has("--prepare-only");
-const localApiEnv = withLocalBackendEnv({ MAIL_WORKER_ENABLED: "true" });
+const localApiEnv = withLocalBackendEnv({ MAIL_WORKER_ENABLED: "false" });
 const envSources = detectLocalBackendEnvSources();
 
 const managedChildren = [];
