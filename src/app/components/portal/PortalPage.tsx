@@ -257,17 +257,17 @@ export function PortalMetricCard({
   > = {
     blue: {
       wrap:
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(221,221,221,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(36,32,59,0.95)_0%,rgba(52,96,105,0.92)_100%)]",
-      iconWrap: "bg-[#4DD4AC1a] dark:bg-[#4DD4AC1a]",
-      iconColor: "text-[#346069] dark:text-[#4DD4AC]",
-      hintColor: "text-[#346069b3] dark:text-[#4DD4ACb3]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(239,246,255,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]",
+      iconWrap: "bg-blue-100 dark:bg-blue-500/15",
+      iconColor: "text-blue-700 dark:text-blue-300 dark:text-blue-200",
+      hintColor: "text-blue-700/70 dark:text-blue-200/70",
     },
     teal: {
       wrap:
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(221,221,221,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(36,32,59,0.95)_0%,rgba(52,96,105,0.92)_100%)]",
-      iconWrap: "bg-[#4DD4AC1a] dark:bg-[#4DD4AC1a]",
-      iconColor: "text-[#346069] dark:text-[#4DD4AC]",
-      hintColor: "text-[#346069b3] dark:text-[#4DD4ACb3]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(240,253,250,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(19,78,74,0.28)_100%)]",
+      iconWrap: "bg-teal-100 dark:bg-teal-500/15",
+      iconColor: "text-teal-700 dark:text-teal-300 dark:text-teal-200",
+      hintColor: "text-teal-700/70 dark:text-teal-200/70",
     },
     slate: {
       wrap:

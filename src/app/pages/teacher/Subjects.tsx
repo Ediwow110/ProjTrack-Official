@@ -106,17 +106,17 @@ export default function TeacherSubjects() {
               role="link"
               tabIndex={0}
               aria-label={`Open subject ${subject.code}`}
-              className="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/88 dark:bg-slate-900/85 p-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.42)] transition duration-200 hover:-translate-y-1 hover:border-[var(--role-accent-border)] hover:shadow-[0_30px_75px_-40px_rgba(77,212,172,0.4)]"
+              className="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white/88 dark:bg-slate-900/85 p-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.42)] transition duration-200 hover:-translate-y-1 hover:border-teal-200 hover:shadow-[0_30px_75px_-40px_rgba(13,148,136,0.4)]"
             >
-              <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(77,212,172,0.18),transparent_65%)]" />
+              <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_65%)]" />
               <div className="relative">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-[var(--role-accent-soft)] text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] shadow-inner shadow-white">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] bg-teal-100 text-teal-700 dark:text-teal-300 shadow-inner shadow-white">
                       <BookOpen size={22} strokeWidth={1.8} />
                     </div>
                     <div className="min-w-0">
-                      <span className="rounded-full bg-[var(--role-accent-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)]">
+                      <span className="rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
                         {subject.code}
                       </span>
                       <p className="mt-3 font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100">
@@ -125,7 +125,7 @@ export default function TeacherSubjects() {
                       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subject.section}</p>
                     </div>
                   </div>
-                  <div className="mt-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2 text-slate-400 dark:text-slate-300 transition group-hover:bg-[var(--role-accent-soft)] group-hover:text-[var(--role-accent-text)]">
+                  <div className="mt-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2 text-slate-400 dark:text-slate-300 transition group-hover:bg-teal-100 group-hover:text-teal-700">
                     <ChevronRight size={16} />
                   </div>
                 </div>

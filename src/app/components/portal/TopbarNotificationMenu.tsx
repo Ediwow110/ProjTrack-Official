@@ -91,33 +91,33 @@ const accentClassMap: Record<
 > = {
   student: {
     activeTrigger:
-      "border-[#4DD4AC4d] bg-[#4DD4AC1a] text-[#346069] dark:border-[#4DD4AC4d] dark:bg-[#4DD4AC1a] dark:text-[#4DD4AC]",
-    subtleText: "text-[#346069] dark:text-[#4DD4AC]",
-    unreadDot: "bg-[#4DD4AC] dark:bg-[#4DD4AC]",
+      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-100",
+    subtleText: "text-blue-700 dark:text-blue-300 dark:text-blue-200",
+    unreadDot: "bg-blue-600 dark:bg-blue-300",
     actionButton:
-      "bg-[#346069] text-white hover:bg-[#24203B] dark:bg-[#4DD4AC] dark:text-[#24203B] dark:hover:opacity-90",
+      "bg-blue-700 text-white hover:bg-blue-800 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400",
     markReadButton:
-      "text-[#346069] dark:text-[#4DD4AC] hover:opacity-80",
+      "text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:text-blue-200 dark:hover:text-blue-100",
   },
   teacher: {
     activeTrigger:
-      "border-[#4DD4AC4d] bg-[#4DD4AC1a] text-[#346069] dark:border-[#4DD4AC4d] dark:bg-[#4DD4AC1a] dark:text-[#4DD4AC]",
-    subtleText: "text-[#346069] dark:text-[#4DD4AC]",
-    unreadDot: "bg-[#4DD4AC] dark:bg-[#4DD4AC]",
+      "border-teal-200 bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 dark:border-teal-400/30 dark:bg-teal-500/15 dark:text-teal-100",
+    subtleText: "text-teal-700 dark:text-teal-300 dark:text-teal-200",
+    unreadDot: "bg-teal-600 dark:bg-teal-300",
     actionButton:
-      "bg-[#346069] text-white hover:bg-[#24203B] dark:bg-[#4DD4AC] dark:text-[#24203B] dark:hover:opacity-90",
+      "bg-teal-700 text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400",
     markReadButton:
-      "text-[#346069] dark:text-[#4DD4AC] hover:opacity-80",
+      "text-teal-700 dark:text-teal-300 hover:text-teal-800 dark:text-teal-200 dark:hover:text-teal-100",
   },
   admin: {
     activeTrigger:
-      "border-[#4DD4AC4d] bg-[#4DD4AC1a] text-[#346069] dark:border-[#4DD4AC4d] dark:bg-[#4DD4AC1a] dark:text-[#4DD4AC]",
-    subtleText: "text-[#346069] dark:text-[#4DD4AC]",
-    unreadDot: "bg-[#4DD4AC] dark:bg-[#4DD4AC]",
+      "border-slate-300 bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 dark:border-slate-500/40 dark:bg-slate-700/40 dark:text-slate-100",
+    subtleText: "text-slate-700 dark:text-slate-200",
+    unreadDot: "bg-slate-700 dark:bg-slate-300",
     actionButton:
-      "bg-[#346069] text-white hover:bg-[#24203B] dark:bg-[#4DD4AC] dark:text-[#24203B] dark:hover:opacity-90",
+      "bg-slate-900 text-white hover:bg-slate-950 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
     markReadButton:
-      "text-[#346069] dark:text-[#4DD4AC] hover:opacity-80",
+      "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white",
   },
 };
 

@@ -100,7 +100,7 @@ export default function StudentDashboard() {
           <>
             <button
               onClick={() => navigate("/student/submit?back=%2Fstudent%2Fdashboard")}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-[var(--brand-secondary)] shadow-lg shadow-slate-950/10 transition hover:bg-[#4DD4AC1a]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
             >
               <Upload size={16} />
               Submit Project
@@ -129,7 +129,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/calendar")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] hover:opacity-80"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 View calendar
                 <ChevronRight size={14} />
@@ -208,7 +208,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/submissions")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] hover:opacity-80"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 View all
                 <ChevronRight size={14} />
@@ -253,7 +253,7 @@ export default function StudentDashboard() {
                   ) : visibleRecentSubmissions.map((row) => (
                     <tr
                       key={row.id}
-                      className="cursor-pointer bg-white/70 transition hover:bg-[var(--role-accent-soft)] dark:bg-slate-900/38 dark:hover:bg-[var(--role-accent-soft)]"
+                      className="cursor-pointer bg-white/70 transition hover:bg-blue-50/45 dark:bg-slate-900/38 dark:hover:bg-blue-500/12"
                       onClick={() =>
                         navigate(
                           `/student/submissions/${encodeURIComponent(String(row.id))}?back=${encodeURIComponent("/student/dashboard")}`,
@@ -355,8 +355,8 @@ export default function StudentDashboard() {
                     onClick={() => navigate(action.to)}
                     className={`flex w-full items-start gap-3 rounded-[22px] border px-4 py-4 text-left transition ${
                       action.primary
-                        ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary)] text-white shadow-[0_22px_55px_-34px_rgba(52,96,105,0.45)] hover:opacity-90"
-                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 text-slate-800 dark:text-slate-100 hover:border-[var(--role-accent-border)] hover:bg-[var(--role-accent-soft)] dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-[var(--role-accent-border)] dark:hover:bg-[var(--role-accent-soft)]"
+                        ? "border-blue-700 bg-blue-700 text-white shadow-[0_22px_55px_-34px_rgba(29,78,216,0.55)] hover:bg-blue-800"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 text-slate-800 dark:text-slate-100 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/15"
                     }`}
                   >
                     <div
@@ -392,7 +392,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/notifications")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] hover:opacity-80"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
               >
                 Open inbox
                 <ChevronRight size={14} />
@@ -421,7 +421,7 @@ export default function StudentDashboard() {
                   className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/80 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--role-accent-soft)] text-[var(--role-accent-text)] dark:text-[var(--role-accent-text-dark)] dark:bg-[var(--role-accent-soft)]">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200">
                       <Bell size={16} />
                     </div>
                     <div>

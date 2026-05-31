@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800 dark:text-slate-100" placeholder="Confirm your new password" />
             </div>
           </label>
-          <button disabled={disabled || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-[#346069] text-white text-sm font-semibold hover:bg-[#24203B] disabled:opacity-60 transition-colors">
+          <button disabled={disabled || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
             {submitting ? "Saving..." : isSetupMode ? "Create password" : "Reset password"}
           </button>
         </form>
