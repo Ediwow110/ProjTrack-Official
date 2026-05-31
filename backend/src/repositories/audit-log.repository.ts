@@ -39,8 +39,9 @@ export class AuditLogRepository {
     return Math.max(0, Math.floor(Number(skip)));
   }
 
-  async create(input: AuditRecordCreateInput) {
-    return this.prisma.auditLog.create({
+  async create(input: AuditRecordCreateInput, tx?: any) {
+    const client = tx ?? this.prisma;
+    return client.auditLog.create({
       data: {
         actorUserId: input.actorUserId,
         actorRole: input.actorRole,

@@ -406,7 +406,7 @@ export default function StudentSubjectDetails() {
         actions={
           <button
             onClick={() => handleTabChange("Activities")}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-brand-ink shadow-lg shadow-slate-950/10 transition hover:bg-brand-primary/10"
           >
             <Clock size={16} />
             Open Activities
@@ -422,7 +422,7 @@ export default function StudentSubjectDetails() {
               onClick={() => handleTabChange(entry)}
               className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                 tab === entry
-                  ? "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)]"
+                  ? "bg-brand-secondary text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.45)]"
                   : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
@@ -532,7 +532,7 @@ export default function StudentSubjectDetails() {
                           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
                             activity.type === "Group"
                               ? "bg-violet-100 text-violet-700 dark:text-violet-300 dark:bg-violet-500/15 dark:text-violet-200"
-                              : "bg-blue-100 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200"
+                              : "bg-brand-primary/15 text-brand-secondary dark:text-brand-primary dark:bg-brand-primary/15"
                           }`}
                         >
                           {activity.type === "Group" ? (
@@ -611,7 +611,7 @@ export default function StudentSubjectDetails() {
                         className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                           activity.disabled
                             ? "cursor-not-allowed bg-slate-200 text-slate-400 dark:text-slate-300 dark:bg-slate-700 dark:text-slate-400"
-                            : "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] hover:bg-blue-800"
+                            : "bg-brand-secondary text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.45)] hover:bg-brand-ink"
                         }`}
                       >
                         {activity.label}
@@ -652,7 +652,7 @@ export default function StudentSubjectDetails() {
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[24px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 p-5 dark:border-slate-700/60 dark:bg-slate-800/75">
                     <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                      <Plus size={16} className="text-blue-700 dark:text-blue-300" />
+                      <Plus size={16} className="text-brand-secondary dark:text-brand-primary" />
                       <p className="font-display text-lg font-semibold tracking-[-0.03em]">
                         Create a Group
                       </p>
@@ -664,12 +664,12 @@ export default function StudentSubjectDetails() {
                       value={groupName}
                       onChange={(event) => setGroupName(event.target.value)}
                       placeholder="Enter your group name"
-                      className="mt-4 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-300 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-blue-400/40"
+                      className="mt-4 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-brand-primary/40 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:border-blue-400/40"
                     />
                     <button
                       onClick={handleCreateGroup}
                       disabled={groupActionState.saving || !groupName.trim()}
-                      className="mt-4 w-full rounded-2xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-4 w-full rounded-2xl bg-brand-secondary px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.45)] transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {groupActionState.saving ? "Saving..." : "Create Group"}
                     </button>

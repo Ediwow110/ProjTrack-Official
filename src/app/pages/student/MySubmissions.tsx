@@ -158,7 +158,7 @@ export default function StudentMySubmissions() {
                 onClick={() => setStatusFilter(status)}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition ${
                   statusFilter === status
-                    ? "bg-blue-700 text-white shadow-[0_16px_35px_-24px_rgba(29,78,216,0.55)]"
+                    ? "bg-brand-secondary text-white shadow-[0_16px_35px_-24px_rgba(52,96,105,0.45)]"
                     : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                 }`}
               >
@@ -200,7 +200,7 @@ export default function StudentMySubmissions() {
                   key={submission.id}
                   className={`overflow-hidden rounded-[28px] border transition ${
                     isExpanded
-                      ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/40 shadow-[0_24px_60px_-38px_rgba(29,78,216,0.4)]"
+                      ? "border-brand-primary/30 dark:border-brand-primary/15 bg-brand-primary/10 shadow-[0_24px_60px_-38px_rgba(52,96,105,0.35)]"
                       : "border-slate-200 dark:border-slate-700 bg-slate-50/75 hover:border-slate-300"
                   }`}
                 >
@@ -282,7 +282,7 @@ export default function StudentMySubmissions() {
                                         href={href}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-blue-700 dark:text-blue-300 hover:underline"
+                                        className="text-brand-secondary dark:text-brand-primary hover:underline"
                                       >
                                         {label}
                                       </a>
@@ -306,7 +306,7 @@ export default function StudentMySubmissions() {
                                     href={link}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-blue-700 dark:text-blue-300 hover:underline"
+                                    className="text-brand-secondary dark:text-brand-primary hover:underline"
                                   >
                                     {link}
                                   </a>
@@ -318,8 +318,8 @@ export default function StudentMySubmissions() {
 
                         <div className="space-y-4">
                           {submission.type === "Group" ? (
-                            <div className="rounded-[24px] border border-teal-200 bg-teal-50/75 p-4">
-                              <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300">
+                            <div className="rounded-[24px] border border-brand-primary/20 bg-brand-primary/5 p-4">
+                              <div className="flex items-center gap-2 text-brand-secondary dark:text-brand-primary">
                                 <Users size={15} />
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">
                                   Group Details
@@ -369,7 +369,7 @@ export default function StudentMySubmissions() {
                                 `/student/submissions/${encodeURIComponent(String(submission.id))}?back=${encodeURIComponent(detailBack)}`,
                               );
                             }}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] transition hover:bg-blue-800"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-brand-secondary px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.55)] transition hover:bg-brand-ink"
                           >
                             <ExternalLink size={15} />
                             Open full submission view

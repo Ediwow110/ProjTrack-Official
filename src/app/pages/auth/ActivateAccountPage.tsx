@@ -89,7 +89,7 @@ export default function ActivateAccountPage() {
         </div>
         {(!ref || !token) && <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Missing activation reference or token. Open the full activation link from your email.</div>}
         {error && <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">{error}</div>}
-        {validating && <div className="rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">Checking your activation link…</div>}
+        {validating && <div className="rounded-2xl border border-brand-primary/30 dark:border-brand-primary/20 bg-brand-primary/10 dark:bg-brand-primary/15 px-4 py-3 text-sm text-brand-secondary dark:text-brand-primary">Checking your activation link…</div>}
         {message && <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/15 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-2"><CheckCircle2 size={15} /> {message}</div>}
         {!error ? (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,7 +107,7 @@ export default function ActivateAccountPage() {
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800 dark:text-slate-100" placeholder="Confirm your new password" />
             </div>
           </label>
-          <button disabled={disabled || submitting || validating || !linkReady} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
+          <button disabled={disabled || submitting || validating || !linkReady} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-brand-secondary text-white text-sm font-semibold hover:bg-brand-ink disabled:opacity-60">
             {submitting ? "Activating..." : "Activate account"}
           </button>
         </form>

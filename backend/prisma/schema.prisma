@@ -124,11 +124,19 @@ model TeacherProfile {
 }
 
 model Department {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  deletedById String?
+  purgeAfter  DateTime?
+  restoredAt  DateTime?
+  restoredById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([deletedAt])
+  @@index([purgeAfter])
 }
 
 model Section {
@@ -141,6 +149,11 @@ model Section {
   yearLevelName       String?
   adviserName         String?
   description         String?
+  deletedAt           DateTime?
+  deletedById         String?
+  purgeAfter          DateTime?
+  restoredAt          DateTime?
+  restoredById        String?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   academicYear        AcademicYear?      @relation(fields: [academicYearId], references: [id])
@@ -152,6 +165,8 @@ model Section {
 
   @@unique([academicYearId, name])
   @@index([academicYearId, course, yearLevel])
+  @@index([deletedAt])
+  @@index([purgeAfter])
 }
 
 model Course {
@@ -210,6 +225,11 @@ model Subject {
   groupEnabled        Boolean          @default(false)
   minGroupSize        Int              @default(1)
   maxGroupSize        Int              @default(1)
+  deletedAt           DateTime?
+  deletedById         String?
+  purgeAfter          DateTime?
+  restoredAt          DateTime?
+  restoredById        String?
   teacher             TeacherProfile?  @relation(fields: [teacherId], references: [id])
   tasks               SubmissionTask[]
   enrollments         Enrollment[]
@@ -217,6 +237,9 @@ model Subject {
   submissions         Submission[]
   groupMembers        GroupMember[]
   subjectSections     SubjectSection[]
+
+  @@index([deletedAt])
+  @@index([purgeAfter])
 }
 
 model SubjectSection {
@@ -323,6 +346,13 @@ model Submission {
   reviewer      User?             @relation("submissionReviewer", fields: [reviewerId], references: [id])
   files         SubmissionFile[]
   events        SubmissionEvent[]
+
+  @@index([studentId, status])
+  @@index([taskId, studentId])
+  @@index([taskId, groupId])
+  @@index([subjectId, status])
+  @@index([reviewerId, status])
+  @@index([subjectId, studentId])
 }
 
 model SubmissionEvent {
@@ -518,13 +548,21 @@ model AuthRateLimit {
 }
 
 model Announcement {
-  id        String   @id @default(cuid())
-  title     String
-  body      String
-  audience  String
-  status    String
-  publishAt DateTime
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  title        String
+  body         String
+  audience     String
+  status       String
+  publishAt    DateTime
+  deletedAt    DateTime?
+  deletedById  String?
+  purgeAfter   DateTime?
+  restoredAt   DateTime?
+  restoredById String?
+  createdAt    DateTime  @default(now())
+
+  @@index([deletedAt])
+  @@index([purgeAfter])
 }
 
 model Request {

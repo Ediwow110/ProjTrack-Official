@@ -171,79 +171,91 @@ export class SubmissionRepository {
     externalLinks?: string[];
     files?: { uploadId?: string; name: string; sizeKb: number; relativePath?: string }[];
     status?: string;
-  }) {
-    const task = await this.prisma.submissionTask.findUnique({ where: { id: body.activityId } });
+  }, tx?: any) {
+    const client = tx ?? this.prisma;
+    const task = await client.submissionTask.findUnique({ where: { id: body.activityId } });
     if (!task) return null;
 
     const existing = await this.findExistingSubmission(body.activityId, body.userId, body.groupId);
+
     if (existing) {
-      return this.prisma.$transaction(async (tx) => {
-        await tx.submissionFile.deleteMany({ where: { submissionId: existing.id } });
-        const record = await tx.submission.update({
-          where: { id: existing.id },
-          data: {
-            status: body.status || 'SUBMITTED',
-            submittedAt: new Date(),
-            submittedById: body.userId,
-            title: body.title || task.title,
-            feedback: 'Submission received.',
-            description: body.description,
-            notes: body.notes,
-            externalLinks: body.externalLinks || [],
-            files: {
-              create: (body.files || []).map((file) => ({
-                fileName: file.name,
-                fileSize: file.sizeKb,
-                relativePath: file.relativePath,
-              })),
-            },
-          },
-          include: {
-            task: true,
-            files: true,
-            student: { select: SAFE_USER_SELECT },
-            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
-          },
-        });
-        await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
-        return record;
-      });
+      if (tx) {
+        return this.doUpdate(tx, existing, body, task);
+      }
+      return this.prisma.$transaction(async (innerTx) => this.doUpdate(innerTx, existing, body, task));
     }
 
+    if (tx) {
+      return this.doCreate(tx, body, task);
+    }
+    return this.prisma.$transaction(async (innerTx) => this.doCreate(innerTx, body, task));
+  }
+
+  private async doUpdate(tx: any, existing: any, body: any, task: any) {
+    await tx.submissionFile.deleteMany({ where: { submissionId: existing.id } });
+    const record = await tx.submission.update({
+      where: { id: existing.id },
+      data: {
+        status: body.status || 'SUBMITTED',
+        submittedAt: new Date(),
+        submittedById: body.userId,
+        title: body.title || task.title,
+        feedback: 'Submission received.',
+        description: body.description,
+        notes: body.notes,
+        externalLinks: body.externalLinks || [],
+        files: {
+          create: (body.files || []).map((file: any) => ({
+            fileName: file.name,
+            fileSize: file.sizeKb,
+            relativePath: file.relativePath,
+          })),
+        },
+      },
+      include: {
+        task: true,
+        files: true,
+        student: { select: SAFE_USER_SELECT },
+        group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+      },
+    });
+    await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
+    return record;
+  }
+
+  private async doCreate(tx: any, body: any, task: any) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const record = await tx.submission.create({
-          data: {
-            taskId: body.activityId,
-            subjectId: task.subjectId,
-            studentId: body.groupId ? null : body.userId,
-            groupId: body.groupId,
-            submittedById: body.userId,
-            title: body.title || task.title,
-            status: body.status || 'SUBMITTED',
-            submittedAt: new Date(),
-            feedback: 'Submission received.',
-            description: body.description,
-            notes: body.notes,
-            externalLinks: body.externalLinks || [],
-            files: {
-              create: (body.files || []).map((file) => ({
-                fileName: file.name,
-                fileSize: file.sizeKb,
-                relativePath: file.relativePath,
-              })),
-            },
+      const record = await tx.submission.create({
+        data: {
+          taskId: body.activityId,
+          subjectId: task.subjectId,
+          studentId: body.groupId ? null : body.userId,
+          groupId: body.groupId,
+          submittedById: body.userId,
+          title: body.title || task.title,
+          status: body.status || 'SUBMITTED',
+          submittedAt: new Date(),
+          feedback: 'Submission received.',
+          description: body.description,
+          notes: body.notes,
+          externalLinks: body.externalLinks || [],
+          files: {
+            create: (body.files || []).map((file: any) => ({
+              fileName: file.name,
+              fileSize: file.sizeKb,
+              relativePath: file.relativePath,
+            })),
           },
-          include: {
-            task: true,
-            files: true,
-            student: { select: SAFE_USER_SELECT },
-            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
-          },
-        });
-        await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
-        return record;
+        },
+        include: {
+          task: true,
+          files: true,
+          student: { select: SAFE_USER_SELECT },
+          group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+        },
       });
+      await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
+      return record;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw new ConflictException(
@@ -287,8 +299,9 @@ export class SubmissionRepository {
     }
   }
 
-  async reviewSubmission(id: string, body: { status?: string; grade?: number; feedback?: string }) {
-    return this.prisma.submission.update({
+  async reviewSubmission(id: string, body: { status?: string; grade?: number; feedback?: string }, tx?: any) {
+    const client = tx ?? this.prisma;
+    return client.submission.update({
       where: { id },
       data: {
         status: body.status,

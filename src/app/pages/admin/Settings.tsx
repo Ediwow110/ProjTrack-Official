@@ -304,7 +304,7 @@ export default function AdminSettings() {
             description="Keep account access emails available, then choose how classroom activity updates reach users."
             className={busy ? "opacity-95" : undefined}
           >
-            <div className="rounded-[var(--radius-card)] border border-blue-200/70 bg-blue-50/85 px-4 py-4 text-xs leading-6 text-blue-800 dark:border-blue-400/25 dark:bg-blue-500/12 dark:text-blue-100">
+            <div className="rounded-[var(--radius-card)] border border-brand-primary/30 bg-brand-primary/10 px-4 py-4 text-xs leading-6 text-brand-secondary dark:border-brand-primary/20 dark:bg-brand-primary/15 dark:text-brand-primary">
               Invitations, account activation, and password resets stay email-based. Classroom activity can use email, in-app notifications, or both.
             </div>
 

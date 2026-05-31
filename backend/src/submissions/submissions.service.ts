@@ -207,47 +207,55 @@ export class SubmissionsService {
     }
 
     const previousStatus = existingSubmission?.status ?? null;
-    const record: any = await this.submissionRepository.createOrUpdateSubmission({
-      ...body,
-      files,
-      userId,
-      status: validation.status,
-    });
-    if (!record) throw new NotFoundException('Activity not found.');
-    const subject: any = await this.subjectRepository.findSubjectById(activity.subjectId);
-    const actor: any = await this.userRepository.findById(userId);
+    const record: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.submissionRepository.createOrUpdateSubmission({
+        ...body,
+        files,
+        userId,
+        status: validation.status,
+      }, tx);
+      if (!res) throw new NotFoundException('Activity not found.');
 
-    await this.auditLogs.record({
-      actorUserId: userId,
-      actorRole: 'STUDENT',
-      action: 'SUBMISSION_CREATED',
-      module: 'Submissions',
-      target: record.title,
-      entityId: record.id,
-      result: 'Success',
-    });
-
-    await this.recordSubmissionEvent({
-      submissionId: record.id,
-      actorUserId: userId,
-      action: eventActionForSubmission(previousStatus, record.status),
-      fromStatus: previousStatus,
-      toStatus: record.status,
-      details: {
-        activityId: body.activityId,
-        fileCount: body.files?.length || 0,
-        late: validation.status === 'LATE',
-      },
-    });
-    for (const file of record.files || []) {
-      await this.recordSubmissionEvent({
-        submissionId: record.id,
+      await this.auditLogs.record({
         actorUserId: userId,
-        action: 'FILE_ATTACHED',
-        toStatus: record.status,
-        details: { fileId: file.id, fileName: file.fileName },
-      });
-    }
+        actorRole: 'STUDENT',
+        action: 'SUBMISSION_CREATED',
+        module: 'Submissions',
+        target: res.title,
+        entityId: res.id,
+        result: 'Success',
+      }, tx);
+
+      await this.recordSubmissionEvent({
+        submissionId: res.id,
+        actorUserId: userId,
+        action: eventActionForSubmission(previousStatus, res.status),
+        fromStatus: previousStatus,
+        toStatus: res.status,
+        details: {
+          activityId: body.activityId,
+          fileCount: body.files?.length || 0,
+          late: validation.status === 'LATE',
+        },
+      }, tx);
+
+      for (const file of res.files || []) {
+        await this.recordSubmissionEvent({
+          submissionId: res.id,
+          actorUserId: userId,
+          action: 'FILE_ATTACHED',
+          toStatus: res.status,
+          details: { fileId: file.id, fileName: file.fileName },
+        }, tx);
+      }
+      return res;
+    });
+
+    // Look up subject and actor for notification (outside transaction)
+    const subject: any = activity?.subjectId
+      ? await this.subjectRepository.findSubjectById(activity.subjectId).catch(() => null)
+      : null;
+    const actor: any = await this.userRepository.findById(userId).catch(() => null);
 
     const teacherUserId = subject?.teacher?.user?.id;
     if (teacherUserId) {
@@ -307,29 +315,33 @@ export class SubmissionsService {
       throw new BadRequestException('A numeric grade is required before grading a submission.');
     }
 
-    const record: any = await this.submissionRepository.reviewSubmission(id, { ...body, status: nextStatus });
-    if (!record) throw new NotFoundException('Submission not found.');
+    const record: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.submissionRepository.reviewSubmission(id, { ...body, status: nextStatus }, tx);
+      if (!res) throw new NotFoundException('Submission not found.');
 
-    await this.auditLogs.record({
-      actorUserId: body.actorUserId,
-      actorRole: 'TEACHER',
-      action: 'SUBMISSION_REVIEWED',
-      module: 'Submissions',
-      target: record.title,
-      entityId: record.id,
-      result: 'Success',
-      afterValue: record.status,
-    });
-    await this.recordSubmissionEvent({
-      submissionId: record.id,
-      actorUserId: body.actorUserId,
-      action: eventActionForSubmission(existing.status, record.status),
-      fromStatus: existing.status,
-      toStatus: record.status,
-      details: {
-        grade: record.grade,
-        hasFeedback: Boolean(record.feedback),
-      },
+      await this.auditLogs.record({
+        actorUserId: body.actorUserId,
+        actorRole: 'TEACHER',
+        action: 'SUBMISSION_REVIEWED',
+        module: 'Submissions',
+        target: res.title,
+        entityId: res.id,
+        result: 'Success',
+        afterValue: res.status,
+      }, tx);
+
+      await this.recordSubmissionEvent({
+        submissionId: res.id,
+        actorUserId: body.actorUserId,
+        action: eventActionForSubmission(existing.status, res.status),
+        fromStatus: existing.status,
+        toStatus: res.status,
+        details: {
+          grade: res.grade,
+          hasFeedback: Boolean(res.feedback),
+        },
+      }, tx);
+      return res;
     });
 
     const decorated = await this.decorate(record);
@@ -452,8 +464,9 @@ export class SubmissionsService {
     fromStatus?: string | null;
     toStatus?: string | null;
     details?: Record<string, unknown>;
-  }) {
-    await this.prisma.submissionEvent.create({
+  }, tx?: any) {
+    const client = tx ?? this.prisma;
+    await client.submissionEvent.create({
       data: {
         submissionId: input.submissionId,
         actorUserId: input.actorUserId,

@@ -100,7 +100,7 @@ export default function StudentDashboard() {
           <>
             <button
               onClick={() => navigate("/student/submit?back=%2Fstudent%2Fdashboard")}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-slate-950/10 transition hover:bg-blue-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900/85 px-4 py-3 text-sm font-semibold text-brand-secondary shadow-lg shadow-slate-950/10 transition hover:bg-brand-neutral/20"
             >
               <Upload size={16} />
               Submit Project
@@ -129,7 +129,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/calendar")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-secondary dark:text-brand-primary hover:text-brand-ink"
               >
                 View calendar
                 <ChevronRight size={14} />
@@ -153,7 +153,7 @@ export default function StudentDashboard() {
                     key={deadline.id}
                     type="button"
                     onClick={() => navigate(buildDeadlineTarget(deadline))}
-                    className={`flex w-full items-start justify-between rounded-[24px] border px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-34px_rgba(37,99,235,0.45)] ${
+                    className={`flex w-full items-start justify-between rounded-[24px] border px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-34px_rgba(77,212,172,0.45)] ${
                       deadline.overdue
                         ? "border-rose-200 dark:border-rose-500/30 bg-rose-50/85 dark:border-rose-400/25 dark:bg-rose-500/15"
                         : deadline.daysLeft <= 3
@@ -208,7 +208,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/submissions")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-secondary dark:text-brand-primary hover:text-brand-ink"
               >
                 View all
                 <ChevronRight size={14} />
@@ -253,7 +253,7 @@ export default function StudentDashboard() {
                   ) : visibleRecentSubmissions.map((row) => (
                     <tr
                       key={row.id}
-                      className="cursor-pointer bg-white/70 transition hover:bg-blue-50/45 dark:bg-slate-900/38 dark:hover:bg-blue-500/12"
+                      className="cursor-pointer bg-white/70 transition hover:bg-brand-primary/5 dark:bg-slate-900/38 dark:hover:bg-brand-primary/12"
                       onClick={() =>
                         navigate(
                           `/student/submissions/${encodeURIComponent(String(row.id))}?back=${encodeURIComponent("/student/dashboard")}`,
@@ -355,8 +355,8 @@ export default function StudentDashboard() {
                     onClick={() => navigate(action.to)}
                     className={`flex w-full items-start gap-3 rounded-[22px] border px-4 py-4 text-left transition ${
                       action.primary
-                        ? "border-blue-700 bg-blue-700 text-white shadow-[0_22px_55px_-34px_rgba(29,78,216,0.55)] hover:bg-blue-800"
-                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 text-slate-800 dark:text-slate-100 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/15"
+                        ? "border-brand-secondary bg-brand-secondary text-white shadow-[0_22px_55px_-34px_rgba(52,96,105,0.55)] hover:bg-brand-ink"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/90 text-slate-800 dark:text-slate-100 hover:border-brand-primary/30 hover:bg-brand-primary/5 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:border-brand-primary/20 dark:hover:bg-brand-primary/10"
                     }`}
                   >
                     <div
@@ -392,7 +392,7 @@ export default function StudentDashboard() {
             action={
               <button
                 onClick={() => navigate("/student/notifications")}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-800"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-secondary dark:text-brand-primary hover:text-brand-ink"
               >
                 Open inbox
                 <ChevronRight size={14} />
@@ -421,7 +421,7 @@ export default function StudentDashboard() {
                   className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/80 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-800/80"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-secondary dark:text-brand-primary dark:bg-brand-primary/15">
                       <Bell size={16} />
                     </div>
                     <div>

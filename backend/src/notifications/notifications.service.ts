@@ -10,13 +10,13 @@ type NotificationListOptions = {
 export class NotificationsService {
   constructor(private readonly notificationRepository: NotificationRepository) {}
 
-  async createInAppNotification(userId: string, title: string, body: string) {
+  async createInAppNotification(userId: string, title: string, body: string, tx?: any) {
     const record = await this.notificationRepository.create({
       userId,
       title,
       body,
       type: 'system',
-    });
+    }, tx);
 
     return {
       success: true,

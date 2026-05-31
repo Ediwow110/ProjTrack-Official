@@ -62,7 +62,7 @@ const defaultActivityForm: ActivityFormState = {
 };
 
 const teacherModalFieldClassName =
-  "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-teal-700 focus:ring-2 focus:ring-teal-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-teal-400 dark:focus:ring-teal-400/20";
+  "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-brand-secondary dark:focus:ring-brand-secondary/20";
 
 const teacherModalToggleClassName =
   "flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200";
@@ -277,12 +277,12 @@ export default function TeacherSubjectView() {
 
       <div className="bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm p-6 space-y-5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-teal-700 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-brand-secondary flex items-center justify-center shrink-0">
             <BookOpen size={22} className="text-white" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 font-bold px-2 py-0.5 rounded-full uppercase">{data.code}</span>
+              <span className="text-[10px] bg-brand-secondary/10 text-brand-secondary font-bold px-2 py-0.5 rounded-full uppercase">{data.code}</span>
               <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">{data.status}</span>
             </div>
             <h1 className="text-slate-900 dark:text-slate-100 font-bold" style={{ fontSize: "1.3rem", letterSpacing: "-0.02em" }}>
@@ -300,7 +300,7 @@ export default function TeacherSubjectView() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800">
+          <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-secondary text-white text-sm font-semibold hover:bg-brand-primary">
             <Plus size={14} /> Add Submission
           </button>
           <button onClick={() => setTab("Restrictions")} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70">
@@ -318,14 +318,14 @@ export default function TeacherSubjectView() {
         </div>
       </div>
 
-      {banner && <div className="rounded-xl border border-teal-200 bg-teal-50 dark:bg-teal-500/15 px-4 py-3 text-xs font-medium text-teal-700 dark:text-teal-300">{banner}</div>}
+      {banner && <div className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/10 px-4 py-3 text-xs font-medium text-brand-secondary">{banner}</div>}
 
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
         {tabs.map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
-            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === item ? "border-teal-700 text-teal-700 dark:text-teal-300" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === item ? "border-brand-secondary text-brand-secondary" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
           >
             {item}
           </button>

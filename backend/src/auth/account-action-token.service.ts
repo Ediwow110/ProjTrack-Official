@@ -35,16 +35,16 @@ function ttlMs(type: AccountActionTokenTypeValue) {
 export class AccountActionTokenService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async issuePasswordReset(userId: string) {
-    return this.issue({ userId, type: AccountActionTokenType.PASSWORD_RESET });
+  async issuePasswordReset(userId: string, tx?: any) {
+    return this.issue({ userId, type: AccountActionTokenType.PASSWORD_RESET }, tx);
   }
 
-  async issueActivation(userId: string) {
+  async issueActivation(userId: string, tx?: any) {
     return this.issue({
       userId,
       type: AccountActionTokenType.ACCOUNT_ACTIVATION,
       alwaysFresh: true,
-    });
+    }, tx);
   }
 
   async consumePasswordReset(ref: string, token: string) {
@@ -68,9 +68,10 @@ export class AccountActionTokenService {
     return this.consume(AccountActionTokenType.ACCOUNT_ACTIVATION, ref, token, tx);
   }
 
-  private async issue(input: IssueInput) {
+  private async issue(input: IssueInput, tx?: any) {
+    const client = tx ?? this.prisma;
     const now = new Date();
-    const active = await this.prisma.accountActionToken.findFirst({
+    const active = await client.accountActionToken.findFirst({
       where: {
         userId: input.userId,
         type: input.type,
@@ -90,7 +91,7 @@ export class AccountActionTokenService {
           reused: true,
         };
       } catch {
-        await this.prisma.accountActionToken.update({
+        await client.accountActionToken.update({
           where: { id: active.id },
           data: { revokedAt: now },
         });
@@ -98,7 +99,7 @@ export class AccountActionTokenService {
     }
 
     if (input.alwaysFresh) {
-      await this.prisma.accountActionToken.updateMany({
+      await client.accountActionToken.updateMany({
         where: {
           userId: input.userId,
           type: input.type,
@@ -113,7 +114,7 @@ export class AccountActionTokenService {
     const publicRef = createPublicAccountActionRef(refPrefix(input.type));
     const expiresAt = new Date(Date.now() + ttlMs(input.type));
 
-    await this.prisma.accountActionToken.create({
+    await client.accountActionToken.create({
       data: {
         userId: input.userId,
         type: input.type,

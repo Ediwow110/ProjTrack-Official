@@ -225,7 +225,7 @@ export default function StudentProfile() {
                   className="mx-auto h-24 w-24 rounded-[28px] object-cover shadow-[0_18px_45px_-30px_rgba(15,23,42,0.45)]"
                 />
               ) : (
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] bg-blue-700 text-3xl font-semibold text-white shadow-[0_18px_45px_-30px_rgba(29,78,216,0.55)]">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px] bg-brand-secondary text-3xl font-semibold text-white shadow-[0_18px_45px_-30px_rgba(52,96,105,0.55)]">
                   {profile.initials}
                 </div>
               )}
@@ -298,7 +298,7 @@ export default function StudentProfile() {
                       onChange={(event) =>
                         setForm({ ...form, [field.key]: event.target.value })
                       }
-                      className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
+                      className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-brand-primary/40"
                     />
                   </div>
                 ))}
@@ -312,7 +312,7 @@ export default function StudentProfile() {
                 <button
                   disabled={saving}
                   type="submit"
-                  className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] transition hover:bg-blue-800 disabled:opacity-50"
+                  className="rounded-2xl bg-brand-secondary px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.55)] transition hover:bg-brand-ink disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -341,7 +341,7 @@ export default function StudentProfile() {
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     type={showOld ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-brand-primary/40"
                   />
                   <button
                     type="button"
@@ -363,7 +363,7 @@ export default function StudentProfile() {
                     onChange={(event) => setNewPassword(event.target.value)}
                     type={showNew ? "text" : "password"}
                     placeholder="At least 8 characters"
-                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-blue-300"
+                    className="w-full rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-4 py-3 pr-11 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-brand-primary/40"
                   />
                   <button
                     type="button"
@@ -380,7 +380,7 @@ export default function StudentProfile() {
 
               <div className="rounded-[22px] border border-slate-200 dark:border-slate-700 bg-slate-50/85 dark:bg-slate-800/70 px-4 py-4">
                 <div className="flex items-start gap-3">
-                  <ShieldCheck size={18} className="mt-0.5 text-blue-700 dark:text-blue-300" />
+                  <ShieldCheck size={18} className="mt-0.5 text-brand-secondary dark:text-brand-primary" />
                   <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     Changing your password updates the credentials you use to enter the student portal on future sign-ins.
                   </p>

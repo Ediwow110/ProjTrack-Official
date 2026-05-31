@@ -714,10 +714,25 @@ export class SubjectsService {
     const teacherName = await this.lookupUserName(body.actorUserId);
     const activityLink = `${studentSubjectLink(subject.id)}?tab=activities`;
 
-    const activity: any = await this.subjectRepository.createActivity(subjectId, {
-      ...body,
-      title: activityTitle,
+    const activity: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.subjectRepository.createActivity(subjectId, {
+        ...body,
+        title: activityTitle,
+      }, tx);
+      
+      await this.auditLogs.record({
+        actorUserId: body.actorUserId,
+        actorRole: 'TEACHER',
+        action: 'ACTIVITY_CREATED',
+        module: 'Subjects',
+        target: res.title,
+        entityId: res.id,
+        result: 'Success',
+        details: `Created activity in subject ${subjectId}.`,
+      }, tx);
+      return res;
     });
+
     const studentUserIds = this.getSubjectStudentUserIds(subject);
     const safeActivityTitle = normalizedText(activity?.title, activityTitle) || 'New activity';
     const notificationTitle =
@@ -753,16 +768,6 @@ export class SubjectsService {
     });
     }
 
-    await this.auditLogs.record({
-      actorUserId: body.actorUserId,
-      actorRole: 'TEACHER',
-      action: 'ACTIVITY_CREATED',
-      module: 'Subjects',
-      target: safeActivityTitle,
-      entityId: activity.id,
-      result: 'Success',
-      details: `Created activity in subject ${subjectId}.`,
-    });
     return {
       ...activity,
       success: true,
@@ -776,19 +781,23 @@ export class SubjectsService {
   async updateTeacherActivity(subjectId: string, activityId: string, body: any) {
     await this.access.requireTeacherOwnsActivity(body.actorUserId, subjectId, activityId);
 
-    const activity: any = await this.subjectRepository.updateActivity(activityId, body);
-    if (!activity) throw new NotFoundException('Activity not found.');
+    const activity: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.subjectRepository.updateActivity(activityId, body, tx);
+      if (!res) throw new NotFoundException('Activity not found.');
 
-    await this.auditLogs.record({
-      actorUserId: body.actorUserId,
-      actorRole: 'TEACHER',
-      action: 'ACTIVITY_UPDATED',
-      module: 'Subjects',
-      target: activity.title,
-      entityId: activity.id,
-      result: 'Success',
-      details: `Updated activity in subject ${subjectId}.`,
+      await this.auditLogs.record({
+        actorUserId: body.actorUserId,
+        actorRole: 'TEACHER',
+        action: 'ACTIVITY_UPDATED',
+        module: 'Subjects',
+        target: res.title,
+        entityId: res.id,
+        result: 'Success',
+        details: `Updated activity in subject ${subjectId}.`,
+      }, tx);
+      return res;
     });
+
     return activity;
   }
 
@@ -847,35 +856,42 @@ export class SubjectsService {
 
   async updateRestrictions(subjectId: string, body: any) {
     await this.ensureTeacherOwnsSubject(subjectId, body.actorUserId);
-    const subject: any = await this.subjectRepository.updateRestrictions(subjectId, body);
-    if (!subject) throw new NotFoundException('Subject not found.');
+    const subject: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.subjectRepository.updateRestrictions(subjectId, body, tx);
+      if (!res) throw new NotFoundException('Subject not found.');
 
-    await this.auditLogs.record({
-      actorUserId: body.actorUserId,
-      actorRole: 'TEACHER',
-      action: 'RESTRICTIONS_UPDATED',
-      module: 'Subjects',
-      target: subject.name,
-      entityId: subject.id,
-      result: 'Success',
-      details: 'Updated subject restrictions.',
+      await this.auditLogs.record({
+        actorUserId: body.actorUserId,
+        actorRole: 'TEACHER',
+        action: 'RESTRICTIONS_UPDATED',
+        module: 'Subjects',
+        target: res.name,
+        entityId: res.id,
+        result: 'Success',
+        details: 'Updated subject restrictions.',
+      }, tx);
+      return res;
     });
+
     return subject;
   }
 
   async reopenSubject(subjectId: string, actorUserId?: string) {
     await this.ensureTeacherOwnsSubject(subjectId, actorUserId);
-    const subject: any = await this.subjectRepository.reopenSubject(subjectId);
-    if (!subject) throw new NotFoundException('Subject not found.');
+    const subject: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.subjectRepository.reopenSubject(subjectId, tx);
+      if (!res) throw new NotFoundException('Subject not found.');
 
-    await this.auditLogs.record({
-      actorUserId,
-      actorRole: 'TEACHER',
-      action: 'SUBJECT_REOPENED',
-      module: 'Subjects',
-      target: subject.name,
-      entityId: subject.id,
-      result: 'Success',
+      await this.auditLogs.record({
+        actorUserId,
+        actorRole: 'TEACHER',
+        action: 'SUBJECT_REOPENED',
+        module: 'Subjects',
+        target: res.name,
+        entityId: res.id,
+        result: 'Success',
+      }, tx);
+      return res;
     });
 
     const studentUserIds = this.getSubjectStudentUserIds(subject);
@@ -918,20 +934,24 @@ export class SubjectsService {
     await this.access.requireTeacherOwnsActivity(actorUserId, subjectId, activityId);
     const subject: any = await this.ensureTeacherOwnsSubject(subjectId, actorUserId);
 
-    const activity: any = await this.subjectRepository.reopenActivity(activityId);
-    if (!activity) throw new NotFoundException('Activity not found.');
-    const safeActivityTitle = normalizedText(activity?.title, 'This activity');
+    const activity: any = await this.prisma.$transaction(async (tx) => {
+      const res = await this.subjectRepository.reopenActivity(activityId, tx);
+      if (!res) throw new NotFoundException('Activity not found.');
+      const safeActivityTitle = normalizedText(res?.title, 'This activity');
 
-    await this.auditLogs.record({
-      actorUserId,
-      actorRole: 'TEACHER',
-      action: 'ACTIVITY_REOPENED',
-      module: 'Subjects',
-      target: safeActivityTitle,
-      entityId: activity.id,
-      result: 'Success',
+      await this.auditLogs.record({
+        actorUserId,
+        actorRole: 'TEACHER',
+        action: 'ACTIVITY_REOPENED',
+        module: 'Subjects',
+        target: safeActivityTitle,
+        entityId: res.id,
+        result: 'Success',
+      }, tx);
+      return res;
     });
 
+    const safeActivityTitle = normalizedText(activity?.title, 'This activity');
     const studentUserIds = this.getSubjectStudentUserIds(subject);
     const notificationTitle = `${safeActivityTitle} reopened`;
     const notificationBody =

@@ -18,6 +18,7 @@ import { AccountActionTokenService } from '../auth/account-action-token.service'
 import { MAIL_CATEGORY_KEYS } from '../common/constants/mail.constants';
 import { buildActivationLink, buildResetPasswordLink } from '../common/utils/frontend-links';
 import { FilesService } from '../files/files.service';
+import { CacheService } from '../cache/cache.service';
 import {
   buildMasterListFileName,
   buildMasterListWorkbookBuffer,
@@ -56,6 +57,7 @@ export class AdminService {
     private readonly files: FilesService,
     private readonly adminOpsRepository: AdminOpsRepository,
     private readonly adminReportsRepository: AdminReportsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async reportSummary(section?: string, subjectId?: string) {
@@ -75,6 +77,10 @@ export class AdminService {
   }
 
   async users(search?: string, role?: string, status?: string) {
+    const cacheKey = `admin:users:${search ?? ''}:${role ?? ''}:${status ?? ''}`;
+    const cached = this.cache.get<unknown>(cacheKey);
+    if (cached !== undefined) return cached;
+
     const q = this.normalizeSearch(search);
     const normalizedRole = String(role ?? '').trim().toUpperCase();
     const normalizedStatus = String(status ?? '').trim();
@@ -90,7 +96,7 @@ export class AdminService {
       orderBy: [{ createdAt: 'desc' }, { email: 'asc' }],
     });
 
-    return rows
+    const result = rows
       .filter((user) => {
         const displayStatus = this.formatUserStatus(user.status);
         const identifier = this.userIdentifier(user);
@@ -137,6 +143,8 @@ export class AdminService {
           isSeedCandidate: this.isSeedUserCandidate(user),
         };
       });
+    this.cache.set(cacheKey, result, 30_000);
+    return result;
   }
 
   async createAdmin(
@@ -150,6 +158,9 @@ export class AdminService {
     },
     actor?: AdminActorContext,
   ) {
+    // Invalidate user list cache on admin creation
+    this.cache.deleteByPrefix('admin:users');
+
     const firstName = String(payload.firstName ?? '').trim();
     const lastName = String(payload.lastName ?? '').trim();
     const email = String(payload.email ?? '').trim().toLowerCase();
@@ -171,19 +182,49 @@ export class AdminService {
       throw new ConflictException('A user with that email already exists.');
     }
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        role: 'ADMIN',
-        status: 'PENDING_ACTIVATION',
-        firstName,
-        lastName,
-        phone,
-        office,
-      },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          role: 'ADMIN',
+          status: 'PENDING_ACTIVATION',
+          firstName,
+          lastName,
+          phone,
+          office,
+        },
+      });
+
+      const session = await this.accountActionTokens.issueActivation(newUser.id, tx);
+
+      if (sendActivationEmail) {
+        await this.notifications.createInAppNotification(
+          newUser.id,
+          'Account activation ready',
+          'An activation link has been queued for email delivery.',
+          tx,
+        );
+      }
+
+      await this.auditLogs.record({
+        actorUserId: actor?.actorUserId,
+        actorRole: actor?.actorRole ?? 'ADMIN',
+        action: 'ADMIN_CREATED',
+        module: 'Users',
+        target: `${this.userName(newUser)} (${newUser.email})`,
+        entityId: newUser.id,
+        result: 'Success',
+        details: sendActivationEmail
+          ? `Admin account created and activation email queued by ${actor?.actorEmail ?? 'an administrator'}.`
+          : `Admin account created without sending an activation email by ${actor?.actorEmail ?? 'an administrator'}.`,
+        afterValue: 'PENDING_ACTIVATION',
+        ipAddress: actor?.ipAddress,
+      }, tx);
+
+      return { user: newUser, session };
     });
 
-    const session = await this.accountActionTokens.issueActivation(user.id);
+    const { user: createdUser, session } = user;
     const activationLink = buildActivationLink({
       token: session.token,
       ref: session.publicRef,
@@ -193,50 +234,32 @@ export class AdminService {
     let activationJob: { id?: string } | null = null;
     if (sendActivationEmail) {
       activationJob = await this.mail.queueAccountActivation({
-        to: user.email,
-        recipientName: this.userName(user),
+        to: createdUser.email,
+        recipientName: this.userName(createdUser),
         activationUrl: activationLink,
-        firstName: user.firstName,
+        firstName: createdUser.firstName,
         publicRef: session.publicRef,
       });
       if (!activationJob?.id) {
         throw new BadRequestException('Activation email could not be confirmed as a queued MailJob.');
       }
-
-      await this.notifications.createInAppNotification(
-        user.id,
-        'Account activation ready',
-        'An activation link has been queued for email delivery.',
-      );
     }
-
-    await this.auditLogs.record({
-      actorUserId: actor?.actorUserId,
-      actorRole: actor?.actorRole ?? 'ADMIN',
-      action: 'ADMIN_CREATED',
-      module: 'Users',
-      target: `${this.userName(user)} (${user.email})`,
-      entityId: user.id,
-      result: 'Success',
-      details: sendActivationEmail
-        ? `Admin account created and activation email queued by ${actor?.actorEmail ?? 'an administrator'}.`
-        : `Admin account created without sending an activation email by ${actor?.actorEmail ?? 'an administrator'}.`,
-      afterValue: 'PENDING_ACTIVATION',
-      ipAddress: actor?.ipAddress,
-    });
 
     return {
       success: true,
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      status: this.formatUserStatus(user.status),
+      id: createdUser.id,
+      email: createdUser.email,
+      role: createdUser.role,
+      status: this.formatUserStatus(createdUser.status),
       activationQueued: sendActivationEmail,
       ...(activationJob?.id ? { mailJobId: activationJob.id } : {}),
     };
   }
 
   async activateUser(id: string, actor?: AdminActorContext) {
+    // Invalidate user list cache on activation
+    this.cache.deleteByPrefix('admin:users');
+
     const user = await this.requireAnyUser(id);
     if (user.role === 'STUDENT') {
       return this.activateStudent(id, actor);
@@ -249,6 +272,9 @@ export class AdminService {
   }
 
   async deactivateUser(id: string, actor?: AdminActorContext) {
+    // Invalidate user list cache on deactivation
+    this.cache.deleteByPrefix('admin:users');
+
     const user = await this.requireAnyUser(id);
     if (user.role === 'STUDENT') {
       return this.deactivateStudent(id, actor);
@@ -268,29 +294,29 @@ export class AdminService {
 
     await this.assertAdminActionAllowed(user.id, user.status);
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await this.prisma.user.update({
         where: { id: user.id },
         data: { status: 'INACTIVE' },
-      }),
-      this.prisma.authSession.updateMany({
+      });
+      await this.prisma.authSession.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date(), lastUsedAt: new Date() },
-      }),
-    ]);
+      });
 
-    await this.auditLogs.record({
-      actorUserId: actor?.actorUserId,
-      actorRole: actor?.actorRole ?? 'ADMIN',
-      action: 'DEACTIVATE',
-      module: 'Users',
-      target: `${this.userName(user)} (${user.email})`,
-      entityId: user.id,
-      result: 'Success',
-      details: `Admin account deactivated by ${actor?.actorEmail ?? 'an administrator'}.`,
-      beforeValue: String(user.status),
-      afterValue: 'INACTIVE',
-      ipAddress: actor?.ipAddress,
+      await this.auditLogs.record({
+        actorUserId: actor?.actorUserId,
+        actorRole: actor?.actorRole ?? 'ADMIN',
+        action: 'DEACTIVATE',
+        module: 'Users',
+        target: `${this.userName(user)} (${user.email})`,
+        entityId: user.id,
+        result: 'Success',
+        details: `Admin account deactivated by ${actor?.actorEmail ?? 'an administrator'}.`,
+        beforeValue: String(user.status),
+        afterValue: 'INACTIVE',
+        ipAddress: actor?.ipAddress,
+      }, tx);
     });
 
     return { success: true, status: 'INACTIVE' };
@@ -534,17 +560,20 @@ export class AdminService {
     }
 
     const existing = await this.adminOpsRepository.getDepartment(id);
-    const result = await this.adminOpsRepository.deleteDepartment(id);
-    await this.auditLogs.record({
-      actorUserId: actor?.actorUserId,
-      actorRole: actor?.actorRole ?? 'ADMIN',
-      action: 'DELETE',
-      module: 'Departments',
-      target: existing.name,
-      entityId: existing.id,
-      result: 'Success',
-      details: 'Department catalog entry deleted.',
-      ipAddress: actor?.ipAddress,
+    const result = await this.prisma.$transaction(async (tx) => {
+      const res = await this.adminOpsRepository.deleteDepartment(id);
+      await this.auditLogs.record({
+        actorUserId: actor?.actorUserId,
+        actorRole: actor?.actorRole ?? 'ADMIN',
+        action: 'DELETE',
+        module: 'Departments',
+        target: existing.name,
+        entityId: existing.id,
+        result: 'Success',
+        details: 'Department catalog entry deleted.',
+        ipAddress: actor?.ipAddress,
+      }, tx);
+      return res;
     });
     return result;
   }

@@ -29,9 +29,10 @@ export class NotificationRepository {
     body: string;
     type?: string;
     dedupeKey?: string;
-  }) {
+  }, tx?: any) {
+    const client = tx ?? this.prisma;
     if (input.dedupeKey) {
-      return this.prisma.notification.upsert({
+      return client.notification.upsert({
         where: { dedupeKey: input.dedupeKey },
         update: {
           title: input.title,
@@ -50,7 +51,7 @@ export class NotificationRepository {
       });
     }
 
-    return this.prisma.notification.create({
+    return client.notification.create({
       data: {
         userId: input.userId,
         title: input.title,

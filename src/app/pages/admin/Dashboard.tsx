@@ -120,12 +120,12 @@ export default function AdminDashboard() {
                     <div
                       className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                         activity.type === "create"
-                          ? "bg-blue-500"
+                          ? "bg-brand-primary"
                           : activity.type === "approve"
                             ? "bg-emerald-500"
                             : activity.type === "reset"
                               ? "bg-amber-500"
-                              : "bg-teal-500"
+                              : "bg-brand-secondary"
                       }`}
                     />
                     <div className="min-w-0 flex-1">
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                   onClick={() => navigate(action.to)}
                   className={`w-full rounded-[22px] px-4 py-3 text-left text-sm font-semibold transition ${
                     action.primary
-                      ? "bg-slate-900 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)] hover:bg-slate-950 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                      ? "bg-brand-ink text-white shadow-[0_18px_40px_-28px_rgba(36,32,59,0.55)] hover:bg-black dark:bg-brand-primary dark:text-brand-ink dark:hover:bg-white"
                       : "border border-[var(--border-subtle)] bg-[var(--surface-panel-muted)] text-[var(--text-body)] hover:bg-[var(--surface-panel-strong)]"
                   }`}
                 >

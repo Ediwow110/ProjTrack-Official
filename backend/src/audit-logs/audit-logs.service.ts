@@ -5,8 +5,8 @@ import { AuditLogRepository, AuditRecordCreateInput } from '../repositories/audi
 export class AuditLogsService {
   constructor(private readonly auditLogRepository: AuditLogRepository) {}
 
-  async record(input: AuditRecordCreateInput) {
-    await this.auditLogRepository.create(input);
+  async record(input: AuditRecordCreateInput, tx?: any) {
+    await this.auditLogRepository.create(input, tx);
     return { success: true };
   }
 

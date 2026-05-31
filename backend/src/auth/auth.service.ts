@@ -165,17 +165,17 @@ export class AuthService {
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date(), lastUsedAt: new Date() },
       });
-    });
 
-    await this.auditLogs.record({
-      actorUserId: user.id,
-      actorRole: user.role,
-      action: 'ACCOUNT_ACTIVATED',
-      module: 'Auth',
-      target: user.email,
-      entityId: user.id,
-      result: 'Success',
-      details: 'User completed password setup and activated account.',
+      await this.auditLogs.record({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'ACCOUNT_ACTIVATED',
+        module: 'Auth',
+        target: user.email,
+        entityId: user.id,
+        result: 'Success',
+        details: 'User completed password setup and activated account.',
+      }, tx);
     });
 
     return { success: true, message: 'Account activated successfully.' };
@@ -339,25 +339,26 @@ export class AuthService {
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date(), lastUsedAt: new Date() },
         });
+
+        await this.auditLogs.record({
+          actorUserId: user.id,
+          actorRole: user.role,
+          action: firstTimeSetup ? 'PASSWORD_SETUP_COMPLETED' : 'PASSWORD_RESET_COMPLETED',
+          module: 'Auth',
+          target: user.email,
+          entityId: user.id,
+          result: 'Success',
+          details: firstTimeSetup
+            ? 'User completed first-time password setup.'
+            : 'User completed password reset.',
+          ipAddress: requestMeta?.ipAddress,
+        }, tx);
       });
     } catch (error) {
       await this.authThrottle.recordFailure('reset-password', throttleKey);
       throw error;
     }
 
-    await this.auditLogs.record({
-      actorUserId: user.id,
-      actorRole: user.role,
-      action: firstTimeSetup ? 'PASSWORD_SETUP_COMPLETED' : 'PASSWORD_RESET_COMPLETED',
-      module: 'Auth',
-      target: user.email,
-      entityId: user.id,
-      result: 'Success',
-      details: firstTimeSetup
-        ? 'User completed first-time password setup.'
-        : 'User completed password reset.',
-      ipAddress: requestMeta?.ipAddress,
-    });
     await this.authThrottle.reset('reset-password', throttleKey);
 
     return { success: true, message: 'Password updated successfully.' };

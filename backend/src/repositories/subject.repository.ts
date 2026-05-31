@@ -190,13 +190,14 @@ export class SubjectRepository {
     });
   }
 
-  async createActivity(subjectId: string, body: any) {
+  async createActivity(subjectId: string, body: any, tx?: any) {
+    const client = tx ?? this.prisma;
     const title = String(body.title ?? '').trim();
     if (!title) {
       throw new BadRequestException('Activity title is required.');
     }
 
-    const duplicate = await this.prisma.submissionTask.findFirst({
+    const duplicate = await client.submissionTask.findFirst({
       where: { subjectId, title },
       select: { id: true },
     });
@@ -205,7 +206,7 @@ export class SubjectRepository {
     }
 
     try {
-      return await this.prisma.submissionTask.create({
+      return await client.submissionTask.create({
         data: {
           subjectId,
           title,
@@ -231,13 +232,14 @@ export class SubjectRepository {
     }
   }
 
-  async updateActivity(activityId: string, body: any) {
+  async updateActivity(activityId: string, body: any, tx?: any) {
+    const client = tx ?? this.prisma;
     const nextTitle = String(body.title ?? '').trim();
     if (!nextTitle) {
       throw new BadRequestException('Activity title is required.');
     }
 
-    const current = await this.prisma.submissionTask.findUnique({
+    const current = await client.submissionTask.findUnique({
       where: { id: activityId },
       select: { id: true, subjectId: true },
     });
@@ -245,7 +247,7 @@ export class SubjectRepository {
       throw new NotFoundException('Activity not found.');
     }
 
-    const duplicate = await this.prisma.submissionTask.findFirst({
+    const duplicate = await client.submissionTask.findFirst({
       where: {
         subjectId: current.subjectId,
         title: nextTitle,
@@ -258,7 +260,7 @@ export class SubjectRepository {
     }
 
     try {
-      return await this.prisma.submissionTask.update({
+      return await client.submissionTask.update({
         where: { id: activityId },
         data: {
           title: nextTitle,
@@ -284,17 +286,19 @@ export class SubjectRepository {
     }
   }
 
-  async reopenActivity(activityId: string) {
-    return this.prisma.submissionTask.update({
+  async reopenActivity(activityId: string, tx?: any) {
+    const client = tx ?? this.prisma;
+    return client.submissionTask.update({
       where: { id: activityId },
       data: { isOpen: true },
     });
   }
 
-  async updateRestrictions(subjectId: string, body: any) {
-    const current = await this.prisma.subject.findUnique({ where: { id: subjectId } });
+  async updateRestrictions(subjectId: string, body: any, tx?: any) {
+    const client = tx ?? this.prisma;
+    const current = await client.subject.findUnique({ where: { id: subjectId } });
     if (!current) return null;
-    return this.prisma.subject.update({
+    return client.subject.update({
       where: { id: subjectId },
       data: {
         allowLateSubmission: body.allowLate ?? current.allowLateSubmission,
@@ -306,8 +310,9 @@ export class SubjectRepository {
     });
   }
 
-  async reopenSubject(subjectId: string) {
-    return this.prisma.subject.update({
+  async reopenSubject(subjectId: string, tx?: any) {
+    const client = tx ?? this.prisma;
+    return client.subject.update({
       where: { id: subjectId },
       data: { isOpen: true },
     });

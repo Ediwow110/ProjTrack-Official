@@ -22,8 +22,8 @@ import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import type { CalendarEventItem } from "../../lib/api/contracts";
 
 const subjectColors: Record<string, string> = {
-  "Capstone Project": "bg-teal-500",
-  "Information Management": "bg-blue-500",
+  "Capstone Project": "bg-brand-primary",
+  "Information Management": "bg-brand-secondary",
   "Web Systems": "bg-amber-500",
 };
 
@@ -162,7 +162,7 @@ export default function StudentCalendar() {
                 onClick={() => setView(item)}
                 className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                   view === item
-                    ? "bg-blue-700 text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)]"
+                    ? "bg-brand-secondary text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.55)]"
                     : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
@@ -225,7 +225,7 @@ export default function StudentCalendar() {
                             onClick={() => setSelected(event)}
                             className={`w-full rounded-2xl border px-2.5 py-2 text-left transition ${
                               activeSelected?.id === event.id
-                                ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/80 dark:border-blue-400/30 dark:bg-blue-500/15"
+                                ? "border-brand-primary/30 dark:border-brand-primary/20 bg-brand-primary/10 dark:bg-brand-primary/15"
                                 : "border-slate-200 dark:border-slate-700 bg-slate-50/85 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/75 dark:hover:bg-slate-800"
                             }`}
                           >
@@ -328,7 +328,7 @@ export default function StudentCalendar() {
                 </div>
                 <button
                   onClick={() => navigate(buildEventTarget(activeSelected))}
-                  className="w-full rounded-2xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(29,78,216,0.55)] transition hover:bg-blue-800"
+                  className="w-full rounded-2xl bg-brand-secondary px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-28px_rgba(52,96,105,0.55)] transition hover:bg-brand-ink"
                 >
                   {isViewOnlySubmissionStatus(activeSelected.status)
                     ? "View Submission"
