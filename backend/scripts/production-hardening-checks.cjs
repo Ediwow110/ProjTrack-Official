@@ -393,9 +393,9 @@ assert(roleLoginPage.includes('Teacher Portal Login'), 'Teacher login page must 
 assert(roleLoginPage.includes('Admin Portal Login'), 'Admin login page must keep the approved role-specific headline.');
 
 const roleTheme = readRepo('src/app/lib/roleTheme.ts');
-assert(roleTheme.includes('teacher') && roleTheme.includes('#4DD4AC'), 'Teacher role theme must use brand mint (#4DD4AC).');
-assert(roleTheme.includes('admin') && roleTheme.includes('#4DD4AC'), 'Admin role theme must use brand mint (#4DD4AC).');
-assert(roleTheme.includes('student') && roleTheme.includes('#4DD4AC'), 'Student role theme must use brand mint (#4DD4AC).');
+assert(roleTheme.includes('teacher') && roleTheme.includes('#8b5cf6'), 'Teacher role theme must be purple.');
+assert(roleTheme.includes('admin') && roleTheme.includes('#ff7900'), 'Admin role theme must be orange.');
+assert(roleTheme.includes('student') && roleTheme.includes('#1d4ed8'), 'Student role theme must be blue.');
 
 const authLayout = readRepo('src/app/components/auth/AuthLayout.tsx');
 assert(authLayout.includes('<ProjTrackLogo') && authLayout.includes('role={role}'), 'Role login pages must use the shared role-colored ProjTrack logo.');
