@@ -37,11 +37,11 @@ export function LoginCard({
       <div className="auth-card-accent-bar" aria-hidden="true" />
       <div className="auth-card-body">
         <div>
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-1">
             <img
               src="/branding/projtrack-logo-clean.png"
               alt="ProjTrack Logo"
-              className="h-16 w-auto object-contain"
+              className="h-[3.25rem] w-auto object-contain"
             />
           </div>
           <div className="auth-card-divider">

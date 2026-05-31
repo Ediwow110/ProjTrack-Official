@@ -575,16 +575,16 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(100%, 1200px);
+  width: min(100%, 1240px);
   margin-inline: auto;
   gap: 1.5rem;
 }
 
 .auth-container {
   display: grid;
-  grid-template-columns: minmax(340px, 470px) minmax(400px, 1fr);
+  grid-template-columns: minmax(380px, 500px) minmax(460px, 1fr);
   align-items: stretch;
-  min-height: clamp(520px, 75svh, 720px);
+  min-height: clamp(620px, 78svh, 760px);
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 28px;
@@ -600,7 +600,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: clamp(1.5rem, 2vh, 2.25rem);
-  padding: clamp(1.6rem, 1.8vw + 1rem, 2.75rem);
+  padding: clamp(2rem, 4vw, 3.5rem);
   background:
     radial-gradient(circle at 20% 30%, rgba(77, 212, 172, 0.12) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(52, 96, 105, 0.15) 0%, transparent 40%),
@@ -668,11 +668,11 @@
 
 .auth-hero-word-track {
   display: inline-flex;
-  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.2));
+  filter: drop-shadow(0 2px 4px rgba(77, 212, 172, 0.2));
 }
 
 .auth-hero-word-track .auth-hero-char {
-  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 45%, #2563eb 100%);
+  background: linear-gradient(135deg, #4DD4AC 0%, #346069 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -693,7 +693,7 @@
 }
 
 .auth-hero-brand-title-sub {
-  font-size: clamp(0.55rem, 0.62vw, 0.72rem);
+  font-size: clamp(0.42rem, 0.52vw, 0.62rem);
   font-weight: 700;
   color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.16em;
@@ -732,12 +732,12 @@
 .auth-hero-brand-title-line {
   height: 2px;
   width: 0%;
-  background: linear-gradient(90deg, #38bdf8 0%, #f59e0b 100%);
+  background: linear-gradient(90deg, #4DD4AC 0%, #346069 100%);
   border-radius: 99px;
   margin-top: 0.55rem;
   animation: authHeroLineExpand 1s cubic-bezier(0.76, 0, 0.24, 1) forwards;
   animation-delay: 1.3s;
-  box-shadow: 0 1px 3px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 1px 3px rgba(77, 212, 172, 0.3);
 }
 
 @keyframes authHeroLineExpand {
@@ -858,13 +858,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(24px, 3.5vw, 44px);
+  padding: clamp(2rem, 5vw, 4rem);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
 }
 
 .auth-card-body {
-  width: min(100%, 460px);
+  width: min(100%, 500px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -910,7 +910,7 @@
 
 .auth-mobile-brand-name {
   display: block;
-  background: linear-gradient(135deg, #f8fafc 0%, #1d4ed8 62%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #346069 62%, #4DD4AC 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -953,22 +953,22 @@
 .auth-card-divider {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  margin-top: 1rem;
-  margin-bottom: 1.35rem;
+  gap: 1.2rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.75rem;
 }
 
 .auth-card-divider-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(203, 213, 225, 0.95) 28%, rgba(203, 213, 225, 0.95) 72%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.4) 28%, rgba(148, 163, 184, 0.4) 72%, transparent 100%);
 }
 
 .auth-card-divider-text {
-  color: #334155;
-  font-size: 0.78rem;
+  color: #0f172a;
+  font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -1152,8 +1152,8 @@
   }
 
   .auth-card-divider {
-    margin-top: 0.45rem;
-    margin-bottom: 0.7rem;
+    margin-top: 1rem;
+    margin-bottom: 1.25rem;
   }
 
   .auth-field-control,
@@ -1217,7 +1217,7 @@
   }
 
   .auth-card-divider {
-    margin-top: 0.85rem;
+    margin-top: 1.25rem;
   }
 
   .auth-page-footer {
@@ -1258,7 +1258,7 @@
     font-size: 1.65rem;
   }
   .auth-hero-brand-title-sub {
-    font-size: 0.48rem;
+    font-size: 0.42rem;
     letter-spacing: 0.08em;
   }
 
