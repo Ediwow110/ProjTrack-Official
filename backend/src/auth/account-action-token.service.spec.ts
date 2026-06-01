@@ -3,6 +3,7 @@ import { AccountActionTokenService } from './account-action-token.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccountActionTokenType } from '../prisma/prisma-compat';
 import { ACCOUNT_ACTION_TOKEN_TTL_MS } from '../common/constants/mail-policy.constants';
+import { accountActionTokenHash } from './token-crypto';
 
 describe('AccountActionTokenService TTL Policy', () => {
   let prisma: any;
