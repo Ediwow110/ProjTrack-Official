@@ -155,7 +155,7 @@ export function ProjTrackLogo({
             <div className={cn("flex min-w-0 flex-col", textClassName)}>
               <span className="font-display font-black tracking-[0.08em] text-[19px] uppercase leading-none select-none">
                 <span className={cn(inverse ? "text-white" : "text-slate-900 dark:text-white")}>PROJ</span>
-                <span className="text-[var(--role-accent)]">TRACK</span>
+                <span className="bg-gradient-to-r from-[#00D2FF] to-[#007BFF] bg-clip-text text-transparent">TRACK</span>
               </span>
               {showSubtitle && (
                 <p

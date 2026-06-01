@@ -34,9 +34,7 @@ import { authService } from "../../lib/api/services";
 type RoleConfig = {
   portalEyebrow: string;
   cardKicker: string;
-  headlineL1: string;
-  headlineL2Pre: string;
-  headlineAccent: string;
+  headlines: string[];
   description: string;
   icon: typeof GraduationCap;
   fieldLabel: string;
@@ -71,9 +69,7 @@ const cfgMap: Record<AppRole, RoleConfig> = {
   student: {
     portalEyebrow: "STUDENT PORTAL",
     cardKicker: "STUDENT PORTAL LOGIN",
-    headlineL1: "Manage. Submit.",
-    headlineL2Pre: "Stay Ready. ",
-    headlineAccent: "Stay On Track.",
+    headlines: ["Manage. Submit.", "Stay Ready.", "Stay On", "Track."],
     description:
       "Access your academic workspace to manage submissions, monitor class projects, and stay ahead of upcoming deadlines with confidence.",
     icon: GraduationCap,
@@ -86,9 +82,7 @@ const cfgMap: Record<AppRole, RoleConfig> = {
   teacher: {
     portalEyebrow: "TEACHER PORTAL",
     cardKicker: "TEACHER PORTAL LOGIN",
-    headlineL1: "Manage. Review.",
-    headlineL2Pre: "Guide Learning. ",
-    headlineAccent: "With Clarity.",
+    headlines: ["Manage. Review.", "Guide Learning with Clarity."],
     description:
       "Sign in to review coursework, manage classes, monitor learner progress, and deliver timely feedback from one organized portal.",
     icon: GraduationCap,
@@ -101,9 +95,7 @@ const cfgMap: Record<AppRole, RoleConfig> = {
   admin: {
     portalEyebrow: "ADMIN PORTAL",
     cardKicker: "ADMIN PORTAL LOGIN",
-    headlineL1: "Manage. Monitor.",
-    headlineL2Pre: "Control Operations. ",
-    headlineAccent: "Securely.",
+    headlines: ["Manage. Monitor.", "Control Operations.", "Securely."],
     description:
       "Enter the institutional control center for user administration, reporting, platform oversight, and protected operational access.",
     icon: ShieldCheck,
@@ -208,9 +200,7 @@ export default function RoleLoginPage({ role }: { role: AppRole }) {
       role={role}
       portalEyebrow={cfg.portalEyebrow}
       cardKicker={cfg.cardKicker}
-      headlineL1={cfg.headlineL1}
-      headlineL2Pre={cfg.headlineL2Pre}
-      headlineAccent={cfg.headlineAccent}
+      headlines={cfg.headlines}
       description={cfg.description}
       icon={Icon}
       features={cfg.features}

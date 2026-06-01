@@ -21,9 +21,7 @@ export function AuthLayout({
   role,
   portalEyebrow,
   cardKicker,
-  headlineL1,
-  headlineL2Pre,
-  headlineAccent,
+  headlines,
   description,
   icon: Icon,
   features = [],
@@ -34,9 +32,7 @@ export function AuthLayout({
   role: PortalRole;
   portalEyebrow: string;
   cardKicker: string;
-  headlineL1: string;
-  headlineL2Pre: string;
-  headlineAccent: string;
+  headlines: string[];
   description: string;
   icon: AuthIcon;
   features?: AuthFeature[];
@@ -111,9 +107,7 @@ export function AuthLayout({
               </div>
             }
             portalEyebrow={portalEyebrow}
-            headlineL1={headlineL1}
-            headlineL2Pre={headlineL2Pre}
-            headlineAccent={headlineAccent}
+            headlines={headlines}
             description={description}
             features={features}
           />

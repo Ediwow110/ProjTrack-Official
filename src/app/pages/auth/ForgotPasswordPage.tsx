@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800" placeholder="you@school.edu.ph" />
             </div>
           </label>
-          <button disabled={!email || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
+          <button disabled={!email || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-brand-secondary text-white text-sm font-semibold hover:bg-brand-ink disabled:opacity-60">
             {submitting ? "Sending..." : "Send instructions"}
           </button>
         </form>
