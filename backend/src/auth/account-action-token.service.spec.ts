@@ -117,6 +117,9 @@ describe('AccountActionTokenService TTL Policy', () => {
         user: { status: 'PENDING' },
       });
 
+      // Mock successful updateMany for the consume path
+      prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
+
       // Should not throw
       await expect(
         service.consumePasswordReset('ref-reset', 'reset-token'),
@@ -164,6 +167,9 @@ describe('AccountActionTokenService TTL Policy', () => {
         tokenHash: accountActionTokenHash('act-token'),
         user: { status: 'PENDING' },
       });
+
+      // Mock successful updateMany for the consume path
+      prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
 
       await expect(
         service.consumeActivation('ref-act', 'act-token'),
