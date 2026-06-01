@@ -1,59 +1,47 @@
 import 'reflect-metadata';
-import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
-import { AuthService } from '../../src/auth/auth.service';
-import { JwtAuthGuard } from '../../src/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../src/auth/guards/roles.guard';
+import { ROLES_KEY } from '../../src/auth/guards/roles.decorator';
+import { AdminController } from '../../src/admin/admin.controller';
+import { SubmissionsController } from '../../src/submissions/submissions.controller';
 
 /**
- * Regression tests for silent auth/session and role-access risks
- * identified in the silent-bug audit (BUG-AUTH-001, BUG-AUTH-002, BUG-ACCESS-001).
+ * Regression coverage for silent auth/session and role-access risks
+ * (BUG-AUTH-001, BUG-AUTH-002, BUG-ACCESS-001 from silent-bug audit).
  *
- * Goal: Prove that the backend is always the source of truth for role and session.
- * These tests should continue to pass even if the frontend mockAuth layer is later refactored.
+ * These tests reinforce that the backend is the source of truth for role authorization.
+ * They complement (and do not duplicate) the existing authorization-abuse and session-abuse specs.
  */
 
+function classRoles(controller: Function): string[] | undefined {
+  return Reflect.getMetadata(ROLES_KEY, controller);
+}
+
+function methodRoles(controller: Function, methodName: string): string[] | undefined {
+  return Reflect.getMetadata(ROLES_KEY, controller.prototype[methodName]);
+}
+
 describe('silent auth/session and role-access regressions', () => {
-  describe('backend as source of truth for role', () => {
-    it('should reject requests where client claims a different role than the token user', async () => {
-      // This test documents the expected invariant:
-      // Backend must never trust a client-provided role claim (e.g. from localStorage or request body/header).
-      // Only the authenticated user's role from the token / session must be used.
-      //
-      // If a future change allows client role to influence authorization, this test (or a stronger variant) should fail.
-      expect(true).toBe(true); // Placeholder - real implementation would involve a guard or service test
+  describe('role decorator boundaries remain strict', () => {
+    it('keeps the admin controller strictly admin-only', () => {
+      expect(classRoles(AdminController)).toEqual(['ADMIN']);
     });
 
-    it('should treat disabled or restricted users according to current policy even if they have a valid token', () => {
-      // Documents expected behavior for disabled/restricted users with old tokens.
-      // Covered in existing auth-abuse and authorization-abuse tests, but explicitly called out here for regression.
-      expect(true).toBe(true);
+    it('keeps teacher submission review actions teacher-only', () => {
+      expect(methodRoles(SubmissionsController, 'review')).toEqual(['TEACHER']);
+    });
+
+    it('keeps student submission actions student-only', () => {
+      expect(methodRoles(SubmissionsController, 'submit')).toEqual(['STUDENT']);
+      expect(methodRoles(SubmissionsController, 'studentDetail')).toEqual(['STUDENT']);
     });
   });
 
-  describe('session and token authority', () => {
-    it('should reject access when no valid token is present, regardless of client-side session state', () => {
-      // This is the core of BUG-AUTH-001 / BUG-AUTH-002.
-      // Even if the frontend thinks the user is logged in (via mockAuth/localStorage),
-      // the backend must reject the request.
-      expect(true).toBe(true);
-    });
-
-    it('should not allow a student token to perform teacher or admin actions', () => {
-      // Direct API version of role isolation (complements the decorator checks in authorization-abuse.spec.ts)
-      expect(true).toBe(true);
-    });
-
-    it('should not allow a teacher token to perform admin-only actions', () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('client role tampering resistance', () => {
-    it('should ignore any client-provided role claim and use only the authenticated user role from the token', () => {
-      // This is the key regression for the "mockAuth in production" risk.
-      // Even if the frontend sends a role in the body or a custom header,
-      // the backend authorization must be based solely on the JWT / session user.
-      expect(true).toBe(true);
+  describe('client role claim isolation (regression for mockAuth risk)', () => {
+    it('documents that backend role authorization must ignore any client-provided role claim', () => {
+      // This test exists to make the invariant explicit.
+      // Real enforcement is covered in authorization-abuse.spec.ts (decorator checks) and JwtAuthGuard behavior.
+      // If RolesGuard or authorization logic ever starts reading role from request.body/headers (client claim),
+      // the existing authorization-abuse tests + this area should catch the regression.
+      // No production code change is made in this PR.
     });
   });
 });
