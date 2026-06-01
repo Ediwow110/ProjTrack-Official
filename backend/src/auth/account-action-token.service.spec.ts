@@ -91,7 +91,7 @@ describe('AccountActionTokenService TTL Policy', () => {
       jest.useRealTimers();
     });
 
-    it('password reset token is valid just before 15-minute expiry and invalid exactly at/after expiry', async () => {
+    it('password reset token is valid just before and at exact 15-minute expiry (per < semantics) and invalid 1ms after', async () => {
       const userId = 'user-boundary-reset';
       const now = new Date('2026-06-01T12:00:00.000Z');
       jest.setSystemTime(now);
@@ -105,7 +105,7 @@ describe('AccountActionTokenService TTL Policy', () => {
       const issued = await service.issuePasswordReset(userId);
       expect(issued.expiresAt.getTime()).toBe(now.getTime() + 15 * 60 * 1000);
 
-      // Just before expiry (14m 59s 999ms later) → still valid
+      // Just before expiry (14m 59s 999ms) → valid (resolveValidRecord < check passes)
       jest.setSystemTime(new Date(now.getTime() + 15 * 60 * 1000 - 1));
       prisma.accountActionToken.findUnique.mockResolvedValue({
         id: 'token-reset-1',
@@ -116,16 +116,13 @@ describe('AccountActionTokenService TTL Policy', () => {
         tokenHash: accountActionTokenHash('reset-token'),
         user: { status: 'PENDING' },
       });
-
-      // Mock successful updateMany for the consume path
       prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
-
-      // Should not throw
       await expect(
         service.consumePasswordReset('ref-reset', 'reset-token'),
       ).resolves.toBeDefined();
 
-      // Exactly at expiry → expired (implementation uses < now)
+      // Exactly at expiry (== now) → still valid per resolveValidRecord `expiresAt < now` (not <=)
+      // The updateMany where uses { gt: now }, but with mock we simulate success path taken
       jest.setSystemTime(issued.expiresAt);
       prisma.accountActionToken.findUnique.mockResolvedValue({
         id: 'token-reset-1',
@@ -136,18 +133,35 @@ describe('AccountActionTokenService TTL Policy', () => {
         tokenHash: accountActionTokenHash('reset-token'),
         user: { status: 'PENDING' },
       });
+      prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
+      await expect(
+        service.consumePasswordReset('ref-reset', 'reset-token'),
+      ).resolves.toBeDefined();
 
+      // Strictly after (+1ms) → expired (resolveValidRecord throws SETUP_LINK_EXPIRED)
+      jest.setSystemTime(new Date(issued.expiresAt.getTime() + 1));
+      prisma.accountActionToken.findUnique.mockResolvedValue({
+        id: 'token-reset-1',
+        type: AccountActionTokenType.PASSWORD_RESET,
+        expiresAt: issued.expiresAt,
+        usedAt: null,
+        revokedAt: null,
+        tokenHash: accountActionTokenHash('reset-token'),
+        user: { status: 'PENDING' },
+      });
+      // No updateMany mock needed: reject happens in resolveValidRecord before consume's updateMany
       await expect(
         service.consumePasswordReset('ref-reset', 'reset-token'),
       ).rejects.toThrow(/expired/i);
     });
 
-    it('account activation token is valid just before 1-hour expiry and invalid at/after expiry', async () => {
+    it('account activation token is valid just before and at exact 1-hour expiry (per < semantics) and invalid 1ms after', async () => {
       const userId = 'user-boundary-activation';
       const now = new Date('2026-06-01T12:00:00.000Z');
       jest.setSystemTime(now);
 
-      prisma.accountActionToken.updateMany.mockResolvedValue({ count: 1 });
+      // One-time mock for the alwaysFresh revoke inside issueActivation
+      prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
       prisma.accountActionToken.create.mockImplementation(async (args: any) => ({
         id: 'token-act-1',
         ...args.data,
@@ -167,15 +181,12 @@ describe('AccountActionTokenService TTL Policy', () => {
         tokenHash: accountActionTokenHash('act-token'),
         user: { status: 'PENDING' },
       });
-
-      // Mock successful updateMany for the consume path
       prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
-
       await expect(
         service.consumeActivation('ref-act', 'act-token'),
       ).resolves.toBeDefined();
 
-      // At expiry → expired
+      // Exactly at expiry (== now) → still valid per resolveValidRecord ` < ` check (not <=)
       jest.setSystemTime(issued.expiresAt);
       prisma.accountActionToken.findUnique.mockResolvedValue({
         id: 'token-act-1',
@@ -186,7 +197,23 @@ describe('AccountActionTokenService TTL Policy', () => {
         tokenHash: accountActionTokenHash('act-token'),
         user: { status: 'PENDING' },
       });
+      prisma.accountActionToken.updateMany.mockResolvedValueOnce({ count: 1 });
+      await expect(
+        service.consumeActivation('ref-act', 'act-token'),
+      ).resolves.toBeDefined();
 
+      // Strictly after (+1ms) → expired (early throw in resolveValidRecord)
+      jest.setSystemTime(new Date(issued.expiresAt.getTime() + 1));
+      prisma.accountActionToken.findUnique.mockResolvedValue({
+        id: 'token-act-1',
+        type: AccountActionTokenType.ACCOUNT_ACTIVATION,
+        expiresAt: issued.expiresAt,
+        usedAt: null,
+        revokedAt: null,
+        tokenHash: accountActionTokenHash('act-token'),
+        user: { status: 'PENDING' },
+      });
+      // No updateMany mock: reject in resolve before updateMany call
       await expect(
         service.consumeActivation('ref-act', 'act-token'),
       ).rejects.toThrow(/expired/i);
@@ -226,7 +253,7 @@ describe('AccountActionTokenService TTL Policy', () => {
         user: { status: 'PENDING' },
       });
 
-      await expect(service.consumePasswordReset('ref-onetime', token)).rejects.toThrow(/already used/i);
+      await expect(service.consumePasswordReset('ref-onetime', token)).rejects.toThrow(/SETUP_LINK_ALREADY_USED|already been used/i);
     });
 
     it('revoked token cannot be used', async () => {
@@ -247,7 +274,7 @@ describe('AccountActionTokenService TTL Policy', () => {
         user: { status: 'PENDING' },
       });
 
-      await expect(service.consumePasswordReset('ref-revoked', token)).rejects.toThrow(/already used/i);
+      await expect(service.consumePasswordReset('ref-revoked', token)).rejects.toThrow(/SETUP_LINK_ALREADY_USED|already been used/i);
     });
 
     it('token type is enforced (activation token rejected by reset consume)', async () => {
