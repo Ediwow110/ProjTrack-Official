@@ -35,13 +35,4 @@ describe('silent auth/session and role-access regressions', () => {
     });
   });
 
-  describe('client role claim isolation (regression for mockAuth risk)', () => {
-    it('documents that backend role authorization must ignore any client-provided role claim', () => {
-      // This test exists to make the invariant explicit.
-      // Real enforcement is covered in authorization-abuse.spec.ts (decorator checks) and JwtAuthGuard behavior.
-      // If RolesGuard or authorization logic ever starts reading role from request.body/headers (client claim),
-      // the existing authorization-abuse tests + this area should catch the regression.
-      // No production code change is made in this PR.
-    });
-  });
 });
