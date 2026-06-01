@@ -37,7 +37,7 @@ test.describe('mobile form UX smoke', () => {
       await expect(page.getByLabel(/^Password$/i)).toBeVisible();
       await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
       await page.getByRole('button', { name: /sign in/i }).click();
-      await expect(page.getByText(/required|enter/i).first()).toBeVisible();
+      await expect(page.getByText(/is required/i).first()).toBeVisible();
       await assertNoOverflow(page, loginPath);
     });
   }

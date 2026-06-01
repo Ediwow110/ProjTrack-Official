@@ -388,18 +388,18 @@ assert(!fs.existsSync(path.join(repoRoot, 'src/app/pages/auth/LoginSelector.tsx'
 const roleLoginPage = readRepo('src/app/pages/auth/RoleLoginPage.tsx');
 assert(!roleLoginPage.includes('Choose another portal'), 'Role login pages must not link to a portal chooser.');
 assert(!roleLoginPage.includes('to="/portals"'), 'Role login pages must not link to /portals.');
-assert(roleLoginPage.includes('Student Portal Login'), 'Student login page must keep the approved role-specific headline.');
-assert(roleLoginPage.includes('Teacher Portal Login'), 'Teacher login page must keep the approved role-specific headline.');
-assert(roleLoginPage.includes('Admin Portal Login'), 'Admin login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('STUDENT PORTAL LOGIN'), 'Student login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('TEACHER PORTAL LOGIN'), 'Teacher login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('ADMIN PORTAL LOGIN'), 'Admin login page must keep the approved role-specific headline.');
 
 const roleTheme = readRepo('src/app/lib/roleTheme.ts');
-assert(roleTheme.includes('teacher') && roleTheme.includes('#8b5cf6'), 'Teacher role theme must be purple.');
-assert(roleTheme.includes('admin') && roleTheme.includes('#ff7900'), 'Admin role theme must be orange.');
-assert(roleTheme.includes('student') && roleTheme.includes('#1d4ed8'), 'Student role theme must be blue.');
+assert(roleTheme.includes('teacher') && roleTheme.includes('#4DD4AC'), 'Teacher role theme must use brand mint (#4DD4AC).');
+assert(roleTheme.includes('admin') && roleTheme.includes('#4DD4AC'), 'Admin role theme must use brand mint (#4DD4AC).');
+assert(roleTheme.includes('student') && roleTheme.includes('#4DD4AC'), 'Student role theme must use brand mint (#4DD4AC).');
 
 const authLayout = readRepo('src/app/components/auth/AuthLayout.tsx');
-assert(authLayout.includes('<ProjTrackLogo') && authLayout.includes('role={role}'), 'Role login pages must use the shared role-colored ProjTrack logo.');
-assert(authLayout.includes('auth-starry-login'), 'Role login pages must keep the approved dark starry login shell.');
+assert(authLayout.includes('auth-hero-brand-lockup') && authLayout.includes('role={role}'), 'Role login pages must include the brand logo lockup with role-based coloring.');
+assert(authLayout.includes('auth-login-page'), 'Role login pages must keep the approved light login shell.');
 assert(!authLayout.includes('auth-role-tabs'), 'Separated role login pages must not render role tabs.');
 assert(!authLayout.includes('NavLink'), 'Separated role login pages must not include a role switcher.');
 

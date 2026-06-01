@@ -424,11 +424,11 @@ export function DataTableCard<T>({
                                     hasIcon
                                       ? isDangerAction
                                         ? "h-8 w-8 rounded-xl border border-rose-200/80 bg-rose-50/80 p-0 text-rose-700 shadow-none transition-colors hover:border-rose-300 hover:bg-rose-100 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/20"
-                                        : "portal-input h-8 w-8 rounded-xl border p-0 text-blue-700 shadow-none transition-colors hover:border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/12"
+                                        : "portal-input h-8 w-8 rounded-xl border p-0 text-brand-secondary shadow-none transition-colors hover:border-brand-primary/30 hover:bg-brand-primary/10 dark:text-brand-secondary dark:hover:border-brand-primary/40 dark:hover:bg-brand-primary/10"
                                       : "h-auto px-0",
                                     isDangerAction
                                       ? "text-rose-700 hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200"
-                                      : "text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200",
+                                      : "text-brand-secondary hover:text-brand-secondary dark:text-brand-secondary dark:hover:text-brand-secondary",
                                   )}
                                 >
                                   {inferredIcon ? <BootstrapIcon name={inferredIcon} tone={iconTone} size={15} /> : item.icon ? item.icon : label}

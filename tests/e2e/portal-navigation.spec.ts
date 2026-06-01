@@ -184,7 +184,7 @@ test("public entry points resolve to student login without portal chooser UI", a
   for (const route of ["/", "/login", "/portals"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/student\/login$/);
-    await expect(page.getByRole("heading", { name: /Welcome Back!/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Manage\. Submit\. Stay Ready\. Stay On Track\./i, level: 1 })).toBeVisible();
     await expect(page.getByText(/Student Portal Login/i)).toBeVisible();
     await expect(page.getByText(forbiddenChooserCopy)).toHaveCount(0);
     await expect(page.getByText(/^Teacher Portal$/i)).toHaveCount(0);

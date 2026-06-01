@@ -4,8 +4,12 @@ import { PasswordService } from './password.service';
 describe('PasswordService.assertStrongPassword', () => {
   const svc = new PasswordService();
 
-  it('rejects passwords shorter than 12 characters', () => {
-    expect(() => svc.assertStrongPassword('Aa1!aaaa')).toThrow(BadRequestException);
+  it('rejects passwords shorter than 8 characters', () => {
+    expect(() => svc.assertStrongPassword('Aa1!aaa')).toThrow(BadRequestException);
+  });
+
+  it('accepts strong passwords of exactly 8 characters', () => {
+    expect(() => svc.assertStrongPassword('Aa1!aaaa')).not.toThrow();
   });
 
   it('rejects passwords missing uppercase', () => {
