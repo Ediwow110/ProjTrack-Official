@@ -86,16 +86,19 @@ describe('sensitive-action audit-log regressions', () => {
 
   describe('submission review', () => {
     it('records SUBMISSION_REVIEWED audit event with correct actor and details when a teacher reviews a submission', async () => {
-      const { service, auditLogs, prisma } = buildSubmissionsService();
+      const { service, submissionRepository, auditLogs } = buildSubmissionsService();
 
-      prisma.submission.findUnique.mockResolvedValue({
+      const mockSubmission = {
         id: 'sub-1',
         title: 'Test Submission',
         status: 'SUBMITTED',
         studentId: 'student-1',
         subject: { id: 'subj-1', teacherId: 'teacher-1' },
         group: null,
-      });
+      };
+
+      submissionRepository.findSubmissionById.mockResolvedValue(mockSubmission);
+      submissionRepository.reviewSubmission.mockResolvedValue(mockSubmission);
 
       await service.review('sub-1', {
         status: 'GRADED',
