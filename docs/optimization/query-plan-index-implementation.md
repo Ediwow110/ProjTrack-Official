@@ -48,6 +48,53 @@ From `docs/optimization/system-optimization-audit.md` (Database section):
 
 **Conclusion from static review**: Do **not** add indexes for PendingUpload/EmailJob/AccountActionToken unless the extended checker shows clear Seq Scan problems.
 
+---
+
+## PR #116 CI Failure Diagnosis & Fix (2026-06-01)
+
+### Exact Failure (from GitHub Actions logs)
+- Workflow: Production Candidate Verification + Production Checks
+- Job: backend
+- Command: `npx prisma migrate deploy --schema prisma/schema.prisma`
+- Error: `P3018` — A migration failed to apply.
+- Database error code: `42P07`
+- Message: `ERROR: relation "Notification_userId_isRead_createdAt_idx" already exists`
+
+### Root Cause
+The index `Notification_userId_isRead_createdAt_idx` (and `AuditLog_actorUserId_createdAt_idx`) were **already created** in the CI test database by an earlier migration:
+- `20260514000100_school_scale_performance_indexes/migration.sql`
+
+That migration used `CREATE INDEX IF NOT EXISTS` for these two indexes.
+
+However, the Prisma schema on `main` at the time did **not** declare the `@@index` entries (the performance migration only touched the database, not the schema model definitions).
+
+PR #116 was the first to add the `@@index` declarations to the schema (correct and necessary for type safety and future tooling), but its accompanying migration used plain `CREATE INDEX` (not `IF NOT EXISTS`). When `prisma migrate deploy` ran in CI, the database already had the indexes → hard failure.
+
+`AuditLog_createdAt_idx` was new, but the failure occurred on the first duplicate.
+
+### Fix Applied
+Updated `backend/prisma/migrations/20260601093000_add_query_plan_audit_indexes/migration.sql` to use:
+
+```sql
+CREATE INDEX IF NOT EXISTS ...
+```
+
+for all three approved indexes.
+
+This makes the migration idempotent/safe in:
+- CI test databases (which have the prior performance indexes)
+- Production databases (which ran the May 14 performance migration)
+- Fresh databases (indexes will be created)
+
+No indexes were added or removed beyond the three user-approved ones.
+No behavior change. No other files touched.
+
+### Why This Is The Minimal Correct Fix
+- Matches the actual state of deployed databases.
+- Preserves the schema declarations (important for Prisma Client typing and future query-plan tooling).
+- Follows the same `IF NOT EXISTS` pattern already used in the prior performance migration.
+- Keeps the PR strictly within the approved scope.
+
 ## PHASE 7: Query-Plan Script Extensions (Completed in this PR)
 
 **File changed**: `backend/scripts/check-school-scale-query-plans.cjs`
