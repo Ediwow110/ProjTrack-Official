@@ -8,15 +8,75 @@ import { SubmissionsService } from '../../src/submissions/submissions.service';
  * These tests prove that privileged and security-sensitive actions
  * record audit events with the expected actor/action/module/target/result.
  *
- * Strategy: Mock the AuditLogRepository at the boundary and assert calls
- * from real service methods (e.g. SubmissionsService.review).
+ * Strategy: Use the project's standard buildSubmissionsService pattern
+ * and assert that auditLogs.record is called correctly.
  */
 
-function buildAuditLogRepositoryMock() {
-  return {
-    create: jest.fn(),
-    listAuditLogs: jest.fn(),
+function buildSubmissionsService(overrides: any = {}) {
+  const submissionRepository = {
+    findSubmissionById: jest.fn(),
+    reviewSubmission: jest.fn(),
+    ...overrides.submissionRepository,
   } as any;
+
+  const subjectRepository = {
+    findSubjectById: jest.fn(),
+    ...overrides.subjectRepository,
+  } as any;
+
+  const userRepository = {
+    findById: jest.fn(),
+    ...overrides.userRepository,
+  } as any;
+
+  const notificationRepository = {
+    create: jest.fn(),
+    ...overrides.notificationRepository,
+  } as any;
+
+  const auditLogs = {
+    record: jest.fn(),
+    ...overrides.auditLogs,
+  } as any;
+
+  const filesService = {
+    resolvePendingUploadsForSubmission: jest.fn(),
+    ...overrides.filesService,
+  } as any;
+
+  const mailService = {
+    queueTransactional: jest.fn(),
+    ...overrides.mailService,
+  } as any;
+
+  const prisma = {
+    submission: { findUnique: jest.fn() },
+    submissionEvent: { create: jest.fn() },
+    teacherProfile: { findUnique: jest.fn() },
+    studentProfile: { findUnique: jest.fn() },
+    enrollment: { findFirst: jest.fn() },
+    group: { findFirst: jest.fn() },
+    ...overrides.prisma,
+  } as any;
+
+  const access = {
+    requireTeacherCanReviewSubmission: jest.fn().mockResolvedValue(undefined),
+    ...overrides.access,
+  } as any;
+
+  const service = new SubmissionsService(
+    submissionRepository,
+    subjectRepository,
+    userRepository,
+    notificationRepository,
+    auditLogs,
+    filesService,
+    mailService,
+    prisma,
+    access,
+  );
+
+  return { service, submissionRepository, auditLogs, prisma, access };
 }
 
 describe('sensitive-action audit-log regressions', () => {
@@ -26,33 +86,8 @@ describe('sensitive-action audit-log regressions', () => {
 
   describe('submission review', () => {
     it('records SUBMISSION_REVIEWED audit event with correct actor and details when a teacher reviews a submission', async () => {
-      const auditLogRepository = buildAuditLogRepositoryMock();
+      const { service, auditLogs, prisma } = buildSubmissionsService();
 
-      // Minimal mocks for dependencies of SubmissionsService
-      const prisma = {
-        submission: { findUnique: jest.fn() },
-        submissionFile: { findMany: jest.fn() },
-        submissionEvent: { create: jest.fn() },
-        studentProfile: { findUnique: jest.fn() },
-        teacherProfile: { findUnique: jest.fn() },
-        subject: { findUnique: jest.fn() },
-        enrollment: { findFirst: jest.fn() },
-        group: { findUnique: jest.fn() },
-        groupMember: { findFirst: jest.fn() },
-      } as any;
-
-      const access = {
-        requireTeacherCanReviewSubmission: jest.fn().mockResolvedValue(undefined),
-      } as any;
-
-      const auditLogs = new AuditLogsService(auditLogRepository);
-      const mailer = { send: jest.fn() } as any;
-      const storage = { getSignedUrl: jest.fn() } as any;
-      const fileMalware = { scanBuffer: jest.fn() } as any;
-
-      const service = new SubmissionsService(prisma, access, auditLogs, mailer, storage, fileMalware);
-
-      // Mock repository to return a submission the teacher can review
       prisma.submission.findUnique.mockResolvedValue({
         id: 'sub-1',
         title: 'Test Submission',
@@ -69,7 +104,7 @@ describe('sensitive-action audit-log regressions', () => {
         actorUserId: 'teacher-user-1',
       });
 
-      expect(auditLogRepository.create).toHaveBeenCalledWith(
+      expect(auditLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({
           actorUserId: 'teacher-user-1',
           actorRole: 'TEACHER',
@@ -84,12 +119,9 @@ describe('sensitive-action audit-log regressions', () => {
   });
 
   describe('audit metadata safety', () => {
-    it('AuditLogsService.record accepts structured input without requiring secrets in details', () => {
-      const repo = buildAuditLogRepositoryMock();
+    it('AuditLogsService.record accepts structured input', () => {
+      const repo = { create: jest.fn(), listAuditLogs: jest.fn() } as any;
       const service = new AuditLogsService(repo);
-
-      // The service itself does not sanitize; the callers are responsible.
-      // This test anchors that the contract exists and is used.
       expect(typeof service.record).toBe('function');
     });
   });
