@@ -157,16 +157,13 @@ describe('status lifecycle validation regressions', () => {
 
       const where = buildDueEmailJobWhere({ type: EmailJobType.TRANSACTIONAL, now });
 
-      expect(where.status).toEqual({ in: [EmailJobStatus.QUEUED, EmailJobStatus.FAILED] });
-      expect(where.archivedAt).toBeNull();
-
-      // Explicitly assert that terminal / in-flight states are excluded
-      const allowed = where.status.in;
-      expect(allowed).not.toContain(EmailJobStatus.SENT);
-      expect(allowed).not.toContain(EmailJobStatus.DEAD);
-      expect(allowed).not.toContain(EmailJobStatus.PROCESSING);
-      expect(allowed).not.toContain(EmailJobStatus.CANCELLED);
-      expect(allowed).not.toContain(EmailJobStatus.PAUSED_LIMIT_REACHED);
+      // This matches the proven pattern from mail-worker-regressions.spec.ts
+      expect(where).toEqual({
+        archivedAt: null,
+        type: EmailJobType.TRANSACTIONAL,
+        status: { in: [EmailJobStatus.QUEUED, EmailJobStatus.FAILED] },
+        OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }],
+      });
     });
 
     it('buildDueEmailJobWhere excludes archived jobs regardless of status', () => {
@@ -175,6 +172,31 @@ describe('status lifecycle validation regressions', () => {
       const where = buildDueEmailJobWhere({ type: EmailJobType.BULK, now });
 
       expect(where.archivedAt).toBeNull();
+    });
+  });
+
+  // ============================================================
+  // Submission lifecycle status normalization & invalid value rejection
+  // ============================================================
+  describe('Submission lifecycle status validation', () => {
+    it('normalizeSubmissionLifecycleStatus turns completely invalid status strings into the safe DRAFT fallback', async () => {
+      // We import the pure normalizer to prove invalid user/controller input is sanitized
+      const { normalizeSubmissionLifecycleStatus } = await import('../../src/submissions/submission-lifecycle');
+
+      expect(normalizeSubmissionLifecycleStatus('INVALID_STATUS')).toBe('DRAFT');
+      expect(normalizeSubmissionLifecycleStatus('not_a_real_status')).toBe('DRAFT');
+      expect(normalizeSubmissionLifecycleStatus('garbage!!!')).toBe('DRAFT');
+      expect(normalizeSubmissionLifecycleStatus(null)).toBe('DRAFT');
+      expect(normalizeSubmissionLifecycleStatus(undefined)).toBe('DRAFT');
+    });
+
+    it('canTransitionSubmissionStatus rejects transitions that would only be possible via an invalid status value', async () => {
+      const { canTransitionSubmissionStatus } = await import('../../src/submissions/submission-lifecycle');
+
+      // From GRADED, the only allowed next state is REOPENED. Anything else (including garbage) must be rejected.
+      expect(canTransitionSubmissionStatus('GRADED', 'INVALID_STATUS')).toBe(false);
+      expect(canTransitionSubmissionStatus('GRADED', 'not_a_real_status')).toBe(false);
+      expect(canTransitionSubmissionStatus('GRADED', 'DRAFT')).toBe(false); // DRAFT is not a valid target from GRADED
     });
   });
 });
