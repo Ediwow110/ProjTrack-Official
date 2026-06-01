@@ -257,10 +257,10 @@ export function PortalMetricCard({
   > = {
     blue: {
       wrap:
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(239,246,255,0.92)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]",
-      iconWrap: "bg-blue-100 dark:bg-blue-500/15",
-      iconColor: "text-blue-700 dark:text-blue-300 dark:text-blue-200",
-      hintColor: "text-blue-700/70 dark:text-blue-200/70",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(247,248,250,0.94)_100%)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]",
+      iconWrap: "bg-[rgba(77,212,172,0.12)]",
+      iconColor: "text-[var(--role-accent-strong)]",
+      hintColor: "text-slate-500 dark:text-slate-400",
     },
     teal: {
       wrap:

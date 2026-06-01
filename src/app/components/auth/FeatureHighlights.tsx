@@ -24,7 +24,7 @@ export function FeatureHighlights({ features }: { features: AuthFeature[] }) {
             className="auth-feature-card"
           >
             <div className="auth-feature-icon" aria-hidden="true">
-              <FeatureIcon size={26} strokeWidth={1.85} />
+              <FeatureIcon size={22} strokeWidth={1.6} />
             </div>
             <div className="auth-feature-label">
               <span>{feature.label}</span>

@@ -51,7 +51,7 @@ test('home route lands directly on the student login portal', async ({ page }) =
   await page.goto('/');
   await page.waitForURL(/\/student\/login$/);
   await assertNoViteOverlay(page);
-  await expect(page.getByRole('heading', { name: /Welcome Back!/i, level: 2 })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /Manage\. Submit\. Stay Ready\. Stay On Track\./i, level: 1 })).toBeVisible({
     timeout: 60_000,
   });
   await expect(page.getByText(/Student Portal Login/i)).toBeVisible();
@@ -61,7 +61,7 @@ test('protected routes redirect unauthenticated users to the matching login page
   await page.goto('/admin/dashboard');
   await expect(page).toHaveURL(/\/admin\/login$/);
   await assertNoViteOverlay(page);
-  await expect(page.getByRole('heading', { name: /Welcome Back!/i, level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Manage\. Monitor\. Control Operations\. Securely\./i, level: 1 })).toBeVisible();
   await expect(page.getByText(/Admin Portal Login/i)).toBeVisible();
 });
 

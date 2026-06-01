@@ -1,7 +1,7 @@
 export const BRAND_NAME = "ProjTrack";
 export const DEFAULT_FAVICON_PATH = "/favicon.svg";
-export const DEFAULT_LOGO_PATH: string | null = null;
-export const DEFAULT_ICON_PATH: string | null = null;
+export const DEFAULT_LOGO_PATH: string | null = "/branding/projtrack-system-title-clean.png";
+export const DEFAULT_ICON_PATH: string | null = "/branding/projtrack-logo-clean.png";
 export const BRANDING_UPLOAD_MAX_BYTES = 2 * 1024 * 1024;
 
 export type BrandingAssetKind = "logo" | "icon" | "favicon";

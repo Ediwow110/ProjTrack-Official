@@ -41,10 +41,8 @@ export default function ForgotPasswordPage() {
         <Link to={backTarget} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
           <ArrowLeft size={15} /> Back to login
         </Link>
-        <ProjTrackLogo role={logoRole} subtitle="Password Assistance" className="max-w-full" />
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900">Forgot password</h1>
-          <p className="text-sm text-slate-500 mt-2">Request password instructions for your PROJTRACK account.</p>
         </div>
         {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
         {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 inline-flex items-center gap-2"><CheckCircle2 size={15} /> {message}</div>}
@@ -56,7 +54,7 @@ export default function ForgotPasswordPage() {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-transparent outline-none text-sm text-slate-800" placeholder="you@school.edu.ph" />
             </div>
           </label>
-          <button disabled={!email || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 disabled:opacity-60">
+          <button disabled={!email || submitting} type="submit" className="w-full rounded-2xl px-4 py-3.5 bg-brand-secondary text-white text-sm font-semibold hover:bg-brand-ink disabled:opacity-60">
             {submitting ? "Sending..." : "Send instructions"}
           </button>
         </form>
