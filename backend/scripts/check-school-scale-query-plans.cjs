@@ -154,6 +154,48 @@ async function main() {
     console.log('skipped: no notification user sample found');
   }
 
+  // --- Extended checks for optimization audit (perf/query-plan-index-audit) ---
+
+  // AuditLog - very high write volume, admin activity views
+  const auditActorId = await sampleValue('SELECT "actorUserId" AS value FROM "AuditLog" WHERE "actorUserId" IS NOT NULL LIMIT 1');
+  if (auditActorId) {
+    warnings += Number(await explain(
+      'audit log by actor recent activity',
+      'SELECT "id", "createdAt", "action", "module" FROM "AuditLog" WHERE "actorUserId" = $1 ORDER BY "createdAt" DESC LIMIT 100',
+      [auditActorId],
+    ));
+  } else {
+    console.log('\naudit log by actor recent activity');
+    console.log('skipped: no audit actor sample found');
+  }
+
+  // Global recent audit log (admin view)
+  warnings += Number(await explain(
+    'audit log global recent (admin view)',
+    'SELECT "id", "createdAt", "actorUserId", "action", "module" FROM "AuditLog" ORDER BY "createdAt" DESC LIMIT 100',
+    [],
+  ));
+
+  // PendingUpload expiry cleanup path
+  warnings += Number(await explain(
+    'pending upload expiry cleanup',
+    'SELECT "id", "storageKey" FROM "PendingUpload" WHERE "status" = \'PENDING\' AND "expiresAt" < NOW() ORDER BY "expiresAt" ASC LIMIT 50',
+    [],
+  ));
+
+  // AccountActionToken expiry + lookup patterns
+  const actionTokenUser = await sampleValue('SELECT "userId" AS value FROM "AccountActionToken" WHERE "userId" IS NOT NULL LIMIT 1');
+  if (actionTokenUser) {
+    warnings += Number(await explain(
+      'account action token active for user',
+      'SELECT "id", "type", "publicRef", "expiresAt" FROM "AccountActionToken" WHERE "userId" = $1 AND "usedAt" IS NULL AND "revokedAt" IS NULL AND "expiresAt" > NOW() ORDER BY "createdAt" DESC LIMIT 10',
+      [actionTokenUser],
+    ));
+  } else {
+    console.log('\naccount action token active for user');
+    console.log('skipped: no account action token user sample found');
+  }
+
   console.log('\nSchool-scale query-plan check complete');
   console.log(`hot_table_seq_scan_warnings: ${warnings}`);
   if (warnings > 0 && process.env.FAIL_ON_QUERY_PLAN_WARNING === 'true') {

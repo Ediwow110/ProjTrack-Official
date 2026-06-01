@@ -351,6 +351,8 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead, createdAt])
 }
 
 model EmailJob {
@@ -463,6 +465,9 @@ model AuditLog {
   afterValue  String?
   createdAt   DateTime @default(now())
   actor       User?    @relation("actorAuditEvents", fields: [actorUserId], references: [id])
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model AuthSession {
