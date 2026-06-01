@@ -1265,7 +1265,7 @@ export default function StudentsPage() {
               </p>
             ) : null}
           </div>
-          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-sm text-blue-800 md:col-span-2 dark:border-blue-500/30 dark:bg-blue-500/12 dark:text-blue-100">
+          <div className="rounded-xl border border-brand-primary/30 dark:border-brand-primary/25 bg-brand-primary/10 dark:bg-brand-primary/10 px-4 py-3 text-sm text-brand-secondary md:col-span-2 dark:text-brand-secondary">
             New students stay visible in rosters as <span className="font-semibold">Pending Activation</span> until they receive and complete account setup.
           </div>
           {createState.error ? (
@@ -1309,8 +1309,8 @@ export default function StudentsPage() {
           <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-5 dark:border-slate-700 dark:bg-slate-900/70">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15 dark:bg-blue-500/12">
-                  <FileSpreadsheet size={18} className="text-blue-700 dark:text-blue-300 dark:text-blue-200" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-primary/10 dark:bg-brand-primary/10">
+                  <FileSpreadsheet size={18} className="text-brand-secondary dark:text-brand-secondary" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -1351,7 +1351,7 @@ export default function StudentsPage() {
             </div>
           ) : null}
 
-          <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 px-4 py-3 text-xs text-blue-900 dark:text-blue-100 dark:border-blue-500/35 dark:bg-blue-500/12">
+          <div className="rounded-xl border border-brand-primary/30 dark:border-brand-primary/25 bg-brand-primary/10 dark:bg-brand-primary/10 px-4 py-3 text-xs text-brand-secondary dark:text-brand-secondary">
             Course Code must match an existing Course / Program. Year Level must already exist under that Course / Program. Section must already exist under the selected Academic Year, Course / Program, and Year Level. If Academic Year is blank, the active academic year is used only when that match is safe.
           </div>
 
@@ -1373,7 +1373,7 @@ export default function StudentsPage() {
                     <p
                       className={`mt-1 text-2xl font-bold ${
                         item.tone === "blue"
-                          ? "text-blue-800 dark:text-blue-200"
+                          ? "text-brand-secondary dark:text-brand-secondary"
                           : item.tone === "emerald"
                             ? "text-emerald-600 dark:text-emerald-300"
                             : "text-rose-600 dark:text-rose-300"
@@ -1484,7 +1484,7 @@ export default function StudentsPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Download Scope</label>
             <select
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/20 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-brand-primary/40 dark:focus:ring-brand-primary/20"
               value={downloadOption}
               onChange={(e) => setDownloadOption(e.target.value)}
             >
@@ -1499,7 +1499,7 @@ export default function StudentsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Year Level</label>
               <select
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/20 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-brand-primary/40 dark:focus:ring-brand-primary/20"
                 value={downloadYear}
                 onChange={(e) => setDownloadYear(e.target.value)}
               >
@@ -1520,7 +1520,7 @@ export default function StudentsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Section</label>
               <select
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/20 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-brand-primary/40 dark:focus:ring-brand-primary/20"
                 value={downloadSection}
                 onChange={(e) => setDownloadSection(e.target.value)}
               >
@@ -1603,7 +1603,7 @@ function Field({
         value={value}
         type={type}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        className="w-full rounded-[var(--radius-control)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-brand-primary/40 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
       />
     </div>
   );
