@@ -1,6 +1,5 @@
-import { AuditLogsService } from '../../src/audit-logs/audit-logs.service';
-import { AuditLogRepository } from '../../src/repositories/audit-log.repository';
 import { SubmissionsService } from '../../src/submissions/submissions.service';
+import { ForbiddenException } from '@nestjs/common';
 
 /**
  * Sensitive-action audit-log regression tests (BUG-AUDIT-001).
@@ -86,7 +85,16 @@ describe('sensitive-action audit-log regressions', () => {
 
   describe('submission review', () => {
     it('records SUBMISSION_REVIEWED audit event with correct actor and details when a teacher reviews a submission', async () => {
-      const { service, submissionRepository, auditLogs } = buildSubmissionsService();
+      const { service, submissionRepository, auditLogs } = buildSubmissionsService({
+        prisma: {
+          systemSetting: {
+            findFirst: jest.fn().mockResolvedValue({
+              classroomActivityEmailsEnabled: true,
+              classroomActivitySystemNotificationsEnabled: true,
+            }),
+          },
+        },
+      });
 
       const mockSubmission = {
         id: 'sub-1',
@@ -118,14 +126,65 @@ describe('sensitive-action audit-log regressions', () => {
           result: 'Success',
         }),
       );
+
+      // Sensitive metadata exclusion: SUBMISSION_REVIEWED audit must never contain secrets/tokens/passwords
+      // even if future code changes attempt to pass them via details/afterValue/etc.
+      const recorded = auditLogs.record.mock.calls[0][0];
+      const sensitiveKeys = ['password', 'token', 'secret', 'resetToken', 'activationToken', 'raw', 'authorization', 'cookie'];
+      for (const key of sensitiveKeys) {
+        expect(recorded).not.toHaveProperty(key);
+      }
+      if (recorded.details) {
+        expect(String(recorded.details)).not.toMatch(/password|token|secret|reset|activation/i);
+      }
+      if (recorded.afterValue) {
+        expect(String(recorded.afterValue)).not.toMatch(/password|token|secret|reset|activation/i);
+      }
+      if (recorded.beforeValue) {
+        expect(String(recorded.beforeValue)).not.toMatch(/password|token|secret|reset|activation/i);
+      }
+    });
+
+    it('does not record a SUBMISSION_REVIEWED success audit when teacher authorization check fails', async () => {
+      const access = {
+        requireTeacherCanReviewSubmission: jest.fn().mockRejectedValue(new ForbiddenException('Not allowed to review this submission')),
+      } as any;
+
+      const { service, submissionRepository, auditLogs } = buildSubmissionsService({
+        access,
+        prisma: {
+          systemSetting: {
+            findFirst: jest.fn().mockResolvedValue({
+              classroomActivityEmailsEnabled: true,
+              classroomActivitySystemNotificationsEnabled: true,
+            }),
+          },
+        },
+      });
+
+      const mockSubmission = {
+        id: 'sub-1',
+        title: 'Test Submission',
+        status: 'SUBMITTED',
+        studentId: 'student-1',
+        subject: { id: 'subj-1', teacherId: 'teacher-1' },
+        group: null,
+      };
+
+      submissionRepository.findSubmissionById.mockResolvedValue(mockSubmission);
+
+      await expect(
+        service.review('sub-1', {
+          status: 'GRADED',
+          grade: 85,
+          feedback: 'Good work',
+          actorUserId: 'unauthorized-teacher',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      // No success audit on auth failure path
+      expect(auditLogs.record).not.toHaveBeenCalled();
     });
   });
 
-  describe('audit metadata safety', () => {
-    it('AuditLogsService.record accepts structured input', () => {
-      const repo = { create: jest.fn(), listAuditLogs: jest.fn() } as any;
-      const service = new AuditLogsService(repo);
-      expect(typeof service.record).toBe('function');
-    });
-  });
 });
