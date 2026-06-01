@@ -388,9 +388,9 @@ assert(!fs.existsSync(path.join(repoRoot, 'src/app/pages/auth/LoginSelector.tsx'
 const roleLoginPage = readRepo('src/app/pages/auth/RoleLoginPage.tsx');
 assert(!roleLoginPage.includes('Choose another portal'), 'Role login pages must not link to a portal chooser.');
 assert(!roleLoginPage.includes('to="/portals"'), 'Role login pages must not link to /portals.');
-assert(roleLoginPage.includes('Student Portal Login'), 'Student login page must keep the approved role-specific headline.');
-assert(roleLoginPage.includes('Teacher Portal Login'), 'Teacher login page must keep the approved role-specific headline.');
-assert(roleLoginPage.includes('Admin Portal Login'), 'Admin login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('STUDENT PORTAL LOGIN'), 'Student login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('TEACHER PORTAL LOGIN'), 'Teacher login page must keep the approved role-specific headline.');
+assert(roleLoginPage.includes('ADMIN PORTAL LOGIN'), 'Admin login page must keep the approved role-specific headline.');
 
 const roleTheme = readRepo('src/app/lib/roleTheme.ts');
 assert(roleTheme.includes('teacher') && roleTheme.includes('#4DD4AC'), 'Teacher role theme must use brand mint (#4DD4AC).');
