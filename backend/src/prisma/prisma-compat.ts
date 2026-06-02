@@ -49,6 +49,23 @@ export const DataDeletionRequestStatus = {
 export type DataDeletionRequestStatus =
   (typeof DataDeletionRequestStatus)[keyof typeof DataDeletionRequestStatus];
 
+export const DataDeletionExecutionStatus = {
+  DRY_RUN_PENDING: 'DRY_RUN_PENDING',
+  DRY_RUN_STARTED: 'DRY_RUN_STARTED',
+  DRY_RUN_COMPLETED: 'DRY_RUN_COMPLETED',
+  BACKUP_REQUIRED: 'BACKUP_REQUIRED',
+  BACKUP_VERIFIED: 'BACKUP_VERIFIED',
+  EXECUTION_PENDING: 'EXECUTION_PENDING',
+  EXECUTION_STARTED: 'EXECUTION_STARTED',
+  EXECUTION_COMPLETED: 'EXECUTION_COMPLETED',
+  EXECUTION_FAILED: 'EXECUTION_FAILED',
+  RESTORE_REQUIRED: 'RESTORE_REQUIRED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type DataDeletionExecutionStatus =
+  (typeof DataDeletionExecutionStatus)[keyof typeof DataDeletionExecutionStatus];
+
 export type PrismaJsonValue = Record<string, unknown>;
 export type PrismaEmailJobWhereInput = Record<string, unknown>;
 

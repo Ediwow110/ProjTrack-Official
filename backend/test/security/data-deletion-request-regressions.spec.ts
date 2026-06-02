@@ -228,4 +228,103 @@ describe('data-deletion-request regressions', () => {
       expect(true).toBe(true);
     });
   });
+
+  describe('execution worker safety (PR E)', () => {
+    function buildExecutionService(overrides: any = {}) {
+      const prisma: any = {
+        dataDeletionRequest: {
+          findUnique: jest.fn(),
+        },
+        dataDeletionExecution: {
+          findUnique: jest.fn(),
+          create: jest.fn(),
+          update: jest.fn(),
+        },
+        backupRun: {
+          findUnique: jest.fn(),
+        },
+        ...overrides.prisma,
+      };
+      const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
+      const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
+      return { service, prisma, auditLogs };
+    }
+
+    it('cannot plan dry-run for non-APPROVED request', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionRequest: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'r1', status: 'PENDING' }),
+          },
+        },
+      });
+      await expect(service.getOrCreateExecutionForRequest('r1')).rejects.toThrow(/APPROVED/);
+    });
+
+    it('dry-run is idempotent (returns existing if present)', async () => {
+      const existing = { id: 'e1', requestId: 'r2' };
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionRequest: { findUnique: jest.fn().mockResolvedValue({ id: 'r2', status: 'APPROVED' }) },
+          dataDeletionExecution: { findUnique: jest.fn().mockResolvedValue(existing), create: jest.fn() },
+        },
+      });
+      const res = await service.getOrCreateExecutionForRequest('r2');
+      expect(res).toEqual(existing);
+    });
+
+    it('non-dry-run blocked when feature flag disabled (default)', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'e1', requestId: 'r3', status: 'BACKUP_VERIFIED', backupRunId: 'b1' }),
+          },
+        },
+      });
+      // default env not set, should block
+      await expect(service.attemptExecution('e1')).rejects.toThrow(/disabled/);
+    });
+
+    it('backup verification requires COMPLETED backup', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: { findUnique: jest.fn().mockResolvedValue({ id: 'e1', requestId: 'r4' }) },
+          backupRun: { findUnique: jest.fn().mockResolvedValue({ id: 'b1', status: 'FAILED' }) },
+        },
+      });
+      await expect(service.verifyBackup('e1', { backupRunId: 'b1' })).rejects.toThrow(/COMPLETED/);
+    });
+
+    it('audit is recorded on key paths (mocked)', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'r5',
+              status: 'APPROVED',
+              requester: {
+                studentProfile: null,
+                teacherProfile: null,
+              },
+            }),
+          },
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e5',
+              requestId: 'r5',
+              status: 'DRY_RUN_PENDING',
+              dryRun: true,
+              request: { id: 'r5', status: 'APPROVED' },
+            }),
+            update: jest
+              .fn()
+              .mockResolvedValueOnce({ id: 'e5', status: 'DRY_RUN_STARTED', requestId: 'r5' })
+              .mockResolvedValueOnce({ id: 'e5', status: 'DRY_RUN_COMPLETED', requestId: 'r5' }),
+          },
+        },
+      });
+      await service.startDryRun('e5');
+      expect(auditLogs.record).toHaveBeenCalled();
+    });
+  });
 });
