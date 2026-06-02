@@ -285,6 +285,8 @@ Phase 7B may only implement code if all of the following are true:
 - evidence that expected data was deleted, anonymized, retained, or left untouched per the classification table
 - restore drill evidence
 - no production activation
+- staging/test harness must fail closed outside `APP_ENV` / `NODE_ENV` = `staging` or `test`
+- any restore drill target must be disposable and must fail closed on production-like URLs
 
 ### J. Future Phase 7D production activation contract
 
