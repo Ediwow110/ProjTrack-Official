@@ -33,6 +33,11 @@ export default function AdminDataDeletionRequests() {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Phase 5 dry-run execution (dry-run / verify only; destructive disabled per governance skill)
+  const [executionTarget, setExecutionTarget] = useState<DataDeletionRequestRecord | null>(null);
+  const [executionData, setExecutionData] = useState<any>(null);
+  const [backupRunIdInput, setBackupRunIdInput] = useState("");
+
   const { data, loading, error, reload } = useAsyncData(
     () => adminCatalogService.getDataDeletionRequests({ status: statusFilter === "All" ? undefined : statusFilter }),
     [statusFilter]
@@ -79,13 +84,70 @@ export default function AdminDataDeletionRequests() {
     }
   }
 
+  async function openExecution(r: DataDeletionRequestRecord) {
+    setExecutionTarget(r);
+    setExecutionData(null);
+    setBackupRunIdInput("");
+    setFeedback(null);
+    setBusy(true);
+    try {
+      const ex = await (adminCatalogService as any).getDataDeletionExecution(r.id);
+      setExecutionData(ex);
+    } catch (e: any) {
+      setFeedback(e?.message || "Failed to load execution");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doDryRun() {
+    if (!executionTarget) return;
+    setBusy(true);
+    try {
+      const res = await (adminCatalogService as any).triggerDryRun(executionTarget.id);
+      setFeedback("Dry-run triggered (no data deleted).");
+      // reload execution
+      const ex = await (adminCatalogService as any).getDataDeletionExecution(executionTarget.id);
+      setExecutionData(ex);
+      await reload();
+    } catch (e: any) {
+      setFeedback(e?.message || "Dry-run failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doVerifyBackup() {
+    if (!executionTarget || !backupRunIdInput) return;
+    setBusy(true);
+    try {
+      const res = await (adminCatalogService as any).verifyBackup(executionTarget.id, { backupRunId: backupRunIdInput });
+      setFeedback("Backup verified for execution (dry-run only).");
+      const ex = await (adminCatalogService as any).getDataDeletionExecution(executionTarget.id);
+      setExecutionData(ex);
+      await reload();
+    } catch (e: any) {
+      setFeedback(e?.message || "Verify backup failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function closeExecution() {
+    if (!busy) {
+      setExecutionTarget(null);
+      setExecutionData(null);
+      setBackupRunIdInput("");
+    }
+  }
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center gap-3">
         <ShieldAlert className="text-slate-600" />
         <div>
           <div className="text-xl font-semibold">Data Deletion Requests</div>
-          <div className="text-sm text-slate-500">Admin review — metadata only. Deletion not implemented.</div>
+          <div className="text-sm text-slate-500">Admin review — metadata only. Dry-run execution supported. Destructive execution is disabled in this release. Dry-run does not delete, anonymize, or restore data. Backup verification does not execute deletion.</div>
         </div>
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}><RefreshCcw size={14} /> Refresh</Button>
       </div>
@@ -101,7 +163,7 @@ export default function AdminDataDeletionRequests() {
       {error && <div className="text-sm p-2 bg-rose-50 border border-rose-200 rounded">{String(error)}</div>}
 
       <div className="overflow-auto border rounded">
-        <table className="w-full text-sm min-w-[900px]">
+        <table className="w-full text-sm min-w-[1000px]">
           <thead>
             <tr className="bg-slate-50 text-left">
               <th className="p-2">ID</th>
@@ -109,12 +171,13 @@ export default function AdminDataDeletionRequests() {
               <th className="p-2">Status</th>
               <th className="p-2">Created</th>
               <th className="p-2">Reviewed</th>
+              <th className="p-2">Execution</th>
               <th className="p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={6} className="p-4">Loading…</td></tr> :
-             filtered.length === 0 ? <tr><td colSpan={6} className="p-4 text-slate-500">No requests.</td></tr> :
+            {loading ? <tr><td colSpan={7} className="p-4">Loading…</td></tr> :
+             filtered.length === 0 ? <tr><td colSpan={7} className="p-4 text-slate-500">No requests.</td></tr> :
              filtered.map(r => (
               <tr key={r.id} className="border-t">
                 <td className="p-2 font-mono text-xs">{r.id.slice(0,10)}…</td>
@@ -122,12 +185,17 @@ export default function AdminDataDeletionRequests() {
                 <td className="p-2"><span className={`px-2 py-0.5 rounded border text-xs ${statusClass(r.status)}`}>{r.status}</span></td>
                 <td className="p-2 text-xs">{formatDate(r.createdAt)}</td>
                 <td className="p-2 text-xs">{formatDate(r.reviewedAt)}</td>
+                <td className="p-2 text-xs">
+                  {r.status === "APPROVED" ? "Ready (dry-run)" : "—"}
+                </td>
                 <td className="p-2">
                   {r.status === "PENDING" ? (
                     <>
                       <Button size="sm" variant="outline" onClick={()=>setApproveTarget(r)} className="mr-1">Approve</Button>
                       <Button size="sm" variant="outline" onClick={()=>{setDenyTarget(r); setDenyNote("");}}>Deny</Button>
                     </>
+                  ) : r.status === "APPROVED" ? (
+                    <Button size="sm" variant="outline" onClick={() => openExecution(r)}>Execution (dry-run)</Button>
                   ) : "—"}
                 </td>
               </tr>
@@ -160,6 +228,47 @@ export default function AdminDataDeletionRequests() {
         <div>
           <div className="mb-2 text-sm">Metadata only. No data affected.</div>
           <textarea value={denyNote} onChange={e=>setDenyNote(e.target.value)} placeholder="Review note (optional)" className="w-full border rounded p-2 text-sm" rows={3} />
+        </div>
+      </AppModal>
+
+      {/* Phase 5: Execution modal - dry-run and backup verify only. Strict safety copy per prompt. */}
+      <AppModal open={!!executionTarget} onOpenChange={o => { if (!busy) closeExecution(); }} title="Execution (Dry-Run)" size="lg"
+        footer={<>
+          <Button variant="outline" onClick={closeExecution} disabled={busy}>Close</Button>
+          {executionTarget?.status === "APPROVED" && (
+            <>
+              <Button onClick={doDryRun} disabled={busy || !!executionData?.status && executionData.status !== 'DRY_RUN_PENDING'}>Run Dry-Run</Button>
+              <div className="flex items-center gap-2">
+                <input placeholder="backupRunId for verify" value={backupRunIdInput} onChange={e=>setBackupRunIdInput(e.target.value)} className="border rounded px-2 py-1 text-sm w-48" />
+                <Button onClick={doVerifyBackup} disabled={busy || !backupRunIdInput}>Verify Backup</Button>
+              </div>
+            </>
+          )}
+        </>}>
+        <div className="text-sm space-y-3">
+          <div className="font-semibold text-amber-700">Dry-run does not delete, anonymize, or restore data. Destructive execution is disabled in this release. Backup verification does not execute deletion. Production activation requires a separate approved PR.</div>
+          <div>Request: {executionTarget?.id} — Status: {executionTarget?.status}</div>
+          {busy && <div>Loading...</div>}
+          {executionData && (
+            <div className="space-y-2 border p-2 rounded bg-slate-50">
+              <div>Execution ID: {executionData.id} | Status: <span className="font-mono">{executionData.status}</span> | Dry-run: {String(executionData.dryRun)}</div>
+              {executionData.backupRunId && <div>Backup: {executionData.backupRunId} verified at {formatDate(executionData.backupVerifiedAt)}</div>}
+              {executionData.executionPlanJson && (
+                <div>
+                  <div className="font-medium">Plan:</div>
+                  <pre className="text-xs overflow-auto max-h-48 bg-white p-1 border">{JSON.stringify(executionData.executionPlanJson, null, 2)}</pre>
+                </div>
+              )}
+              {executionData.executionResultJson && (
+                <div>
+                  <div className="font-medium">Result:</div>
+                  <pre className="text-xs overflow-auto max-h-48 bg-white p-1 border">{JSON.stringify(executionData.executionResultJson, null, 2)}</pre>
+                </div>
+              )}
+              {executionData.executionError && <div className="text-rose-600">Error: {executionData.executionError}</div>}
+            </div>
+          )}
+          {!executionData && !busy && <div>No execution record yet. Use actions below for APPROVED requests.</div>}
         </div>
       </AppModal>
     </div>
