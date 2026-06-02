@@ -11,6 +11,11 @@
  * and that none of them are empty (configurable). Exits 0 only when every
  * verification passes.
  *
+ * Phase 6 hardening (Backup / Restore Drill): default tables now include
+ * DataDeletionRequest and DataDeletionExecution so that backup/restore drills
+ * cover data deletion governance metadata (for future restore of requests/executions
+ * under the backup-first policy). See runbook section 16.
+ *
  * Required env:
  *   - BACKUP_DRILL_SOURCE_DATABASE_URL  (read-only is fine)
  *   - BACKUP_DRILL_TARGET_DATABASE_URL  (will be CLOBBERED)
@@ -70,7 +75,7 @@ if (!DISPOSABLE_HINTS.test(TARGET)) {
 }
 
 const EXPECTED_TABLES = (process.env.BACKUP_DRILL_EXPECTED_TABLES ||
-  'User,StudentProfile,TeacherProfile,Submission,SubjectSection,EmailJob,BackupRun')
+  'User,StudentProfile,TeacherProfile,Submission,SubjectSection,EmailJob,BackupRun,DataDeletionRequest,DataDeletionExecution')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);

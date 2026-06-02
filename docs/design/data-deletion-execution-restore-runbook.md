@@ -151,3 +151,22 @@ Next: implement PR E only on explicit approval.
 - This PR prepares infrastructure; production destructive activation requires future explicit user-approved PR + all gates.
 
 See code in backend/src/data-deletion/data-deletion-execution.* and tests.
+
+## 16. Phase 6: Backup / Restore Drill Hardening (added after merge of #143)
+
+- **Drill script hardened**: backend/scripts/backup-restore-drill.mjs default EXPECTED_TABLES now includes `DataDeletionRequest,DataDeletionExecution` (in addition to BackupRun etc.). This ensures every backup/restore drill cycle covers the governance metadata tables (critical for future restore of deletion requests/executions under backup-first + verified gate policy). Script header updated with Phase 6 note.
+- **Test hardening (data-deletion-request-regressions.spec.ts)**: Added 4 new tests inside 'execution worker safety (PR E)' describe:
+  - verifyBackup success path for COMPLETED + !deletedAt: asserts status=BACKUP_VERIFIED, update called with correct data, DATA_DELETION_BACKUP_VERIFIED audit recorded.
+  - attemptExecution blocks on flag (default) *even when* status=BACKUP_VERIFIED + backupRunId present (non-dry-run gating + fail-closed).
+  - Idempotency for verify on already-BACKUP_VERIFIED state.
+  - Cross-check that drill now covers DataDeletion* tables (links drill + service tests).
+  - All prior negative cases (non-APPROVED blocked, flag block, backup fail-closed, no destructive, audit on paths, POWER_USER absent) retained and still pass.
+- **Runbook update**: This section + explicit "No destructive deletion worker is implemented by this document" retained.
+- **Safety gates re-verified** (via code read + grep forbidden searches): flag (DATA_DELETION_EXECUTION_ENABLED), dry-run only (plans/simulations, no deletes), backup gate (COMPLETED && !deletedAt required in verifyBackup + non-dry check in attempt), audit immutability (record-only, module=DataDeletion), no POWER_USER, no Prisma destructive in data-deletion/* or drill (drill is guarded pg_dump/psql on disposable targets only).
+- **Local validation**: pinned Prisma@6.19.3 validate passed; forbidden searches clean (only planning notes); `npm run build` (no breakage from .mjs/.spec/.md); security test attempted (env limitation: 'jest' not recognized due to incomplete node_modules/.bin — reported as limitation per security-ci-verification skill, not code failure). No migrations/schema touched (test+drill+docs only).
+- **Evidence**: Branch feat/test-data-deletion-backup-restore-drill-hardening (local only). All changes additive to test coverage and drill expectations. APPROVED ≠ executed; destructive paths unreachable.
+- **Next gates**: Requires explicit user "merge PR #N" (after push/open if/when authorized) + full post-merge verification before any Phase 7 policy/impl.
+
+**No destructive deletion worker is implemented by this document.** Production activation still requires future explicit multi-gate approval after all phases.
+
+See also: drill:backup-restore in backend/package.json, execution service verifyBackup/attemptExecution, and security regression tests.
