@@ -61,6 +61,7 @@ const AdminSystemHealth = lazy(() => import("./pages/admin/SystemHealth"));
 const AdminReleaseStatus = lazy(() => import("./pages/admin/ReleaseStatus"));
 const AdminBootstrapGuide = lazy(() => import("./pages/admin/BootstrapGuide"));
 const AdminProfile = lazy(() => import("./pages/admin/Profile"));
+const AdminDataDeletionRequests = lazy(() => import("./pages/admin/DataDeletionRequests"));
 
 function page(element: React.ReactNode) {
   return (
@@ -164,6 +165,7 @@ export const router = createBrowserRouter([
       { path: "bootstrap-guide", element: page(<AdminBootstrapGuide />) },
       { path: "profile", element: page(<AdminProfile />) },
       { path: "bulk-move", element: page(<AdminBulkMoveStudents />) },
+      { path: "data-deletion-requests", element: page(<AdminDataDeletionRequests />) },
     ],
   },
   { path: "/dashboard", element: <Navigate to="/student/dashboard" replace /> },

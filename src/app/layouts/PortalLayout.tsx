@@ -26,7 +26,7 @@ import {
   Settings2, Settings, Wrench, ShieldCheck,
   LogOut, Menu, X, Search,
   FileBadge, Grid3X3, CalendarDays, Megaphone, Mail, FolderOpen, ShieldAlert, ClipboardCheck,
-  Moon, Sun, Building2, UserCog, Database,
+  Moon, Sun, Building2, UserCog, Database, Trash2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +75,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/admin/audit-logs",         icon: ClipboardList,   label: "Audit Logs",         section: "system" },
   { to: "/admin/system-tools",       icon: Wrench,          label: "System Tools",       section: "system" },
   { to: "/admin/backups",            icon: Database,        label: "Backups",            section: "system" },
+  { to: "/admin/data-deletion-requests", icon: Trash2, label: "Data Deletion Requests", section: "system" },
   { to: "/admin/file-inventory",      icon: FolderOpen,      label: "File Inventory",     section: "system" },
   { to: "/admin/system-health",       icon: ShieldAlert,    label: "System Health",      section: "system" },
   { to: "/admin/release-status",      icon: ClipboardCheck,  label: "Release Status",     section: "system" },

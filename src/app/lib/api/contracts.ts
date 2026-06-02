@@ -817,6 +817,34 @@ export interface AdminRequestRecord {
   details: string;
 }
 
+export interface DataDeletionRequestRecord {
+  id: string;
+  requesterUserId: string;
+  requester?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    status?: string;
+  } | null;
+  status: "PENDING" | "APPROVED" | "DENIED" | "CANCELLED";
+  reason?: string | null;
+  confirmationPhrase: string;
+  reviewedByUserId?: string | null;
+  reviewer?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  } | null;
+  reviewedAt?: string | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SignInPayload {
   role: AppRole;
   identifier: string;

@@ -23,6 +23,7 @@ import type {
   AdminNotificationRecord,
   AdminReportsResponse,
   AdminRequestRecord,
+  DataDeletionRequestRecord,
   AdminSectionCreateInput,
   AdminSectionRecord,
   AdminStudentRecord,
@@ -530,6 +531,9 @@ export const endpointRegistry = {
     teachers: "GET /admin/teachers",
     sections: "GET /admin/sections",
     requests: "GET /admin/requests",
+    dataDeletionRequests: "GET /data-deletion/admin/requests",
+    dataDeletionApprove: "POST /data-deletion/admin/requests/:id/approve",
+    dataDeletionDeny: "POST /data-deletion/admin/requests/:id/deny",
     dashboard: "GET /admin/dashboard/summary",
     submissions: "GET /admin/submissions",
     submissionNote: "POST /admin/submissions/:id/note",
@@ -3444,6 +3448,63 @@ export const adminCatalogService = {
     }
     await delay(180);
     return { ok: true, status: "Rejected" };
+  },
+
+  async getDataDeletionRequests(filters: { status?: string } = {}): Promise<DataDeletionRequestRecord[]> {
+    if (apiRuntime.useBackend) {
+      const q = filters.status && filters.status !== "All" ? `?status=${encodeURIComponent(filters.status)}` : "";
+      const rows = await http.get<Array<any>>(`/data-deletion/admin/requests${q}`);
+      return rows.map((r: any) => ({
+        id: String(r.id),
+        requesterUserId: String(r.requesterUserId),
+        requester: r.requester
+          ? {
+              id: String(r.requester.id),
+              email: String(r.requester.email || ""),
+              firstName: String(r.requester.firstName || ""),
+              lastName: String(r.requester.lastName || ""),
+              role: String(r.requester.role || ""),
+              status: r.requester.status ? String(r.requester.status) : undefined,
+            }
+          : null,
+        status: (r.status || "PENDING").toUpperCase() as DataDeletionRequestRecord["status"],
+        reason: r.reason ?? null,
+        confirmationPhrase: String(r.confirmationPhrase || ""),
+        reviewedByUserId: r.reviewedByUserId ? String(r.reviewedByUserId) : null,
+        reviewer: r.reviewer
+          ? {
+              id: String(r.reviewer.id),
+              email: String(r.reviewer.email || ""),
+              firstName: String(r.reviewer.firstName || ""),
+              lastName: String(r.reviewer.lastName || ""),
+              role: String(r.reviewer.role || ""),
+            }
+          : null,
+        reviewedAt: r.reviewedAt ? new Date(r.reviewedAt).toISOString() : null,
+        reviewNote: r.reviewNote ?? null,
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+        updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
+      }));
+    }
+    await delay();
+    // minimal mock for local dev without backend
+    return [];
+  },
+
+  async approveDataDeletionRequest(id: string): Promise<{ success: boolean; id: string; status: string }> {
+    if (apiRuntime.useBackend) {
+      return http.post(`/data-deletion/admin/requests/${encodeURIComponent(id)}/approve`, {});
+    }
+    await delay(180);
+    return { success: true, id, status: "APPROVED" };
+  },
+
+  async denyDataDeletionRequest(id: string, payload?: { reviewNote?: string }): Promise<{ success: boolean; id: string; status: string }> {
+    if (apiRuntime.useBackend) {
+      return http.post(`/data-deletion/admin/requests/${encodeURIComponent(id)}/deny`, payload || {});
+    }
+    await delay(180);
+    return { success: true, id, status: "DENIED" };
   },
 };
 
