@@ -298,11 +298,28 @@ describe('data-deletion-request regressions', () => {
     it('audit is recorded on key paths (mocked)', async () => {
       const { service, auditLogs } = buildExecutionService({
         prisma: {
-          dataDeletionRequest: { findUnique: jest.fn().mockResolvedValue({ id: 'r5', status: 'APPROVED' }) },
+          dataDeletionRequest: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'r5',
+              status: 'APPROVED',
+              requester: {
+                studentProfile: null,
+                teacherProfile: null,
+              },
+            }),
+          },
           dataDeletionExecution: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockResolvedValue({ id: 'e5', requestId: 'r5' }),
-            update: jest.fn().mockResolvedValue({ id: 'e5', status: 'DRY_RUN_COMPLETED' }),
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e5',
+              requestId: 'r5',
+              status: 'DRY_RUN_PENDING',
+              dryRun: true,
+              request: { id: 'r5', status: 'APPROVED' },
+            }),
+            update: jest
+              .fn()
+              .mockResolvedValueOnce({ id: 'e5', status: 'DRY_RUN_STARTED', requestId: 'r5' })
+              .mockResolvedValueOnce({ id: 'e5', status: 'DRY_RUN_COMPLETED', requestId: 'r5' }),
           },
         },
       });

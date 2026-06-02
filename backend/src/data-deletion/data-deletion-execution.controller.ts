@@ -31,8 +31,7 @@ export class DataDeletionExecutionController {
   @Roles('ADMIN')
   @Post('admin/requests/:id/executions/verify-backup')
   async verifyBackup(@Param('id') requestId: string, @Body() dto: VerifyBackupDto, @Req() req: any) {
-    // find execution by request
-    const exec = await this.execution['prisma'].dataDeletionExecution.findUnique({ where: { requestId } });
+    const exec = await this.execution.getExecutionByRequestId(requestId);
     if (!exec) throw new NotFoundException('No execution for request.');
     const actor = this.buildActor(req);
     return this.execution.verifyBackup(exec.id, dto, actor);
