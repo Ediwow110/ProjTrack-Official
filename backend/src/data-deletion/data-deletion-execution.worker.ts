@@ -16,10 +16,7 @@ export class DataDeletionExecutionWorkerService implements OnModuleInit, OnModul
       this.logger.log('Data deletion execution worker disabled (DATA_DELETION_EXECUTION_ENABLED != true). Dry-run and admin triggers only.');
       return;
     }
-    this.logger.warn('Data deletion execution worker enabled. Destructive path is gated by backup verification and dry-run.');
-    this.timer = setInterval(() => {
-      this.tick().catch((e) => this.logger.error('Execution worker tick failed', e as Error));
-    }, 60_000);
+    this.logger.warn('Data deletion execution rollout is manual-only. Background auto-execution remains disabled even when the feature flag is true.');
   }
 
   onModuleDestroy() {
@@ -28,32 +25,15 @@ export class DataDeletionExecutionWorkerService implements OnModuleInit, OnModul
   }
 
   private async tick() {
-    const pending = await this.execution.findBackupVerifiedExecutions(5);
-    for (const exec of pending) {
-      this.logger.log(`Worker auto-triggering execution for ${exec.id} (request ${exec.requestId})`);
-      try {
-        await this.execution.attemptExecution(exec.id);
-        this.logger.log(`Worker completed execution for ${exec.id}`);
-      } catch (err) {
-        this.logger.error(`Worker execution failed for ${exec.id}: ${(err as Error).message}`);
-      }
-    }
+    this.logger.warn('Data deletion background execution tick is disabled during the manual-only rollout.');
   }
 
   /**
-   * Admin-triggered scan: find and execute all BACKUP_VERIFIED executions.
-   * Returns the number of executions attempted.
+   * Bulk execution remains disabled during Phase 7D initial rollout.
+   * Use the per-request admin execution endpoint instead.
    */
   async scanAndExecute(): Promise<number> {
-    const pending = await this.execution.findBackupVerifiedExecutions(20);
-    for (const exec of pending) {
-      try {
-        await this.execution.attemptExecution(exec.id);
-        this.logger.log(`scanAndExecute completed for ${exec.id}`);
-      } catch (err) {
-        this.logger.error(`scanAndExecute failed for ${exec.id}: ${(err as Error).message}`);
-      }
-    }
-    return pending.length;
+    this.logger.warn('Bulk data deletion scan is disabled during the manual-only rollout. Use the per-request admin execution endpoint.');
+    return 0;
   }
 }
