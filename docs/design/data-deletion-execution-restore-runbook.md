@@ -136,3 +136,18 @@ Categories and recommended handling (subject to legal review):
 **Approval of this document does not authorize execution code.** User must say "proceed with deletion execution worker" after reviewing this + PRs A/B/C merged + checks green.
 
 Next: implement PR E only on explicit approval.
+
+## 15. PR E Implementation Notes (added after merge of A/B/C/D)
+
+- Execution tracking model + status enum added (additive).
+- DataDeletionExecutionService provides dry-run planning, simulation, backup verification gate.
+- Destructive execution path is intentionally blocked by default (env flag DATA_DELETION_EXECUTION_ENABLED, and even when true, this PR fails closed with message).
+- Admin-only endpoints for triggering dry-run, viewing status, verifying backup.
+- Worker shell exists but is no-op / disabled unless flag.
+- Tests added for safety boundaries (no exec on non-approved, backup fail-closed, dry-run idempotent, no destructive calls, audit, flag block).
+- Audit logs written for all execution steps.
+- No real delete/anonymize/restore executed.
+- Migration 20260602203155_add_data_deletion_execution is clean (only execution table/enum/indexes/FK to request).
+- This PR prepares infrastructure; production destructive activation requires future explicit user-approved PR + all gates.
+
+See code in backend/src/data-deletion/data-deletion-execution.* and tests.

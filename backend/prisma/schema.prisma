@@ -64,6 +64,20 @@ enum DataDeletionRequestStatus {
   CANCELLED
 }
 
+enum DataDeletionExecutionStatus {
+  DRY_RUN_PENDING
+  DRY_RUN_STARTED
+  DRY_RUN_COMPLETED
+  BACKUP_REQUIRED
+  BACKUP_VERIFIED
+  EXECUTION_PENDING
+  EXECUTION_STARTED
+  EXECUTION_COMPLETED
+  EXECUTION_FAILED
+  RESTORE_REQUIRED
+  CANCELLED
+}
+
 model User {
   id                 String     @id @default(cuid())
   email              String     @unique
@@ -116,6 +130,30 @@ model DataDeletionRequest {
   @@index([requesterUserId, status, createdAt])
   @@index([status, createdAt])
   @@index([reviewedByUserId, reviewedAt])
+
+  executions DataDeletionExecution[]
+}
+
+model DataDeletionExecution {
+  id                    String                       @id @default(cuid())
+  requestId             String                       @unique
+  request               DataDeletionRequest          @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  status                DataDeletionExecutionStatus  @default(DRY_RUN_PENDING)
+  dryRun                Boolean                      @default(true)
+  backupRunId           String?
+  backupVerifiedAt      DateTime?
+  backupVerificationRef String?
+  executionStartedAt    DateTime?
+  executionCompletedAt  DateTime?
+  executionError        String?
+  executionPlanJson     Json?
+  executionResultJson   Json?
+  executedByUserId      String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([backupRunId])
 }
 
 model StudentProfile {
