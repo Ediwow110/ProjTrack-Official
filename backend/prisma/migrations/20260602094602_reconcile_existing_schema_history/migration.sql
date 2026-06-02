@@ -89,10 +89,10 @@ ALTER TABLE "ImportBatch" ALTER COLUMN "updatedAt" DROP DEFAULT;
 ALTER TABLE "Section" ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- CreateIndex
-CREATE INDEX "AuditLog_actorUserId_createdAt_idx" ON "AuditLog"("actorUserId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AuditLog_actorUserId_createdAt_idx" ON "AuditLog"("actorUserId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_isRead_createdAt_idx" ON "Notification"("userId", "isRead", "createdAt");
+CREATE INDEX IF NOT EXISTS "Notification_userId_isRead_createdAt_idx" ON "Notification"("userId", "isRead", "createdAt");
 
 -- AddForeignKey
 ALTER TABLE "Course" ADD CONSTRAINT "Course_academicYearId_fkey" FOREIGN KEY ("academicYearId") REFERENCES "AcademicYear"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
