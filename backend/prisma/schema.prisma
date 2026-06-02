@@ -57,6 +57,13 @@ enum AccountActionTokenType {
   ACCOUNT_ACTIVATION
 }
 
+enum DataDeletionRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
 model User {
   id                 String     @id @default(cuid())
   email              String     @unique
@@ -85,9 +92,30 @@ model User {
   submissionEvents     SubmissionEvent[]
   backupRuns           BackupRun[]          @relation("backupRunCreator")
   importBatches        ImportBatch[]        @relation("importBatchCreator")
+  dataDeletionRequestsRequested DataDeletionRequest[] @relation("DataDeletionRequestRequester")
+  dataDeletionRequestsReviewed  DataDeletionRequest[] @relation("DataDeletionRequestReviewer")
 
   @@index([role, status])
   @@index([status, updatedAt])
+}
+
+model DataDeletionRequest {
+  id                 String                    @id @default(cuid())
+  requesterUserId    String
+  requester          User                      @relation("DataDeletionRequestRequester", fields: [requesterUserId], references: [id], onDelete: Restrict)
+  status             DataDeletionRequestStatus @default(PENDING)
+  reason             String?
+  confirmationPhrase String
+  reviewedByUserId   String?
+  reviewer           User?                     @relation("DataDeletionRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt         DateTime?
+  reviewNote         String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([requesterUserId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([reviewedByUserId, reviewedAt])
 }
 
 model StudentProfile {
