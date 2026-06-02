@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,7 +24,7 @@ export class DataDeletionController {
     const userId = String(req?.user?.sub ?? '');
     if (!userId) {
       // Guard should have caught, but defensive
-      throw new (await import('@nestjs/common')).UnauthorizedException('Authentication required.');
+      throw new UnauthorizedException('Authentication required.');
     }
     return this.dataDeletion.createRequest(userId, dto, this.buildActor(req));
   }
