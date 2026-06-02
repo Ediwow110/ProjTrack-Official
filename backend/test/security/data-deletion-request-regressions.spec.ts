@@ -242,7 +242,7 @@ describe('data-deletion-request regressions', () => {
           update: jest.fn(),
         },
         backupRun: {
-          findUnique: jest.fn(),
+          findUnique: jest.fn().mockResolvedValue({ id: 'b-default', status: 'COMPLETED', deletedAt: null }),
         },
         user: {
           findUnique: jest.fn(),
@@ -258,27 +258,35 @@ describe('data-deletion-request regressions', () => {
         },
         notification: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         emailJob: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         pendingUpload: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         enrollment: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         groupMember: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         subject: {
           updateMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         authSession: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         accountActionToken: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         ...overrides.prisma,
       };
@@ -357,6 +365,9 @@ describe('data-deletion-request regressions', () => {
           },
           user: {
             update: jest.fn().mockResolvedValue({}),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'b-verified', status: 'COMPLETED', deletedAt: null }),
           },
         },
       });
@@ -465,7 +476,7 @@ describe('data-deletion-request regressions', () => {
     });
 
     it('blocks destructive execution without backup', async () => {
-      const { service } = buildExecutionService({
+      const { service, auditLogs } = buildExecutionService({
         prisma: {
           dataDeletionExecution: {
             findUnique: jest.fn().mockResolvedValue({
@@ -484,6 +495,62 @@ describe('data-deletion-request regressions', () => {
 
       try {
         await expect(service.attemptExecution('e-no-backup')).rejects.toThrow(/backup/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution when request is not approved', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-not-approved',
+              requestId: 'r-not-approved',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b1',
+              request: { id: 'r-not-approved', status: 'DENIED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-not-approved')).rejects.toThrow(/APPROVED/);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution when referenced backup is no longer valid', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-invalid-backup',
+              requestId: 'r-invalid-backup',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b-deleted',
+              request: { id: 'r-invalid-backup', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'b-deleted', status: 'COMPLETED', deletedAt: new Date() }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-invalid-backup')).rejects.toThrow(/backup/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
       } finally {
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
       }
@@ -552,7 +619,7 @@ describe('data-deletion-request regressions', () => {
           update: jest.fn(),
         },
         backupRun: {
-          findUnique: jest.fn(),
+          findUnique: jest.fn().mockResolvedValue({ id: 'b-default', status: 'COMPLETED', deletedAt: null }),
         },
         user: {
           findUnique: jest.fn(),
@@ -568,27 +635,35 @@ describe('data-deletion-request regressions', () => {
         },
         notification: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         emailJob: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         pendingUpload: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         enrollment: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         groupMember: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         subject: {
           updateMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         authSession: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         accountActionToken: {
           deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         ...overrides.prisma,
       };

@@ -179,29 +179,49 @@ export class DataDeletionExecutionService {
     // Safety: feature flag check (env based)
     const enabled = process.env.DATA_DELETION_EXECUTION_ENABLED === 'true';
     if (!enabled) {
-      await this.auditLogs.record({
-        actorUserId: actor?.actorUserId,
-        actorRole: actor?.actorRole ?? 'ADMIN',
-        action: 'DATA_DELETION_EXECUTION_BLOCKED',
-        module: 'DataDeletion',
-        target: execution.requestId,
-        entityId: executionId,
-        result: 'Blocked',
-        details: 'Destructive execution is disabled by feature flag (DATA_DELETION_EXECUTION_ENABLED). Only dry-run allowed.',
-      });
+      await this.recordExecutionBlocked(
+        execution,
+        actor,
+        'Destructive execution is disabled by feature flag (DATA_DELETION_EXECUTION_ENABLED). Only dry-run allowed.',
+      );
       throw new ForbiddenException('Destructive data deletion execution is currently disabled. Use dry-run only.');
     }
 
-    if (!execution.backupRunId || execution.status !== 'BACKUP_VERIFIED') {
-      throw new BadRequestException('Verified backup is required before non-dry-run execution.');
-    }
-
-    // Prevent re-execution
+    // Prevent re-execution before narrowing status checks
     if (execution.status === 'EXECUTION_COMPLETED') {
       throw new BadRequestException('Execution has already been completed. Create a new request for re-execution.');
     }
     if (execution.status === 'EXECUTION_STARTED') {
       throw new BadRequestException('Execution is already in progress.');
+    }
+
+    const requestStatus = normalizeDataDeletionRequestStatus(execution.request.status);
+    if (requestStatus !== 'APPROVED') {
+      await this.recordExecutionBlocked(
+        execution,
+        actor,
+        `Execution requires APPROVED request status. Current status: ${execution.request.status}.`,
+      );
+      throw new BadRequestException('Execution can only run for APPROVED requests.');
+    }
+
+    if (!execution.backupRunId || execution.status !== 'BACKUP_VERIFIED') {
+      await this.recordExecutionBlocked(
+        execution,
+        actor,
+        'Verified backup is required before non-dry-run execution.',
+      );
+      throw new BadRequestException('Verified backup is required before non-dry-run execution.');
+    }
+
+    const backup = await this.prisma.backupRun.findUnique({ where: { id: execution.backupRunId } });
+    if (!backup || backup.status !== 'COMPLETED' || backup.deletedAt) {
+      await this.recordExecutionBlocked(
+        execution,
+        actor,
+        'Referenced backup is not currently COMPLETED and available for destructive execution.',
+      );
+      throw new BadRequestException('Referenced backup must remain COMPLETED and not deleted before destructive execution.');
     }
 
     // Mark as started
@@ -422,10 +442,26 @@ export class DataDeletionExecutionService {
         office: null,
         avatarRelativePath: null,
         status: 'ARCHIVED',
-        anonymizedAt: new Date(),
       },
     });
     this.logger.log(`Anonymized User ${userId} (email -> ${anonymizedEmail}, status -> ARCHIVED)`);
+  }
+
+  private async recordExecutionBlocked(
+    execution: { requestId: string; id: string },
+    actor: ActorContext | undefined,
+    details: string,
+  ) {
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DATA_DELETION_EXECUTION_BLOCKED',
+      module: 'DataDeletion',
+      target: execution.requestId,
+      entityId: execution.id,
+      result: 'Blocked',
+      details,
+    });
   }
 
   // ---------------------------------------------------------------------------
