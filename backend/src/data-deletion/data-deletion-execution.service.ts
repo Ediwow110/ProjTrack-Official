@@ -2,12 +2,19 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { normalizeDataDeletionRequestStatus } from './data-deletion.lifecycle';
+import { DATA_DELETION_EXECUTION_CONFIRMATION_TEXT, ExecuteDeletionDto } from './data-deletion-execution.dto';
 
 type ActorContext = {
   actorUserId?: string;
   actorRole?: string;
   ipAddress?: string;
 };
+
+function isStageValidationEnv(env: NodeJS.ProcessEnv) {
+  const scope = String(env.DATA_DELETION_STAGE_ONLY || '').trim().toLowerCase();
+  const appEnv = String(env.APP_ENV || env.NODE_ENV || '').trim().toLowerCase();
+  return (scope === 'staging' || scope === 'test') && (appEnv === 'staging' || appEnv === 'test');
+}
 
 // Models we must delete BEFORE user anonymization (because they key on email or userId)
 // Order: EmailJob → Notification → PendingUpload → Enrollment → GroupMember
@@ -41,6 +48,67 @@ export class DataDeletionExecutionService {
       take: limit,
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  async executeManuallyByRequestId(requestId: string, dto: ExecuteDeletionDto, actor?: ActorContext) {
+    const execution = await this.prisma.dataDeletionExecution.findUnique({ where: { requestId } });
+    if (!execution) {
+      throw new NotFoundException('No execution for request.');
+    }
+    if (dto.confirmationPhrase !== DATA_DELETION_EXECUTION_CONFIRMATION_TEXT) {
+      throw new BadRequestException(`confirmationPhrase must exactly equal "${DATA_DELETION_EXECUTION_CONFIRMATION_TEXT}".`);
+    }
+    if (!execution.backupRunId || execution.backupRunId !== dto.backupRunId) {
+      throw new BadRequestException('backupRunId must match the verified backup linked to this execution.');
+    }
+
+    await this.auditLogs.record({
+      actorUserId: actor?.actorUserId,
+      actorRole: actor?.actorRole ?? 'ADMIN',
+      action: 'DATA_DELETION_EXECUTION_MANUAL_CONFIRMED',
+      module: 'DataDeletion',
+      target: requestId,
+      entityId: execution.id,
+      result: 'Success',
+      details: `Manual destructive execution confirmed using backup ${dto.backupRunId}.`,
+    });
+
+    return this.attemptExecution(execution.id, actor);
+  }
+
+  async getRolloutStatus() {
+    const [backupVerified, executionStarted, executionCompleted, executionFailed, readyExecutions, recentFailures] = await Promise.all([
+      this.prisma.dataDeletionExecution.count({ where: { status: 'BACKUP_VERIFIED', backupRunId: { not: null } } }),
+      this.prisma.dataDeletionExecution.count({ where: { status: 'EXECUTION_STARTED' } }),
+      this.prisma.dataDeletionExecution.count({ where: { status: 'EXECUTION_COMPLETED' } }),
+      this.prisma.dataDeletionExecution.count({ where: { status: 'EXECUTION_FAILED' } }),
+      this.prisma.dataDeletionExecution.findMany({
+        where: { status: 'BACKUP_VERIFIED', backupRunId: { not: null } },
+        select: { id: true, requestId: true, backupRunId: true, backupVerifiedAt: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+        take: 10,
+      }),
+      this.prisma.dataDeletionExecution.findMany({
+        where: { status: 'EXECUTION_FAILED' },
+        select: { id: true, requestId: true, backupRunId: true, executionCompletedAt: true, executionError: true },
+        orderBy: { executionCompletedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      featureEnabled: process.env.DATA_DELETION_EXECUTION_ENABLED === 'true',
+      executionMode: String(process.env.DATA_DELETION_EXECUTION_MODE || ''),
+      manualOnlyRollout: true,
+      counts: {
+        backupVerified,
+        executionStarted,
+        executionCompleted,
+        executionFailed,
+      },
+      readyExecutions,
+      recentFailures,
+    };
   }
 
   async getOrCreateExecutionForRequest(requestId: string, actor?: ActorContext) {
@@ -185,6 +253,16 @@ export class DataDeletionExecutionService {
         'Destructive execution is disabled by feature flag (DATA_DELETION_EXECUTION_ENABLED). Only dry-run allowed.',
       );
       throw new ForbiddenException('Destructive data deletion execution is currently disabled. Use dry-run only.');
+    }
+
+    const manualMode = String(process.env.DATA_DELETION_EXECUTION_MODE || '').trim().toLowerCase() === 'manual';
+    if (!manualMode && !isStageValidationEnv(process.env)) {
+      await this.recordExecutionBlocked(
+        execution,
+        actor,
+        'Destructive execution requires DATA_DELETION_EXECUTION_MODE=manual outside staging/test validation.',
+      );
+      throw new ForbiddenException('Destructive data deletion execution requires manual rollout mode.');
     }
 
     // Prevent re-execution before narrowing status checks

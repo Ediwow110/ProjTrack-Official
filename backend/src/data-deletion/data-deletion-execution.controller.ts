@@ -2,7 +2,7 @@ import { Body, Controller, Get, NotFoundException, Param, Post, Req, UseGuards }
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { DataDeletionExecutionService } from './data-deletion-execution.service';
-import { VerifyBackupDto } from './data-deletion-execution.dto';
+import { ExecuteDeletionDto, VerifyBackupDto } from './data-deletion-execution.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('data-deletion')
@@ -35,6 +35,19 @@ export class DataDeletionExecutionController {
     if (!exec) throw new NotFoundException('No execution for request.');
     const actor = this.buildActor(req);
     return this.execution.verifyBackup(exec.id, dto, actor);
+  }
+
+  @Roles('ADMIN')
+  @Post('admin/requests/:id/executions/execute')
+  async executeManually(@Param('id') requestId: string, @Body() dto: ExecuteDeletionDto, @Req() req: any) {
+    const actor = this.buildActor(req);
+    return this.execution.executeManuallyByRequestId(requestId, dto, actor);
+  }
+
+  @Roles('ADMIN')
+  @Get('admin/executions/rollout-status')
+  async getRolloutStatus() {
+    return this.execution.getRolloutStatus();
   }
 
   private buildActor(req: any) {

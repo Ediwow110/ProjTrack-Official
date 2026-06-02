@@ -374,7 +374,9 @@ describe('data-deletion-request regressions', () => {
 
       // Save original env and force enable
       const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
       process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      process.env.DATA_DELETION_EXECUTION_MODE = 'manual';
 
       try {
         const result = await service.attemptExecution('e-phase7b', {
@@ -443,6 +445,7 @@ describe('data-deletion-request regressions', () => {
       } finally {
         // Restore env
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
       }
     });
 
@@ -491,13 +494,16 @@ describe('data-deletion-request regressions', () => {
       });
 
       const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
       process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      process.env.DATA_DELETION_EXECUTION_MODE = 'manual';
 
       try {
         await expect(service.attemptExecution('e-no-backup')).rejects.toThrow(/backup/i);
         expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
       } finally {
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
       }
     });
 
@@ -517,13 +523,16 @@ describe('data-deletion-request regressions', () => {
       });
 
       const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
       process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      process.env.DATA_DELETION_EXECUTION_MODE = 'manual';
 
       try {
         await expect(service.attemptExecution('e-not-approved')).rejects.toThrow(/APPROVED/);
         expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
       } finally {
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
       }
     });
 
@@ -546,13 +555,16 @@ describe('data-deletion-request regressions', () => {
       });
 
       const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
       process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      process.env.DATA_DELETION_EXECUTION_MODE = 'manual';
 
       try {
         await expect(service.attemptExecution('e-invalid-backup')).rejects.toThrow(/backup/i);
         expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
       } finally {
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
       }
     });
 
@@ -572,12 +584,15 @@ describe('data-deletion-request regressions', () => {
       });
 
       const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
       process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      process.env.DATA_DELETION_EXECUTION_MODE = 'manual';
 
       try {
         await expect(service.attemptExecution('e-done')).rejects.toThrow(/already been completed/);
       } finally {
         process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
       }
     });
 
@@ -814,6 +829,225 @@ describe('data-deletion-request regressions', () => {
       // This ensures governance tables (requests + execution records) are part of every backup/restore cycle.
       // Combined with service tests above (backup gate, audit, flag blocks), drill now hardens coverage for restore of deletion state.
       expect(true).toBe(true);
+    });
+  });
+
+  describe('Phase 7D manual rollout safety', () => {
+    function buildExecutionService(overrides: any = {}) {
+      const prisma: any = {
+        dataDeletionRequest: {
+          findUnique: jest.fn(),
+        },
+        dataDeletionExecution: {
+          findUnique: jest.fn(),
+          findMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+          create: jest.fn(),
+          update: jest.fn(),
+        },
+        backupRun: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'b-default', status: 'COMPLETED', deletedAt: null }),
+        },
+        user: {
+          findUnique: jest.fn(),
+          update: jest.fn(),
+        },
+        studentProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        teacherProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        notification: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        emailJob: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        pendingUpload: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        enrollment: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        groupMember: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        subject: {
+          updateMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        authSession: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        accountActionToken: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        ...overrides.prisma,
+      };
+      const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
+      const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
+      return { service, prisma, auditLogs };
+    }
+
+    it('blocks destructive execution when manual rollout mode is missing outside staging/test', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-manual-block',
+              requestId: 'r-manual-block',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b1',
+              request: { id: 'r-manual-block', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      const origEnabled = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
+      const origStageOnly = process.env.DATA_DELETION_STAGE_ONLY;
+      const origAppEnv = process.env.APP_ENV;
+      const origNodeEnv = process.env.NODE_ENV;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      delete process.env.DATA_DELETION_EXECUTION_MODE;
+      delete process.env.DATA_DELETION_STAGE_ONLY;
+      process.env.APP_ENV = 'production';
+      process.env.NODE_ENV = 'production';
+
+      try {
+        await expect(service.attemptExecution('e-manual-block')).rejects.toThrow(/manual rollout mode/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnabled;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
+        process.env.DATA_DELETION_STAGE_ONLY = origStageOnly;
+        process.env.APP_ENV = origAppEnv;
+        process.env.NODE_ENV = origNodeEnv;
+      }
+    });
+
+    it('preserves staging/test validation path without manual rollout mode', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-stage-ok',
+              requestId: 'r-stage-ok',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b-missing',
+              request: { id: 'r-stage-ok', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        },
+      });
+
+      const origEnabled = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      const origMode = process.env.DATA_DELETION_EXECUTION_MODE;
+      const origStageOnly = process.env.DATA_DELETION_STAGE_ONLY;
+      const origAppEnv = process.env.APP_ENV;
+      const origNodeEnv = process.env.NODE_ENV;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+      delete process.env.DATA_DELETION_EXECUTION_MODE;
+      process.env.DATA_DELETION_STAGE_ONLY = 'test';
+      process.env.APP_ENV = 'test';
+      process.env.NODE_ENV = 'test';
+
+      try {
+        await expect(service.attemptExecution('e-stage-ok')).rejects.toThrow(/backup/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnabled;
+        process.env.DATA_DELETION_EXECUTION_MODE = origMode;
+        process.env.DATA_DELETION_STAGE_ONLY = origStageOnly;
+        process.env.APP_ENV = origAppEnv;
+        process.env.NODE_ENV = origNodeEnv;
+      }
+    });
+
+    it('manual execute requires exact confirmation phrase', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'e1', requestId: 'r1', backupRunId: 'b1' }),
+          },
+        },
+      });
+
+      await expect(service.executeManuallyByRequestId('r1', { backupRunId: 'b1', confirmationPhrase: 'NOPE' } as any)).rejects.toThrow(/confirmationPhrase/);
+    });
+
+    it('manual execute requires the verified backupRunId to match', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'e1', requestId: 'r1', backupRunId: 'b-linked' }),
+          },
+        },
+      });
+
+      await expect(service.executeManuallyByRequestId('r1', { backupRunId: 'b-other', confirmationPhrase: 'EXECUTE DATA DELETION' } as any)).rejects.toThrow(/backupRunId/);
+    });
+
+    it('manual execute audits explicit operator confirmation before delegating', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'e1', requestId: 'r1', backupRunId: 'b1' }),
+          },
+        },
+      });
+      const executeSpy = jest.spyOn(service, 'attemptExecution').mockResolvedValue({ id: 'e1', status: 'EXECUTION_COMPLETED' } as any);
+
+      const res = await service.executeManuallyByRequestId(
+        'r1',
+        { backupRunId: 'b1', confirmationPhrase: 'EXECUTE DATA DELETION' } as any,
+        { actorUserId: 'admin-1', actorRole: 'ADMIN' },
+      );
+
+      expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({
+        action: 'DATA_DELETION_EXECUTION_MANUAL_CONFIRMED',
+        target: 'r1',
+        result: 'Success',
+      }));
+      expect(executeSpy).toHaveBeenCalledWith('e1', { actorUserId: 'admin-1', actorRole: 'ADMIN' });
+      expect(res).toEqual({ id: 'e1', status: 'EXECUTION_COMPLETED' });
+    });
+
+    it('worker bulk scan remains disabled during manual-only rollout', async () => {
+      const mockExecutionService = {
+        findBackupVerifiedExecutions: jest.fn(),
+        attemptExecution: jest.fn(),
+      } as any;
+      const Worker = require('../../src/data-deletion/data-deletion-execution.worker').DataDeletionExecutionWorkerService;
+      const worker = new Worker(mockExecutionService);
+      const setIntervalSpy = jest.spyOn(global, 'setInterval');
+      const origEnabled = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        worker.onModuleInit();
+        expect(setIntervalSpy).not.toHaveBeenCalled();
+        await expect(worker.scanAndExecute()).resolves.toBe(0);
+        expect(mockExecutionService.findBackupVerifiedExecutions).not.toHaveBeenCalled();
+        expect(mockExecutionService.attemptExecution).not.toHaveBeenCalled();
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnabled;
+        setIntervalSpy.mockRestore();
+      }
     });
   });
 });

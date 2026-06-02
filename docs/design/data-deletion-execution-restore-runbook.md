@@ -297,6 +297,28 @@ Phase 7B may only implement code if all of the following are true:
 - rollback and incident plan
 - no bulk automatic execution at first rollout
 
+Phase 7D implementation baseline:
+- `DATA_DELETION_EXECUTION_ENABLED` must still be explicitly set to `true`.
+- Production-like destructive execution must additionally require `DATA_DELETION_EXECUTION_MODE=manual` unless the run is a Phase 7C staging/test validation.
+- Initial rollout must use the per-request admin execution path only: `POST /data-deletion/admin/requests/:id/executions/execute`.
+- The operator must provide the linked `backupRunId` and the exact confirmation phrase `EXECUTE DATA DELETION`.
+- The system must audit the explicit operator confirmation before attempting destructive execution.
+- Background worker auto-execution and bulk scan execution remain disabled during the initial Phase 7D rollout even if the feature flag is on.
+- Rollout monitoring endpoint: `GET /data-deletion/admin/executions/rollout-status`.
+
+Minimum monitoring / alerting checks for first production rollout:
+- any `EXECUTION_FAILED` row is a stop-and-investigate condition
+- any `DATA_DELETION_EXECUTION_BLOCKED` audit during rollout must be reviewed
+- `BACKUP_VERIFIED` rows should not accumulate unexpectedly; each production execution should be manually authorized one request at a time
+- audit `DATA_DELETION_EXECUTION_MANUAL_CONFIRMED` must exist before each irreversible execution attempt
+
+Minimum rollback / incident response for first production rollout:
+- set `DATA_DELETION_EXECUTION_ENABLED=false`
+- restart the API / worker processes so the destructive path is disabled everywhere
+- stop issuing manual execute requests
+- preserve `DataDeletionRequest`, `DataDeletionExecution`, `BackupRun`, and `AuditLog` evidence
+- if recovery is required inside the approved retention window, follow the verified backup / restore drill process before any further destructive execution
+
 ### K. Explicit lock statement
 
 > Production destructive deletion remains locked after Phase 7A. This document is not production activation approval.
