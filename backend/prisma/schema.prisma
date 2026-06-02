@@ -89,6 +89,7 @@ model User {
   phone              String?
   office             String?
   avatarRelativePath String?
+  anonymizedAt       DateTime?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
