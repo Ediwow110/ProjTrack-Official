@@ -3447,6 +3447,30 @@ export const adminCatalogService = {
   },
 };
 
+export const dataDeletionService = {
+  async listMine(): Promise<any[]> {
+    if (apiRuntime.useBackend) {
+      return http.get<any[]>("/data-deletion/requests/mine");
+    }
+    await delay();
+    return [];
+  },
+  async createRequest(payload: { reason?: string; confirmationPhrase: string }): Promise<{ success: boolean; id: string; status: string }> {
+    if (apiRuntime.useBackend) {
+      return http.post("/data-deletion/requests", payload);
+    }
+    await delay(180);
+    return { success: true, id: `mock-${Date.now()}`, status: "PENDING" };
+  },
+  async cancelRequest(id: string): Promise<{ success: boolean; id: string; status: string }> {
+    if (apiRuntime.useBackend) {
+      return http.post(`/data-deletion/requests/${encodeURIComponent(id)}/cancel`, {});
+    }
+    await delay(180);
+    return { success: true, id, status: "CANCELLED" };
+  },
+};
+
 export const profileService = {
   async getAvatarObjectUrl(relativePath?: string, cacheBust?: string | number) {
     return getProtectedFileObjectUrlWithCacheBust(relativePath, cacheBust);
