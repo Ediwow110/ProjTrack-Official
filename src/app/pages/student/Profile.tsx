@@ -15,7 +15,7 @@ import {
   PortalPage,
   PortalPanel,
 } from "../../components/portal/PortalPage";
-import { profileService } from "../../lib/api/services";
+import { profileService, dataDeletionService } from "../../lib/api/services";
 import type { StudentProfileResponse } from "../../lib/api/contracts";
 import { toast } from "sonner";
 
@@ -400,8 +400,123 @@ export default function StudentProfile() {
               </div>
             </div>
           </PortalPanel>
+
+          <PortalPanel
+            title="Data & Privacy — Deletion Request"
+            description="Request deletion of your account data. This is a governed process: submitting does not delete data. An admin must review and approve. Deletion execution is not implemented in this release."
+            className="border-amber-200/70"
+          >
+            <DataDeletionSelfService />
+          </PortalPanel>
         </div>
       </div>
     </PortalPage>
+  );
+}
+
+function DataDeletionSelfService() {
+  const [mine, setMine] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [phrase, setPhrase] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const hasPending = mine.some((r: any) => (r.status || "").toUpperCase() === "PENDING");
+
+  async function load() {
+    setLoading(true);
+    setErr(null);
+    try {
+      const rows = await dataDeletionService.listMine();
+      setMine(rows || []);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to load requests");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function submitRequest() {
+    if (phrase.trim() !== "DELETE MY DATA") {
+      setErr('Confirmation phrase must be exactly "DELETE MY DATA"');
+      return;
+    }
+    if (hasPending) {
+      setErr("You already have a pending request. Cancel it first or wait for review.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await dataDeletionService.createRequest({ reason: reason.trim() || undefined, confirmationPhrase: "DELETE MY DATA" });
+      setMsg("Request submitted. Awaiting admin review. No data deleted yet.");
+      setPhrase("");
+      setReason("");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to submit request");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancel(id: string) {
+    setBusy(true);
+    setErr(null);
+    try {
+      await dataDeletionService.cancelRequest(id);
+      setMsg("Request cancelled.");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to cancel");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 text-sm">
+      {msg && <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">{msg}</div>}
+      {err && <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{err}</div>}
+
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 mb-1">Your requests</div>
+        {loading ? <div className="text-slate-400">Loading…</div> : mine.length === 0 ? (
+          <div className="text-slate-500">No requests yet.</div>
+        ) : (
+          <ul className="space-y-1">
+            {mine.slice(0, 3).map((r: any) => (
+              <li key={r.id} className="flex items-center justify-between rounded border px-2 py-1 text-xs">
+                <span>{r.status} — {new Date(r.createdAt).toLocaleDateString()}</span>
+                {r.status === "PENDING" && <button disabled={busy} onClick={() => cancel(r.id)} className="text-rose-600 underline">Cancel</button>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-3 text-amber-800">
+        Submitting a request does not delete your data. An administrator must review and approve. Deletion execution is not implemented in this release. This only records your intent for a future governed workflow.
+      </div>
+
+      {!hasPending && (
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold">Optional reason</label>
+          <input value={reason} onChange={e => setReason(e.target.value)} className="w-full rounded border px-3 py-2 text-sm" placeholder="Reason (optional)" />
+          <label className="block text-xs font-semibold">Confirmation phrase (type exactly)</label>
+          <input value={phrase} onChange={e => setPhrase(e.target.value)} className="w-full rounded border px-3 py-2 font-mono text-sm" placeholder="DELETE MY DATA" />
+          <button disabled={busy || phrase.trim() !== "DELETE MY DATA"} onClick={submitRequest} className="rounded bg-amber-600 px-4 py-2 text-sm text-white disabled:opacity-50">
+            {busy ? "Submitting..." : "Submit Deletion Request"}
+          </button>
+          <div className="text-[10px] text-amber-700">Exact match required. "DELETE MY DATA"</div>
+        </div>
+      )}
+      {hasPending && <div className="text-xs text-amber-700">You have a pending request. You may cancel it above.</div>}
+    </div>
   );
 }
