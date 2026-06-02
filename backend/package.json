@@ -20,6 +20,7 @@
     "smoke:worker": "node scripts/worker-boot-smoke.cjs",
     "smoke:staging:summary": "node scripts/staging-smoke-summary.mjs",
     "drill:backup-restore": "node scripts/backup-restore-drill.mjs",
+    "drill:deletion-staging": "node scripts/data-deletion-staging-restore-drill.js",
     "security:secrets": "node ../scripts/secret-scan.mjs",
     "check:release-hygiene": "node ../scripts/release-hygiene-check.mjs",
     "smoke": "node scripts/smoke.js",
