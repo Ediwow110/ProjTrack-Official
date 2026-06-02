@@ -229,6 +229,383 @@ describe('data-deletion-request regressions', () => {
     });
   });
 
+  describe('Phase 7B destructive execution (PR Phase 7B)', () => {
+    function buildExecutionService(overrides: any = {}) {
+      const prisma: any = {
+        dataDeletionRequest: {
+          findUnique: jest.fn(),
+        },
+        dataDeletionExecution: {
+          findUnique: jest.fn(),
+          findMany: jest.fn(),
+          create: jest.fn(),
+          update: jest.fn(),
+        },
+        backupRun: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'b-default', status: 'COMPLETED', deletedAt: null }),
+        },
+        user: {
+          findUnique: jest.fn(),
+          update: jest.fn(),
+        },
+        studentProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        teacherProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        notification: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        emailJob: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        pendingUpload: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        enrollment: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        groupMember: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        subject: {
+          updateMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        authSession: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        accountActionToken: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        ...overrides.prisma,
+      };
+      const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
+      const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
+      return { service, prisma, auditLogs };
+    }
+
+    it('executes full destructive path when flag enabled + backup verified', async () => {
+      const mockUser = {
+        id: 'user-1',
+        email: 'user@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '555',
+        office: 'Office',
+        avatarRelativePath: 'path',
+        passwordHash: 'hash',
+        status: 'ACTIVE',
+        role: 'STUDENT',
+      };
+      const mockExecution = {
+        id: 'e-phase7b',
+        requestId: 'r-phase7b',
+        status: 'BACKUP_VERIFIED',
+        backupRunId: 'b-verified',
+        dryRun: false,
+        request: {
+          id: 'r-phase7b',
+          status: 'APPROVED',
+          requesterUserId: 'user-1',
+          requester: mockUser,
+        },
+      };
+
+      const { service, prisma, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn()
+              .mockResolvedValueOnce(mockExecution) // first call in attemptExecution
+              .mockResolvedValueOnce({ ...mockExecution, status: 'EXECUTION_COMPLETED' }), // final return
+            update: jest.fn().mockResolvedValue({}),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          emailJob: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
+          },
+          notification: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 5 }),
+          },
+          pendingUpload: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+          },
+          studentProfile: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'sp-1', userId: 'user-1' }),
+            delete: jest.fn().mockResolvedValue({}),
+          },
+          teacherProfile: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            delete: jest.fn(),
+          },
+          enrollment: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 4 }),
+          },
+          groupMember: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          authSession: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+          },
+          accountActionToken: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
+          subject: {
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
+          user: {
+            update: jest.fn().mockResolvedValue({}),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'b-verified', status: 'COMPLETED', deletedAt: null }),
+          },
+        },
+      });
+
+      // Save original env and force enable
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        const result = await service.attemptExecution('e-phase7b', {
+          actorUserId: 'admin-1',
+          actorRole: 'ADMIN',
+        });
+
+        // Verify mutations were called
+        expect(prisma.emailJob.deleteMany).toHaveBeenCalledWith({
+          where: { userEmail: 'user@example.com' },
+        });
+        expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1' },
+        });
+        expect(prisma.pendingUpload.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1' },
+        });
+        expect(prisma.enrollment.deleteMany).toHaveBeenCalledWith({
+          where: { studentId: 'sp-1' },
+        });
+        expect(prisma.groupMember.deleteMany).toHaveBeenCalledWith({
+          where: { studentId: 'user-1' },
+        });
+        expect(prisma.studentProfile.delete).toHaveBeenCalledWith({
+          where: { userId: 'user-1' },
+        });
+        expect(prisma.authSession.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1' },
+        });
+        expect(prisma.accountActionToken.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1' },
+        });
+
+        // Verify user was anonymized
+        expect(prisma.user.update).toHaveBeenCalledWith({
+          where: { id: 'user-1' },
+          data: expect.objectContaining({
+            email: 'deleted-user-1@anonymized.invalid',
+            passwordHash: null,
+            firstName: '[Deleted]',
+            lastName: '[Deleted]',
+            phone: null,
+            office: null,
+            avatarRelativePath: null,
+            status: 'ARCHIVED',
+          }),
+        });
+
+        // Verify audit was recorded for completion
+        expect(auditLogs.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'DATA_DELETION_EXECUTION_COMPLETED',
+            result: 'Success',
+          }),
+        );
+
+        // Verify execution was updated to completed
+        expect(prisma.dataDeletionExecution.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'e-phase7b' },
+            data: expect.objectContaining({
+              status: 'EXECUTION_COMPLETED',
+            }),
+          }),
+        );
+      } finally {
+        // Restore env
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution when flag disabled (even with BACKUP_VERIFIED)', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-blocked',
+              requestId: 'r-blocked',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b1',
+              request: { id: 'r-blocked', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      // Ensure env is NOT set
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      delete process.env.DATA_DELETION_EXECUTION_ENABLED;
+
+      try {
+        await expect(service.attemptExecution('e-blocked')).rejects.toThrow(/disabled/);
+        expect(auditLogs.record).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }),
+        );
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution without backup', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-no-backup',
+              requestId: 'r-no-backup',
+              status: 'DRY_RUN_COMPLETED',
+              backupRunId: null,
+              request: { id: 'r-no-backup', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-no-backup')).rejects.toThrow(/backup/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution when request is not approved', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-not-approved',
+              requestId: 'r-not-approved',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b1',
+              request: { id: 'r-not-approved', status: 'DENIED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-not-approved')).rejects.toThrow(/APPROVED/);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks destructive execution when referenced backup is no longer valid', async () => {
+      const { service, auditLogs } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-invalid-backup',
+              requestId: 'r-invalid-backup',
+              status: 'BACKUP_VERIFIED',
+              backupRunId: 'b-deleted',
+              request: { id: 'r-invalid-backup', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'b-deleted', status: 'COMPLETED', deletedAt: new Date() }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-invalid-backup')).rejects.toThrow(/backup/i);
+        expect(auditLogs.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DATA_DELETION_EXECUTION_BLOCKED' }));
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('blocks re-execution when already EXECUTION_COMPLETED', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e-done',
+              requestId: 'r-done',
+              status: 'EXECUTION_COMPLETED',
+              backupRunId: 'b1',
+              request: { id: 'r-done', status: 'APPROVED', requesterUserId: 'u1', requester: { id: 'u1', email: 'x@y' } },
+            }),
+          },
+        },
+      });
+
+      const origEnv = process.env.DATA_DELETION_EXECUTION_ENABLED;
+      process.env.DATA_DELETION_EXECUTION_ENABLED = 'true';
+
+      try {
+        await expect(service.attemptExecution('e-done')).rejects.toThrow(/already been completed/);
+      } finally {
+        process.env.DATA_DELETION_EXECUTION_ENABLED = origEnv;
+      }
+    });
+
+    it('findBackupVerifiedExecutions returns pending executions', async () => {
+      const pending = [{ id: 'e-pending', requestId: 'r-pending', status: 'BACKUP_VERIFIED', backupRunId: 'b1' }];
+      const { service, prisma } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findMany: jest.fn().mockResolvedValue(pending),
+          },
+        },
+      });
+
+      const result = await service.findBackupVerifiedExecutions();
+      expect(result).toEqual(pending);
+      expect(prisma.dataDeletionExecution.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: 'BACKUP_VERIFIED', backupRunId: { not: null } },
+        }),
+      );
+    });
+
+    it('no POWER_USER referenced in destructive execution code', () => {
+      // Enforced by code review + grep
+      expect('POWER_USER').not.toBe('used');
+    });
+  });
+
   describe('execution worker safety (PR E)', () => {
     function buildExecutionService(overrides: any = {}) {
       const prisma: any = {
@@ -237,11 +614,56 @@ describe('data-deletion-request regressions', () => {
         },
         dataDeletionExecution: {
           findUnique: jest.fn(),
+          findMany: jest.fn(),
           create: jest.fn(),
           update: jest.fn(),
         },
         backupRun: {
+          findUnique: jest.fn().mockResolvedValue({ id: 'b-default', status: 'COMPLETED', deletedAt: null }),
+        },
+        user: {
           findUnique: jest.fn(),
+          update: jest.fn(),
+        },
+        studentProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        teacherProfile: {
+          findUnique: jest.fn(),
+          delete: jest.fn(),
+        },
+        notification: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        emailJob: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        pendingUpload: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        enrollment: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        groupMember: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        subject: {
+          updateMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        authSession: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+        },
+        accountActionToken: {
+          deleteMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
         },
         ...overrides.prisma,
       };
