@@ -3506,6 +3506,29 @@ export const adminCatalogService = {
     await delay(180);
     return { success: true, id, status: "DENIED" };
   },
+
+  // Phase 5: admin dry-run execution (dry-run only; destructive disabled)
+  async getDataDeletionExecution(requestId: string): Promise<any> {
+    if (apiRuntime.useBackend) {
+      return http.get(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/execution`);
+    }
+    await delay(100);
+    return null;
+  },
+  async triggerDryRun(requestId: string): Promise<{ success: boolean; execution?: any }> {
+    if (apiRuntime.useBackend) {
+      return http.post(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/executions/dry-run`, {});
+    }
+    await delay(200);
+    return { success: true };
+  },
+  async verifyBackup(requestId: string, payload: { backupRunId: string; verificationRef?: string }): Promise<{ success: boolean; execution?: any }> {
+    if (apiRuntime.useBackend) {
+      return http.post(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/executions/verify-backup`, payload);
+    }
+    await delay(200);
+    return { success: true };
+  },
 };
 
 export const dataDeletionService = {

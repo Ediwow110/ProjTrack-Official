@@ -845,6 +845,21 @@ export interface DataDeletionRequestRecord {
   updatedAt: string;
 }
 
+export interface DataDeletionExecutionRecord {
+  id: string;
+  requestId: string;
+  status: string;
+  dryRun: boolean;
+  backupRunId?: string | null;
+  backupVerifiedAt?: string | null;
+  backupVerificationRef?: string | null;
+  executionPlanJson?: any;
+  executionResultJson?: any;
+  executionError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SignInPayload {
   role: AppRole;
   identifier: string;
