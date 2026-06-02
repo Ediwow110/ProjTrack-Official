@@ -377,7 +377,7 @@ describe('data-deletion-request regressions', () => {
         prisma: {
           dataDeletionExecution: {
             findUnique: jest.fn().mockResolvedValue(existingVerified),
-            update: jest.fn(),
+            update: jest.fn().mockResolvedValue(existingVerified),
           },
           backupRun: { findUnique: jest.fn().mockResolvedValue({ id: 'b4', status: 'COMPLETED', deletedAt: null }) },
         },
