@@ -19,7 +19,7 @@
 - No automatic or immediate deletion on APPROVED.
 - No hard/soft delete or anonymization code in this document's scope.
 - No changes to production deployment, passwords, tokens, mail, 2FA.
-- No POWER_USER role.
+- No new elevated role added for deletion execution.
 - No direct execution worker merged without separate explicit user approval after this doc.
 
 ## 2. DataDeletionRequest Lifecycle (current, from PR #134)
@@ -160,9 +160,9 @@ See code in backend/src/data-deletion/data-deletion-execution.* and tests.
   - attemptExecution blocks on flag (default) *even when* status=BACKUP_VERIFIED + backupRunId present (non-dry-run gating + fail-closed).
   - Idempotency for verify on already-BACKUP_VERIFIED state.
   - Cross-check that drill now covers DataDeletion* tables (links drill + service tests).
-  - All prior negative cases (non-APPROVED blocked, flag block, backup fail-closed, no destructive, audit on paths, POWER_USER absent) retained and still pass.
+  - All prior negative cases (non-APPROVED blocked, flag block, backup fail-closed, no destructive, audit on paths, no role-expansion path) retained and still pass.
 - **Runbook update**: This section + explicit "No destructive deletion worker is implemented by this document" retained.
-- **Safety gates re-verified** (via code read + grep forbidden searches): flag (DATA_DELETION_EXECUTION_ENABLED), dry-run only (plans/simulations, no deletes), backup gate (COMPLETED && !deletedAt required in verifyBackup + non-dry check in attempt), audit immutability (record-only, module=DataDeletion), no POWER_USER, no Prisma destructive in data-deletion/* or drill (drill is guarded pg_dump/psql on disposable targets only).
+- **Safety gates re-verified** (via code read + grep forbidden searches): flag (DATA_DELETION_EXECUTION_ENABLED), dry-run only (plans/simulations, no deletes), backup gate (COMPLETED && !deletedAt required in verifyBackup + non-dry check in attempt), audit immutability (record-only, module=DataDeletion), no role-expansion path, no Prisma destructive in data-deletion/* or drill (drill is guarded pg_dump/psql on disposable targets only).
 - **Local validation**: pinned Prisma@6.19.3 validate passed; forbidden searches clean (only planning notes); `npm run build` (no breakage from .mjs/.spec/.md); security test attempted (env limitation: 'jest' not recognized due to incomplete node_modules/.bin — reported as limitation per security-ci-verification skill, not code failure). No migrations/schema touched (test+drill+docs only).
 - **Evidence**: Branch feat/test-data-deletion-backup-restore-drill-hardening (local only). All changes additive to test coverage and drill expectations. APPROVED ≠ executed; destructive paths unreachable.
 - **Next gates**: Requires explicit user "merge PR #N" (after push/open if/when authorized) + full post-merge verification before any Phase 7 policy/impl.
@@ -170,3 +170,131 @@ See code in backend/src/data-deletion/data-deletion-execution.* and tests.
 **No destructive deletion worker is implemented by this document.** Production activation still requires future explicit multi-gate approval after all phases.
 
 See also: drill:backup-restore in backend/package.json, execution service verifyBackup/attemptExecution, and security regression tests.
+
+## 17. Phase 7A: Final Data Classification Policy
+
+### A. Purpose
+
+Phase 7A is policy-only. It finalizes the data classification contract that any future destructive implementation must follow. It does not implement, enable, or approve destructive deletion. It is a prerequisite for any future Phase 7B code work.
+
+### B. Non-goals
+
+- no code implementation
+- no migration
+- no production activation
+- no deletion or anonymization execution
+- no restore execution
+- no new elevated role for deletion execution
+
+### C. Data classification table
+
+| Model / Table | Classification | Rationale | Backup requirement | Audit requirement | Restore consideration | Phase 7B implementation notes | Risk |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `User` | `ANONYMIZE` | Core identity row has many retained references (`DataDeletionRequest`, `AuditLog`, academic history, backups). Full delete is not the default policy for this model. | Verified pre-execution backup must include the user row and all referenced rows. | Record who approved, when anonymization occurred, what fields were minimized, and the irreversible point; never log raw secrets or replacement tokens in clear text. | Restore must be able to recover original identity data from backup during the retention window. | Clear direct identifiers (`email`, names, phone, office, avatar path), revoke access, invalidate auth material, and preserve a stable tombstone for retained foreign-key references. | `CRITICAL` |
+| `StudentProfile` | `DELETE` | User-owned student profile data (`studentNumber`, section/year linkage) is direct personal data. | Verified backup required before deletion. | Audit row count and target profile id; do not copy profile values into audit text. | Restore must re-create the profile before dependent academic links are replayed. | Delete only after handling dependent `Enrollment` rows and any related user-owned academic rows. | `HIGH` |
+| `TeacherProfile` | `DELETE` | User-owned teacher profile data (`employeeId`, department text) is direct personal data. | Verified backup required before deletion. | Audit target id and dependency handling; no raw employee identifiers in audit text. | Restore must re-create profile before optional teacher links are reattached. | Null or reassign `Subject.teacherId` before deleting the profile if the subject must remain. | `HIGH` |
+| `DataDeletionRequest` | `RETAIN_WITH_PII_MINIMIZATION` | Governance evidence must survive the request lifecycle, but `reason`, `confirmationPhrase`, and reviewer notes may contain PII. | Backup must include request metadata before any irreversible step. | Every status transition and any later minimization must be audited; request evidence must not be destroyed. | Restore must preserve the original request timeline and review state. | Retain the row; future minimization must be narrow, approved, and must not erase accountability. | `CRITICAL` |
+| `DataDeletionExecution` | `RETAIN_WITH_PII_MINIMIZATION` | Execution evidence must remain available after any future run, but `executionPlanJson` / `executionResultJson` must avoid or later minimize raw PII. | Backup must include the execution row and linked backup evidence. | Audit backup verification, dry-run, blocked execution, final irreversible step, and any later minimization. | Restore must preserve execution evidence and backup linkage. | Retain the row; Phase 7B must keep plan/result payloads metadata-only where possible. | `CRITICAL` |
+| `BackupRun` | `RETAIN_WITH_PII_MINIMIZATION` | Backup metadata is operational evidence and is required after deletion; `createdById` / `notes` may need later minimization. | Backup metadata itself must be retained; backup retention/deletion is a separate policy area. | Audit which backup run gated execution and any retention-class decisions. | Restore depends on this metadata to identify the correct artifact and window. | Never delete backup metadata as part of a user deletion request. | `CRITICAL` |
+| `AuditLog` | `RETAIN_WITH_PII_MINIMIZATION` | Audit integrity is mandatory; logs must survive deletion requests, though later approved minimization of retained PII may be needed. | Backup must cover audit rows that prove the request, review, backup, execution, and restore chain. | Audit logs must remain immutable and must never be bulk-deleted as part of user deletion. | Restore must preserve audit chronology and evidentiary value. | Retain rows; any minimization is separate, approved, and must not destroy accountability. | `CRITICAL` |
+| `Notification` | `DELETE` | User-scoped notification content is personal operational data. | Verified backup required before deletion. | Audit counts and ids only; do not echo notification bodies. | Restore must be able to reinsert deleted notifications if rollback occurs inside the retention window. | Delete only notifications owned by the target user. | `MEDIUM` |
+| `Course` | `UNTOUCHED` | Global academic structure, not user-owned data. | No destructive action on this table for a user request. | Audit that the table was intentionally untouched when relevant. | Restore not scoped to this table for user deletion. | Do not mutate course rows in Phase 7B. | `LOW` |
+| `Department` | `UNTOUCHED` | Global reference data, not user-owned. | No destructive action on this table for a user request. | Audit untouched classification if referenced by a deleted teacher profile. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Section` | `UNTOUCHED` | Global academic structure, not user-owned. | No destructive action on this table for a user request. | Audit untouched classification if student relationships are removed. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `AcademicYear` | `UNTOUCHED` | Global academic calendar data, not user-owned. | No destructive action on this table for a user request. | Audit untouched classification if related profile rows are deleted. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `AcademicYearLevel` | `UNTOUCHED` | Global academic structure, not user-owned. | No destructive action on this table for a user request. | Audit untouched classification if related profile rows are deleted. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Subject` | `UNTOUCHED` | Subject rows are institutional academic records, not user-owned rows. | No destructive action on subject rows for a user request. | Audit any cleared teacher linkage separately from the retained subject row. | Restore of a deleted teacher profile may require reattaching the subject link from backup. | If a deleted teacher was linked, null or reassign `teacherId`; do not delete the subject row by default. | `MEDIUM` |
+| `SubjectSection` | `UNTOUCHED` | Join table for institutional subject/section structure, not user-owned. | No destructive action on this table for a user request. | Audit untouched classification if dependent student/teacher data is removed elsewhere. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Enrollment` | `DELETE` | Student enrollment rows directly connect the user to academic participation. | Verified backup required before deletion. | Audit row counts and identifiers only. | Restore must be able to recreate enrollments before re-linking profile state. | Delete only enrollments for the target student profile. | `HIGH` |
+| `SubmissionTask` | `UNTOUCHED` | Task definitions belong to course/subject operations, not the requesting user. | No destructive action on this table for a user request. | Audit untouched classification if user-owned submissions are later removed under a confirmed rule. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Group` | `RETAIN_WITH_PII_MINIMIZATION` | Group rows may need to survive for other members, but `leaderId` may still point at the deleted user. | Backup must include the row before any link-clearing or minimization. | Audit retained-row handling and any `leaderId` changes. | Restore must be able to reattach prior leader linkage if rollback is approved. | Retain the group; clear or remap user-identifying leadership fields only if they reference the target user. | `HIGH` |
+| `GroupMember` | `DELETE` | Membership rows directly link the user to collaborative groups. | Verified backup required before deletion. | Audit deleted membership ids/counts only. | Restore must recreate memberships before higher-level collaboration state is replayed. | Delete only memberships for the target user. | `HIGH` |
+| `Submission` | `NOT_CONFIRMED` | Current schema mixes student ownership, group ownership, submitter/reviewer references, and academic record needs; one uniform destructive rule is not yet proven safe. | Backup is mandatory before any future decision on this model. | Audit the decision path that selected delete vs retain behavior. | Restore requirements depend on whether the row was user-owned, group-shared, or merely user-referenced. | Phase 7B must split this model into proven sub-cases before mutating it. | `CRITICAL` |
+| `SubmissionEvent` | `NOT_CONFIRMED` | Event rows may be user-owned history for deleted submissions or retained evidence for surviving submissions. | Backup is mandatory before any future decision on this model. | Audit whether events were retained, minimized, or deleted via submission cascade. | Restore depends on the corresponding submission decision. | Phase 7B must define separate rules for cascaded deletion versus retained submission history. | `HIGH` |
+| `SubmissionFile` | `NOT_CONFIRMED` | File rows follow `Submission`; current schema does not prove one safe rule for all user-related cases. | Backup must include file metadata and artifact linkage before any future mutation. | Audit file ids/counts and artifact actions; do not log raw paths beyond what is operationally required. | Restore depends on the corresponding submission classification and retained artifact window. | Phase 7B must classify file handling together with the final `Submission` rules. | `HIGH` |
+| `PendingUpload` | `DELETE` | User-owned temporary upload metadata and staged objects are direct personal content. | Verified backup required if the row or artifact is still relevant to the deletion scope. | Audit ids/counts and storage cleanup intent; avoid raw filenames where not required. | Restore must be able to recreate metadata and artifact mapping if rollback occurs inside the retention window. | Delete both metadata and associated artifact for the target user, subject to backup gate. | `HIGH` |
+| `EmailJob` | `DELETE` | Rows contain direct email destination data and message payload for the target user. | Verified backup required before deletion. | Audit ids/counts and message class only; do not duplicate payload or full recipient address in audit text. | Restore must allow rehydration only from backup within the retention window. | Delete only jobs that belong to or target the requesting user. | `HIGH` |
+| `EmailProviderEvent` | `RETAIN_WITH_PII_MINIMIZATION` | Provider events are operational delivery evidence, but may contain the user's email or payload fragments. | Backup must cover these rows before any later minimization policy is applied. | Audit any minimization separately; keep provider evidence intact. | Restore must preserve provider traceability. | Retain by default; any PII reduction must be narrowly approved and evidence-preserving. | `HIGH` |
+| `EmailSuppression` | `RETAIN_WITH_PII_MINIMIZATION` | Suppression state may be needed to prevent future unwanted mail, but the email itself is PII. | Backup must cover the row before any future minimization decision. | Audit whether the row was retained and how any identifier reduction was handled. | Restore may need the original suppression state to prevent accidental mail after rollback. | Retain by default; do not remove mail-safety controls as a side effect of user deletion. | `HIGH` |
+| `EmailUnsubscribe` | `RETAIN_WITH_PII_MINIMIZATION` | Unsubscribe state is a mail-governance control and may need to outlive the account, but contains email-linked data. | Backup must cover the row before any future minimization decision. | Audit retained-row handling and any approved identifier minimization. | Restore may need to preserve unsubscribe state after rollback. | Retain by default; do not recreate mail eligibility silently. | `HIGH` |
+| `AuthSession` | `DELETE` | Active or historical session rows are user auth material and should not survive account deletion handling. | Verified backup required before irreversible deletion. | Audit revocation/deletion counts and timing; never log token hashes. | Restore may re-create sessions only if explicitly approved; default restore should not reactivate old sessions automatically. | Revoke first, then delete session rows for the target user. | `HIGH` |
+| `AccountActionToken` | `DELETE` | Password-reset / activation tokens are sensitive auth material and must be removed for the target user. | Verified backup required before irreversible deletion. | Audit revocation/deletion counts only; never log token values or hashes. | Restore must not automatically reactivate expired or used tokens. | Revoke and delete all tokens for the target user. | `CRITICAL` |
+| `AuthRateLimit` | `NOT_CONFIRMED` | `key` may represent email, IP, or another selector; current schema alone does not prove which rows belong to one user request. | Backup required before any future mutation of matched rows. | Audit the matching rule used if this table is ever touched. | Restore depends on how keys were matched and whether operational abuse controls must remain. | Phase 7B must define a safe selector policy before mutating this table. | `MEDIUM` |
+| `WorkerHeartbeat` | `UNTOUCHED` | Global worker liveness state, unrelated to one user's data deletion request. | No destructive action on this table for a user request. | No special audit beyond untouched classification if referenced. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Announcement` | `UNTOUCHED` | Global content, not user-owned. | No destructive action on this table for a user request. | No special audit beyond untouched classification if referenced. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `Request` | `NOT_CONFIRMED` | Generic request table has no foreign key to `User`; current schema does not confirm ownership, retention basis, or safe matching. | Backup is mandatory before any future mutation decision. | Audit any future selector rule and why it was considered in-scope. | Restore depends on later ownership proof. | Phase 7B must not touch this table without a separate confirmed policy. | `HIGH` |
+| `AcademicSetting` | `UNTOUCHED` | Global academic configuration, not user-owned. | No destructive action on this table for a user request. | No special audit beyond untouched classification if referenced. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `SystemSetting` | `UNTOUCHED` | Global system configuration, not user-owned. | No destructive action on this table for a user request. | No special audit beyond untouched classification if referenced. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `SystemTool` | `UNTOUCHED` | Global operational metadata, not user-owned. | No destructive action on this table for a user request. | No special audit beyond untouched classification if referenced. | Restore not scoped here. | Leave rows intact. | `LOW` |
+| `ImportBatch` | `NOT_CONFIRMED` | Batch payloads may contain many-user data and `createdById` is only an optional creator link; single-user deletion behavior is not proven. | Backup is mandatory before any future mutation decision. | Audit any later classification rule and why mixed-user payload risk was acceptable. | Restore depends on whether payload scope was single-user or multi-user. | Phase 7B must not mutate this table without a separate proven rule. | `HIGH` |
+
+Current-schema notes:
+- No dedicated organization, tenant, branch, or school-ownership model is present in the current Prisma schema.
+- No separate mail outbox model is present; `EmailJob` is the confirmed mail-queue table.
+- Confirmed file/upload/media tables in the current schema are `PendingUpload` and `SubmissionFile`.
+
+### D. Audit log policy
+
+- Audit logs must not be deleted as part of a user data deletion request.
+- Audit logs must retain operational integrity and evidentiary value.
+- Any retained PII in audit records may only be minimized by a separate approved policy and implementation PR.
+- Deleting audit logs would destroy accountability and is forbidden.
+
+### E. Backup policy
+
+- No destructive execution may occur without a verified backup.
+- The backup id or run id must be linked to execution evidence.
+- The backup must be restorable before any irreversible execution step.
+- Backup metadata must be retained after deletion.
+- Backup retention and later backup deletion are separate policy areas and are not approved by Phase 7A.
+
+### F. Restore policy
+
+- Restore is not implemented by Phase 7A.
+- Restore drills are required before any production activation decision.
+- Restore may require full-database restore or scoped restore, depending on proven system capability.
+- Restore must preserve audit evidence and governance metadata.
+- Restore after irreversible deletion may not be guaranteed outside the verified retention window.
+
+### G. Irreversibility and retention window
+
+- Approval is not execution.
+- Execution is not finalization.
+- The current policy baseline remains a retention window between approval and any destructive execution; the existing runbook recommendation of 7-30 days with 14 days as the default target remains the minimum planning baseline unless a later approved policy changes it.
+- The irreversible point must be explicit, operator-confirmed, and audited.
+- Minimum recommendation: no production irreversible execution until a backup/restore drill passes and user/operator confirms.
+
+### H. Future Phase 7B implementation contract
+
+Phase 7B may only implement code if all of the following are true:
+- Phase 7A is merged.
+- Phase 6 is merged.
+- `main` is clean and current.
+- All CI is green.
+- The user explicitly says to proceed.
+- The implementation follows the classification table in this section.
+- The destructive feature flag remains disabled by default.
+- Dry-run remains available.
+- All destructive operations are idempotent, audited, and backup-gated.
+
+### I. Future Phase 7C staging validation contract
+
+- staging-only activation
+- seeded deletion candidate
+- verified backup before execution
+- evidence that expected data was deleted, anonymized, retained, or left untouched per the classification table
+- restore drill evidence
+- no production activation
+
+### J. Future Phase 7D production activation contract
+
+- separate PR only
+- explicit user approval
+- manual gate
+- monitoring and alerting
+- rollback and incident plan
+- no bulk automatic execution at first rollout
+
+### K. Explicit lock statement
+
+> Production destructive deletion remains locked after Phase 7A. This document is not production activation approval.
