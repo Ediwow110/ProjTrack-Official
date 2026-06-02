@@ -39,6 +39,16 @@ export const UserStatus = {
 
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
 
+export const DataDeletionRequestStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  DENIED: 'DENIED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type DataDeletionRequestStatus =
+  (typeof DataDeletionRequestStatus)[keyof typeof DataDeletionRequestStatus];
+
 export type PrismaJsonValue = Record<string, unknown>;
 export type PrismaEmailJobWhereInput = Record<string, unknown>;
 

@@ -17,8 +17,9 @@ import { AccessModule } from './access/access.module';
 import { BackupsModule } from './backups/backups.module';
 import { BrandingModule } from './branding/branding.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { DataDeletionModule } from './data-deletion/data-deletion.module';
 
 @Module({
-  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule, MonitoringModule],
+  imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule, MonitoringModule, DataDeletionModule],
 })
 export class AppModule {}
