@@ -161,12 +161,23 @@ export interface ReportTableRow {
   avgReview: string;
 }
 
+export interface ReportTruncationMeta {
+  isTruncated: boolean;
+  rowLimit: number;
+  totalMatchingRows: number;
+  returnedRows: number;
+}
+
 export interface AdminReportsResponse {
   metrics: ReportMetricCard[];
   completionData: CompletionRatePoint[];
   lateData: TrendPoint[];
   turnaroundData: TrendPoint[];
   tableRows: ReportTableRow[];
+  isTruncated?: boolean;
+  rowLimit?: number;
+  totalMatchingRows?: number;
+  returnedRows?: number;
 }
 
 export interface AdminDashboardKpi {
