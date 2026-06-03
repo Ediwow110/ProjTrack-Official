@@ -1526,7 +1526,7 @@ async getAuditLogDetail(id: string): Promise<AuditLogRecord> {
 },
   async exportReportsCsv(rows: AdminReportsResponse["tableRows"], sectionLabel = "all-sections") {
     if (apiRuntime.useBackend) {
-      const payload = await http.get<{ filename?: string; csv?: string }>("/admin/reports/export", {
+      const payload = await http.get<{ filename?: string; csv?: string; isTruncated?: boolean; rowLimit?: number; totalMatchingRows?: number; returnedRows?: number }>("/admin/reports/export", {
         section: sectionLabel === "All Sections" ? undefined : sectionLabel,
       });
       if (!payload?.csv) {

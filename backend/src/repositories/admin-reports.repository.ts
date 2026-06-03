@@ -87,7 +87,7 @@ export class AdminReportsRepository {
     };
   }
 
-  async currentView(section?: string, subjectId?: string) {
+  private reportFilter(section?: string, subjectId?: string): any {
     const where: any = {};
     if (subjectId) where.subjectId = subjectId;
 
@@ -97,6 +97,16 @@ export class AdminReportsRepository {
         { group: { members: { some: { student: { studentProfile: { section: { name: section } } } } } } }
       ];
     }
+    return where;
+  }
+
+  private async countMatchingRows(section?: string, subjectId?: string): Promise<number> {
+    const where = this.reportFilter(section, subjectId);
+    return this.prisma.submission.count({ where });
+  }
+
+  async currentView(section?: string, subjectId?: string) {
+    const where = this.reportFilter(section, subjectId);
 
     const rows = await this.prisma.submission.findMany({
       where,
@@ -187,14 +197,27 @@ export class AdminReportsRepository {
 
   async exportCsv(section?: string, subjectId?: string) {
     const rows = await this.currentView(section, subjectId);
+    const totalMatchingRows = await this.countMatchingRows(section, subjectId);
+    const returnedRows = rows.length;
+    const isTruncated = totalMatchingRows > returnedRows;
     const header = ['id', 'title', 'subject', 'section', 'status', 'grade', 'submittedAt', 'owner'];
     const csv = [header.join(','), ...rows.map((row: any) => header.map((key) => JSON.stringify(row[key] ?? '')).join(','))].join('\n');
-    return { filename: 'admin-report-export.csv', csv };
+    return {
+      filename: 'admin-report-export.csv',
+      csv,
+      isTruncated,
+      rowLimit: REPORTING_LIST_TAKE,
+      totalMatchingRows,
+      returnedRows,
+    };
   }
 
   async reportBundle(section?: string, subjectId?: string) {
     const summary = await this.summary(section, subjectId);
     const rows = await this.currentView(section, subjectId);
+    const totalMatchingRows = await this.countMatchingRows(section, subjectId);
+    const returnedRows = rows.length;
+    const isTruncated = totalMatchingRows > returnedRows;
 
     const metrics = [
       {
@@ -266,6 +289,10 @@ export class AdminReportsRepository {
       lateData,
       turnaroundData,
       tableRows,
+      isTruncated,
+      rowLimit: REPORTING_LIST_TAKE,
+      totalMatchingRows,
+      returnedRows,
     };
   }
 

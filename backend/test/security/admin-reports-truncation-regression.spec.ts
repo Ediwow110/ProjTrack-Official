@@ -355,7 +355,7 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
   });
 
   describe('reportBundle() reflects full data beyond 100', () => {
-    it('metrics reflect all submissions', async () => {
+    it('metrics reflect all submissions and metadata shows no truncation', async () => {
       const submissions = Array.from({ length: 150 }, (_, i) =>
         makeSubmission({
           id: `sub-${i}`,
@@ -385,6 +385,12 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
       expect(bundle.lateData).toBeDefined();
       expect(bundle.turnaroundData).toBeDefined();
       expect(bundle.tableRows).toBeDefined();
+
+      // Metadata: 150 submissions < 5000 cap, so no truncation
+      expect(bundle.isTruncated).toBe(false);
+      expect(bundle.rowLimit).toBe(5000);
+      expect(bundle.totalMatchingRows).toBe(150);
+      expect(bundle.returnedRows).toBe(150);
     });
   });
 });
@@ -465,6 +471,295 @@ describe('AdminReportsRepository – DB-side section filtering optimization (PER
 
     // summary() uses count/groupBy, reportBundle() uses currentView (findMany)
     // Total findMany calls should be exactly 1 (from reportBundle -> currentView)
+    // countMatchingRows uses count not findMany
     expect(findManyMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AdminReportsRepository – truncation metadata (REPORT-CAP)', () => {
+  function buildRepo(prisma: any) {
+    const submissionRepo = new SubmissionRepository(prisma as any);
+    const subjectRepo = new SubjectRepository(prisma as any);
+    const userRepo = new UserRepository(prisma as any);
+    return new AdminReportsRepository(prisma as any, submissionRepo, subjectRepo, userRepo);
+  }
+
+  describe('reportBundle() metadata', () => {
+    it('returns isTruncated=true when totalMatchingRows > 5000', async () => {
+      const submissions = Array.from({ length: 5100 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: 'subject-1',
+          status: i < 3000 ? 'GRADED' : 'SUBMITTED',
+          student: {
+            id: `student-${i % 100}`,
+            firstName: 'S',
+            lastName: `${i % 100}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+        }),
+      );
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const bundle = await repo.reportBundle();
+
+      expect(bundle.isTruncated).toBe(true);
+      expect(bundle.rowLimit).toBe(5000);
+      expect(bundle.totalMatchingRows).toBe(5100);
+      expect(bundle.returnedRows).toBe(5000);
+    });
+
+    it('returns isTruncated=false when totalMatchingRows <= 5000', async () => {
+      const submissions = Array.from({ length: 3000 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: 'subject-1',
+          status: i < 1500 ? 'GRADED' : 'SUBMITTED',
+          student: {
+            id: `student-${i % 100}`,
+            firstName: 'S',
+            lastName: `${i % 100}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+        }),
+      );
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const bundle = await repo.reportBundle();
+
+      expect(bundle.isTruncated).toBe(false);
+      expect(bundle.rowLimit).toBe(5000);
+      expect(bundle.totalMatchingRows).toBe(3000);
+      expect(bundle.returnedRows).toBe(3000);
+    });
+
+    it('returns isTruncated=false when exactly 5000 (boundary)', async () => {
+      const submissions = Array.from({ length: 5000 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: 'subject-1',
+          status: 'SUBMITTED',
+          student: {
+            id: `student-${i % 100}`,
+            firstName: 'S',
+            lastName: `${i % 100}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+        }),
+      );
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const bundle = await repo.reportBundle();
+
+      expect(bundle.isTruncated).toBe(false);
+      expect(bundle.rowLimit).toBe(5000);
+      expect(bundle.totalMatchingRows).toBe(5000);
+      expect(bundle.returnedRows).toBe(5000);
+    });
+
+    it('summary totals remain full-count-safe beyond 5000', async () => {
+      const submissions = Array.from({ length: 5100 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: i < 3000 ? 'subject-1' : 'subject-2',
+          status: i < 2000 ? 'GRADED' : 'SUBMITTED',
+          student: {
+            id: `student-${i % 100}`,
+            firstName: 'S',
+            lastName: `${i % 100}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+        }),
+      );
+      const subjects = [
+        { id: 'subject-1', name: 'Math' },
+        { id: 'subject-2', name: 'Science' },
+      ];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const bundle = await repo.reportBundle();
+
+      // summary uses DB aggregates — totals should reflect ALL 5100 submissions
+      const totalMetric = bundle.metrics.find((m: any) => m.label === 'Total Submissions');
+      expect(totalMetric.value).toBe('5100');
+      expect(totalMetric.value).not.toBe('5000');
+    });
+
+    it('respects section filter in truncation metadata', async () => {
+      const sectionAStudent = {
+        id: 'student-a',
+        firstName: 'Alice',
+        lastName: 'A',
+        studentProfile: { section: { name: 'Section A' } },
+      };
+      const sectionBStudent = {
+        id: 'student-b',
+        firstName: 'Bob',
+        lastName: 'B',
+        studentProfile: { section: { name: 'Section B' } },
+      };
+
+      const submissions = [
+        // Section A has 6000 submissions (will be truncated)
+        ...Array.from({ length: 6000 }, (_, i) =>
+          makeSubmission({
+            id: `sub-a-${i}`,
+            subjectId: 'subject-1',
+            status: 'SUBMITTED',
+            studentId: 'student-a',
+            student: sectionAStudent,
+            submittedAt: new Date(2026, 0, 1),
+          }),
+        ),
+        // Section B has 100 submissions (will not be truncated)
+        ...Array.from({ length: 100 }, (_, i) =>
+          makeSubmission({
+            id: `sub-b-${i}`,
+            subjectId: 'subject-1',
+            status: 'SUBMITTED',
+            studentId: 'student-b',
+            student: sectionBStudent,
+            submittedAt: new Date(2026, 0, 1),
+          }),
+        ),
+      ];
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      // Section A should be truncated
+      const bundleA = await repo.reportBundle('Section A');
+      expect(bundleA.isTruncated).toBe(true);
+      expect(bundleA.totalMatchingRows).toBe(6000);
+      expect(bundleA.returnedRows).toBe(5000);
+
+      // Section B should not be truncated
+      const bundleB = await repo.reportBundle('Section B');
+      expect(bundleB.isTruncated).toBe(false);
+      expect(bundleB.totalMatchingRows).toBe(100);
+      expect(bundleB.returnedRows).toBe(100);
+    });
+
+    it('respects subjectId filter in truncation metadata', async () => {
+      const submissions = [
+        ...Array.from({ length: 6000 }, (_, i) =>
+          makeSubmission({
+            id: `sub-math-${i}`,
+            subjectId: 'subject-1',
+            status: 'SUBMITTED',
+            student: {
+              id: `student-${i % 100}`,
+              firstName: 'S',
+              lastName: `${i % 100}`,
+              studentProfile: { section: { name: 'Section A' } },
+            },
+            submittedAt: new Date(2026, 0, 1),
+          }),
+        ),
+        ...Array.from({ length: 100 }, (_, i) =>
+          makeSubmission({
+            id: `sub-sci-${i}`,
+            subjectId: 'subject-2',
+            status: 'SUBMITTED',
+            student: {
+              id: `student-sci-${i}`,
+              firstName: 'S',
+              lastName: `Sci${i}`,
+              studentProfile: { section: { name: 'Section A' } },
+            },
+            submittedAt: new Date(2026, 0, 1),
+          }),
+        ),
+      ];
+      const subjects = [
+        { id: 'subject-1', name: 'Math' },
+        { id: 'subject-2', name: 'Science' },
+      ];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      // subject-1 has 6000 submissions (truncated)
+      const bundleMath = await repo.reportBundle(undefined, 'subject-1');
+      expect(bundleMath.isTruncated).toBe(true);
+      expect(bundleMath.totalMatchingRows).toBe(6000);
+      expect(bundleMath.returnedRows).toBe(5000);
+
+      // subject-2 has 100 submissions (not truncated)
+      const bundleSci = await repo.reportBundle(undefined, 'subject-2');
+      expect(bundleSci.isTruncated).toBe(false);
+      expect(bundleSci.totalMatchingRows).toBe(100);
+      expect(bundleSci.returnedRows).toBe(100);
+    });
+  });
+
+  describe('exportCsv() metadata', () => {
+    it('includes truncation metadata', async () => {
+      const submissions = Array.from({ length: 5100 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: 'subject-1',
+          status: 'SUBMITTED',
+          student: {
+            id: `student-${i % 100}`,
+            firstName: 'S',
+            lastName: `${i % 100}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1),
+        }),
+      );
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const result = await repo.exportCsv();
+
+      expect(result.isTruncated).toBe(true);
+      expect(result.rowLimit).toBe(5000);
+      expect(result.totalMatchingRows).toBe(5100);
+      expect(result.returnedRows).toBe(5000);
+      expect(result.filename).toBe('admin-report-export.csv');
+      expect(result.csv).toBeDefined();
+      // CSV should have header + 5000 data rows
+      expect(result.csv.split('\n')).toHaveLength(5001);
+    });
+
+    it('returns isTruncated=false when under cap', async () => {
+      const submissions = Array.from({ length: 100 }, (_, i) =>
+        makeSubmission({
+          id: `sub-${i}`,
+          subjectId: 'subject-1',
+          status: 'SUBMITTED',
+          student: {
+            id: `student-${i}`,
+            firstName: 'S',
+            lastName: `${i}`,
+            studentProfile: { section: { name: 'Section A' } },
+          },
+          submittedAt: new Date(2026, 0, 1),
+        }),
+      );
+      const subjects = [{ id: 'subject-1', name: 'Math' }];
+      const { prisma } = buildPrismaMock(submissions, subjects);
+      const repo = buildRepo(prisma);
+
+      const result = await repo.exportCsv();
+
+      expect(result.isTruncated).toBe(false);
+      expect(result.rowLimit).toBe(5000);
+      expect(result.totalMatchingRows).toBe(100);
+      expect(result.returnedRows).toBe(100);
+    });
   });
 });

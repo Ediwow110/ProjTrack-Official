@@ -18,6 +18,9 @@ export default function AdminReports() {
   );
   const { data, loading, error, reload } = useAsyncData(fetchReports, [fetchReports]);
   const resultCount = data?.tableRows?.length ?? 0;
+  const isTruncated = data?.isTruncated === true;
+  const truncationTotal = data?.totalMatchingRows ?? 0;
+  const truncationLimit = data?.rowLimit ?? 5000;
 
   const exportCurrentView = async () => {
     if (!data) return;
@@ -66,6 +69,12 @@ export default function AdminReports() {
       </div>
 
       {exportError && <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">{exportError}</div>}
+
+      {isTruncated && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-300">
+          Showing first {truncationLimit.toLocaleString()} of {truncationTotal.toLocaleString()} matching submissions. Refine filters or export in smaller batches.
+        </div>
+      )}
 
       <div className={`flex flex-wrap gap-3 items-center p-4 bg-white dark:bg-slate-900/85 rounded-xl border border-slate-100 dark:border-slate-700/70 shadow-sm ${loading || exporting ? "opacity-80" : ""}`}>
         <div className="flex items-center gap-2">
