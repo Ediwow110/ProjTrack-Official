@@ -33,6 +33,36 @@ function shouldExposeRequestId(path: string, status: number, message: string) {
   return true;
 }
 
+async function extractErrorMessage(response: Response, fallback: string): Promise<{ message: string; requestId: string | null; retryAfter?: number }> {
+  let message = fallback;
+  let requestId = response.headers.get('x-request-id');
+  const retryAfterHeader = response.headers.get('retry-after');
+  const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : undefined;
+
+  try {
+    const rawText = await response.text();
+    const trimmed = rawText.trim();
+    if (trimmed) {
+      try {
+        const data = JSON.parse(trimmed);
+        message = data.message ?? data.error ?? message;
+        requestId = data.requestId ?? requestId;
+      } catch {
+        const lower = trimmed.toLowerCase();
+        if (lower.startsWith('<!doctype') || lower.startsWith('<html') || lower.startsWith('<head') || lower.startsWith('<body')) {
+          message = 'Server returned an HTML error response';
+        } else {
+          message = trimmed.substring(0, 300);
+        }
+      }
+    }
+  } catch {
+    // If reading text fails, keep fallback
+  }
+
+  return { message, requestId, retryAfter };
+}
+
 function backendUnavailableError(error: unknown) {
   const detail = error instanceof Error && error.message ? ` (${error.message})` : '';
   if (import.meta.env.DEV) {
@@ -153,13 +183,8 @@ async function uploadFile<T>(
   }
 
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    try {
-      const data = await response.json();
-      message = data.message ?? data.error ?? message;
-    } catch {
-      // ignore body parsing issue
-    }
+    const fallback = `Request failed (${response.status})`;
+    const { message } = await extractErrorMessage(response, fallback);
     throw new Error(message);
   }
 
@@ -178,19 +203,12 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
 
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    let requestId = response.headers.get('x-request-id');
-    const retryAfterHeader = response.headers.get('retry-after');
-    const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : undefined;
-    try {
-      const data = await response.json();
-      message = data.message ?? data.error ?? message;
-      requestId = data.requestId ?? requestId;
-    } catch {
-      // ignore body parsing issue
-    }
-    if (requestId && shouldExposeRequestId(path, response.status, message)) {
-      message = `${message} [request ${requestId}]`;
+    const fallback = `Request failed (${response.status})`;
+    let { message, requestId: extractedRequestId, retryAfter } = await extractErrorMessage(response, fallback);
+    
+    let finalRequestId = extractedRequestId;
+    if (finalRequestId && shouldExposeRequestId(path, response.status, message)) {
+      message = `${message} [request ${finalRequestId}]`;
     }
     throw new ApiError(message, response.status, Number.isFinite(retryAfter) ? retryAfter : undefined);
   }
@@ -229,13 +247,8 @@ async function requestBlob(path: string, query?: Record<string, string | number 
   }
 
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    try {
-      const data = await response.json();
-      message = data.message ?? data.error ?? message;
-    } catch {
-      // ignore body parsing issue
-    }
+    const fallback = `Request failed (${response.status})`;
+    const { message } = await extractErrorMessage(response, fallback);
     throw new Error(message);
   }
 
