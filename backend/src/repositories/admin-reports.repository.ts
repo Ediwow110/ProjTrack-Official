@@ -20,14 +20,14 @@ export class AdminReportsRepository {
     const dbWhere: any = {};
     if (subjectId) dbWhere.subjectId = subjectId;
 
-    // Section filter requires in-memory resolution because section is on User/StudentProfile, not Submission
     if (section) {
-      const rows = await this.currentView(undefined, subjectId);
-      const filtered = rows.filter((r: any) => r.section === section);
-      return this.computeSummaryFromRows(filtered);
+      dbWhere.OR = [
+        { student: { studentProfile: { section: { name: section } } } },
+        { group: { members: { some: { student: { studentProfile: { section: { name: section } } } } } } }
+      ];
     }
 
-    // DB-side aggregates – no truncation, no section filter
+    // DB-side aggregates – no truncation, fully filtered by DB
     const [total, graded, pending, late] = await Promise.all([
       this.prisma.submission.count({ where: dbWhere }),
       this.prisma.submission.count({ where: { ...dbWhere, status: 'GRADED' } }),
@@ -90,6 +90,13 @@ export class AdminReportsRepository {
   async currentView(section?: string, subjectId?: string) {
     const where: any = {};
     if (subjectId) where.subjectId = subjectId;
+
+    if (section) {
+      where.OR = [
+        { student: { studentProfile: { section: { name: section } } } },
+        { group: { members: { some: { student: { studentProfile: { section: { name: section } } } } } } }
+      ];
+    }
 
     const rows = await this.prisma.submission.findMany({
       where,
@@ -161,8 +168,6 @@ export class AdminReportsRepository {
           row.group.members?.[0]?.student?.studentProfile?.section?.name;
         if (sectionSource) resolvedSection = sectionSource;
       }
-
-      if (section && resolvedSection !== section) continue;
 
       filtered.push({
         id: row.id,

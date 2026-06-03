@@ -25,51 +25,57 @@ function makeSubmission(overrides: Partial<any> = {}) {
   };
 }
 
+function matchesSectionFilter(submission: any, where: any) {
+  if (!where.OR || !Array.isArray(where.OR)) return true;
+  
+  for (const condition of where.OR) {
+    if (condition.student?.studentProfile?.section?.name) {
+      if (submission.student?.studentProfile?.section?.name === condition.student.studentProfile.section.name) {
+        return true;
+      }
+    }
+    if (condition.group?.members?.some) {
+      const targetSection = condition.group.members.some.student?.studentProfile?.section?.name;
+      if (targetSection && submission.group?.members?.some((m: any) => m.student?.studentProfile?.section?.name === targetSection)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function buildPrismaMock(submissions: any[], subjects: any[]) {
   const subjectMap = new Map(subjects.map((s) => [s.id, s]));
 
+  const applyWhere = (s: any, where: any) => {
+    if (where.subjectId && s.subjectId !== where.subjectId) return false;
+    if (where.status && typeof where.status === 'string' && s.status !== where.status) return false;
+    if (where.status?.in && !where.status.in.includes(s.status)) return false;
+    if (!matchesSectionFilter(s, where)) return false;
+    return true;
+  };
+
   const countMock = jest.fn().mockImplementation((args?: { where?: any }) => {
     const where = args?.where ?? {};
-    let filtered = [...submissions];
-    if (where.subjectId) filtered = filtered.filter((s) => s.subjectId === where.subjectId);
-    if (where.status && typeof where.status === 'string') {
-      filtered = filtered.filter((s) => s.status === where.status);
-    }
-    if (where.status?.in) {
-      filtered = filtered.filter((s) => where.status.in.includes(s.status));
-    }
-    return Promise.resolve(filtered.length);
+    return Promise.resolve(submissions.filter((s) => applyWhere(s, where)).length);
   });
 
   const groupByMock = jest.fn().mockImplementation((args: { by: string[]; where?: any; _count?: any }) => {
     const where = args.where ?? {};
-    let filtered = [...submissions];
-    if (where.subjectId) filtered = filtered.filter((s) => s.subjectId === where.subjectId);
-    if (where.status && typeof where.status === 'string') {
-      filtered = filtered.filter((s) => s.status === where.status);
-    }
-    if (where.status?.in) {
-      filtered = filtered.filter((s) => where.status.in.includes(s.status));
-    }
-
-    // Group by subjectId
+    const filtered = submissions.filter((s) => applyWhere(s, where));
     const groupMap = new Map<string, number>();
     for (const s of filtered) {
       groupMap.set(s.subjectId, (groupMap.get(s.subjectId) ?? 0) + 1);
     }
-
-    const result = Array.from(groupMap.entries()).map(([subjectId, count]) => ({
+    return Promise.resolve(Array.from(groupMap.entries()).map(([subjectId, count]) => ({
       subjectId,
       _count: { id: count },
-    }));
-    return Promise.resolve(result);
+    })));
   });
 
   const findManyMock = jest.fn().mockImplementation((args?: { where?: any; take?: number }) => {
     const where = args?.where ?? {};
-    let filtered = [...submissions];
-    if (where.subjectId) filtered = filtered.filter((s) => s.subjectId === where.subjectId);
-    // Simulate the take cap
+    let filtered = submissions.filter((s) => applyWhere(s, where));
     if (args?.take && args.take < filtered.length) {
       filtered = filtered.slice(0, args.take);
     }
@@ -133,7 +139,6 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
     });
 
     it('reports correct totals for known distribution across >100 submissions', async () => {
-      // 200 submissions: 80 GRADED, 70 SUBMITTED, 50 LATE
       const submissions = Array.from({ length: 200 }, (_, i) =>
         makeSubmission({
           id: `sub-${i}`,
@@ -151,7 +156,6 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
       const result = await repo.summary();
 
       expect(result.totalSubmissions).toBe(200);
-      // GRADED=80, pending (SUBMITTED+LATE)=120
       expect(result.completionRate).toBe(Math.round(((80 + 120) / 200) * 100));
       expect(result.pendingReviews).toBe(120);
       expect(result.lateRate).toBe(Math.round((50 / 200) * 100));
@@ -195,7 +199,6 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
         studentProfile: { section: { name: 'Section B' } },
       };
 
-      // 100 submissions for Section A, 100 for Section B
       const submissions = [
         ...Array.from({ length: 100 }, (_, i) =>
           makeSubmission({
@@ -252,7 +255,6 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
       expect(prisma.submission.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ take: expect.any(Number) }),
       );
-      // Verify the take is >100
       const callArgs = prisma.submission.findMany.mock.calls[0][0];
       expect(callArgs.take).toBeGreaterThanOrEqual(5000);
     });
@@ -348,7 +350,6 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
       const result = await repo.exportCsv();
 
       expect(result.filename).toBe('admin-report-export.csv');
-      // Header + 150 data rows
       expect(result.csv.split('\n')).toHaveLength(151);
     });
   });
@@ -385,5 +386,85 @@ describe('AdminReportsRepository – no truncation (BUG-001)', () => {
       expect(bundle.turnaroundData).toBeDefined();
       expect(bundle.tableRows).toBeDefined();
     });
+  });
+});
+
+describe('AdminReportsRepository – DB-side section filtering optimization (PERF-001)', () => {
+  function buildRepo(prisma: any) {
+    const submissionRepo = new SubmissionRepository(prisma as any);
+    const subjectRepo = new SubjectRepository(prisma as any);
+    const userRepo = new UserRepository(prisma as any);
+    return new AdminReportsRepository(prisma as any, submissionRepo, subjectRepo, userRepo);
+  }
+
+  it('summary(section) uses DB aggregates and does NOT call findMany (currentView)', async () => {
+    // Seed 5100 submissions. Target section is in the older 100 (indices 5000-5099).
+    // If it called currentView (findMany with take: 5000 orderBy desc), it would miss them.
+    const submissions = Array.from({ length: 5100 }, (_, i) =>
+      makeSubmission({
+        id: `sub-${i}`,
+        subjectId: 'subject-1',
+        status: i < 5000 ? 'GRADED' : 'SUBMITTED',
+        student: i >= 5000 ? {
+          id: `student-${i}`,
+          firstName: 'S',
+          lastName: `${i}`,
+          studentProfile: { section: { name: 'Section Z' } },
+        } : {
+          id: `student-${i}`,
+          firstName: 'S',
+          lastName: `${i}`,
+          studentProfile: { section: { name: 'Section A' } },
+        },
+        submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+      }),
+    );
+    const subjects = [{ id: 'subject-1', name: 'Math' }];
+    const { prisma, countMock, findManyMock } = buildPrismaMock(submissions, subjects);
+    const repo = buildRepo(prisma);
+
+    const result = await repo.summary('Section Z');
+
+    // Should find the 100 submissions in Section Z despite being outside the first 5000
+    expect(result.totalSubmissions).toBe(100);
+    
+    // Verify count was called with the section OR filter
+    expect(countMock).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({ student: expect.any(Object) }),
+          expect.objectContaining({ group: expect.any(Object) })
+        ])
+      })
+    }));
+
+    // Verify findMany (currentView) was NOT called by summary()
+    expect(findManyMock).not.toHaveBeenCalled();
+  });
+
+  it('reportBundle(section) calls findMany (currentView) at most once', async () => {
+    const submissions = Array.from({ length: 5100 }, (_, i) =>
+      makeSubmission({
+        id: `sub-${i}`,
+        subjectId: 'subject-1',
+        status: 'SUBMITTED',
+        student: {
+          id: `student-${i}`,
+          firstName: 'S',
+          lastName: `${i}`,
+          studentProfile: { section: { name: 'Section Z' } },
+        },
+        submittedAt: new Date(2026, 0, 1 + Math.floor(i / 100)),
+      }),
+    );
+    const subjects = [{ id: 'subject-1', name: 'Math' }];
+    const { prisma, findManyMock } = buildPrismaMock(submissions, subjects);
+    const repo = buildRepo(prisma);
+
+    await repo.reportBundle('Section Z');
+
+    // summary() uses count/groupBy, reportBundle() uses currentView (findMany)
+    // Total findMany calls should be exactly 1 (from reportBundle -> currentView)
+    expect(findManyMock).toHaveBeenCalledTimes(1);
   });
 });
