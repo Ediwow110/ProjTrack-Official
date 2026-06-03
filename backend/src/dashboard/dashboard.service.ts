@@ -77,26 +77,57 @@ export class DashboardService {
       }),
     ]);
 
-    const subjectProgress = await Promise.all(
-      subjects.map(async (subject) => {
-        const [totalActivities, completed] = await Promise.all([
-          this.prisma.submissionTask.count({ where: { subjectId: subject.id } }),
-          this.prisma.submission.count({
-            where: {
-              ...ownerWhere,
-              subjectId: subject.id,
-              status: { in: studentSubmittedStatuses },
-            },
-          }),
-        ]);
-        return { subject: subject.name, totalActivities, completed };
-      }),
-    );
+    // Batched subject progress — replaces per-subject N+1 pattern
+    const subjectIds = subjects.map((s) => s.id);
+    const subjectNameMap = new Map(subjects.map((s) => [s.id, s.name]));
+    const subjectProgress = subjectIds.length
+      ? await this.buildBatchedSubjectProgress(subjectIds, subjectNameMap, ownerWhere)
+      : [];
 
     return {
       statusBreakdown: { draft, pendingReview, needsRevision, graded },
       subjectProgress,
     };
+  }
+
+  /**
+   * Batches per-subject progress queries using groupBy + Promise.all.
+   * Replaces the previous per-subject N+1 loop (2 queries per subject).
+   */
+  private async buildBatchedSubjectProgress(
+    subjectIds: string[],
+    subjectNameMap: Map<string, string>,
+    ownerWhere: any,
+  ): Promise<Array<{ subject: string; totalActivities: number; completed: number }>> {
+    // Use raw groupBy queries to avoid Prisma type overload resolution issues
+    // The where clauses are intentionally typed as `any` because Prisma's groupBy
+    // generic overloads conflict with the spread ownerWhere filter shape.
+    const taskGroupBy = this.prisma.submissionTask.groupBy({
+      by: ['subjectId'],
+      where: { subjectId: { in: subjectIds } } as any,
+      _count: { id: true },
+    }) as unknown as Promise<Array<{ subjectId: string; _count: { id: number } }>>;
+
+    const completedGroupBy = this.prisma.submission.groupBy({
+      by: ['subjectId'],
+      where: {
+        ...ownerWhere,
+        subjectId: { in: subjectIds },
+        status: { in: studentSubmittedStatuses },
+      } as any,
+      _count: { id: true },
+    }) as unknown as Promise<Array<{ subjectId: string; _count: { id: number } }>>;
+
+    const [taskCounts, completedCounts] = await Promise.all([taskGroupBy, completedGroupBy]);
+
+    const taskCountMap = new Map(taskCounts.map((t) => [t.subjectId, t._count.id]));
+    const completedCountMap = new Map(completedCounts.map((c) => [c.subjectId, c._count.id]));
+
+    return subjectIds.map((id) => ({
+      subject: subjectNameMap.get(id) ?? id,
+      totalActivities: taskCountMap.get(id) ?? 0,
+      completed: completedCountMap.get(id) ?? 0,
+    }));
   }
 
   async upcomingDeadlines(userId?: string) {
