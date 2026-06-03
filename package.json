@@ -36,6 +36,8 @@
     "start:worker": "node ./scripts/start-worker-local.mjs",
     "stop:local": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\stop-local.ps1",
     "typecheck": "tsc --noEmit -p tsconfig.pass3.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev:all": "concurrently \"npm run dev\" \"npm --prefix backend run dev\"",
     "check:theme": "node ./scripts/check-theme-safety.cjs",
     "backend:doctor": "node ./scripts/backend-doctor.mjs",
@@ -112,7 +114,9 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "axe-core": "^4.11.4",
-    "tailwindcss": "^4.1.12"
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4.1.12",
+    "vitest": "^4.1.8"
   },
   "peerDependenciesMeta": {
     "react": {
