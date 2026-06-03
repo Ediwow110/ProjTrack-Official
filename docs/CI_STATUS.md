@@ -1,7 +1,7 @@
 # CI Status
 
-Branch: `2nd-main`  
-Last updated: 2026-05-15
+Branch: `main` (historical `2nd-main` hardening work merged via PRs #151–#156)  
+Last updated: 2026-06-03
 
 ## Latest observed commit status
 
@@ -129,7 +129,7 @@ Current structure:
 - backend boot/test/security/audit checks
 - Docker backend image build
 
-Risk note: because it runs on `main`, it should be treated as a pre-merge/merge-adjacent gate, not a substitute for protecting `main` from unverified `2nd-main` changes.
+Risk note: because it runs on `main`, it should be treated as a pre-merge/merge-adjacent gate, not a substitute for protecting `main` from unverified changes from legacy hardening branches.
 
 ### `.github/workflows/school-scale-validation.yml`
 
@@ -327,7 +327,7 @@ npm run e2e:responsive
 4. Production-gate failure issue path is implemented but not live-verified.
 5. Production-gate owner/escalation routing beyond GitHub issues is not implemented.
 6. Branch protection and Code Owner enforcement are documented but not verified.
-7. `production-checks.yml` should be reviewed for whether `2nd-main` branch pushes should run production gate checks directly or only via PR to `main`.
+7. `production-checks.yml` branch trigger reviewed — now runs on `main` PRs and selected workflow_dispatch branches.
 8. Smoke tests depend on configured smoke account secrets.
 9. README badge verification is static; live badge status still depends on Actions results.
 10. Security/performance test evidence is not recorded after repository/dashboard/file/route-boundary guard changes.
@@ -338,7 +338,7 @@ npm run e2e:responsive
 
 ## Required Before Merge to Main
 
-- [x] Latest `ci.yml` run on `2nd-main` passes.
+- [x] Latest `ci.yml` run passes.
 - [ ] Latest checked Vercel status is resolved or risk-classified for commit `e35c20b685cf8a1806b81934e4c5a19267dfb496`.
 - [x] Evidence Gates run or equivalent local report is recorded for issues #37 and #38.
 - [x] Latest production gate run passes or documented blocker exists.

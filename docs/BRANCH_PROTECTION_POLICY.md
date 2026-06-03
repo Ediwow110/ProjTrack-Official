@@ -1,12 +1,12 @@
 # Branch Protection Policy
 
-Branch: `2nd-main`  
+Branch: `main` (policy applies to current active branch)  
 Target protected branch: `main`  
-Last updated: 2026-05-15
+Last updated: 2026-06-03
 
 ## Purpose
 
-This policy defines the required GitHub branch protection settings before `2nd-main` can be merged into `main` or before production/school-scale readiness is claimed.
+This policy defines the required GitHub branch protection settings for `main` to prevent unsafe merges and support production/school-scale readiness claims.
 
 ## Required `main` branch protection
 

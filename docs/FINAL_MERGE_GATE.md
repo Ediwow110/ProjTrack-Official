@@ -1,12 +1,16 @@
 # Final Merge Gate
 
-Branch under review: `2nd-main`  
-Target branch after approval: `main`  
-Last updated: 2026-05-15
+> **⚠️ HISTORICAL — The `2nd-main` → `main` merge has been completed via PRs #151–#156.**  
+> This document is preserved for reference. It documents the gate that was required before that merge.  
+> Current workflow: all changes go through PRs into `main` with CI verification and explicit user authorization.
 
-## Merge rule
+Branch under review (historical): `2nd-main`  
+Target branch after approval (now active): `main`  
+Last updated: 2026-06-03 (marked historical)
 
-Do not merge `2nd-main` into `main` until every blocking gate below is checked and backed by reproducible evidence.
+## Merge rule (historical)
+
+The following gate was required before the `2nd-main` → `main` merge. The merge is now complete.
 
 ## Claim rule
 
