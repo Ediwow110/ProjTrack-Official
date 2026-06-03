@@ -1,7 +1,7 @@
 # GitHub Actions Evidence Runbook
 
-Branch: `2nd-main`  
-Last updated: 2026-05-15
+Branch: `main` (historical `2nd-main` hardening work merged into main)  
+Last updated: 2026-06-03
 
 ## Purpose
 
@@ -35,10 +35,10 @@ Use this first to resolve or update issues #37 and #38.
 2. Go to **Actions**.
 3. Select **Evidence Gates**.
 4. Click **Run workflow**.
-5. Select branch `2nd-main`.
+5. Select branch `main`.
 6. Start the workflow.
 7. Open the completed run.
-8. Confirm the run is attached to the intended `2nd-main` commit SHA.
+8. Confirm the run is attached to the intended `main` commit SHA.
 9. Confirm the job status is `success` or capture the exact failure.
 10. Download artifact `local-evidence-report`.
 11. Review the report contents.
@@ -145,7 +145,7 @@ Use this after Evidence Gates has been run or explicitly deferred.
 2. Go to **Actions**.
 3. Select **School Scale Validation**.
 4. Click **Run workflow**.
-5. Select branch `2nd-main`.
+5. Select branch `main`.
 6. Set `tier` to `1k`.
 7. Set `fail_on_query_plan_warning` to `true`.
 8. Start the workflow.
@@ -174,7 +174,7 @@ Use this after the target environment and synthetic/staging credentials are conf
 2. Go to **Actions**.
 3. Select **Load Validation**.
 4. Click **Run workflow**.
-5. Select branch `2nd-main`.
+5. Select branch `main`.
 6. Set `vus` to `10`.
 7. Set `duration` to `5m`.
 8. Set `dataset_tier` to the actual seeded tier, usually `1k` or `manual`.

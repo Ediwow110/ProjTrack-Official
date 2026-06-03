@@ -1,11 +1,11 @@
 # Evidence Documents Index
 
-Branch: `2nd-main`  
-Last updated: 2026-05-14
+Branch: `main` (historical `2nd-main` hardening work merged into main)  
+Last updated: 2026-06-03
 
 ## Purpose
 
-This index points reviewers to the evidence documents that determine whether `2nd-main` can be merged, released, or described as school-scale ready.
+This index points reviewers to the evidence documents that determine whether the repository can be released or described as school-scale ready.
 
 ## Gate evidence map
 
