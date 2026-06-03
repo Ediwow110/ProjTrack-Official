@@ -11,5 +11,6 @@
     "allowSyntheticDefaultImports": true,
     "types": ["vite/client", "vite"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules"]
 }
