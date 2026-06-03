@@ -6,6 +6,38 @@ import { hasPrismaErrorCode } from '../prisma/prisma-compat';
 const DEFAULT_SUBMISSION_REPOSITORY_LIST_TAKE = 100;
 const MAX_SUBMISSION_REPOSITORY_LIST_TAKE = 500;
 
+// ---------------------------------------------------------------------------
+// Selective Prisma projections — reduces JOIN fanout overfetching (PERF2-002)
+// ---------------------------------------------------------------------------
+/** Fields needed from SubmissionTask for list/detail submission views */
+const TASK_BRIEF_SELECT = {
+  id: true,
+  title: true,
+  submissionMode: true,
+} as const;
+
+/** Fields needed from SubmissionFile for list/detail submission views */
+const FILE_BRIEF_SELECT = {
+  id: true,
+  fileName: true,
+  fileSize: true,
+  relativePath: true,
+} as const;
+
+/** Fields needed from Group + members for submission views */
+const GROUP_WITH_MEMBERS_SELECT = {
+  id: true,
+  name: true,
+  leaderId: true,
+  members: {
+    select: {
+      id: true,
+      studentId: true,
+      student: { select: SAFE_USER_SELECT },
+    },
+  },
+} as const;
+
 type SubmissionRepositoryListOptions = {
   take?: number;
   skip?: number;
@@ -199,10 +231,10 @@ export class SubmissionRepository {
             },
           },
           include: {
-            task: true,
-            files: true,
+            task: { select: TASK_BRIEF_SELECT },
+            files: { select: FILE_BRIEF_SELECT },
             student: { select: SAFE_USER_SELECT },
-            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+            group: { select: GROUP_WITH_MEMBERS_SELECT },
           },
         });
         await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
@@ -235,10 +267,10 @@ export class SubmissionRepository {
             },
           },
           include: {
-            task: true,
-            files: true,
+            task: { select: TASK_BRIEF_SELECT },
+            files: { select: FILE_BRIEF_SELECT },
             student: { select: SAFE_USER_SELECT },
-            group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
+            group: { select: GROUP_WITH_MEMBERS_SELECT },
           },
         });
         await this.consumePendingUploads(tx, body.files || [], body.userId, record.id);
