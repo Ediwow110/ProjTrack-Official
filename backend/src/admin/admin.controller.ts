@@ -498,8 +498,22 @@ export class AdminController {
   }
 
   @Get('audit-logs')
-  auditLogs(@Query('module') module?: string, @Query('role') role?: string) {
-    return this.admin.auditList(module, role);
+  auditLogs(
+    @Query('module') module?: string,
+    @Query('role') role?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.admin.auditList(
+      module,
+      role,
+      take ? Number(take) : undefined,
+      skip ? Number(skip) : undefined,
+      from,
+      to,
+    );
   }
 
   @Get('audit-logs/:id')
