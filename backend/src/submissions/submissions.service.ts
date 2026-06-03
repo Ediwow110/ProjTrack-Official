@@ -61,21 +61,30 @@ export class SubmissionsService {
     return byUser?.id ?? teacherId;
   }
 
+  /**
+   * Lean include for submission list queries — uses selective projections
+   * to reduce JOIN fanout overfetching (PERF2-002).
+   */
   private submissionListInclude() {
     return {
-      task: true,
-      files: true,
-      student: { select: { id: true, firstName: true, lastName: true, studentProfile: { include: { section: true } } } },
+      task: { select: { id: true, title: true, submissionMode: true } },
+      files: { select: { id: true, fileName: true, fileSize: true, relativePath: true } },
+      student: { select: { id: true, firstName: true, lastName: true, studentProfile: { select: { section: { select: { name: true } } } } } },
       group: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          leaderId: true,
           members: {
-            include: {
-              student: { select: { id: true, firstName: true, lastName: true, studentProfile: { include: { section: true } } } },
+            select: {
+              id: true,
+              studentId: true,
+              student: { select: { id: true, firstName: true, lastName: true, studentProfile: { select: { section: { select: { name: true } } } } } },
             },
           },
         },
       },
-      events: { orderBy: { createdAt: 'asc' as const } },
+      events: { orderBy: { createdAt: 'asc' as const }, select: { id: true, action: true, fromStatus: true, toStatus: true, details: true, createdAt: true } },
     };
   }
 
