@@ -268,31 +268,31 @@ export class AdminService {
 
     await this.assertAdminActionAllowed(user.id, user.status);
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: user.id },
         data: { status: 'INACTIVE' },
-      }),
-      this.prisma.authSession.updateMany({
+      });
+      await tx.authSession.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date(), lastUsedAt: new Date() },
-      }),
-    ]);
-
-    await this.auditLogs.record({
-      actorUserId: actor?.actorUserId,
-      actorRole: actor?.actorRole ?? 'ADMIN',
-      action: 'DEACTIVATE',
-      module: 'Users',
-      target: `${this.userName(user)} (${user.email})`,
-      entityId: user.id,
-      result: 'Success',
-      details: `Admin account deactivated by ${actor?.actorEmail ?? 'an administrator'}.`,
-      beforeValue: String(user.status),
-      afterValue: 'INACTIVE',
-      ipAddress: actor?.ipAddress,
+      });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: actor?.actorUserId,
+          actorRole: actor?.actorRole ?? 'ADMIN',
+          action: 'DEACTIVATE',
+          module: 'Users',
+          target: `${this.userName(user)} (${user.email})`,
+          entityId: user.id,
+          result: 'Success',
+          details: `Admin account deactivated by ${actor?.actorEmail ?? 'an administrator'}.`,
+          beforeValue: String(user.status),
+          afterValue: 'INACTIVE',
+          ipAddress: actor?.ipAddress,
+        },
+      });
     });
-
     return { success: true, status: 'INACTIVE' };
   }
 
@@ -384,20 +384,21 @@ export class AdminService {
         await tx.teacherProfile.delete({ where: { id: user.teacherProfile.id } });
       }
       await tx.user.delete({ where: { id: user.id } });
-    });
-
-    await this.auditLogs.record({
-      actorUserId: actor?.actorUserId,
-      actorRole: actor?.actorRole ?? 'ADMIN',
-      action: 'DELETE',
-      module: 'Users',
-      target: `${this.userName(user)} (${user.email})`,
-      entityId: user.id,
-      result: 'Success',
-      details:
-        `Seed/demo user hard-deleted by ${actor?.actorEmail ?? 'an administrator'}. ` +
-        'Notifications, sessions, account tokens, and removable profile records were also deleted.',
-      ipAddress: actor?.ipAddress,
+      await tx.auditLog.create({
+        data: {
+              actorUserId: actor?.actorUserId,
+              actorRole: actor?.actorRole ?? 'ADMIN',
+              action: 'DELETE',
+              module: 'Users',
+              target: `${this.userName(user)} (${user.email})`,
+              entityId: user.id,
+              result: 'Success',
+              details:
+              `Seed/demo user hard-deleted by ${actor?.actorEmail ?? 'an administrator'}. ` +
+              'Notifications, sessions, account tokens, and removable profile records were also deleted.',
+              ipAddress: actor?.ipAddress,
+        },
+      });
     });
 
     return { success: true, deleted: true };

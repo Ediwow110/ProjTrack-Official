@@ -1,15 +1,7 @@
 import { SubmissionsService } from '../../src/submissions/submissions.service';
 import { ForbiddenException } from '@nestjs/common';
-
-/**
- * Sensitive-action audit-log regression tests (BUG-AUDIT-001).
- *
- * These tests prove that privileged and security-sensitive actions
- * record audit events with the expected actor/action/module/target/result.
- *
- * Strategy: Use the project's standard buildSubmissionsService pattern
- * and assert that auditLogs.record is called correctly.
- */
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 function buildSubmissionsService(overrides: any = {}) {
   const submissionRepository = {
@@ -127,8 +119,6 @@ describe('sensitive-action audit-log regressions', () => {
         }),
       );
 
-      // Sensitive metadata exclusion: SUBMISSION_REVIEWED audit must never contain secrets/tokens/passwords
-      // even if future code changes attempt to pass them via details/afterValue/etc.
       const recorded = auditLogs.record.mock.calls[0][0];
       const sensitiveKeys = ['password', 'token', 'secret', 'resetToken', 'activationToken', 'raw', 'authorization', 'cookie'];
       for (const key of sensitiveKeys) {
@@ -182,9 +172,46 @@ describe('sensitive-action audit-log regressions', () => {
         }),
       ).rejects.toBeInstanceOf(ForbiddenException);
 
-      // No success audit on auth failure path
       expect(auditLogs.record).not.toHaveBeenCalled();
     });
   });
+});
 
+describe('admin mutation audit atomicity (SEC-001)', () => {
+  const serviceSource = readFileSync(
+    join(process.cwd(), 'src', 'admin', 'admin.service.ts'),
+    'utf8',
+  );
+
+  it('deleteUser audit is written atomically inside the same transaction as the deletion', () => {
+    const idx = serviceSource.indexOf('async deleteUser');
+    const afterDelete = serviceSource.substring(idx);
+    const nextMethod = afterDelete.indexOf('\n  async teachers');
+    const body = afterDelete.substring(0, nextMethod > 0 ? nextMethod : undefined);
+
+    // Uses tx.auditLog.create (inside transaction), NOT this.auditLogs.record
+    expect(body).toContain('tx.auditLog.create');
+
+    // The old orphaned this.auditLogs.record call after the transaction must be gone.
+    // Check that we never see the old pattern: transaction close followed by auditLogs.record with DELETE.
+    const txClose = body.indexOf('      await tx.user.delete');
+    const afterTx = body.substring(txClose > 0 ? txClose : 0);
+
+    // The phrase this.auditLogs.record should NOT appear after tx.user.delete
+    expect(afterTx).not.toContain('this.auditLogs.record');
+  });
+
+  it('deactivateUser audit is written atomically inside the same transaction as the deactivation', () => {
+    const idx = serviceSource.indexOf('async deactivateUser');
+    const afterDeact = serviceSource.substring(idx);
+    const nextMethod = afterDeact.indexOf('\n  async sendUserResetLink');
+    const body = afterDeact.substring(0, nextMethod > 0 ? nextMethod : undefined);
+
+    // Uses tx.auditLog.create and interactive $transaction
+    expect(body).toContain('tx.auditLog.create');
+    expect(body).toContain('$transaction(async (tx)');
+
+    // The old batch $transaction([...]) pattern must be gone
+    expect(body).not.toContain('$transaction([');
+  });
 });
