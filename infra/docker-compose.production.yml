@@ -17,6 +17,10 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-backend
     restart: unless-stopped
+    cpus: "1.00"
+    mem_limit: 768m
+    memswap_limit: 768m
+    pids_limit: 512
     logging:
       driver: "json-file"
       options:
@@ -49,6 +53,10 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-mail-worker
     restart: unless-stopped
+    cpus: "0.50"
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 256
     logging:
       driver: "json-file"
       options:
@@ -73,6 +81,10 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-backup-worker
     restart: unless-stopped
+    cpus: "0.50"
+    mem_limit: 768m
+    memswap_limit: 768m
+    pids_limit: 256
     logging:
       driver: "json-file"
       options:
@@ -99,6 +111,10 @@ services:
     image: clamav/clamav:stable
     container_name: projtrack-clamav
     restart: unless-stopped
+    cpus: "1.00"
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    pids_limit: 256
     logging:
       driver: "json-file"
       options:
