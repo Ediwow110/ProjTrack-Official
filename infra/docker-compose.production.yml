@@ -110,8 +110,13 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s
+    volumes:
+      - clamav-db:/var/lib/clamav
     networks:
       - projtrack
+
+volumes:
+  clamav-db:
 
 networks:
   projtrack:
