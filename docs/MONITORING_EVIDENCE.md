@@ -1,17 +1,31 @@
 # Monitoring Evidence
 
+> **Note:** This document reflects the **production** monitoring state. For
+> **staging** evidence from the 2026-05-03 release cycle, see
+> `docs/release-evidence/2026-05-03/08-monitoring.md`.
+
 Capture proof that production operators can detect and respond to failures before launch.
 
 ## Status
 
-**BLOCKED** — No monitoring provider is configured. No DigitalOcean Droplet or production/staging environment is provisioned. Health endpoints cannot be called against a live server.
+**BLOCKED (Production)** — No production monitoring provider is configured. No
+DigitalOcean Droplet or production environment is provisioned. Health endpoints
+cannot be called against a live production server.
+
+**PARTIAL (Staging)** — Staging had partial monitoring configured during the
+2026-05-03 release cycle (see `docs/release-evidence/2026-05-03/08-monitoring.md`):
+DO Monitoring agent active, 3 resource alert policies, 3 uptime checks.
+App-level alerts not wired.
 
 ## Blocker Details
 
-- No DigitalOcean Uptime checks are configured.
-- No alert policies are wired.
-- Backend health endpoints (`/health/live`, `/health/ready`) are implemented in the NestJS health module but cannot be verified without a running server accessible over the network.
-- The full alert policy list and configuration steps are in `MONITORING_RUNBOOK.md`.
+- No production DigitalOcean Uptime checks are configured.
+- No production alert policies are wired.
+- Backend health endpoints (`/health/live`, `/health/ready`) are implemented
+  in the NestJS health module but cannot be verified without a running
+  production server accessible over the network.
+- The full alert policy list and configuration steps are in `MONITORING_RUNBOOK.md`
+  (root of the repository).
 
 ## Next Actions (in order)
 
