@@ -1,5 +1,8 @@
 # Backup Runbook
 
+> **Restore/disaster recovery procedures are documented separately in [`docs/BACKUP_RESTORE_RUNBOOK.md`](docs/BACKUP_RESTORE_RUNBOOK.md).**
+> In-app restore is intentionally not implemented. For operator-driven restore via `pg_dump`/`psql`, see that document.
+
 ## Configuration
 
 Local storage is active today. Future providers are reserved as `gdrive` and `s3`.

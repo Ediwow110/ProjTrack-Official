@@ -1,3 +1,9 @@
+> **DEPRECATED — This document describes a planned pg_dump/cron-based architecture that was not adopted.**
+> The canonical backup/restore runbook is [`BACKUP_RESTORE_RUNBOOK.md`](./BACKUP_RESTORE_RUNBOOK.md).
+> In-app backup operations are in [`BACKUP_RUNBOOK.md`](../BACKUP_RUNBOOK.md).
+>
+> This page is retained for historical reference only. Do not follow its instructions for production operations.
+
 # Backup and Restore Runbook for ProjTrack
 
 This runbook provides operational guidance for setting up, performing, and validating backups and restores for ProjTrack's critical data components, including the PostgreSQL database and S3-compatible object storage. Regular backups are essential for data integrity and disaster recovery in production.
