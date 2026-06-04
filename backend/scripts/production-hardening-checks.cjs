@@ -584,8 +584,8 @@ assert(healthController.includes('ServiceUnavailableException'), 'Readiness endp
 
 const productionCompose = readRepo('infra/docker-compose.production.yml');
 assert(productionCompose.includes('http://127.0.0.1:3001/health/api-ready'), 'Production backend compose healthcheck must use dependency-aware /health/api-ready.');
-assert(/mail-worker:[\s\S]*?healthcheck:\s*[\r\n]+\s*disable:\s*true/.test(productionCompose), 'Mail worker must not inherit the API HTTP healthcheck.');
-assert(/backup-worker:[\s\S]*?healthcheck:\s*[\r\n]+\s*disable:\s*true/.test(productionCompose), 'Backup worker must not inherit the API HTTP healthcheck.');
+assert(/mail-worker:[\s\S]*?healthcheck:\s*(?:[\r\n]+\s*disable:\s*true|[\r\n]+\s*test:)/.test(productionCompose), 'Mail worker must not inherit the API HTTP healthcheck.');
+assert(/backup-worker:[\s\S]*?healthcheck:\s*(?:[\r\n]+\s*disable:\s*true|[\r\n]+\s*test:)/.test(productionCompose), 'Backup worker must not inherit the API HTTP healthcheck.');
 
 const backendDockerfile = readRepo('Dockerfile.backend');
 assert(backendDockerfile.includes('/health/live'), 'Backend Dockerfile liveness healthcheck must use /health/live.');

@@ -98,7 +98,11 @@ services:
       BACKUP_SCHEDULE_ENABLED: "true"
     command: ["node", "dist/worker.js"]
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep -q 'node dist/worker.js' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       backend:
         condition: service_healthy
