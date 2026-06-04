@@ -78,7 +78,7 @@ export class BackupsService {
       orderBy: [{ startedAt: 'desc' }],
       take: 100,
     });
-    const normalizedRows = rows.map((row) => this.serializeHistoryRun(row));
+    const normalizedRows = await Promise.all(rows.map((row) => this.serializeHistoryRun(row)));
     const successful = normalizedRows.filter((row) => row.status === 'COMPLETED');
     const latestSuccessful = successful[0] || null;
     const oldestAvailable = normalizedRows.length ? normalizedRows[normalizedRows.length - 1] : null;
@@ -200,7 +200,7 @@ export class BackupsService {
       };
       const fileName = `projtrack-backup-${new Date().toISOString().replace(/[:.]/g, '-')}-${run.id}.json`;
       artifactFileName = fileName;
-      artifact = this.storage.writeJson(fileName, { manifest, data });
+      artifact = await this.storage.writeJson(fileName, { manifest, data });
       const completed = await this.prisma.backupRun.update({
         where: { id: run.id },
         data: {
@@ -225,11 +225,11 @@ export class BackupsService {
         details: `Created ${input.backupType} backup (${artifact.sizeBytes} bytes).`,
         ipAddress: input.actor?.ipAddress,
       });
-      return this.serializeHistoryRun(completed);
+      return await this.serializeHistoryRun(completed);
     } catch (error) {
       if (artifact?.absolutePath && artifactFileName) {
         try {
-          this.storage.delete(artifactFileName);
+          await this.storage.delete(artifactFileName);
         } catch {
           // Keep the original backup failure and avoid masking it with cleanup noise.
         }
@@ -254,7 +254,7 @@ export class BackupsService {
         details: failed.error,
         ipAddress: input.actor?.ipAddress,
       });
-      return this.serializeHistoryRun(failed);
+      return await this.serializeHistoryRun(failed);
     }
   }
 
@@ -333,7 +333,7 @@ export class BackupsService {
       result: 'Success',
       ipAddress: actor?.ipAddress,
     });
-    return this.serializeHistoryRun(updated);
+    return await this.serializeHistoryRun(updated);
   }
 
   async delete(id: string, confirmation?: string, actor?: BackupActor) {
@@ -353,7 +353,7 @@ export class BackupsService {
     }
     const warnings: string[] = [];
     if (run.fileName) {
-      const deleted = this.storage.delete(run.fileName);
+      const deleted = await this.storage.delete(run.fileName);
       if (deleted.missing) {
         warnings.push('Backup metadata was retired, but the artifact file was already missing from storage.');
       }
@@ -372,7 +372,7 @@ export class BackupsService {
       result: 'Success',
       ipAddress: actor?.ipAddress,
     });
-    return this.serializeHistoryRun(updated, { warnings });
+    return await this.serializeHistoryRun(updated, { warnings });
   }
 
   async validate(id: string) {
@@ -380,7 +380,7 @@ export class BackupsService {
     if (!run.fileName || !run.sha256) {
       throw new BadRequestException('Backup does not have an artifact to validate.');
     }
-    const actual = this.storage.checksum(run.fileName);
+    const actual = await this.storage.checksum(run.fileName);
     return {
       success: actual === run.sha256,
       backupId: run.id,
@@ -391,11 +391,12 @@ export class BackupsService {
 
   async details(id: string) {
     const run = await this.requireRun(id);
-    const row = this.serializeHistoryRun(run);
+    const row = await this.serializeHistoryRun(run);
     let manifest: unknown = null;
     if (row.artifactAvailable && run.fileName) {
       try {
-        manifest = this.storage.readJson(run.fileName)?.manifest ?? null;
+        const data = await this.storage.readJson(run.fileName);
+        manifest = (data as any)?.manifest ?? null;
       } catch {
         // File may have been deleted between the describe check and this read.
       }
@@ -411,8 +412,8 @@ export class BackupsService {
   async manifest(id: string) {
     const run = await this.requireRun(id);
     if (!run.fileName) throw new NotFoundException('Backup artifact not found.');
-    const payload = this.storage.readJson(run.fileName);
-    return payload.manifest || null;
+    const payload = await this.storage.readJson(run.fileName);
+    return (payload as any)?.manifest || null;
   }
 
   async restore(id: string, confirmation?: string, actor?: BackupActor) {
@@ -437,7 +438,7 @@ export class BackupsService {
   async download(id: string) {
     const run = await this.requireRun(id);
     if (!run.fileName) throw new NotFoundException('Backup artifact not found.');
-    const description = this.storage.describe(run.fileName);
+    const description = await this.storage.describe(run.fileName);
     if (!description.available || !description.absolutePath) {
       throw new NotFoundException(description.warning || 'Backup artifact not found.');
     }
@@ -518,8 +519,8 @@ export class BackupsService {
     return run;
   }
 
-  private serializeHistoryRun(run: any, extra: Record<string, unknown> = {}) {
-    const artifact = this.storage.describe(run.fileName);
+  private async serializeHistoryRun(run: any, extra: Record<string, unknown> = {}) {
+    const artifact = await this.storage.describe(run.fileName);
     const sizeBytes =
       artifact.available && artifact.sizeBytes !== null
         ? artifact.sizeBytes
@@ -558,9 +559,9 @@ export class BackupsService {
 
   private async normalizeLocalArtifacts() {
     const warnings: string[] = [];
-    let artifacts: ReturnType<BackupStorageService['listJsonArtifacts']> = [];
+    let artifacts: Array<{ fileName: string; absolutePath: string; sizeBytes: number; modifiedAt: Date }> = [];
     try {
-      artifacts = this.storage.listJsonArtifacts();
+      artifacts = await this.storage.listJsonArtifacts();
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unable to inspect backup storage.';
       this.logger.warn(`Backup artifact normalization skipped: ${reason}`);

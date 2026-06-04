@@ -334,6 +334,22 @@ function validateWorkerSettings(errors: string[], warnings: string[], isProducti
     const parsed = Number(raw);
     if (!Number.isFinite(parsed) || parsed < 1000) target.push(`${key} must be a number >= 1000.`);
   }
+
+  const provider = String(env.BACKUP_STORAGE_PROVIDER || 'local').trim().toLowerCase();
+  if (provider === 's3') {
+    const s3Required = [
+      'BACKUP_S3_ENDPOINT',
+      'BACKUP_S3_REGION',
+      'BACKUP_S3_BUCKET',
+      'BACKUP_S3_ACCESS_KEY_ID',
+      'BACKUP_S3_SECRET_ACCESS_KEY',
+    ];
+    for (const key of s3Required) {
+      if (!hasValue(env[key])) {
+        errors.push(`${key} must be configured when BACKUP_STORAGE_PROVIDER=s3.`);
+      }
+    }
+  }
 }
 
 function validateRateLimit(errors: string[], warnings: string[], isProduction: boolean, env: NodeJS.ProcessEnv) {

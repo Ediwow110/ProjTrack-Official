@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { basename, join, resolve } from 'path';
+import { BackupS3StorageService } from './backup-s3-storage.service';
 
 @Injectable()
 export class BackupStorageService {
@@ -12,8 +13,10 @@ export class BackupStorageService {
     process.env.BACKUP_LOCAL_DIR || join(process.cwd(), 'data/system-tools/backups'),
   );
 
-  constructor() {
-    this.ensureRoot();
+  constructor(@Optional() private readonly s3Storage?: BackupS3StorageService) {
+    if (this.provider === 'local') {
+      this.ensureRoot();
+    }
   }
 
   getProvider() {
@@ -33,8 +36,16 @@ export class BackupStorageService {
     return this.resolveArtifactInRoot(fileName, this.root);
   }
 
+  private isS3(): boolean {
+    return this.provider === 's3' && this.s3Storage?.isAvailable() === true;
+  }
+
   private resolveArtifactInRoot(fileName: string, root: string) {
-    this.assertSupportedProvider();
+    if (!this.supportsLocalArtifacts()) {
+      throw new BadRequestException(
+        `Backup storage provider "${this.provider}" is not supported by this deployment.`,
+      );
+    }
     const safeName = basename(String(fileName || '').trim());
     if (!safeName || safeName !== fileName || !/^[a-zA-Z0-9_.-]+$/.test(safeName)) {
       throw new BadRequestException('Invalid backup file name.');
@@ -75,8 +86,10 @@ export class BackupStorageService {
     return { absolutePath: this.resolveArtifact(fileName), root: this.root };
   }
 
-  describe(fileName?: string | null) {
-    this.ensureRoot();
+  async describe(fileName?: string | null): Promise<{
+    provider: string; storageRoot: string | null; absolutePath: string | null;
+    available: boolean; sizeBytes: number | null; warning: string | null;
+  }> {
     if (!fileName) {
       return {
         provider: this.provider,
@@ -87,7 +100,18 @@ export class BackupStorageService {
         warning: 'Backup metadata exists, but the artifact name is missing.',
       };
     }
-
+    if (this.isS3()) {
+      const result = await this.s3Storage!.describe(fileName);
+      return {
+        provider: result.provider,
+        storageRoot: result.key,
+        absolutePath: result.key,
+        available: result.available,
+        sizeBytes: result.sizeBytes,
+        warning: result.warning,
+      };
+    }
+    this.ensureRoot();
     if (!this.supportsLocalArtifacts()) {
       return {
         provider: this.provider,
@@ -98,7 +122,6 @@ export class BackupStorageService {
         warning: `Backup storage provider "${this.provider}" is not supported by this deployment.`,
       };
     }
-
     const located = this.resolveExistingArtifact(fileName);
     const absolutePath = located.absolutePath;
     if (!existsSync(absolutePath)) {
@@ -111,7 +134,6 @@ export class BackupStorageService {
         warning: 'Backup artifact is missing from storage.',
       };
     }
-
     const stat = statSync(absolutePath);
     return {
       provider: this.provider,
@@ -123,8 +145,11 @@ export class BackupStorageService {
     };
   }
 
-  writeJson(fileName: string, payload: unknown) {
-    this.assertSupportedProvider();
+  async writeJson(fileName: string, payload: unknown): Promise<{ absolutePath: string; sizeBytes: number; sha256: string }> {
+    if (this.isS3()) {
+      const result = await this.s3Storage!.writeJson(fileName, payload);
+      return { absolutePath: result.key, sizeBytes: result.sizeBytes, sha256: result.sha256 };
+    }
     this.ensureRoot();
     const absolutePath = this.resolveArtifact(fileName);
     const content = `${JSON.stringify(payload, null, 2)}\n`;
@@ -134,8 +159,10 @@ export class BackupStorageService {
     return { absolutePath, sizeBytes: stat.size, sha256 };
   }
 
-  readJson(fileName: string) {
-    this.assertSupportedProvider();
+  async readJson(fileName: string) {
+    if (this.isS3()) {
+      return await this.s3Storage!.readJson(fileName);
+    }
     this.ensureRoot();
     const absolutePath = this.resolveExistingArtifact(fileName).absolutePath;
     if (!existsSync(absolutePath)) {
@@ -144,8 +171,10 @@ export class BackupStorageService {
     return JSON.parse(readFileSync(absolutePath, 'utf8'));
   }
 
-  checksum(fileName: string) {
-    this.assertSupportedProvider();
+  async checksum(fileName: string): Promise<string> {
+    if (this.isS3()) {
+      return await this.s3Storage!.checksum(fileName);
+    }
     this.ensureRoot();
     const absolutePath = this.resolveExistingArtifact(fileName).absolutePath;
     if (!existsSync(absolutePath)) {
@@ -155,8 +184,11 @@ export class BackupStorageService {
     return createHash('sha256').update(content).digest('hex');
   }
 
-  delete(fileName: string) {
-    this.assertSupportedProvider();
+  async delete(fileName: string): Promise<{ deleted: boolean; missing: boolean; absolutePath: string }> {
+    if (this.isS3()) {
+      const result = await this.s3Storage!.delete(fileName);
+      return { deleted: result.deleted, missing: result.missing, absolutePath: result.key };
+    }
     this.ensureRoot();
     const absolutePath = this.resolveExistingArtifact(fileName).absolutePath;
     if (existsSync(absolutePath)) {
@@ -166,8 +198,16 @@ export class BackupStorageService {
     return { deleted: false, missing: true, absolutePath };
   }
 
-  listJsonArtifacts() {
-    this.assertSupportedProvider();
+  async listJsonArtifacts(): Promise<Array<{ fileName: string; absolutePath: string; sizeBytes: number; modifiedAt: Date }>> {
+    if (this.isS3()) {
+      const artifacts = await this.s3Storage!.listJsonArtifacts();
+      return artifacts.map(a => ({
+        fileName: a.fileName,
+        absolutePath: a.key,
+        sizeBytes: a.sizeBytes,
+        modifiedAt: a.modifiedAt,
+      }));
+    }
     this.ensureRoot();
     const seen = new Set<string>();
     return this.existingRoots().flatMap((root) =>
@@ -193,7 +233,6 @@ export class BackupStorageService {
   }
 
   readText(fileName: string) {
-    this.assertSupportedProvider();
     this.ensureRoot();
     const absolutePath = this.resolveExistingArtifact(fileName).absolutePath;
     if (!existsSync(absolutePath)) {
@@ -205,14 +244,6 @@ export class BackupStorageService {
   private ensureRoot() {
     if (this.provider === 'local' && !existsSync(this.root)) {
       mkdirSync(this.root, { recursive: true });
-    }
-  }
-
-  private assertSupportedProvider() {
-    if (!this.supportsLocalArtifacts()) {
-      throw new BadRequestException(
-        `Backup storage provider "${this.provider}" is not supported by this deployment.`,
-      );
     }
   }
 }
