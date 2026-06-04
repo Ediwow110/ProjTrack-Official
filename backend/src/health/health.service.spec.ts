@@ -61,6 +61,47 @@ function buildMailDeps() {
   return { transport, limits, worker };
 }
 
+describe('HealthService.version', () => {
+  const ORIGINAL_ENV = { ...process.env };
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  function makeSvc() {
+    const { prisma } = buildPrisma({});
+    const { transport, limits, worker } = buildMailDeps();
+    return new HealthService(
+      prisma,
+      buildFiles(true),
+      transport,
+      limits,
+      buildBackups({}),
+      buildBackupWorker(),
+      worker,
+    );
+  }
+
+  it('returns service name, version, commitSha, and nodeEnv', () => {
+    delete process.env.VCS_REF;
+    delete process.env.NODE_ENV;
+    const r = makeSvc().version();
+    expect(r.service).toBe('projtrack-backend');
+    expect(typeof r.version).toBe('string');
+    expect(r.version.length).toBeGreaterThan(0);
+    expect(r.commitSha).toBe('unknown');
+    expect(r.nodeEnv).toBe('development');
+    expect(typeof r.timestamp).toBe('string');
+  });
+
+  it('reads VCS_REF from environment when set', () => {
+    process.env.VCS_REF = 'abc123def456';
+    process.env.NODE_ENV = 'production';
+    const r = makeSvc().version();
+    expect(r.commitSha).toBe('abc123def456');
+    expect(r.nodeEnv).toBe('production');
+  });
+});
+
 describe('HealthService.live', () => {
   it('returns ok=true with service name and timestamp', () => {
     const { prisma } = buildPrisma({});

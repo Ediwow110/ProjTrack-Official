@@ -34,11 +34,35 @@ export class HealthService {
     private readonly mailWorker: MailWorker,
   ) {}
 
+  private versionCache: string | null = null;
+
+  private readVersion(): string {
+    if (this.versionCache) return this.versionCache;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pkg = require('../../package.json');
+      this.versionCache = pkg.version ?? '0.0.0';
+    } catch {
+      this.versionCache = '0.0.0';
+    }
+    return this.versionCache;
+  }
+
   live() {
     return {
       ok: true,
       service: 'projtrack-backend',
       uptimeSeconds: Math.round(process.uptime()),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  version() {
+    return {
+      service: 'projtrack-backend',
+      version: this.readVersion(),
+      commitSha: process.env.VCS_REF ?? 'unknown',
+      nodeEnv: process.env.NODE_ENV ?? 'development',
       timestamp: new Date().toISOString(),
     };
   }
