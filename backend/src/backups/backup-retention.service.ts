@@ -51,7 +51,7 @@ export class BackupRetentionService {
     for (const run of expired) {
       if (latestSuccessful?.id === run.id) continue;
       try {
-        if (run.fileName) this.storage.delete(run.fileName);
+        if (run.fileName) await this.storage.delete(run.fileName);
         await this.prisma.backupRun.update({
           where: { id: run.id },
           data: { deletedAt: new Date() },
