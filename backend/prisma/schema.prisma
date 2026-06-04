@@ -525,6 +525,7 @@ model AuditLog {
   entityId    String?
   result      String
   details     String?
+  requestId   String?
   ipAddress   String?
   sessionId   String?
   beforeValue String?
