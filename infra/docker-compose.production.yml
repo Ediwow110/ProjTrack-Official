@@ -17,6 +17,11 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-backend
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - backend.env.production
     environment:
@@ -44,6 +49,11 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-mail-worker
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - backend.env.production
     environment:
@@ -63,6 +73,11 @@ services:
     image: projtrack/backend:latest
     container_name: projtrack-backup-worker
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - backend.env.production
     environment:
@@ -84,6 +99,11 @@ services:
     image: clamav/clamav:stable
     container_name: projtrack-clamav
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
       interval: 60s
