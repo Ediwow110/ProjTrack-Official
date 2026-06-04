@@ -14,6 +14,7 @@ export interface AuditRecordCreateInput {
   entityId?: string;
   result: string;
   details?: string;
+  requestId?: string;
   ipAddress?: string;
   sessionId?: string;
   beforeValue?: string;
@@ -50,6 +51,7 @@ export class AuditLogRepository {
         entityId: input.entityId,
         result: input.result,
         details: input.details,
+        requestId: input.requestId,
         ipAddress: input.ipAddress,
         sessionId: input.sessionId,
         beforeValue: input.beforeValue,

@@ -18,6 +18,7 @@ import { AccountActionTokenService } from '../auth/account-action-token.service'
 import { MAIL_CATEGORY_KEYS } from '../common/constants/mail.constants';
 import { buildActivationLink, buildResetPasswordLink } from '../common/utils/frontend-links';
 import { FilesService } from '../files/files.service';
+import { getRequestId } from '../common/request-context';
 import {
   buildMasterListFileName,
   buildMasterListWorkbookBuffer,
@@ -290,6 +291,7 @@ export class AdminService {
           beforeValue: String(user.status),
           afterValue: 'INACTIVE',
           ipAddress: actor?.ipAddress,
+          requestId: getRequestId(),
         },
       });
     });
@@ -397,6 +399,7 @@ export class AdminService {
               `Seed/demo user hard-deleted by ${actor?.actorEmail ?? 'an administrator'}. ` +
               'Notifications, sessions, account tokens, and removable profile records were also deleted.',
               ipAddress: actor?.ipAddress,
+              requestId: getRequestId(),
         },
       });
     });

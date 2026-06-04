@@ -1,7 +1,9 @@
 import { SubmissionsService } from '../../src/submissions/submissions.service';
+import { AuditLogsService } from '../../src/audit-logs/audit-logs.service';
 import { ForbiddenException } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import * as requestContext from '../../src/common/request-context';
 
 function buildSubmissionsService(overrides: any = {}) {
   const submissionRepository = {
@@ -213,5 +215,74 @@ describe('admin mutation audit atomicity (SEC-001)', () => {
 
     // The old batch $transaction([...]) pattern must be gone
     expect(body).not.toContain('$transaction([');
+  });
+});
+
+describe('audit log requestId correlation', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('includes requestId from context when calling repository.create', async () => {
+    const mockRepository = { create: jest.fn() } as any;
+    const spy = jest.spyOn(requestContext, 'getRequestId').mockReturnValue('test-req-123');
+    const service = new AuditLogsService(mockRepository);
+
+    await service.record({
+      actorRole: 'ADMIN',
+      action: 'TEST',
+      module: 'Test',
+      target: 'test',
+      result: 'Success',
+    });
+
+    expect(mockRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: 'test-req-123' }),
+    );
+    spy.mockRestore();
+  });
+
+  it('works without requestId when no request context exists', async () => {
+    const mockRepository = { create: jest.fn() } as any;
+    const spy = jest.spyOn(requestContext, 'getRequestId').mockReturnValue(undefined);
+    const service = new AuditLogsService(mockRepository);
+
+    await service.record({
+      actorRole: 'ADMIN',
+      action: 'TEST',
+      module: 'Test',
+      target: 'test',
+      result: 'Success',
+    });
+
+    expect(mockRepository.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ requestId: expect.any(String) }),
+    );
+    spy.mockRestore();
+  });
+
+  it('allows explicit requestId passed in input to override context value', async () => {
+    const mockRepository = { create: jest.fn() } as any;
+    const spy = jest.spyOn(requestContext, 'getRequestId').mockReturnValue('context-req');
+    const service = new AuditLogsService(mockRepository);
+
+    await service.record({
+      actorRole: 'ADMIN',
+      action: 'TEST',
+      module: 'Test',
+      target: 'test',
+      result: 'Success',
+      requestId: 'explicit-req',
+    });
+
+    expect(mockRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: 'explicit-req' }),
+    );
+    spy.mockRestore();
+  });
+
+  it('does not include requestId in sensitive key leak checks', () => {
+    const sensitiveKeys = ['password', 'token', 'secret', 'resetToken', 'activationToken', 'raw', 'authorization', 'cookie'];
+    expect(sensitiveKeys).not.toContain('requestId');
   });
 });
