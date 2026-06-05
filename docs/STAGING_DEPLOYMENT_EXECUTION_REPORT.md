@@ -161,26 +161,28 @@ Final migration state:
 
 ## 12. Failures/Blockers
 
-### Minor Findings (Watchlist)
+### DEP Status Matrix
 
-| ID | Finding | Severity |
-|----|---------|----------|
-| DEP-001 | Backup artifact missing from local storage (metadata only) | LOW |
-| DEP-003 | Backup worker disabled | LOW |
-| DEP-004 | No monitoring provider configured | MEDIUM |
-| DEP-005 | Restore drill not executed | MEDIUM |
+| ID | Status | Evidence / Remaining Work |
+|----|--------|----------------------------|
+| DEP-001 | CLOSED / staging verified | Durable S3 backup artifact exists in `projtrack-backups-staging` under `backups/staging/` and survived backup-worker restart. |
+| DEP-003 | CLOSED / staging verified | Backup-worker is enabled as a dedicated worker process and was verified healthy after restart. |
+| DEP-004 | OPEN | No monitoring provider configured. |
+| DEP-005 | OPEN | Restore drill not executed. |
 
-### CLOSED
+### Closed
 
 | ID | Finding | Resolution |
 |----|---------|------------|
-| DEP-002 | Version/commit endpoint not exposed | **CLOSED** — PR #170 merged, `/health/version` deployed and verified on staging |
+| DEP-002 | Version/commit endpoint not exposed | **CLOSED** — PR #170 merged, `/health/version` deployed and verified on staging. |
+| DEP-001 | Durable backup artifact not verified | **CLOSED** — manual full backup completed with S3 storage and object persistence verified after backup-worker restart. |
+| DEP-003 | Backup-worker enablement not verified | **CLOSED** — dedicated backup-worker process enabled, restarted, and verified healthy. |
 
 ### Not Blockers
 
-- Backup artifact loss is expected for local-only storage — upgrade to S3 backup destination is recommended but not blocking
-- Backup worker disabled is expected for single-process deployments (manual backup available)
-- Monitoring and restore drill are operator prerequisites, not code readiness gaps
+- DEP-001 S3 backup artifact persistence is verified and closed for staging.
+- DEP-003 dedicated backup-worker enablement is verified and closed for staging.
+- DEP-004 monitoring and DEP-005 restore drill remain open operator prerequisites before production promotion.
 
 ---
 
@@ -249,11 +251,11 @@ DEP-002 is verified for **staging only** (`api-staging.projtrack.codes`). Produc
 - ✅ Mailrelay provider integrated and worker healthy
 - ✅ S3 object storage configured for uploads (DO Spaces)
 - ✅ requestId correlation verified
-- ⚠️ Backup artifact missing from local storage (metadata preserved)
+- ✅ Durable S3 backup artifact verified in `projtrack-backups-staging` under `backups/staging/`.
 - ⚠️ Monitoring provider not yet configured
 - ⚠️ Restore drill not executed
 
-**The deployment is functional and verified for staging use.** The watchlist items (backup persistence, monitoring, restore drill) should be addressed before production promotion.
+**The deployment is functional and verified for DEP-001/DEP-003 staging use.** Remaining open items are DEP-004 monitoring and DEP-005 restore drill. No production readiness claim is made.
 
 ---
 
