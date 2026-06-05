@@ -55,7 +55,7 @@ Staging deployment was verified through live endpoint testing, worker restart va
 | Mail provider | ✅ LIVE | Mailrelay, verified sender `support@projtrack.codes`, worker healthy |
 | Object storage | ✅ LIVE | DigitalOcean Spaces available for staging backup verification. |
 | Malware scanning | ✅ CONFIGURED | Health endpoint confirms ClamAV readiness |
-| Monitoring provider | NOT CONFIGURED | No uptime checks or alert policies found.
+| Monitoring provider | ✅ CONFIGURED | DigitalOcean Monitoring uptime checks configured and passing for staging frontend and staging API readiness; alert routing enabled. |
 | Backup storage | S3 VERIFIED | Manual full backup artifact exists in `projtrack-backups-staging` under `backups/staging/`. |
 
 ## 4. Env/Secrets Status
@@ -136,14 +136,10 @@ Final migration state:
 
 ## 9. Backup Verification
 
-| Check | Status | Detail |
-|-------|--------|--------|
-| Backup system configured | ✅ YES | 1 completed backup in metadata |
-| Latest backup | ⚠️ MAY 6 2026 | `COMPLETED`, automatic, full, 24KB |
-| Backup storage provider | ⚠️ LOCAL | `/app/data/system-tools/backups/` |
-| Backup artifact available | ❌ MISSING | File deleted from local storage (container restart?) |
-| S3 backup storage | ❌ NOT CONFIGURED | No S3 backup destination in health response |
-| Backup worker enabled | ❌ DISABLED | `worker.enabled: false` |
+| Backup storage provider | ✅ S3 | DigitalOcean Spaces bucket `projtrack-backups-staging`, prefix `backups/staging/` |
+| Backup artifact available | ✅ VERIFIED | Durable S3 backup artifact exists and survived backup-worker restart. |
+| S3 backup storage | ✅ CONFIGURED | Manual full backup artifact stored in DigitalOcean Spaces staging backup bucket. |
+| Backup worker enabled | ✅ ENABLED | Dedicated backup-worker process healthy after restart. |
 
 ---
 
@@ -155,7 +151,29 @@ Final migration state:
 
 ## 11. Monitoring Status
 
-**NOT LIVE.** No evidence of external uptime monitoring or alert configuration. No provider URL or dashboard detected. Monitoring remains a manual/operator task.
+**LIVE / STAGING VERIFIED.** DigitalOcean Monitoring uptime checks are configured and passing for staging.
+
+Configured staging monitors:
+
+| Monitor | URL | Expected Result | Status |
+|---------|-----|-----------------|--------|
+| projtrack-staging-spa | `https://staging.projtrack.codes` | HTTP 200 / frontend reachable | PASSING |
+| projtrack-staging-api-ready | `https://api-staging.projtrack.codes/health/api-ready` | HTTP 200 / database, storage, and configuration ready | PASSING |
+
+Dashboard evidence showed `0 regions down, 4 regions up` for the staging checks.
+
+Alerting:
+- DigitalOcean uptime alerts are enabled for the staging monitors.
+- Alert delivery was previously tested by operator and confirmed receivable.
+
+Runtime remediation completed before DEP-004 closure:
+- Staging upload storage bucket was corrected from the prod-named upload bucket to `projtrack-uploads-staging`.
+- Backup storage remains configured separately as `projtrack-backups-staging`.
+- `/health/api-ready` returned `ok:true` with database, storage, and configuration all true.
+- `/health/ready` returned `ok:true` with database, storage, mail, configuration, and backup all true.
+- `/health/live` returned `ok:true`.
+
+DEP-004 is CLOSED / staging verified. DEP-005 remains OPEN. No restore drill was performed. No production readiness claim is made.
 
 ---
 
@@ -167,7 +185,7 @@ Final migration state:
 |----|--------|----------------------------|
 | DEP-001 | CLOSED / staging verified | Durable S3 backup artifact exists in `projtrack-backups-staging` under `backups/staging/` and survived backup-worker restart. |
 | DEP-003 | CLOSED / staging verified | Backup-worker is enabled as a dedicated worker process and was verified healthy after restart. |
-| DEP-004 | OPEN | No monitoring provider configured. |
+| DEP-004 | CLOSED / staging verified | DigitalOcean uptime checks are configured and passing for staging frontend and staging API readiness, with alert routing enabled. |
 | DEP-005 | OPEN | Restore drill not executed. |
 
 ### Closed
