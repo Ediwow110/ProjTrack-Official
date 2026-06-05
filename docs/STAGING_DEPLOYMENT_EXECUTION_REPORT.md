@@ -2,16 +2,25 @@
 
 **Date:** 2026-06-04 (Updated)
 **Repository:** Ediwow110/ProjTrack-Official
-**Latest main SHA:** `622e3038e513e4e80aaa772b4404ded6a5d7b9b8`
+**Previous staging SHA before DEP-001/DEP-003 verification:** `622e3038e513e4e80aaa772b4404ded6a5d7b9b8`
+**PR #171 merge SHA:** `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa`
+**PR #172 merge SHA:** `96b8159359c8cab5709ec75352a7fb8ee627bbf5`
+**Staging backend /health/version SHA:** `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa`
 **RC Tag:** Not created
 
 ---
 
 ## 1. Executive Summary
 
-Staging deployment was verified through live endpoint testing. The deployment is functional with frontend (Vite SPA on Vercel), backend API (NestJS), PostgreSQL database, DigitalOcean Spaces storage, Mailrelay mail provider, and ClamAV malware scanning all confirmed operational. Admin login, dashboard, users, and subjects pages all load with live data. All health endpoints pass.
+Staging deployment was verified through live endpoint testing, worker restart validation, migration deployment, login validation, and durable S3 backup artifact verification.
 
-**Remaining gaps:** Backup artifact missing from local storage (metadata only), monitoring provider not yet configured, restore drill not executed.
+**DEP-003:** CLOSED / staging verified. The backup-worker service is enabled, runs as a dedicated non-HTTP worker process, survives restart, and reports healthy Docker health status with `FailingStreak: 0`.
+
+**DEP-001:** CLOSED / staging verified. A manual full backup completed successfully with S3 storage, database metadata records the artifact path and checksum, and the same S3 object remained present after backup-worker restart.
+
+**Remaining open items:** DEP-004 remains OPEN. DEP-005 remains OPEN. No restore drill was performed. No production readiness claim is made.
+
+
 
 ---
 
@@ -21,12 +30,14 @@ Staging deployment was verified through live endpoint testing. The deployment is
 |-------|-------|
 | Deployed frontend | `https://staging.projtrack.codes` (Vite SPA) |
 | Deployed API | `https://api-staging.projtrack.codes` (NestJS) |
-| Deployed commit SHA | `622e3038e513e4e80aaa772b4404ded6a5d7b9b8` (via `/health/version`) |
+| Previous staging commit SHA | `622e3038e513e4e80aaa772b4404ded6a5d7b9b8` |
+| Backend `/health/version` SHA during DEP verification | `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa` |
+| PR #171 merge SHA | `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa` |
+| PR #172 merge SHA | `96b8159359c8cab5709ec75352a7fb8ee627bbf5` |
 | Target branch | `main` |
 | RC tag | Not created |
-| Deployed head SHA (verified) | `622e3038e` — commit SHA confirmed by `/health/version` endpoint |
 | Uptime (at test time) | ~569,276 seconds (~6.6 days) |
-| RC verdict | A. RELEASE CANDIDATE READY FOR STAGING |
+| RC verdict | STAGING DEP VERIFICATION ONLY - production readiness not claimed |
 
 ---
 
@@ -38,38 +49,44 @@ Staging deployment was verified through live endpoint testing. The deployment is
 | API server | ✅ LIVE | `api-staging.projtrack.codes` — NestJS, Docker |
 | DNS | ✅ CONFIGURED | Frontend + API domains resolved |
 | Database | ✅ PROVISIONED | PostgreSQL, migration applied (DB health: true) |
-| JWT secrets | ✅ CONFIGURED | Access + refresh tokens working (key ID: `prod-1`) |
+| JWT/session auth | ✅ CONFIGURED | Access and refresh token flow verified on staging. |
 | Account action token key | ✅ CONFIGURED | Inferred from working auth flows |
-| CORS origins | ✅ CONFIGURED | `https://www.projtrack.codes`, `https://api.projtrack.codes` |
+| CORS origin | ✅ CONFIGURED | Staging frontend and staging API origins configured. |
 | Mail provider | ✅ LIVE | Mailrelay, verified sender `support@projtrack.codes`, worker healthy |
-| Object storage | ✅ LIVE | DigitalOcean Spaces (`sgp1`), bucket `projtrack-uploads-prod` |
+| Object storage | ✅ LIVE | DigitalOcean Spaces available for staging backup verification. |
 | Malware scanning | ✅ CONFIGURED | Health endpoint confirms ClamAV readiness |
-| Monitoring provider | ❌ NOT CONFIGURED | No uptime checks or alert policies found |
-| Backup storage | ⚠️ LOCAL ONLY | Backup metadata exists, but artifact missing from local storage |
-
----
+| Monitoring provider | NOT CONFIGURED | No uptime checks or alert policies found.
+| Backup storage | S3 VERIFIED | Manual full backup artifact exists in `projtrack-backups-staging` under `backups/staging/`. |
 
 ## 4. Env/Secrets Status
 
-Confirmed operational — not inspected directly. Authentication flow and health endpoint checks confirm all env secrets are properly configured.
+Confirmed operational by behavior only. Secrets were not inspected directly. Authentication flow, health checks, Mailrelay readiness, and S3 backup behavior confirm the required staging runtime configuration is sufficient for this DEP-001/DEP-003 verification.
 
 ---
 
 ## 5. Migration Status
 
-**PRESUMED APPLIED.** Database health check passes (`/health/ready` reports database: true). Admin dashboard loads live user data, proving schema is functional. Exact migration count not verifiable via public endpoint.
+**APPLIED.** `npx prisma migrate deploy` was run inside the staging backend container after login failed on `prisma.auditLog.create()` due to the missing AuditLog `requestId` migration.
+
+Final migration state:
+
+- All 25 Prisma migrations applied.
+- Database schema is up to date.
+- `/health/ready` reports database health as true.
+- Admin login was restored after migration deployment.
 
 ---
 
 ## 6. Docker Stack Status
 
 **DEPLOYED AND RUNNING.** Confirmed via health endpoints:
-- API service: ✅ Running (569,276s uptime)
-- Mail worker: ✅ Healthy (heartbeat 6s old, provider: mailrelay)
-- Backup worker: ⚠️ Disabled (`worker.enabled: false`)
+- API service: ✅ Healthy/running; `/health/live` and `/health/ready` passed during verification.
+- backup-worker container: ✅ Healthy after restart (`projtrack-backup-worker`)
+- BackupWorkerService: ✅ Enabled in dedicated worker process
+- Automatic backups: Disabled in admin settings, expected for this verification
 - ClamAV: ✅ Confirmed via health configuration checks
 - Log rotation: ✅ Confirmed via running container (log rotation config verified in health response headers)
-- Resource limits: Presumed applied per production compose
+- Resource limits: Presumed applied from active staging compose configuration
 
 ---
 
