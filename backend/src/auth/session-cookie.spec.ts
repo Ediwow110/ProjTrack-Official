@@ -120,20 +120,70 @@ describe('refreshTokenFromCookie', () => {
 });
 
 describe('stripRefreshTokenInProduction', () => {
+  const sampleResponse = { user: { id: 'u' }, accessToken: 'a', refreshToken: 'r' };
+
   it('removes the refreshToken field in production', () => {
-    const result = stripRefreshTokenInProduction(
-      { user: { id: 'u' }, accessToken: 'a', refreshToken: 'r' },
-      { NODE_ENV: 'production' } as any,
-    );
+    const result = stripRefreshTokenInProduction(sampleResponse, {
+      NODE_ENV: 'production',
+    } as any);
     expect((result as any).refreshToken).toBeUndefined();
     expect((result as any).accessToken).toBe('a');
   });
 
   it('preserves the refreshToken field in development', () => {
-    const result = stripRefreshTokenInProduction(
-      { user: { id: 'u' }, accessToken: 'a', refreshToken: 'r' },
-      { NODE_ENV: 'development' } as any,
-    );
+    const result = stripRefreshTokenInProduction(sampleResponse, {
+      NODE_ENV: 'development',
+    } as any);
     expect((result as any).refreshToken).toBe('r');
+  });
+
+  describe('clientType parameter', () => {
+    const prodEnv = { NODE_ENV: 'production' } as any;
+    const devEnv = { NODE_ENV: 'development' } as any;
+
+    it('strips refreshToken in production when clientType is absent (web)', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv);
+      expect((result as any).refreshToken).toBeUndefined();
+    });
+
+    it('strips refreshToken in production when clientType is empty string', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv, '');
+      expect((result as any).refreshToken).toBeUndefined();
+    });
+
+    it('strips refreshToken in production when clientType is unknown', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv, 'web');
+      expect((result as any).refreshToken).toBeUndefined();
+    });
+
+    it('preserves refreshToken in production when clientType is "mobile"', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv, 'mobile');
+      expect((result as any).refreshToken).toBe('r');
+    });
+
+    it('preserves refreshToken in production when clientType is "Mobile" (case-insensitive)', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv, 'Mobile');
+      expect((result as any).refreshToken).toBe('r');
+    });
+
+    it('preserves refreshToken in production when clientType is "MOBILE" (case-insensitive)', () => {
+      const result = stripRefreshTokenInProduction(sampleResponse, prodEnv, 'MOBILE');
+      expect((result as any).refreshToken).toBe('r');
+    });
+
+    it('always preserves refreshToken in non-production regardless of clientType', () => {
+      expect(
+        (stripRefreshTokenInProduction(sampleResponse, devEnv, 'mobile') as any).refreshToken,
+      ).toBe('r');
+      expect(
+        (stripRefreshTokenInProduction(sampleResponse, devEnv, 'web') as any).refreshToken,
+      ).toBe('r');
+      expect(
+        (stripRefreshTokenInProduction(sampleResponse, devEnv, '') as any).refreshToken,
+      ).toBe('r');
+      expect(
+        (stripRefreshTokenInProduction(sampleResponse, devEnv) as any).refreshToken,
+      ).toBe('r');
+    });
   });
 });
