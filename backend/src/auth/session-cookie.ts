@@ -67,9 +67,14 @@ export function refreshTokenFromCookie(req: any, env: NodeJS.ProcessEnv = proces
 export function stripRefreshTokenInProduction<T extends Record<string, any>>(
   response: T,
   env: NodeJS.ProcessEnv = process.env,
-) {
+  clientType?: string,
+): T {
   if (!isProductionRuntime(env)) return response;
+  // Mobile clients need refreshToken in JSON body even in production.
+  // Only 'mobile' (case-insensitive) triggers inclusion; all other
+  // values (or absent) preserve the existing web/browser cookie-only flow.
+  if (clientType?.toLowerCase() === 'mobile') return response;
   const { refreshToken: _refreshToken, ...safeResponse } = response;
-  return safeResponse;
+  return safeResponse as T;
 }
 

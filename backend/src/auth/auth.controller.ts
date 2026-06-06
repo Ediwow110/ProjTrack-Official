@@ -33,7 +33,10 @@ export class AuthController {
     if (result.refreshToken) {
       setRefreshCookie(res, result.refreshToken);
     }
-    return stripRefreshTokenInProduction(result);
+    const clientType = req.headers['x-client-type']
+      ? String(req.headers['x-client-type'])
+      : undefined;
+    return stripRefreshTokenInProduction(result, undefined, clientType);
   }
 
   @Post('refresh')
@@ -44,7 +47,10 @@ export class AuthController {
     if (result.refreshToken) {
       setRefreshCookie(res, result.refreshToken);
     }
-    return stripRefreshTokenInProduction(result);
+    const clientType = req.headers['x-client-type']
+      ? String(req.headers['x-client-type'])
+      : undefined;
+    return stripRefreshTokenInProduction(result, undefined, clientType);
   }
 
   @Post('logout')
