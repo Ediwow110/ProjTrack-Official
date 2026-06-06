@@ -2,16 +2,25 @@
 
 **Date:** 2026-06-04 (Updated)
 **Repository:** Ediwow110/ProjTrack-Official
-**Latest main SHA:** `622e3038e513e4e80aaa772b4404ded6a5d7b9b8`
+**Previous staging SHA before DEP-001/DEP-003 verification:** `622e3038e513e4e80aaa772b4404ded6a5d7b9b8`
+**PR #171 merge SHA:** `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa`
+**PR #172 merge SHA:** `96b8159359c8cab5709ec75352a7fb8ee627bbf5`
+**Staging backend /health/version SHA:** `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa`
 **RC Tag:** Not created
 
 ---
 
 ## 1. Executive Summary
 
-Staging deployment was verified through live endpoint testing. The deployment is functional with frontend (Vite SPA on Vercel), backend API (NestJS), PostgreSQL database, DigitalOcean Spaces storage, Mailrelay mail provider, and ClamAV malware scanning all confirmed operational. Admin login, dashboard, users, and subjects pages all load with live data. All health endpoints pass.
+Staging deployment was verified through live endpoint testing, worker restart validation, migration deployment, login validation, and durable S3 backup artifact verification.
 
-**Remaining gaps:** Backup artifact missing from local storage (metadata only), monitoring provider not yet configured, restore drill not executed.
+**DEP-003:** CLOSED / staging verified. The backup-worker service is enabled, runs as a dedicated non-HTTP worker process, survives restart, and reports healthy Docker health status with `FailingStreak: 0`.
+
+**DEP-001:** CLOSED / staging verified. A manual full backup completed successfully with S3 storage, database metadata records the artifact path and checksum, and the same S3 object remained present after backup-worker restart.
+
+**Remaining open items:** DEP-004 remains OPEN. DEP-005 remains OPEN. No restore drill was performed. No production readiness claim is made.
+
+
 
 ---
 
@@ -21,12 +30,14 @@ Staging deployment was verified through live endpoint testing. The deployment is
 |-------|-------|
 | Deployed frontend | `https://staging.projtrack.codes` (Vite SPA) |
 | Deployed API | `https://api-staging.projtrack.codes` (NestJS) |
-| Deployed commit SHA | `622e3038e513e4e80aaa772b4404ded6a5d7b9b8` (via `/health/version`) |
+| Previous staging commit SHA | `622e3038e513e4e80aaa772b4404ded6a5d7b9b8` |
+| Backend `/health/version` SHA during DEP verification | `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa` |
+| PR #171 merge SHA | `7ffe52b48a3cc2e6847edbb808f67be3fa4d6aaa` |
+| PR #172 merge SHA | `96b8159359c8cab5709ec75352a7fb8ee627bbf5` |
 | Target branch | `main` |
 | RC tag | Not created |
-| Deployed head SHA (verified) | `622e3038e` — commit SHA confirmed by `/health/version` endpoint |
 | Uptime (at test time) | ~569,276 seconds (~6.6 days) |
-| RC verdict | A. RELEASE CANDIDATE READY FOR STAGING |
+| RC verdict | STAGING DEP VERIFICATION ONLY - production readiness not claimed |
 
 ---
 
@@ -38,38 +49,44 @@ Staging deployment was verified through live endpoint testing. The deployment is
 | API server | ✅ LIVE | `api-staging.projtrack.codes` — NestJS, Docker |
 | DNS | ✅ CONFIGURED | Frontend + API domains resolved |
 | Database | ✅ PROVISIONED | PostgreSQL, migration applied (DB health: true) |
-| JWT secrets | ✅ CONFIGURED | Access + refresh tokens working (key ID: `prod-1`) |
+| JWT/session auth | ✅ CONFIGURED | Access and refresh token flow verified on staging. |
 | Account action token key | ✅ CONFIGURED | Inferred from working auth flows |
-| CORS origins | ✅ CONFIGURED | `https://www.projtrack.codes`, `https://api.projtrack.codes` |
+| CORS origin | ✅ CONFIGURED | Staging frontend and staging API origins configured. |
 | Mail provider | ✅ LIVE | Mailrelay, verified sender `support@projtrack.codes`, worker healthy |
-| Object storage | ✅ LIVE | DigitalOcean Spaces (`sgp1`), bucket `projtrack-uploads-prod` |
+| Object storage | ✅ LIVE | DigitalOcean Spaces available for staging backup verification. |
 | Malware scanning | ✅ CONFIGURED | Health endpoint confirms ClamAV readiness |
-| Monitoring provider | ❌ NOT CONFIGURED | No uptime checks or alert policies found |
-| Backup storage | ⚠️ LOCAL ONLY | Backup metadata exists, but artifact missing from local storage |
-
----
+| Monitoring provider | ✅ CONFIGURED | DigitalOcean Monitoring uptime checks configured and passing for staging frontend and staging API readiness; alert routing enabled. |
+| Backup storage | S3 VERIFIED | Manual full backup artifact exists in `projtrack-backups-staging` under `backups/staging/`. |
 
 ## 4. Env/Secrets Status
 
-Confirmed operational — not inspected directly. Authentication flow and health endpoint checks confirm all env secrets are properly configured.
+Confirmed operational by behavior only. Secrets were not inspected directly. Authentication flow, health checks, Mailrelay readiness, and S3 backup behavior confirm the required staging runtime configuration is sufficient for this DEP-001/DEP-003 verification.
 
 ---
 
 ## 5. Migration Status
 
-**PRESUMED APPLIED.** Database health check passes (`/health/ready` reports database: true). Admin dashboard loads live user data, proving schema is functional. Exact migration count not verifiable via public endpoint.
+**APPLIED.** `npx prisma migrate deploy` was run inside the staging backend container after login failed on `prisma.auditLog.create()` due to the missing AuditLog `requestId` migration.
+
+Final migration state:
+
+- All 25 Prisma migrations applied.
+- Database schema is up to date.
+- `/health/ready` reports database health as true.
+- Admin login was restored after migration deployment.
 
 ---
 
 ## 6. Docker Stack Status
 
 **DEPLOYED AND RUNNING.** Confirmed via health endpoints:
-- API service: ✅ Running (569,276s uptime)
-- Mail worker: ✅ Healthy (heartbeat 6s old, provider: mailrelay)
-- Backup worker: ⚠️ Disabled (`worker.enabled: false`)
+- API service: ✅ Healthy/running; `/health/live` and `/health/ready` passed during verification.
+- backup-worker container: ✅ Healthy after restart (`projtrack-backup-worker`)
+- BackupWorkerService: ✅ Enabled in dedicated worker process
+- Automatic backups: Disabled in admin settings, expected for this verification
 - ClamAV: ✅ Confirmed via health configuration checks
 - Log rotation: ✅ Confirmed via running container (log rotation config verified in health response headers)
-- Resource limits: Presumed applied per production compose
+- Resource limits: Presumed applied from active staging compose configuration
 
 ---
 
@@ -119,14 +136,10 @@ Confirmed operational — not inspected directly. Authentication flow and health
 
 ## 9. Backup Verification
 
-| Check | Status | Detail |
-|-------|--------|--------|
-| Backup system configured | ✅ YES | 1 completed backup in metadata |
-| Latest backup | ⚠️ MAY 6 2026 | `COMPLETED`, automatic, full, 24KB |
-| Backup storage provider | ⚠️ LOCAL | `/app/data/system-tools/backups/` |
-| Backup artifact available | ❌ MISSING | File deleted from local storage (container restart?) |
-| S3 backup storage | ❌ NOT CONFIGURED | No S3 backup destination in health response |
-| Backup worker enabled | ❌ DISABLED | `worker.enabled: false` |
+| Backup storage provider | ✅ S3 | DigitalOcean Spaces bucket `projtrack-backups-staging`, prefix `backups/staging/` |
+| Backup artifact available | ✅ VERIFIED | Durable S3 backup artifact exists and survived backup-worker restart. |
+| S3 backup storage | ✅ CONFIGURED | Manual full backup artifact stored in DigitalOcean Spaces staging backup bucket. |
+| Backup worker enabled | ✅ ENABLED | Dedicated backup-worker process healthy after restart. |
 
 ---
 
@@ -138,32 +151,56 @@ Confirmed operational — not inspected directly. Authentication flow and health
 
 ## 11. Monitoring Status
 
-**NOT LIVE.** No evidence of external uptime monitoring or alert configuration. No provider URL or dashboard detected. Monitoring remains a manual/operator task.
+**LIVE / STAGING VERIFIED.** DigitalOcean Monitoring uptime checks are configured and passing for staging.
+
+Configured staging monitors:
+
+| Monitor | URL | Expected Result | Status |
+|---------|-----|-----------------|--------|
+| projtrack-staging-spa | `https://staging.projtrack.codes` | HTTP 200 / frontend reachable | PASSING |
+| projtrack-staging-api-ready | `https://api-staging.projtrack.codes/health/api-ready` | HTTP 200 / database, storage, and configuration ready | PASSING |
+
+Dashboard evidence showed `0 regions down, 4 regions up` for the staging checks.
+
+Alerting:
+- DigitalOcean uptime alerts are enabled for the staging monitors.
+- Alert delivery was previously tested by operator and confirmed receivable.
+
+Runtime remediation completed before DEP-004 closure:
+- Staging upload storage bucket was corrected from the prod-named upload bucket to `projtrack-uploads-staging`.
+- Backup storage remains configured separately as `projtrack-backups-staging`.
+- `/health/api-ready` returned `ok:true` with database, storage, and configuration all true.
+- `/health/ready` returned `ok:true` with database, storage, mail, configuration, and backup all true.
+- `/health/live` returned `ok:true`.
+
+DEP-004 is CLOSED / staging verified. DEP-005 remains OPEN. No restore drill was performed. No production readiness claim is made.
 
 ---
 
 ## 12. Failures/Blockers
 
-### Minor Findings (Watchlist)
+### DEP Status Matrix
 
-| ID | Finding | Severity |
-|----|---------|----------|
-| DEP-001 | Backup artifact missing from local storage (metadata only) | LOW |
-| DEP-003 | Backup worker disabled | LOW |
-| DEP-004 | No monitoring provider configured | MEDIUM |
-| DEP-005 | Restore drill not executed | MEDIUM |
+| ID | Status | Evidence / Remaining Work |
+|----|--------|----------------------------|
+| DEP-001 | CLOSED / staging verified | Durable S3 backup artifact exists in `projtrack-backups-staging` under `backups/staging/` and survived backup-worker restart. |
+| DEP-003 | CLOSED / staging verified | Backup-worker is enabled as a dedicated worker process and was verified healthy after restart. |
+| DEP-004 | CLOSED / staging verified | DigitalOcean uptime checks are configured and passing for staging frontend and staging API readiness, with alert routing enabled. |
+| DEP-005 | OPEN | Restore drill not executed. |
 
-### CLOSED
+### Closed
 
 | ID | Finding | Resolution |
 |----|---------|------------|
-| DEP-002 | Version/commit endpoint not exposed | **CLOSED** — PR #170 merged, `/health/version` deployed and verified on staging |
+| DEP-002 | Version/commit endpoint not exposed | **CLOSED** — PR #170 merged, `/health/version` deployed and verified on staging. |
+| DEP-001 | Durable backup artifact not verified | **CLOSED** — manual full backup completed with S3 storage and object persistence verified after backup-worker restart. |
+| DEP-003 | Backup-worker enablement not verified | **CLOSED** — dedicated backup-worker process enabled, restarted, and verified healthy. |
 
 ### Not Blockers
 
-- Backup artifact loss is expected for local-only storage — upgrade to S3 backup destination is recommended but not blocking
-- Backup worker disabled is expected for single-process deployments (manual backup available)
-- Monitoring and restore drill are operator prerequisites, not code readiness gaps
+- DEP-001 S3 backup artifact persistence is verified and closed for staging.
+- DEP-003 dedicated backup-worker enablement is verified and closed for staging.
+- DEP-004 monitoring and DEP-005 restore drill remain open operator prerequisites before production promotion.
 
 ---
 
@@ -232,11 +269,11 @@ DEP-002 is verified for **staging only** (`api-staging.projtrack.codes`). Produc
 - ✅ Mailrelay provider integrated and worker healthy
 - ✅ S3 object storage configured for uploads (DO Spaces)
 - ✅ requestId correlation verified
-- ⚠️ Backup artifact missing from local storage (metadata preserved)
+- ✅ Durable S3 backup artifact verified in `projtrack-backups-staging` under `backups/staging/`.
 - ⚠️ Monitoring provider not yet configured
 - ⚠️ Restore drill not executed
 
-**The deployment is functional and verified for staging use.** The watchlist items (backup persistence, monitoring, restore drill) should be addressed before production promotion.
+**The deployment is functional and verified for DEP-001/DEP-003 staging use.** Remaining open items are DEP-004 monitoring and DEP-005 restore drill. No production readiness claim is made.
 
 ---
 
