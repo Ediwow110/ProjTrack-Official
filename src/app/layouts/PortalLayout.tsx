@@ -5,7 +5,7 @@ import {
   getAuthSession,
   subscribeAuthSession,
   type AuthSession,
-} from "../lib/mockAuth";
+} from "../lib/authSession";
 import {
   adminService,
   authService,

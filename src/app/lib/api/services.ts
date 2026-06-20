@@ -3,11 +3,15 @@ import {
   setAuthSession,
   updateAuthSession,
   type AppRole,
-} from "../mockAuth";
+} from "../authSession";
 import { http } from "./http";
 import { apiRuntime, buildBackendFileUrl, isOfficialMode } from "./runtime";
 import { normalizeDateLabel, normalizeDateTimeLabel, normalizeId, normalizeNotificationType } from "./normalize";
 import { formatSubmissionStatus, getReviewActionState, normalizeSubmissionStatus } from "../submissionRules";
+
+function requireDataDeletionBackend(): never {
+  throw new Error("Data deletion workflows require backend API access.");
+}
 import type {
   AdminAnnouncementRecord,
   AdminCreateUserInput,
@@ -3486,25 +3490,21 @@ export const adminCatalogService = {
         updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
       }));
     }
-    await delay();
-    // minimal mock for local dev without backend
-    return [];
+    requireDataDeletionBackend();
   },
 
   async approveDataDeletionRequest(id: string): Promise<{ success: boolean; id: string; status: string }> {
     if (apiRuntime.useBackend) {
       return http.post(`/data-deletion/admin/requests/${encodeURIComponent(id)}/approve`, {});
     }
-    await delay(180);
-    return { success: true, id, status: "APPROVED" };
+    requireDataDeletionBackend();
   },
 
   async denyDataDeletionRequest(id: string, payload?: { reviewNote?: string }): Promise<{ success: boolean; id: string; status: string }> {
     if (apiRuntime.useBackend) {
       return http.post(`/data-deletion/admin/requests/${encodeURIComponent(id)}/deny`, payload || {});
     }
-    await delay(180);
-    return { success: true, id, status: "DENIED" };
+    requireDataDeletionBackend();
   },
 
   // Phase 5: admin dry-run execution (dry-run only; destructive disabled)
@@ -3512,22 +3512,19 @@ export const adminCatalogService = {
     if (apiRuntime.useBackend) {
       return http.get(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/execution`);
     }
-    await delay(100);
-    return null;
+    requireDataDeletionBackend();
   },
   async triggerDryRun(requestId: string): Promise<{ success: boolean; execution?: any }> {
     if (apiRuntime.useBackend) {
       return http.post(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/executions/dry-run`, {});
     }
-    await delay(200);
-    return { success: true };
+    requireDataDeletionBackend();
   },
   async verifyBackup(requestId: string, payload: { backupRunId: string; verificationRef?: string }): Promise<{ success: boolean; execution?: any }> {
     if (apiRuntime.useBackend) {
       return http.post(`/data-deletion/admin/requests/${encodeURIComponent(requestId)}/executions/verify-backup`, payload);
     }
-    await delay(200);
-    return { success: true };
+    requireDataDeletionBackend();
   },
 };
 
@@ -3536,22 +3533,19 @@ export const dataDeletionService = {
     if (apiRuntime.useBackend) {
       return http.get<any[]>("/data-deletion/requests/mine");
     }
-    await delay();
-    return [];
+    requireDataDeletionBackend();
   },
   async createRequest(payload: { reason?: string; confirmationPhrase: string }): Promise<{ success: boolean; id: string; status: string }> {
     if (apiRuntime.useBackend) {
       return http.post("/data-deletion/requests", payload);
     }
-    await delay(180);
-    return { success: true, id: `mock-${Date.now()}`, status: "PENDING" };
+    requireDataDeletionBackend();
   },
   async cancelRequest(id: string): Promise<{ success: boolean; id: string; status: string }> {
     if (apiRuntime.useBackend) {
       return http.post(`/data-deletion/requests/${encodeURIComponent(id)}/cancel`, {});
     }
-    await delay(180);
-    return { success: true, id, status: "CANCELLED" };
+    requireDataDeletionBackend();
   },
 };
 

@@ -1,5 +1,5 @@
 import { apiRuntime, buildApiUrl } from './runtime';
-import { clearAuthSession, getAccessToken, getRefreshToken, updateAuthTokens } from '../mockAuth';
+import { clearAuthSession, getAccessToken, getRefreshToken, updateAuthTokens } from '../authSession';
 import { beginNetworkActivity, endNetworkActivity } from '../networkActivity';
 
 let refreshPromise: Promise<string | null> | null = null;

@@ -1,4 +1,4 @@
-import type { AppRole, AuthSession } from "../mockAuth";
+import type { AppRole, AuthSession } from "../authSession";
 
 export type StudentStatus =
   | "Active"

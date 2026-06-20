@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 
 import ProtectedPortal from "./components/ProtectedPortal";
-import { getAuthSession } from "./lib/mockAuth";
+import { getAuthSession } from "./lib/authSession";
 
 import { PortalLayout } from "./layouts/PortalLayout";
 

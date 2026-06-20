@@ -69,6 +69,7 @@ function rateLimitRules() {
     { name: 'admin-import', prefix: '/admin/students/import', max: Number(process.env.RATE_LIMIT_ADMIN_IMPORT_MAX || 20), windowMs: Number(process.env.RATE_LIMIT_ADMIN_IMPORT_WINDOW_MS || 60 * 60_000) },
     { name: 'report-export', prefix: '/admin/reports/export', max: Number(process.env.RATE_LIMIT_REPORT_EXPORT_MAX || 30), windowMs: Number(process.env.RATE_LIMIT_REPORT_EXPORT_WINDOW_MS || 60 * 60_000) },
     { name: 'health', prefix: '/health', max: Number(process.env.RATE_LIMIT_HEALTH_MAX || 120), windowMs: Number(process.env.RATE_LIMIT_HEALTH_WINDOW_MS || 60_000) },
+    { name: 'monitoring-client-errors', prefix: '/monitoring/client-errors', max: Number(process.env.RATE_LIMIT_MONITORING_CLIENT_ERRORS_MAX || 30), windowMs: Number(process.env.RATE_LIMIT_MONITORING_CLIENT_ERRORS_WINDOW_MS || 60_000) },
   ];
 }
 
