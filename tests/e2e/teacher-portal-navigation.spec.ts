@@ -76,7 +76,10 @@ async function loginTeacher(page: Page) {
   await page.getByLabel(teacherAccount.identifierLabel).fill(teacherAccount.identifier);
   await page.getByLabel(/^Password$/i).fill(teacherAccount.password);
   await page.getByRole("button", { name: teacherAccount.buttonName }).click();
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(teacherAccount.dashboardPath)}$`));
+  // Teacher login POST + dashboard route compile exceeds the default 5s URL
+  // poll on a freshly-loaded dev server. auth-smoke.spec.ts:68-87 uses a 30s
+  // URL window for the same reason; mirror it for the isolated teacher test.
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(teacherAccount.dashboardPath)}$`), { timeout: 30_000 });
 }
 
 async function clickSidebarLink(page: Page, route: string) {
