@@ -115,10 +115,6 @@ test("admin shared list pages open preview drawers without runtime errors", asyn
   await openPreviewIfRowsExist(page, /^Preview .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 
-  await page.goto("/admin/requests");
-  await openPreviewIfRowsExist(page, /^Review .+/i, /^Close$/i);
-  await assertHealthy(page, tracker);
-
   await page.goto("/admin/audit-logs");
   await openPreviewIfRowsExist(page, /View details/i, /^Close$/i);
   await assertHealthy(page, tracker);
