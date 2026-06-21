@@ -10,6 +10,7 @@ const specs = [
   "tests/e2e/admin-mail-jobs.spec.ts",
   "tests/e2e/admin-departments-crud.spec.ts",
   "tests/e2e/admin-list-framework.spec.ts",
+  "tests/e2e/admin-portal-navigation.spec.ts",
 ];
 
 const transientPatterns = [
