@@ -101,19 +101,19 @@ test("admin shared list pages open preview drawers without runtime errors", asyn
   await login(page);
 
   await page.goto("/admin/students");
-  await openPreviewIfRowsExist(page, /^View Student$/i, /^Close details$|^Close$/i);
+  await openPreviewIfRowsExist(page, /^View .+/i, /^Close details$|^Close$/i);
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/teachers");
-  await openPreviewIfRowsExist(page, /^Preview$/i, /^Close$/i);
+  await openPreviewIfRowsExist(page, /^Preview .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/submissions");
-  await openPreviewIfRowsExist(page, /^Preview$/i, /^Close$/i);
+  await openPreviewIfRowsExist(page, /^Preview .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/requests");
-  await openPreviewIfRowsExist(page, /^Review$/i, /^Close$/i);
+  await openPreviewIfRowsExist(page, /^Review .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/audit-logs");
@@ -121,6 +121,6 @@ test("admin shared list pages open preview drawers without runtime errors", asyn
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/file-inventory");
-  await openPreviewIfRowsExist(page, /^Preview$/i, /^Close$/i);
+  await openPreviewIfRowsExist(page, /^Preview .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 });

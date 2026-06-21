@@ -68,7 +68,7 @@ test('protected routes redirect unauthenticated users to the matching login page
 for (const account of accounts) {
   test(`${account.role} can sign in and reach the dashboard`, async ({ page }) => {
     await login(page, account);
-    await expect(page).toHaveURL(new RegExp(`${account.dashboardPath.replace(/\//g, '\\/')}$`));
+    await expect(page).toHaveURL(new RegExp(`${account.dashboardPath.replace(/\//g, '\\/')}$`), { timeout: 30_000 });
     if (account.role === 'admin') {
       await expect(page.getByRole('heading', { name: account.dashboardAssertion })).toBeVisible();
       return;

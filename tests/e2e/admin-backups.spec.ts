@@ -23,7 +23,7 @@ test("admin backups page creates a real backup, survives reload, and guards dest
 
   await loginAdmin(page);
   await page.goto("/admin/backups");
-  await expect(page.getByRole("heading", { name: /Backups/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Backups$/i })).toBeVisible();
 
   const rows = page.locator("tbody tr");
   const initialCount = await rows.count();
@@ -32,14 +32,19 @@ test("admin backups page creates a real backup, survives reload, and guards dest
     : "";
 
   await page.getByRole("button", { name: /Run Backup Now/i }).click();
-  await expect(page.getByText(/Backup completed\./i)).toBeVisible();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByText(/Create a full backup artifact and add it to Backup History\./i)).toBeVisible();
+  await page.getByRole("button", { name: /^Confirm$/i }).click();
+  await expect(page.getByRole("heading", { name: /^Backup completed$/i })).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /View Backup History/i }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  let afterRunCount = await rows.count();
   if (initialCount === 0) {
-    expect(afterRunCount).toBe(1);
+    await expect(rows).toHaveCount(1);
   } else {
-    expect(afterRunCount).toBe(initialCount + 1);
+    await expect(rows).toHaveCount(initialCount + 1);
   }
+  let afterRunCount = await rows.count();
 
   const latestRow = rows.first();
   await expect(latestRow.getByText(/COMPLETED/i)).toBeVisible();
@@ -76,7 +81,7 @@ test("admin backups page creates a real backup, survives reload, and guards dest
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: /Backups/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Backups$/i })).toBeVisible();
   await expect(rows.first().locator("td").nth(5)).toContainText(latestStorageCell.split("\n").pop() || latestStorageCell);
 
   afterRunCount = await rows.count();
