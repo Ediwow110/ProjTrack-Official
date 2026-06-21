@@ -4,8 +4,8 @@ import { clearListeningPorts } from "./local-stack-utils.mjs";
 
 const specs = [
   "tests/e2e/auth-smoke.spec.ts",
-  "tests/e2e/portal-navigation.spec.ts",
   "tests/e2e/workflow-smoke.spec.ts",
+  "tests/e2e/portal-navigation.spec.ts",
   "tests/e2e/admin-backups.spec.ts",
   "tests/e2e/admin-mail-jobs.spec.ts",
   "tests/e2e/admin-departments-crud.spec.ts",
