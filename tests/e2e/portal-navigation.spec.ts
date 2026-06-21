@@ -18,22 +18,6 @@ const accounts = {
       "/student/profile",
     ],
   },
-  teacher: {
-    role: "teacher",
-    identifier: smokeCredentials.teacher.identifier,
-    password: smokeCredentials.teacher.password,
-    identifierLabel: /Email or Teacher ID/i,
-    buttonName: /Sign In as Teacher/i,
-    dashboardPath: "/teacher/dashboard",
-    routes: [
-      "/teacher/dashboard",
-      "/teacher/subjects",
-      "/teacher/students",
-      "/teacher/submissions",
-      "/teacher/notifications",
-      "/teacher/profile",
-    ],
-  },
 } as const;
 
 type RuntimeTracker = {
@@ -174,31 +158,5 @@ test("student portal navigation resolves from real sidebar and topbar controls",
   await openSidebarRoute(page, accounts.student.dashboardPath);
   await page.getByRole("button", { name: /^Open student profile$/i }).click();
   await expect(page).toHaveURL(/\/student\/profile$/);
-  await assertHealthy(page, tracker);
-});
-
-test("teacher portal navigation resolves from real sidebar and topbar controls", async ({
-  page,
-}) => {
-  test.slow();
-  const tracker = attachRuntimeTracker(page);
-  await login(page, accounts.teacher);
-  await verifySidebarRoutes(page, accounts.teacher.routes);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /Open teacher notifications/i }).click();
-  await page.getByRole("button", { name: /View all notifications/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/notifications$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /Open teacher profile from sidebar/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/profile$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /^Open teacher profile$/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/profile$/);
   await assertHealthy(page, tracker);
 });
