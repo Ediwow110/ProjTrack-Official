@@ -4,7 +4,7 @@ const adminAccount = {
   role: "admin",
   identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
   password: process.env.SMOKE_ADMIN_PASSWORD || "",
-  identifierLabel: /Admin Email/i,
+  identifierLabel: /Email or Admin ID/i,
   buttonName: /Sign In as Admin/i,
   dashboardPath: "/admin/dashboard",
 };

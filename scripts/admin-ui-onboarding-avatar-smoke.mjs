@@ -11,9 +11,9 @@ async function loginAdmin(page) {
   assert.ok(adminIdentifier.trim(), "SMOKE_ADMIN_IDENTIFIER is required.");
   assert.ok(adminPassword.trim(), "SMOKE_ADMIN_PASSWORD is required.");
   await page.goto(`${baseUrl}/admin/login`);
-  await page.getByLabel(/Admin Email/i).fill(adminIdentifier);
+  await page.getByLabel(/Email or Admin ID/i).fill(adminIdentifier);
   await page.getByLabel(/^Password$/i).fill(adminPassword);
-  await page.getByRole("button", { name: /Continue to Admin Login/i }).click();
+  await page.getByRole("button", { name: /Sign In as Admin/i }).click();
   await page.waitForURL(/\/admin\/dashboard$/);
 }
 

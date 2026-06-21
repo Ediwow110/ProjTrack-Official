@@ -12,7 +12,7 @@ test.skip(
 
 async function loginAdmin(page: import("@playwright/test").Page) {
   await page.goto("/admin/login");
-  await page.getByLabel(/Admin Email/i).fill(adminAccount.identifier);
+  await page.getByLabel(/Email or Admin ID/i).fill(adminAccount.identifier);
   await page.getByLabel(/^Password$/i).fill(adminAccount.password);
   await page.getByRole("button", { name: /Sign In as Admin/i }).click();
   await expect(page).toHaveURL(/\/admin\/dashboard$/);

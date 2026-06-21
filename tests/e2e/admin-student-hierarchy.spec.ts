@@ -31,7 +31,7 @@ const adminPassword = process.env.SMOKE_ADMIN_PASSWORD || "Admin123!ChangeMe";
 async function loginAsAdmin(page: Page) {
   for (const identifier of adminCandidates) {
     await page.goto("/admin/login");
-    await page.getByLabel(/Admin Email/i).fill(identifier);
+    await page.getByLabel(/Email or Admin ID/i).fill(identifier);
     await page.getByLabel(/^Password$/i).fill(adminPassword);
     await page.getByRole("button", { name: /Sign In as Admin/i }).click();
 
