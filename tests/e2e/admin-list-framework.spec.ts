@@ -84,12 +84,15 @@ async function login(page: Page) {
 
 async function openPreviewIfRowsExist(page: Page, actionName: RegExp, closeMatcher: RegExp) {
   const noData = page.getByText(/No .* match this view|No audit events match this view/i).first();
-  if (await noData.count()) {
+  const action = page.getByRole("button", { name: actionName }).first();
+  // The page can render a loading skeleton before either the empty state or the row
+  // action buttons appear, so wait for one of them to become visible (auto-retry
+  // handles the transient loading state) instead of probing `.count()` once.
+  await expect(noData.or(action).first()).toBeVisible({ timeout: 5_000 });
+  if (await noData.isVisible().catch(() => false)) {
     return;
   }
 
-  const action = page.getByRole("button", { name: actionName }).first();
-  await expect(action).toBeVisible();
   await action.click();
   await expect(page.getByRole("button", { name: closeMatcher }).first()).toBeVisible();
   await page.getByRole("button", { name: closeMatcher }).first().click();
@@ -113,6 +116,8 @@ test("admin shared list pages open preview drawers without runtime errors", asyn
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/requests");
+  await expect(page).toHaveURL(/\/admin\/requests$/);
+  await expect(page.getByRole("heading", { name: /^Requests$/i })).toBeVisible();
   await openPreviewIfRowsExist(page, /^Review .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 

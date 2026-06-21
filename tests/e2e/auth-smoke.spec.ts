@@ -67,7 +67,17 @@ test('protected routes redirect unauthenticated users to the matching login page
 
 for (const account of accounts) {
   test(`${account.role} can sign in and reach the dashboard`, async ({ page }) => {
+    // Wait for the login API response alongside the click so a non-OK response
+    // surfaces with its HTTP status instead of a silent 30s URL-timeout.
+    const loginResponse = page.waitForResponse(
+      (res) => res.url().includes("/auth/login") && res.request().method() === "POST",
+      { timeout: 15_000 },
+    );
     await login(page, account);
+    const response = await loginResponse;
+    if (!response.ok()) {
+      throw new Error(`Login request failed for ${account.role}: HTTP ${response.status()}`);
+    }
     await expect(page).toHaveURL(new RegExp(`${account.dashboardPath.replace(/\//g, '\\/')}$`), { timeout: 30_000 });
     if (account.role === 'admin') {
       await expect(page.getByRole('heading', { name: account.dashboardAssertion })).toBeVisible();

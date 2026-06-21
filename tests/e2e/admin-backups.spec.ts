@@ -55,7 +55,7 @@ test("admin backups page creates a real backup, survives reload, and guards dest
   await latestRow.getByRole("button", { name: /View backup details/i }).click();
   await expect(page.getByText(/Real metadata from backend history and artifact manifest\./i)).toBeVisible();
   await expect(page.getByText(/Manifest Record Counts/i)).toBeVisible();
-  await page.getByRole("button", { name: /^Close$/i }).click();
+  await page.getByRole("button", { name: /^Close$/i }).first().click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   const downloadPromise = page.waitForEvent("download");
