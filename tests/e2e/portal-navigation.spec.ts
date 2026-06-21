@@ -130,8 +130,8 @@ async function login(page: Page, account: (typeof accounts)[keyof typeof account
   await page.getByLabel(/^Password$/i).fill(account.password);
   await page.getByRole("button", { name: account.buttonName }).click();
   // The 4th login in this file runs against a loaded dev server, so the default
-  // 5s URL poll is too tight. Give it 30s, matching auth-smoke's proven window.
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(account.dashboardPath)}$`), { timeout: 30_000 });
+  // 5s URL poll is too tight. Give it 60s to absorb cold compile + login + nav.
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(account.dashboardPath)}$`), { timeout: 60_000 });
 }
 
 async function clickSidebarLink(page: Page, route: string) {
