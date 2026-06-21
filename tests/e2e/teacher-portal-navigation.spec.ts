@@ -75,10 +75,18 @@ async function loginTeacher(page: Page) {
   await page.goto(`/${teacherAccount.role}/login`);
   await page.getByLabel(teacherAccount.identifierLabel).fill(teacherAccount.identifier);
   await page.getByLabel(/^Password$/i).fill(teacherAccount.password);
+  // Capture the login API response so a non-OK response surfaces immediately
+  // and so we don't rely solely on the post-click URL poll on a freshly-loaded
+  // dev server. Same proven pattern as auth-smoke.spec.ts:68-87.
+  const loginResponse = page.waitForResponse(
+    (res) => res.url().includes("/auth/login") && res.request().method() === "POST",
+    { timeout: 30_000 },
+  );
   await page.getByRole("button", { name: teacherAccount.buttonName }).click();
-  // Teacher login POST + dashboard route compile exceeds the default 5s URL
-  // poll on a freshly-loaded dev server. auth-smoke.spec.ts:68-87 uses a 30s
-  // URL window for the same reason; mirror it for the isolated teacher test.
+  const response = await loginResponse;
+  if (!response.ok()) {
+    throw new Error(`Login request failed for ${teacherAccount.role}: HTTP ${response.status()}`);
+  }
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(teacherAccount.dashboardPath)}$`), { timeout: 30_000 });
 }
 
