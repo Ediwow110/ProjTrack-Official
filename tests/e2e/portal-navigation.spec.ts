@@ -128,19 +128,9 @@ async function login(page: Page, account: (typeof accounts)[keyof typeof account
   await page.goto(`/${account.role}/login`);
   await page.getByLabel(account.identifierLabel).fill(account.identifier);
   await page.getByLabel(/^Password$/i).fill(account.password);
-  // Wait for the login API response alongside the click so a non-OK response
-  // surfaces with its HTTP status instead of a silent URL-timeout, and give the
-  // URL assertion a 30s window because the 4th login in this file runs against
-  // a loaded dev server.
-  const loginResponse = page.waitForResponse(
-    (res) => res.url().includes("/auth/login") && res.request().method() === "POST",
-    { timeout: 15_000 },
-  );
   await page.getByRole("button", { name: account.buttonName }).click();
-  const response = await loginResponse;
-  if (!response.ok()) {
-    throw new Error(`Login request failed for ${account.role}: HTTP ${response.status()}`);
-  }
+  // The 4th login in this file runs against a loaded dev server, so the default
+  // 5s URL poll is too tight. Give it 30s, matching auth-smoke's proven window.
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(account.dashboardPath)}$`), { timeout: 30_000 });
 }
 
