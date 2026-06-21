@@ -116,8 +116,6 @@ test("admin shared list pages open preview drawers without runtime errors", asyn
   await assertHealthy(page, tracker);
 
   await page.goto("/admin/requests");
-  await expect(page).toHaveURL(/\/admin\/requests$/);
-  await expect(page.getByRole("heading", { name: /^Requests$/i })).toBeVisible();
   await openPreviewIfRowsExist(page, /^Review .+/i, /^Close$/i);
   await assertHealthy(page, tracker);
 

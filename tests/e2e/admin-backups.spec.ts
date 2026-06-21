@@ -76,7 +76,7 @@ test("admin backups page creates a real backup, survives reload, and guards dest
 
   await latestRow.getByRole("button", { name: /Restore backup/i }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByText(/Restore is destructive/i)).toBeVisible();
+  await expect(page.getByText(/Restore is destructive/i).first()).toBeVisible();
   await page.getByRole("button", { name: /^Cancel$/i }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
