@@ -56,14 +56,14 @@
     "dev:raw": "node -r ts-node/register src/main.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1055.0",
-    "@aws-sdk/s3-request-presigner": "^3.1055.0",
-    "@nestjs/common": "^11.1.24",
+    "@aws-sdk/client-s3": "^3.1073.0",
+    "@aws-sdk/s3-request-presigner": "^3.1073.0",
+    "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.24",
-    "@nestjs/platform-express": "^11.1.24",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-express": "^11.1.27",
     "@prisma/client": "6.19.3",
-    "body-parser": "^2.2.2",
+    "body-parser": "^2.3.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "compression": "^1.8.1",
@@ -73,9 +73,9 @@
     "helmet": "^8.2.0",
     "projtrack-frontend": "file:..",
     "reflect-metadata": "^0.2.2",
-    "resend": "6.12.4",
+    "resend": "6.14.0",
     "rxjs": "^7.8.1",
-    "svix": "^1.94.0",
+    "svix": "^1.96.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -85,7 +85,7 @@
     "prisma": "6.19.3",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
-    "tsx": "^4.22.3",
+    "tsx": "^4.22.4",
     "typescript": "^5.0.0"
   },
   "overrides": {
