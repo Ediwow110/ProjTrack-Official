@@ -53,7 +53,7 @@ jobs:
       BACKUP_WORKER_POLL_MS: "60000"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
