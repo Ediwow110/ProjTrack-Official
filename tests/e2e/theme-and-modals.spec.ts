@@ -5,8 +5,8 @@ const adminAccount = {
   role: 'admin',
   identifier: smokeCredentials.admin.identifier,
   password: smokeCredentials.admin.password,
-  identifierLabel: /Admin Email/i,
-  buttonName: /Continue to Admin Portal Login/i,
+  identifierLabel: /Email or Admin ID/i,
+  buttonName: /Sign In as Admin/i,
   dashboardPath: '/admin/dashboard',
 } as const;
 
@@ -31,7 +31,7 @@ const studentAccount = {
 const roleLogoExpectations = [
   { role: 'student', label: 'Student Portal', title: /Student Portal Login/i, path: '/student/login', color: 'rgb(37, 99, 235)', dotColor: 'rgb(8, 189, 244)', buttonName: /Continue to Student Portal Login/i },
   { role: 'teacher', label: 'Teacher Portal', title: /Teacher Portal Login/i, path: '/teacher/login', color: 'rgb(139, 92, 246)', dotColor: 'rgb(167, 139, 250)', buttonName: /Continue to Teacher Portal Login/i },
-  { role: 'admin', label: 'Admin Portal', title: /Admin Portal Login/i, path: '/admin/login', color: 'rgb(255, 121, 0)', dotColor: 'rgb(255, 157, 0)', buttonName: /Continue to Admin Portal Login/i },
+  { role: 'admin', label: 'Admin Portal', title: /Admin Portal Login/i, path: '/admin/login', color: 'rgb(255, 121, 0)', dotColor: 'rgb(255, 157, 0)', buttonName: /Sign In as Admin/i },
 ] as const;
 
 const adminRoutes = [

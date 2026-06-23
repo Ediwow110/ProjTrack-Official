@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 const path = require('path');
+const dotenv = require('dotenv');
 
 Object.assign(process.env, {
   NODE_ENV: 'development',
   APP_ENV: 'development',
   PORT: process.env.PORT || '3001',
-  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://projtrack:projtrack@127.0.0.1:5432/projtrack?schema=public',
+  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://projtrack:projtrack@127.0.0.1:55432/projtrack?schema=public',
   APP_URL: process.env.APP_URL || 'http://127.0.0.1:5173',
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://127.0.0.1:5173',
   BACKEND_URL: process.env.BACKEND_URL || 'http://127.0.0.1:3001',
@@ -40,9 +41,16 @@ Object.assign(process.env, {
   ALLOW_PRODUCTION_ADMIN_TOOL_RUNS: process.env.ALLOW_PRODUCTION_ADMIN_TOOL_RUNS || 'false',
 });
 
+// Load backend/.env so values there override hardcoded defaults (override:true).
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
+
 console.log('[backend-dev-local] Starting backend with local development defaults.');
-console.log('[backend-dev-local] DATABASE_URL=postgresql://projtrack:****@127.0.0.1:5432/projtrack?schema=public');
+console.log(`[backend-dev-local] DATABASE_URL=${(process.env.DATABASE_URL || '').replace(/(?<=:\/\/)[^:]+:[^@]+@/, 'USER:PASS@')}`);
 console.log(`[backend-dev-local] MAIL_PROVIDER=${process.env.MAIL_PROVIDER}; MAIL_WORKER_ENABLED=${process.env.MAIL_WORKER_ENABLED}`);
+
+// Force ts-node to skip type-checking at runtime (type errors would block dev startup).
+// Real type-checking is available via `npm run typecheck` and `npm --prefix backend run build`.
+process.env.TS_NODE_TRANSPILE_ONLY = 'true';
 
 require('ts-node/register');
 require(path.resolve(__dirname, '../src/main.ts'));

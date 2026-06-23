@@ -9,8 +9,8 @@ vi.mock('./runtime', () => ({
   buildApiUrl: (path: string) => `http://test.local:3001${path}`,
 }));
 
-// Mock the mockAuth module
-vi.mock('../mockAuth', () => ({
+// Mock the authSession module
+vi.mock('../authSession', () => ({
   getAccessToken: () => null,
   getRefreshToken: () => null,
   clearAuthSession: () => {},

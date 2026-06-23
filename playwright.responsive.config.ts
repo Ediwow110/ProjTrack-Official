@@ -10,7 +10,9 @@ const backendUrl = `http://127.0.0.1:${backendPort}`;
 const browserChannel = process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined;
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true'
   ? true
-  : !process.env.CI;
+  : process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'false'
+    ? false
+    : !process.env.CI;
 const backendCwd = resolve(rootDir, 'backend');
 const frontendViteCommand =
   process.platform === 'win32'
@@ -20,6 +22,7 @@ const backendCommand =
   process.platform === 'win32'
     ? '..\\scripts\\run-playwright-backend.cmd'
     : 'node -r ts-node/register src/main.ts';
+const postgresPort = process.env.PROJTRACK_POSTGRES_PORT || process.env.SMOKE_POSTGRES_PORT || '5432';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -54,7 +57,7 @@ export default defineConfig({
       env: {
         ...process.env,
         PORT: String(backendPort),
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://projtrack:projtrack@localhost:5432/projtrack',
+        DATABASE_URL: process.env.DATABASE_URL || `postgresql://projtrack:projtrack@localhost:${postgresPort}/projtrack`,
         JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'responsive-playwright-access-secret',
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'responsive-playwright-refresh-secret',
         APP_URL: frontendUrl,

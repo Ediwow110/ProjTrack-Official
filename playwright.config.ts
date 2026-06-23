@@ -20,6 +20,7 @@ const backendCommand =
   process.platform === 'win32'
     ? '..\\scripts\\run-playwright-backend.cmd'
     : 'node -r ts-node/register src/main.ts';
+const postgresPort = process.env.PROJTRACK_POSTGRES_PORT || process.env.SMOKE_POSTGRES_PORT || '5432';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -53,7 +54,7 @@ export default defineConfig({
       env: {
         ...process.env,
         PORT: String(backendPort),
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://projtrack:projtrack@localhost:5432/projtrack',
+        DATABASE_URL: process.env.DATABASE_URL || `postgresql://projtrack:projtrack@localhost:${postgresPort}/projtrack`,
         JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'playwright-access-secret',
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'playwright-refresh-secret',
         APP_URL: frontendUrl,

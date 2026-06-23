@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, ImagePlus, RefreshCcw, Upload } from "luci
 import { toast } from "sonner";
 import { adminOpsService } from "../../lib/api/services";
 import { Button } from "../ui/button";
+import { AppModal } from "../ui/app-modal";
 import { cn } from "../ui/utils";
 import { ProjTrackLogo } from "../brand/ProjTrackLogo";
 import { useBranding } from "../brand/BrandingProvider";
@@ -113,6 +114,7 @@ export function BrandingSettingsSection() {
   const [previewUrls, setPreviewUrls] = useState<PreviewState>({});
   const [fileErrors, setFileErrors] = useState<FileErrorState>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
 
@@ -258,8 +260,6 @@ export function BrandingSettingsSection() {
 
   const handleResetBranding = async () => {
     if (saving) return;
-    const confirmed = window.confirm("Reset branding to the default ProjTrack logo set?");
-    if (!confirmed) return;
 
     setSaving(true);
     setStatusMessage(null);
@@ -268,6 +268,7 @@ export function BrandingSettingsSection() {
       replaceBranding(nextBranding);
       await reloadBranding();
       clearTransientState();
+      setResetConfirmOpen(false);
       setStatusMessage("Branding reset to the default ProjTrack assets.");
       toast.success("Branding reset to default.");
     } catch (resetError) {
@@ -468,7 +469,7 @@ export function BrandingSettingsSection() {
             type="button"
             variant="outline"
             disabled={saving || (!hasPersistedUploads && !hasPendingChanges)}
-            onClick={handleResetBranding}
+            onClick={() => setResetConfirmOpen(true)}
           >
             <RefreshCcw size={14} />
             Reset to Default
@@ -485,6 +486,32 @@ export function BrandingSettingsSection() {
           </Button>
         </div>
       </div>
+
+      <AppModal
+        open={resetConfirmOpen}
+        onOpenChange={(open) => {
+          if (!saving) {
+            setResetConfirmOpen(open);
+          }
+        }}
+        title="Reset branding to default?"
+        description="This replaces the current branding assets with the default ProjTrack logo set."
+        size="md"
+        footer={(
+          <>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => setResetConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={saving} onClick={handleResetBranding}>
+              {saving ? "Resetting..." : "Reset Branding"}
+            </Button>
+          </>
+        )}
+      >
+        <p className="text-sm leading-6 text-[var(--text-body)]">
+          Any uploaded logo, icon, and favicon assets will be cleared from the active branding preview after the reset succeeds.
+        </p>
+      </AppModal>
     </SettingsSection>
   );
 }

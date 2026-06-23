@@ -13,7 +13,17 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { AdminUsersService } from './admin-users.service';
+import { AdminSectionsService } from './admin-sections.service';
+import { AdminSubjectsService } from './admin-subjects.service';
+import { AdminSubmissionsService } from './admin-submissions.service';
+import { AdminGroupsService } from './admin-groups.service';
+import { AdminNotificationsService } from './admin-notifications.service';
+import { AdminCalendarService } from './admin-calendar.service';
+import { AdminAuditLogsService } from './admin-audit-logs.service';
+import { AdminSettingsService } from './admin-settings.service';
+import { AdminSystemToolsService } from './admin-system-tools.service';
+import { AdminReportsService } from './admin-reports.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import {
@@ -43,7 +53,19 @@ import {
 @Roles('ADMIN')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly adminUsers: AdminUsersService,
+    private readonly adminSections: AdminSectionsService,
+    private readonly adminSubjects: AdminSubjectsService,
+    private readonly adminSubmissions: AdminSubmissionsService,
+    private readonly adminGroups: AdminGroupsService,
+    private readonly adminNotifications: AdminNotificationsService,
+    private readonly adminCalendar: AdminCalendarService,
+    private readonly adminAuditLogs: AdminAuditLogsService,
+    private readonly adminSettings: AdminSettingsService,
+    private readonly adminSystemTools: AdminSystemToolsService,
+    private readonly adminReports: AdminReportsService,
+  ) {}
 
   private actorContext(req: any) {
     return {
@@ -63,32 +85,32 @@ export class AdminController {
     @Query('role') role?: string,
     @Query('status') status?: string,
   ) {
-    return this.admin.users(search, role, status);
+    return this.adminUsers.users(search, role, status);
   }
 
   @Post('users/admins')
   createAdmin(@Body() body: CreateAdminDto, @Req() req: any) {
-    return this.admin.createAdmin(body, this.actorContext(req));
+    return this.adminUsers.createAdmin(body, this.actorContext(req));
   }
 
   @Post('users/:id/activate')
   activateUser(@Param('id') id: string, @Req() req: any) {
-    return this.admin.activateUser(id, this.actorContext(req));
+    return this.adminUsers.activateUser(id, this.actorContext(req));
   }
 
   @Post('users/:id/deactivate')
   deactivateUser(@Param('id') id: string, @Req() req: any) {
-    return this.admin.deactivateUser(id, this.actorContext(req));
+    return this.adminUsers.deactivateUser(id, this.actorContext(req));
   }
 
   @Post('users/:id/send-reset-link')
   sendUserResetLink(@Param('id') id: string, @Req() req: any) {
-    return this.admin.sendUserResetLink(id, this.actorContext(req));
+    return this.adminUsers.sendUserResetLink(id, this.actorContext(req));
   }
 
   @Post('users/:id/resend-activation')
   resendUserActivation(@Param('id') id: string, @Req() req: any) {
-    return this.admin.resendUserActivation(id, this.actorContext(req));
+    return this.adminUsers.resendUserActivation(id, this.actorContext(req));
   }
 
   @Delete('users/:id')
@@ -97,57 +119,57 @@ export class AdminController {
     @Query('confirmation') confirmation?: string,
     @Req() req?: any,
   ) {
-    return this.admin.deleteUser(id, confirmation, this.actorContext(req));
+    return this.adminUsers.deleteUser(id, confirmation, this.actorContext(req));
   }
 
   @Get('teachers')
   teachers(@Query('search') search?: string, @Query('status') status?: string) {
-    return this.admin.teachers(search, status);
+    return this.adminUsers.teachers(search, status);
   }
 
   @Get('departments')
   departments(@Query('search') search?: string) {
-    return this.admin.departments(search);
+    return this.adminSettings.departments(search);
   }
 
   @Post('departments')
   createDepartment(@Body() body: CreateDepartmentDto, @Req() req: any) {
-    return this.admin.createDepartment(body, this.actorContext(req));
+    return this.adminSettings.createDepartment(body, this.actorContext(req));
   }
 
   @Get('departments/:id')
   departmentDetail(@Param('id') id: string) {
-    return this.admin.department(id);
+    return this.adminSettings.department(id);
   }
 
   @Patch('departments/:id')
   updateDepartment(@Param('id') id: string, @Body() body: UpdateDepartmentDto, @Req() req: any) {
-    return this.admin.updateDepartment(id, body, this.actorContext(req));
+    return this.adminSettings.updateDepartment(id, body, this.actorContext(req));
   }
 
   @Delete('departments/:id')
   deleteDepartment(@Param('id') id: string, @Query('confirmation') confirmation?: string, @Req() req?: any) {
-    return this.admin.deleteDepartment(id, confirmation, this.actorContext(req));
+    return this.adminSettings.deleteDepartment(id, confirmation, this.actorContext(req));
   }
 
   @Get('sections')
   sections(@Query('search') search?: string, @Query('academicYearId') academicYearId?: string) {
-    return this.admin.sections(search, academicYearId);
+    return this.adminSections.sections(search, academicYearId);
   }
 
   @Post('sections')
   createSection(@Body() body: CreateSectionDto) {
-    return this.admin.createSection(body);
+    return this.adminSections.createSection(body);
   }
 
   @Get('sections/:id/master-list')
   sectionMasterList(@Param('id') id: string) {
-    return this.admin.sectionMasterList(id);
+    return this.adminSections.sectionMasterList(id);
   }
 
   @Get('sections/:id/master-list/export')
   async sectionMasterListExport(@Param('id') id: string, @Res() res: any) {
-    const result = await this.admin.sectionMasterListExport(id);
+    const result = await this.adminSections.sectionMasterListExport(id);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -158,23 +180,23 @@ export class AdminController {
 
   @Get('academic-years')
   academicYears(@Query('search') search?: string) {
-    return this.admin.academicYears(search);
+    return this.adminSettings.academicYears(search);
   }
 
   @Post('academic-years')
   createAcademicYear(@Body() body: CreateAcademicYearDto) {
-    return this.admin.createAcademicYear(body);
+    return this.adminSettings.createAcademicYear(body);
   }
 
   @Post('academic-years/:id/year-levels')
   createAcademicYearLevel(@Param('id') id: string, @Body() body: CreateAcademicYearLevelDto) {
-    return this.admin.createAcademicYearLevel({ ...body, academicYearId: id, courseId: body.courseId });
+    return this.adminSettings.createAcademicYearLevel({ ...body, academicYearId: id, courseId: body.courseId });
   }
 
 
   @Delete('academic-years/:id')
   deleteAcademicYear(@Param('id') id: string, @Req() req?: any) {
-    return this.admin.deleteAcademicYear(id, this.actorContext(req));
+    return this.adminSettings.deleteAcademicYear(id, this.actorContext(req));
   }
 
   @Delete('academic-years/:yearId/year-levels/:levelId')
@@ -183,18 +205,18 @@ export class AdminController {
     @Param('levelId') levelId: string,
     @Req() req?: any,
   ) {
-    return this.admin.deleteAcademicYearLevel(levelId, this.actorContext(req));
+    return this.adminSettings.deleteAcademicYearLevel(levelId, this.actorContext(req));
   }
 
 
   @Get('academic-years/:yearId/courses')
   listCourses(@Param('yearId') yearId: string) {
-    return this.admin.listCourses(yearId);
+    return this.adminSettings.listCourses(yearId);
   }
 
   @Post('academic-years/:yearId/courses')
   createCourse(@Param('yearId') yearId: string, @Body() body: CreateCourseDto, @Req() req?: any) {
-    return this.admin.createCourse({ ...body, academicYearId: yearId }, this.actorContext(req));
+    return this.adminSettings.createCourse({ ...body, academicYearId: yearId }, this.actorContext(req));
   }
 
   @Delete('academic-years/:yearId/courses/:courseId')
@@ -203,92 +225,92 @@ export class AdminController {
     @Param('courseId') courseId: string,
     @Req() req?: any,
   ) {
-    return this.admin.deleteCourse(courseId, this.actorContext(req));
+    return this.adminSettings.deleteCourse(courseId, this.actorContext(req));
   }
 
   @Delete('sections/:id')
   deleteSection(@Param('id') id: string, @Req() req?: any) {
-    return this.admin.deleteSection(id, this.actorContext(req));
+    return this.adminSections.deleteSection(id, this.actorContext(req));
   }
 
   @Get('students')
   students(@Query('search') search?: string, @Query('status') status?: string) {
-    return this.admin.students(search, status);
+    return this.adminUsers.students(search, status);
   }
 
   @Post('students')
   createStudent(@Body() body: StudentMutationDto) {
-    return this.admin.createStudent(body);
+    return this.adminUsers.createStudent(body);
   }
 
   @Post('teachers')
   createTeacher(@Body() body: TeacherMutationDto) {
-    return this.admin.createTeacher(body);
+    return this.adminUsers.createTeacher(body);
   }
 
   @Post('subjects')
   createSubject(@Body() body: SubjectMutationDto) {
-    return this.admin.createSubject(body);
+    return this.adminSubjects.createSubject(body);
   }
 
   @Get('subjects')
   subjects(@Query('search') search?: string) {
-    return this.admin.subjects(search);
+    return this.adminSubjects.subjects(search);
   }
 
   @Post('students/:id/deactivate')
   deactivateStudent(@Param('id') id: string, @Req() req: any) {
-    return this.admin.deactivateStudent(id, this.actorContext(req));
+    return this.adminUsers.deactivateStudent(id, this.actorContext(req));
   }
 
   @Get('students/:id/detail')
   studentDetail(@Param('id') id: string) {
-    return this.admin.studentDetail(id);
+    return this.adminUsers.studentDetail(id);
   }
 
   @Post('students/:id')
   updateStudent(@Param('id') id: string, @Body() body: StudentMutationDto) {
-    return this.admin.updateStudent(id, body);
+    return this.adminUsers.updateStudent(id, body);
   }
 
   @Post('teachers/:id/activate')
   activateTeacher(@Param('id') id: string, @Req() req: any) {
-    return this.admin.activateTeacher(id, this.actorContext(req));
+    return this.adminUsers.activateTeacher(id, this.actorContext(req));
   }
 
   @Post('teachers/:id/send-reset-link')
   sendTeacherResetLink(@Param('id') id: string, @Req() req: any) {
-    return this.admin.sendTeacherResetLink(id, this.actorContext(req));
+    return this.adminUsers.sendTeacherResetLink(id, this.actorContext(req));
   }
 
   @Post('teachers/:id/deactivate')
   deactivateTeacher(@Param('id') id: string, @Req() req: any) {
-    return this.admin.deactivateTeacher(id, this.actorContext(req));
+    return this.adminUsers.deactivateTeacher(id, this.actorContext(req));
   }
 
   @Get('teachers/:id/detail')
   teacherDetail(@Param('id') id: string) {
-    return this.admin.teacherDetail(id);
+    return this.adminUsers.teacherDetail(id);
   }
 
   @Post('teachers/:id')
   updateTeacher(@Param('id') id: string, @Body() body: TeacherMutationDto) {
-    return this.admin.updateTeacher(id, body);
+    return this.adminUsers.updateTeacher(id, body);
   }
 
   @Get('subjects/:id/detail')
   subjectDetail(@Param('id') id: string) {
-    return this.admin.subjectDetail(id);
+    return this.adminSubjects.subjectDetail(id);
   }
 
   @Post('subjects/:id')
   updateSubject(@Param('id') id: string, @Body() body: SubjectMutationDto) {
-    return this.admin.updateSubject(id, body);
+    return this.adminSubjects.updateSubject(id, body);
   }
 
   @Get('submissions/:id/detail')
   submissionDetail(@Param('id') id: string) {
-    return this.admin.submissionDetail(id);
+    return this.adminSubmissions.submissionDetail(id);
   }
 
   @Get('submissions')
@@ -299,17 +321,17 @@ export class AdminController {
     @Query('studentId') studentId?: string,
     @Query('section') section?: string,
   ) {
-    return this.admin.submissions(search, status, subjectId, studentId, section);
+    return this.adminSubmissions.submissions(search, status, subjectId, studentId, section);
   }
 
   @Post('submissions')
   createSubmission(@Body() body: AdminSubmissionCreateDto, @Req() req: any) {
-    return this.admin.createSubmission(body, this.actorContext(req));
+    return this.adminSubmissions.createSubmission(body, this.actorContext(req));
   }
 
   @Patch('submissions/:id')
   updateSubmission(@Param('id') id: string, @Body() body: AdminSubmissionUpdateDto, @Req() req: any) {
-    return this.admin.updateSubmission(id, body, this.actorContext(req));
+    return this.adminSubmissions.updateSubmission(id, body, this.actorContext(req));
   }
 
   @Delete('submissions/:id')
@@ -318,183 +340,183 @@ export class AdminController {
     @Query('confirmation') confirmation?: string,
     @Req() req?: any,
   ) {
-    return this.admin.deleteSubmission(id, confirmation, this.actorContext(req));
+    return this.adminSubmissions.deleteSubmission(id, confirmation, this.actorContext(req));
   }
 
   @Post('submissions/:id/note')
   saveSubmissionNote(@Param('id') id: string, @Body() body: NoteDto) {
-    return this.admin.saveSubmissionNote(id, body?.note ?? '');
+    return this.adminSubmissions.saveSubmissionNote(id, body?.note ?? '');
   }
 
   @Get('requests')
   requests(@Query('status') status?: string) {
-    return this.admin.requests(status);
+    return this.adminReports.requests(status);
   }
 
   @Post('requests/:id/approve')
   approveRequest(@Param('id') id: string) {
-    return this.admin.requestAction(id, 'Approved');
+    return this.adminReports.requestAction(id, 'Approved');
   }
 
   @Post('requests/:id/reject')
   rejectRequest(@Param('id') id: string) {
-    return this.admin.requestAction(id, 'Rejected');
+    return this.adminReports.requestAction(id, 'Rejected');
   }
 
   @Get('settings/academic')
   getAcademicSettings() {
-    return this.admin.getAcademicSettings();
+    return this.adminSettings.getAcademicSettings();
   }
 
   @Post('settings/academic')
   saveAcademicSettings(@Body() body: AcademicSettingsDto, @Req() req: any) {
-    return this.admin.saveAcademicSettings(body, this.actorContext(req));
+    return this.adminSettings.saveAcademicSettings(body, this.actorContext(req));
   }
 
   @Get('settings/system')
   getSystemSettings() {
-    return this.admin.getSystemSettings();
+    return this.adminSettings.getSystemSettings();
   }
 
   @Post('settings/system')
   saveSystemSettings(@Body() body: SystemSettingsDto, @Req() req: any) {
-    return this.admin.saveSystemSettings(body, this.actorContext(req));
+    return this.adminSettings.saveSystemSettings(body, this.actorContext(req));
   }
 
   @Get('system-tools')
   getSystemTools() {
-    return this.admin.getSystemTools();
+    return this.adminSystemTools.getSystemTools();
   }
 
   @Post('system-tools/:id/run')
   runSystemTool(@Param('id') id: string, @Body() body: SystemToolRunDto, @Req() req: any) {
-    return this.admin.runSystemTool(id, body, this.actorContext(req));
+    return this.adminSystemTools.runSystemTool(id, body, this.actorContext(req));
   }
 
   @Get('system-tools/artifact')
   downloadSystemToolArtifact(@Query('path') path: string, @Res() res: any) {
-    const artifact = this.admin.downloadSystemToolArtifact(path);
+    const artifact = this.adminSystemTools.downloadSystemToolArtifact(path);
     return res.download(artifact.absolutePath, artifact.fileName);
   }
 
   @Post('system-tools/backups/import')
   importSystemToolBackup(@Body() body: ImportSystemToolBackupDto) {
-    return this.admin.importSystemToolBackup(body.fileName, body.contentBase64);
+    return this.adminSystemTools.importSystemToolBackup(body.fileName, body.contentBase64);
   }
 
   @Get('bulk-move')
   getBulkMoveData() {
-    return this.admin.getBulkMoveData();
+    return this.adminSections.getBulkMoveData();
   }
 
   @Post('bulk-move')
   moveStudents(@Body() body: BulkMoveDto) {
-    return this.admin.moveStudents(body.sourceSectionId ?? body.source, body.destSectionId ?? body.dest, body.ids);
+    return this.adminSections.moveStudents(body.sourceSectionId ?? body.source, body.destSectionId ?? body.dest, body.ids);
   }
 
   @Get('reports/summary')
   reportSummary(@Query('section') section?: string, @Query('subjectId') subjectId?: string) {
-    return this.admin.reportSummary(section, subjectId);
+    return this.adminReports.reportSummary(section, subjectId);
   }
 
   @Get('reports/current-view')
   reportCurrentView(@Query('section') section?: string, @Query('subjectId') subjectId?: string) {
-    return this.admin.reportCurrentView(section, subjectId);
+    return this.adminReports.reportCurrentView(section, subjectId);
   }
 
   @Get('reports/export')
   reportExport(@Query('section') section?: string, @Query('subjectId') subjectId?: string) {
-    return this.admin.reportExport(section, subjectId);
+    return this.adminReports.reportExport(section, subjectId);
   }
 
   @Get('reports/dashboard')
   reportDashboard(@Query('section') section?: string, @Query('subjectId') subjectId?: string) {
-    return this.admin.reportDashboard(section, subjectId);
+    return this.adminReports.reportDashboard(section, subjectId);
   }
 
   @Get('groups')
   groups(@Query('section') section?: string, @Query('status') status?: string) {
-    return this.admin.groups(section, status);
+    return this.adminGroups.groups(section, status);
   }
 
   @Get('groups/:id')
   groupDetail(@Param('id') id: string) {
-    return this.admin.groupDetail(id);
+    return this.adminGroups.groupDetail(id);
   }
 
   @Post('groups/:id/approve')
   approveGroup(@Param('id') id: string) {
-    return this.admin.approveGroup(id);
+    return this.adminGroups.approveGroup(id);
   }
 
   @Post('groups/:id/lock')
   lockGroup(@Param('id') id: string) {
-    return this.admin.lockGroup(id);
+    return this.adminGroups.lockGroup(id);
   }
 
   @Post('groups/:id/unlock')
   unlockGroup(@Param('id') id: string) {
-    return this.admin.unlockGroup(id);
+    return this.adminGroups.unlockGroup(id);
   }
 
   @Post('groups/:id/leader')
   assignGroupLeader(@Param('id') id: string, @Body() body: AssignGroupLeaderDto) {
-    return this.admin.assignGroupLeader(id, body?.memberId);
+    return this.adminGroups.assignGroupLeader(id, body?.memberId);
   }
 
   @Post('groups/:id/members/:memberId/remove')
   removeGroupMember(@Param('id') id: string, @Param('memberId') memberId: string) {
-    return this.admin.removeGroupMember(id, memberId);
+    return this.adminGroups.removeGroupMember(id, memberId);
   }
 
   @Get('notifications')
   notifications(@Query('role') role?: string, @Query('type') type?: string) {
-    return this.admin.notificationsList(role, type);
+    return this.adminNotifications.notificationsList(role, type);
   }
 
   @Post('notifications/read-all')
   markAllNotificationsRead(@Req() req: any) {
-    return this.admin.markAllNotificationsRead(this.actorContext(req));
+    return this.adminNotifications.markAllNotificationsRead(this.actorContext(req));
   }
 
   @Post('notifications/delete')
   deleteNotifications(@Body() body: IdsDto) {
-    return this.admin.deleteNotifications(body?.ids ?? []);
+    return this.adminNotifications.deleteNotifications(body?.ids ?? []);
   }
 
   @Post('notifications/:id/read')
   markNotificationRead(@Param('id') id: string) {
-    return this.admin.markNotificationRead(id);
+    return this.adminNotifications.markNotificationRead(id);
   }
 
   @Post('notifications/broadcast')
   broadcast(@Body() body: BroadcastDto) {
-    return this.admin.broadcast(body);
+    return this.adminNotifications.broadcast(body);
   }
 
   @Get('announcements')
   announcements() {
-    return this.admin.announcements();
+    return this.adminNotifications.announcements();
   }
 
   @Post('announcements')
   createAnnouncement(@Body() body: AnnouncementDto) {
-    return this.admin.createAnnouncement(body);
+    return this.adminNotifications.createAnnouncement(body);
   }
 
   @Post('announcements/delete')
   deleteAnnouncements(@Body() body: IdsDto) {
-    return this.admin.deleteAnnouncements(body?.ids ?? []);
+    return this.adminNotifications.deleteAnnouncements(body?.ids ?? []);
   }
 
   @Get('calendar/events')
   calendarEvents(@Query('audience') audience?: string, @Query('section') section?: string) {
-    return this.admin.calendarEvents(audience, section);
+    return this.adminCalendar.calendarEvents(audience, section);
   }
 
   @Get('calendar/events/:id')
   calendarEventDetail(@Param('id') id: string) {
-    return this.admin.calendarEventDetail(id);
+    return this.adminCalendar.calendarEventDetail(id);
   }
 
   @Get('audit-logs')
@@ -506,7 +528,7 @@ export class AdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.admin.auditList(
+    return this.adminAuditLogs.auditList(
       module,
       role,
       take ? Number(take) : undefined,
@@ -518,6 +540,6 @@ export class AdminController {
 
   @Get('audit-logs/:id')
   auditLogDetail(@Param('id') id: string) {
-    return this.admin.auditDetail(id);
+    return this.adminAuditLogs.auditDetail(id);
   }
 }

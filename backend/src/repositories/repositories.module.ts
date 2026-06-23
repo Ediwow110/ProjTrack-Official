@@ -4,8 +4,12 @@ import { SubjectRepository } from './subject.repository';
 import { SubmissionRepository } from './submission.repository';
 import { NotificationRepository } from './notification.repository';
 import { AuditLogRepository } from './audit-log.repository';
-import { AdminOpsRepository } from './admin-ops.repository';
 import { AdminReportsRepository } from './admin-reports.repository';
+import { SystemToolsRepository } from './system-tools.repository';
+import { AcademicStructureRepository } from './academic-structure.repository';
+import { SettingsRepository } from './settings.repository';
+import { AnnouncementsRepository } from './announcements.repository';
+import { RequestRepository } from './request.repository';
 
 @Global()
 @Module({
@@ -15,8 +19,12 @@ import { AdminReportsRepository } from './admin-reports.repository';
     SubmissionRepository,
     NotificationRepository,
     AuditLogRepository,
-    AdminOpsRepository,
     AdminReportsRepository,
+    SystemToolsRepository,
+    AcademicStructureRepository,
+    SettingsRepository,
+    AnnouncementsRepository,
+    RequestRepository,
   ],
   exports: [
     UserRepository,
@@ -24,8 +32,12 @@ import { AdminReportsRepository } from './admin-reports.repository';
     SubmissionRepository,
     NotificationRepository,
     AuditLogRepository,
-    AdminOpsRepository,
     AdminReportsRepository,
+    SystemToolsRepository,
+    AcademicStructureRepository,
+    SettingsRepository,
+    AnnouncementsRepository,
+    RequestRepository,
   ],
 })
 export class RepositoriesModule {}

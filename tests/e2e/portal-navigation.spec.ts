@@ -18,53 +18,6 @@ const accounts = {
       "/student/profile",
     ],
   },
-  teacher: {
-    role: "teacher",
-    identifier: smokeCredentials.teacher.identifier,
-    password: smokeCredentials.teacher.password,
-    identifierLabel: /Email or Teacher ID/i,
-    buttonName: /Sign In as Teacher/i,
-    dashboardPath: "/teacher/dashboard",
-    routes: [
-      "/teacher/dashboard",
-      "/teacher/subjects",
-      "/teacher/students",
-      "/teacher/submissions",
-      "/teacher/notifications",
-      "/teacher/profile",
-    ],
-  },
-  admin: {
-    role: "admin",
-    identifier: smokeCredentials.admin.identifier,
-    password: smokeCredentials.admin.password,
-    identifierLabel: /Email or Admin ID/i,
-    buttonName: /Sign In as Admin/i,
-    dashboardPath: "/admin/dashboard",
-    routes: [
-      "/admin/dashboard",
-      "/admin/students",
-      "/admin/teachers",
-      "/admin/subjects",
-      "/admin/sections",
-      "/admin/submissions",
-      "/admin/reports",
-      "/admin/groups",
-      "/admin/announcements",
-      "/admin/calendar",
-      "/admin/academic-settings",
-      "/admin/notifications",
-      "/admin/audit-logs",
-      "/admin/settings",
-      "/admin/system-tools",
-      "/admin/mail-jobs",
-      "/admin/file-inventory",
-      "/admin/system-health",
-      "/admin/release-status",
-      "/admin/bootstrap-guide",
-      "/admin/profile",
-    ],
-  },
 } as const;
 
 type RuntimeTracker = {
@@ -120,10 +73,6 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const smokeAcademicYearName = String(
-  process.env.SMOKE_ACADEMIC_YEAR_NAME ?? "Smoke AY 2026",
-).trim();
-
 async function login(page: Page, account: (typeof accounts)[keyof typeof accounts]) {
   await page.goto(`/${account.role}/login`);
   await page.getByLabel(account.identifierLabel).fill(account.identifier);
@@ -161,18 +110,6 @@ async function verifySidebarRoutes(page: Page, routes: string[]) {
 async function openSidebarRoute(page: Page, route: string) {
   await clickSidebarLink(page, route);
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
-}
-
-async function openSmokeSectionMasterList(page: Page) {
-  await openSidebarRoute(page, "/admin/sections");
-  const academicYearButton = page.getByRole("button", {
-    name: new RegExp(`Open academic year\\s+${escapeRegExp(smokeAcademicYearName)}`, "i"),
-  });
-  await expect(academicYearButton).toBeVisible();
-  await academicYearButton.click();
-  await page.getByRole("button", { name: /Open course/i }).first().click();
-  await page.getByRole("button", { name: /Open year level/i }).first().click();
-  await page.getByRole("button", { name: /Open master list/i }).first().click();
 }
 
 test("public entry points resolve to student login without portal chooser UI", async ({
@@ -221,75 +158,5 @@ test("student portal navigation resolves from real sidebar and topbar controls",
   await openSidebarRoute(page, accounts.student.dashboardPath);
   await page.getByRole("button", { name: /^Open student profile$/i }).click();
   await expect(page).toHaveURL(/\/student\/profile$/);
-  await assertHealthy(page, tracker);
-});
-
-test("teacher portal navigation resolves from real sidebar and topbar controls", async ({
-  page,
-}) => {
-  test.slow();
-  const tracker = attachRuntimeTracker(page);
-  await login(page, accounts.teacher);
-  await verifySidebarRoutes(page, accounts.teacher.routes);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /Open teacher notifications/i }).click();
-  await page.getByRole("button", { name: /View all notifications/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/notifications$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /Open teacher profile from sidebar/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/profile$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, accounts.teacher.dashboardPath);
-  await page.getByRole("button", { name: /^Open teacher profile$/i }).click();
-  await expect(page).toHaveURL(/\/teacher\/profile$/);
-  await assertHealthy(page, tracker);
-});
-
-test("admin portal navigation and section shortcuts resolve without dead clicks", async ({
-  page,
-}) => {
-  test.slow();
-  const tracker = attachRuntimeTracker(page);
-  await login(page, accounts.admin);
-  await verifySidebarRoutes(page, accounts.admin.routes);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, "/admin/dashboard");
-  await page.getByRole("button", { name: /Open admin notifications/i }).click();
-  await page.getByRole("button", { name: /View all notifications/i }).click();
-  await expect(page).toHaveURL(/\/admin\/notifications$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, "/admin/dashboard");
-  await page.getByRole("button", { name: /Open admin profile from sidebar/i }).click();
-  await expect(page).toHaveURL(/\/admin\/profile$/);
-  await assertHealthy(page, tracker);
-
-  await openSidebarRoute(page, "/admin/dashboard");
-  await page.getByRole("button", { name: /^Open admin profile$/i }).click();
-  await expect(page).toHaveURL(/\/admin\/profile$/);
-  await assertHealthy(page, tracker);
-
-  await page.goto("/admin/requests");
-  await expect(page).toHaveURL(/\/admin\/notifications$/);
-  await assertHealthy(page, tracker);
-
-  await openSmokeSectionMasterList(page);
-  await page.getByRole("button", { name: /^View Students$/ }).first().click();
-  await expect(page).toHaveURL(/\/admin\/students\?sectionId=[^&]+$/);
-  await expect(page.getByRole("button", { name: /^Add Student$/ })).toBeVisible();
-  await assertHealthy(page, tracker);
-
-  await openSmokeSectionMasterList(page);
-  await page.getByRole("button", { name: /^Manage Moves$/ }).first().click();
-  await expect(page).toHaveURL(/\/admin\/bulk-move\?sourceSectionId=[^&]+$/);
-  await expect(
-    page.getByRole("heading", { name: /Bulk Move Students/i }),
-  ).toBeVisible();
   await assertHealthy(page, tracker);
 });

@@ -5,7 +5,7 @@ import {
   getAuthSession,
   subscribeAuthSession,
   type AuthSession,
-} from "../lib/mockAuth";
+} from "../lib/authSession";
 import {
   adminService,
   authService,
@@ -51,7 +51,7 @@ const TEACHER_NAV: NavItem[] = [
   { to: "/teacher/dashboard",     icon: LayoutDashboard, label: "Dashboard",   section: "main" },
   { to: "/teacher/subjects",      icon: BookOpen,        label: "Subjects",    section: "main" },
   { to: "/teacher/students",      icon: Users,           label: "Students",    section: "main" },
-  { to: "/teacher/submissions",   icon: ClipboardList,   label: "Submissions", badge: 7, section: "main" },
+  { to: "/teacher/submissions",   icon: ClipboardList,   label: "Submissions", section: "main" },
   { to: "/teacher/notifications", icon: Bell,            label: "Notifications", section: "main" },
   { to: "/teacher/profile",       icon: UserCircle,      label: "Profile",     section: "account" },
 ];

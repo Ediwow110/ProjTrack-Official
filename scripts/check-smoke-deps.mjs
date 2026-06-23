@@ -4,7 +4,7 @@ import net from "node:net";
 import process from "node:process";
 
 const postgresHost = process.env.SMOKE_POSTGRES_HOST || "127.0.0.1";
-const postgresPort = Number(process.env.SMOKE_POSTGRES_PORT || 5432);
+const postgresPort = Number(process.env.PROJTRACK_POSTGRES_PORT || process.env.SMOKE_POSTGRES_PORT || 5432);
 const composeFile = "backend/docker-compose.postgres.yml";
 
 function checkCommand(command, args) {

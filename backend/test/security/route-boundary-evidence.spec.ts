@@ -6,8 +6,8 @@ describe('route-boundary evidence guard', () => {
     join(process.cwd(), 'src', 'subjects', 'subjects.controller.ts'),
     'utf8',
   );
-  const subjectsServiceSource = readFileSync(
-    join(process.cwd(), 'src', 'subjects', 'subjects.service.ts'),
+  const teacherSubjectsServiceSource = readFileSync(
+    join(process.cwd(), 'src', 'subjects', 'teacher-subjects.service.ts'),
     'utf8',
   );
   const submissionsControllerSource = readFileSync(
@@ -56,8 +56,8 @@ describe('route-boundary evidence guard', () => {
   });
 
   it('keeps the remaining highest-risk subject service blockers explicit', () => {
-    expect(subjectsServiceSource).toContain('async teacherStudents(');
-    expect(subjectsServiceSource).toContain('async teacherSections(');
+    expect(teacherSubjectsServiceSource).toContain('async teacherStudents(');
+    expect(teacherSubjectsServiceSource).toContain('async teacherSections(');
     expect(performanceGateSource).toContain('SubjectsService.teacherStudents');
     expect(performanceGateSource).toContain('teacher students route is controller-level response-capped but still requires actual DB-level query-plan evidence');
     expect(performanceGateSource).toContain('SubjectsService.teacherSections');

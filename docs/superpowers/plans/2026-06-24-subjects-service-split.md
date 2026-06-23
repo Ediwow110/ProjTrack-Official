@@ -1,62 +1,37 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import {
-  MAIL_CATEGORY_KEYS,
-  MAIL_TEMPLATE_KEYS,
-} from '../common/constants/mail.constants';
+# SubjectsService Split Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Split subjects.service.ts (1,454 lines) into 3 focused domain services: StudentSubjectsService, TeacherSubjectsService, SubjectGroupsService.
+
+**Architecture:** Each new service injects only the repositories/services it needs. Small helpers (<15 lines) are duplicated per-service to avoid shared base classes. Controller routes are redistributed to the correct service.
+
+**Tech Stack:** NestJS 11, TypeScript, Prisma, Jest
+
+---
+
+### Task 1: Create StudentSubjectsService
+
+**Files:**
+- Create: `backend/src/subjects/student-subjects.service.ts`
+- No test file (no behavior change, no existing spec)
+
+- [ ] **Step 1: Create `student-subjects.service.ts`**
+
+```typescript
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { SubjectRepository } from '../repositories/subject.repository';
 import { SubmissionRepository } from '../repositories/submission.repository';
 import { UserRepository } from '../repositories/user.repository';
-import { NotificationRepository } from '../repositories/notification.repository';
-import { MailService } from '../mail/mail.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { AccessService } from '../access/access.service';
-import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
-import {
-  buildMasterListFileName,
-  buildMasterListWorkbookBuffer,
-} from '../common/utils/master-list-export';
-import { buildStudentSubjectLink } from '../common/utils/frontend-links';
-
-function normalizedText(value: unknown, fallback = '') {
-  return String(value ?? fallback).trim();
-}
-
-function requiredText(value: unknown, fieldLabel: string) {
-  const normalized = normalizedText(value);
-  if (!normalized) {
-    throw new BadRequestException(`${fieldLabel} is required.`);
-  }
-  return normalized;
-}
-
-function studentSubjectLink(subjectId: string) {
-  return buildStudentSubjectLink(subjectId);
-}
-
-const DEFAULT_TEACHER_STUDENTS_TAKE = 100;
-const MAX_TEACHER_STUDENTS_TAKE = 500;
 
 @Injectable()
-export class SubjectsService {
-  private readonly logger = new Logger(SubjectsService.name);
-
+export class StudentSubjectsService {
   constructor(
     private readonly subjectRepository: SubjectRepository,
     private readonly submissionRepository: SubmissionRepository,
     private readonly userRepository: UserRepository,
-    private readonly notificationRepository: NotificationRepository,
-    private readonly auditLogs: AuditLogsService,
-    private readonly mailService: MailService,
     private readonly prisma: PrismaService,
-    private readonly access: AccessService,
   ) {}
 
   private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
@@ -88,6 +63,56 @@ export class SubjectsService {
     }
 
     return studentProfile;
+  }
+
+  private async mapGroupMembers(group: any) {
+    const leaderId = group?.leaderUserId || group?.leaderId;
+    if (group.memberUserIds) {
+      const users = await Promise.all(group.memberUserIds.map((id: string) => this.userRepository.findById(id)));
+      return users.filter(Boolean).map((user: any) => {
+        const isLeader = user.id === leaderId;
+        return {
+          id: user.id,
+          name: this.formatUserName(user),
+          role: isLeader ? 'LEADER' : 'MEMBER',
+          status: this.formatStatusLabel(user.status || 'ACTIVE'),
+          isLeader,
+        };
+      });
+    }
+
+    if (group.members) {
+      return group.members.map((member: any) => {
+        const student = member.student;
+        const isLeader = member.studentId === leaderId || String(member.role || '').toUpperCase() === 'LEADER';
+        return {
+          id: member.studentId,
+          name: student ? this.formatUserName(student) : member.studentId,
+          role: member.role || (isLeader ? 'LEADER' : 'MEMBER'),
+          status: this.formatStatusLabel(member.status || student?.status || 'ACTIVE'),
+          isLeader,
+        };
+      });
+    }
+
+    return [];
+  }
+
+  private async lookupUserName(userId?: string) {
+    if (!userId) return 'Unknown';
+    const user: any = await this.userRepository.findById(userId);
+    return user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  }
+
+  private formatUserName(user: { firstName?: string | null; lastName?: string | null } | any) {
+    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
+  }
+
+  private formatStatusLabel(value: string) {
+    const normalized = String(value || 'ACTIVE').trim().toUpperCase().replace(/_/g, ' ');
+    if (normalized === 'ACTIVE') return 'Active';
+    if (normalized === 'INACTIVE') return 'Inactive';
+    return normalized.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
   async studentSubjects(userId?: string) {
@@ -294,6 +319,340 @@ export class SubjectsService {
           }
         : null,
     };
+  }
+
+  async studentCalendar(userId?: string) {
+    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
+    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
+    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
+    const items: any[] = [];
+
+    for (const subject of subjects) {
+      const activities: any[] = await this.subjectRepository.listActivitiesBySubject(subject.id);
+      for (const activity of activities) {
+        const match = submissions.find((submission: any) => submission.activityId === activity.id);
+        items.push({
+          id: activity.id,
+          activityId: activity.id,
+          subjectId: subject.id,
+          subjectName: subject.name,
+          title: activity.title,
+          deadline: activity.deadline,
+          submissionMode: activity.submissionMode,
+          windowStatus: activity.windowStatus ?? (activity.isOpen ? 'OPEN' : 'CLOSED'),
+          submissionStatus: match?.status ?? 'NOT_STARTED',
+          submissionId: match?.id,
+        });
+      }
+    }
+
+    return items.sort((a, b) => new Date(a.deadline || 0).getTime() - new Date(b.deadline || 0).getTime());
+  }
+}
+```
+
+---
+
+### Task 2: Create TeacherSubjectsService
+
+**Files:**
+- Create: `backend/src/subjects/teacher-subjects.service.ts`
+
+- [ ] **Step 1: Create `teacher-subjects.service.ts`**
+
+```typescript
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import {
+  MAIL_CATEGORY_KEYS,
+  MAIL_TEMPLATE_KEYS,
+} from '../common/constants/mail.constants';
+import { SubjectRepository } from '../repositories/subject.repository';
+import { SubmissionRepository } from '../repositories/submission.repository';
+import { UserRepository } from '../repositories/user.repository';
+import { NotificationRepository } from '../repositories/notification.repository';
+import { MailService } from '../mail/mail.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { AccessService } from '../access/access.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
+import {
+  buildMasterListFileName,
+  buildMasterListWorkbookBuffer,
+} from '../common/utils/master-list-export';
+import { buildStudentSubjectLink } from '../common/utils/frontend-links';
+
+function normalizedText(value: unknown, fallback = '') {
+  return String(value ?? fallback).trim();
+}
+
+function requiredText(value: unknown, fieldLabel: string) {
+  const normalized = normalizedText(value);
+  if (!normalized) {
+    throw new BadRequestException(`${fieldLabel} is required.`);
+  }
+  return normalized;
+}
+
+function studentSubjectLink(subjectId: string) {
+  return buildStudentSubjectLink(subjectId);
+}
+
+const DEFAULT_TEACHER_STUDENTS_TAKE = 100;
+const MAX_TEACHER_STUDENTS_TAKE = 500;
+
+@Injectable()
+export class TeacherSubjectsService {
+  private readonly logger = new Logger(TeacherSubjectsService.name);
+
+  constructor(
+    private readonly subjectRepository: SubjectRepository,
+    private readonly submissionRepository: SubmissionRepository,
+    private readonly userRepository: UserRepository,
+    private readonly notificationRepository: NotificationRepository,
+    private readonly auditLogs: AuditLogsService,
+    private readonly mailService: MailService,
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
+
+  private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
+    const normalized = String(userId || '').trim();
+    if (!normalized) {
+      throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
+    }
+    return normalized;
+  }
+
+  private async ensureTeacherOwnsSubject(subjectId: string, teacherId?: string) {
+    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
+    await this.access.requireTeacherOwnsSubject(teacherUserId, subjectId);
+    const subject: any = await this.subjectRepository.findSubjectById(subjectId);
+    if (!subject) throw new NotFoundException('Subject not found.');
+    return subject;
+  }
+
+  private getSubjectStudentUserIds(subject: any): string[] {
+    return Array.from(new Set((subject?.enrollments || [])
+      .map((enrollment: any) => enrollment.student?.user?.id)
+      .filter((value: any): value is string => typeof value === 'string' && value.trim().length > 0)));
+  }
+
+  private async getNotificationPreferences() {
+    const settings = await this.prisma.systemSetting.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        classroomActivityEmailsEnabled: true,
+        classroomActivitySystemNotificationsEnabled: true,
+      },
+    });
+
+    return {
+      classroomActivityEmailsEnabled:
+        settings?.classroomActivityEmailsEnabled ?? false,
+      classroomActivitySystemNotificationsEnabled:
+        settings?.classroomActivitySystemNotificationsEnabled ?? true,
+    };
+  }
+
+  private async notifyUsers(
+    userIds: string[],
+    title: string,
+    body: string,
+    type = 'system',
+    dedupeKeyPrefix?: string,
+  ) {
+    const preferences = await this.getNotificationPreferences();
+    if (!preferences.classroomActivitySystemNotificationsEnabled) {
+      return 0;
+    }
+    await Promise.all(
+      userIds.map((userId) =>
+        this.notificationRepository.create({
+          userId,
+          title,
+          body,
+          type,
+          dedupeKey: dedupeKeyPrefix ? `${dedupeKeyPrefix}:${userId}` : undefined,
+        }),
+      ),
+    );
+    return userIds.length;
+  }
+
+  private async queueEmailsForUsers(
+    userIds: string[],
+    input: {
+      templateKey: string;
+      title: string;
+      body: string;
+      subjectName?: string;
+      teacherName?: string;
+      activityLink?: string;
+      suppressDeliveryErrors?: boolean;
+      idempotencyKeyPrefix?: string;
+      rateLimit?: {
+        actorUserId?: string;
+        subjectId?: string;
+        action: string;
+      };
+    },
+  ) {
+    const warnings: string[] = [];
+    const preferences = await this.getNotificationPreferences();
+    if (!preferences.classroomActivityEmailsEnabled) {
+      warnings.push('Classroom activity emails are disabled in system settings.');
+      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
+    }
+    if (input.rateLimit) {
+      const allowed = await this.consumeTeacherEmailRateLimit(input.rateLimit);
+      if (!allowed) {
+        const message = `Teacher notification email rate limit reached for subject ${input.rateLimit.subjectId || 'unknown'}.`;
+        this.logger.warn(`Skipping classroom email queue because ${message}`);
+        warnings.push(message);
+        return { emailJobsQueued: 0, emailQueueWarnings: warnings };
+      }
+    }
+    const users = await Promise.all(userIds.map((id) => this.userRepository.findById(id)));
+    const unique = new Map<string, any>();
+    users.filter(Boolean).forEach((user: any) => {
+      if (user?.email) unique.set(String(user.email).trim().toLowerCase(), user);
+    });
+
+    if (unique.size === 0) {
+      warnings.push('No enrolled recipients had an email address, so no email jobs were queued.');
+      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
+    }
+
+    try {
+      const jobs = await Promise.all(
+        Array.from(unique.values()).map((user: any) =>
+          this.mailService.queueTransactional({
+            to: user.email,
+            recipientName:
+              [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+              'Student',
+            templateKey: input.templateKey,
+            subject: input.title,
+            payload: {
+              firstName: user.firstName || undefined,
+              name:
+                [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+                'Student',
+              title: input.title,
+              body: input.body,
+              subjectName: input.subjectName,
+              teacherName: input.teacherName,
+              activityLink: input.activityLink,
+              mailCategory: MAIL_CATEGORY_KEYS.NOTIFICATION,
+            },
+            idempotencyKey: input.idempotencyKeyPrefix
+              ? `${input.idempotencyKeyPrefix}:${String(user.email).trim().toLowerCase()}`
+              : undefined,
+          }),
+        ),
+      );
+      const queued = jobs.filter((job: any) => Boolean(job?.id)).length;
+      if (queued !== unique.size) {
+        warnings.push(`Mail queue confirmed ${queued} of ${unique.size} expected jobs.`);
+      }
+      return { emailJobsQueued: queued, emailQueueWarnings: warnings };
+    } catch (error) {
+      if (!input.suppressDeliveryErrors) {
+        throw error;
+      }
+
+      const detail =
+        error instanceof Error ? error.message : 'Unknown mail queue failure.';
+      this.logger.warn(
+        `Skipping classroom email queue while keeping in-app notifications active: ${detail}`,
+      );
+      warnings.push(`Email jobs were not queued: ${detail}`);
+      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
+    }
+  }
+
+  private async consumeTeacherEmailRateLimit(input: {
+    actorUserId?: string;
+    subjectId?: string;
+    action: string;
+  }) {
+    const actorUserId = String(input.actorUserId || '').trim();
+    const subjectId = String(input.subjectId || '').trim();
+    if (!actorUserId || !subjectId) {
+      return true;
+    }
+
+    const action = `teacher:classroom-email:${String(input.action || 'notify').trim().toLowerCase() || 'notify'}`;
+    const key = `${actorUserId}|${subjectId}`;
+    const limit = Math.max(1, Number(process.env.TEACHER_CLASSROOM_EMAIL_MAX_PER_HOUR || 20));
+    const windowMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_WINDOW_MS || 60 * 60 * 1000));
+    const blockMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_BLOCK_MS || 60 * 60 * 1000));
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - windowMs);
+
+    await this.prisma.authRateLimit.deleteMany({
+      where: {
+        action,
+        key,
+        firstAttemptAt: { lte: windowStart },
+      },
+    });
+
+    const updated = await this.prisma.authRateLimit.upsert({
+      where: { action_key: { action, key } },
+      update: {
+        attempts: { increment: 1 },
+        lastAttemptAt: now,
+      },
+      create: {
+        action,
+        key,
+        attempts: 1,
+        firstAttemptAt: now,
+        lastAttemptAt: now,
+      },
+    });
+
+    if (updated.blockedUntil && updated.blockedUntil.getTime() > now.getTime()) {
+      return false;
+    }
+
+    if (updated.attempts > limit) {
+      await this.prisma.authRateLimit.update({
+        where: { action_key: { action, key } },
+        data: {
+          blockedUntil: new Date(now.getTime() + blockMs),
+          lastAttemptAt: now,
+        },
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  private async lookupUserName(userId?: string) {
+    if (!userId) return 'Unknown';
+    const user: any = await this.userRepository.findById(userId);
+    return user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  }
+
+  private formatUserName(user: { firstName?: string | null; lastName?: string | null } | any) {
+    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
+  }
+
+  private formatStatusLabel(value: string) {
+    const normalized = String(value || 'ACTIVE').trim().toUpperCase().replace(/_/g, ' ');
+    if (normalized === 'ACTIVE') return 'Active';
+    if (normalized === 'INACTIVE') return 'Inactive';
+    return normalized.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
   async teacherSubjects(teacherId?: string) {
@@ -572,34 +931,6 @@ export class SubjectsService {
         masterList.rows,
       ),
     };
-  }
-
-  async studentCalendar(userId?: string) {
-    const studentUserId = this.requireAuthenticatedUserId(userId, 'student');
-    const subjects: any[] = await this.subjectRepository.listSubjectsForStudent(studentUserId);
-    const submissions: any[] = await this.submissionRepository.listStudentSubmissions(studentUserId);
-    const items: any[] = [];
-
-    for (const subject of subjects) {
-      const activities: any[] = await this.subjectRepository.listActivitiesBySubject(subject.id);
-      for (const activity of activities) {
-        const match = submissions.find((submission: any) => submission.activityId === activity.id);
-        items.push({
-          id: activity.id,
-          activityId: activity.id,
-          subjectId: subject.id,
-          subjectName: subject.name,
-          title: activity.title,
-          deadline: activity.deadline,
-          submissionMode: activity.submissionMode,
-          windowStatus: activity.windowStatus ?? (activity.isOpen ? 'OPEN' : 'CLOSED'),
-          submissionStatus: match?.status ?? 'NOT_STARTED',
-          submissionId: match?.id,
-        });
-      }
-    }
-
-    return items.sort((a, b) => new Date(a.deadline || 0).getTime() - new Date(b.deadline || 0).getTime());
   }
 
   async teacherSubjectDetail(id: string, teacherId?: string) {
@@ -967,6 +1298,99 @@ export class SubjectsService {
       emailQueueWarnings: mailQueue.emailQueueWarnings,
     };
   }
+}
+```
+
+---
+
+### Task 3: Create SubjectGroupsService
+
+**Files:**
+- Create: `backend/src/subjects/subject-groups.service.ts`
+
+- [ ] **Step 1: Create `subject-groups.service.ts`**
+
+```typescript
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { SubjectRepository } from '../repositories/subject.repository';
+import { PrismaService } from '../prisma/prisma.service';
+import { AccessService } from '../access/access.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
+
+@Injectable()
+export class SubjectGroupsService {
+  constructor(
+    private readonly subjectRepository: SubjectRepository,
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+    private readonly auditLogs: AuditLogsService,
+  ) {}
+
+  private requireAuthenticatedUserId(userId: string | undefined, roleLabel: string) {
+    const normalized = String(userId || '').trim();
+    if (!normalized) {
+      throw new UnauthorizedException(`Authenticated ${roleLabel.toLowerCase()} context is required.`);
+    }
+    return normalized;
+  }
+
+  private async ensureTeacherOwnsSubject(subjectId: string, teacherId?: string) {
+    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
+    await this.access.requireTeacherOwnsSubject(teacherUserId, subjectId);
+    const subject: any = await this.subjectRepository.findSubjectById(subjectId);
+    if (!subject) throw new NotFoundException('Subject not found.');
+    return subject;
+  }
+
+  private async requireTeacherOwnedGroup(subjectId: string, groupId: string, teacherId?: string) {
+    await this.ensureTeacherOwnsSubject(subjectId, teacherId);
+    const group = await this.prisma.group.findFirst({
+      where: {
+        id: groupId,
+        subjectId,
+      },
+      include: {
+        members: {
+          include: { student: { select: SAFE_USER_SELECT } },
+        },
+        subject: {
+          select: { minGroupSize: true },
+        },
+      },
+    });
+    if (!group) throw new NotFoundException('Group not found.');
+    return group;
+  }
+
+  private async lookupUserName(userId?: string) {
+    if (!userId) return 'Unknown';
+    const user: any = await this.prisma.user.findUnique({ where: { id: userId } });
+    return user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  }
+
+  private userNameById(userId: string | null | undefined, members: Array<{ studentId: string; student: { firstName: string; lastName: string } }>) {
+    if (!userId) return '';
+    const match = members.find((item) => item.studentId === userId);
+    return match ? this.formatUserName(match.student) : userId;
+  }
+
+  private formatUserName(user: { firstName?: string | null; lastName?: string | null } | any) {
+    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
+  }
+
+  private formatStatusLabel(value: string) {
+    const normalized = String(value || 'ACTIVE').trim().toUpperCase().replace(/_/g, ' ');
+    if (normalized === 'ACTIVE') return 'Active';
+    if (normalized === 'INACTIVE') return 'Inactive';
+    return normalized.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
 
   async createGroup(body: { subjectId: string; name: string; leaderUserId?: string }) {
     const leaderUserId = this.requireAuthenticatedUserId(body.leaderUserId, 'student');
@@ -980,7 +1404,13 @@ export class SubjectsService {
 
   async joinGroupByCode(body: { code: string; subjectId?: string; userId?: string }) {
     const userId = this.requireAuthenticatedUserId(body.userId, 'student');
-    const subjectId = requiredText(body.subjectId, 'Subject');
+    const subjectId = (() => {
+      const normalized = String(body.subjectId || '').trim();
+      if (!normalized) {
+        throw new BadRequestException('Subject is required.');
+      }
+      return normalized;
+    })();
     await this.access.requireStudentCanJoinGroup(userId, subjectId, body.code);
     const group = await this.subjectRepository.joinGroupByCode({
       code: body.code,
@@ -1166,289 +1596,305 @@ export class SubjectsService {
       status: nextStatus,
     };
   }
+}
+```
 
+---
 
-  private async ensureTeacherOwnsSubject(subjectId: string, teacherId?: string) {
-    const teacherUserId = this.requireAuthenticatedUserId(teacherId, 'teacher');
-    await this.access.requireTeacherOwnsSubject(teacherUserId, subjectId);
-    const subject: any = await this.subjectRepository.findSubjectById(subjectId);
-    if (!subject) throw new NotFoundException('Subject not found.');
-    return subject;
+### Task 4: Update SubjectsController
+
+**Files:**
+- Modify: `backend/src/subjects/subjects.controller.ts`
+
+- [ ] **Step 1: Rewrite controller to inject 3 services**
+
+Replace the constructor and all route handlers to use the correct service.
+
+Changes:
+- Import `StudentSubjectsService`, `TeacherSubjectsService`, `SubjectGroupsService` instead of `SubjectsService`
+- Constructor injects 3 services
+- Student routes → `studentSubjectsService`
+- Teacher routes → `teacherSubjectsService`
+- Group routes (teacher + student) → `subjectGroupsService`
+
+```typescript
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/guards/roles.decorator';
+import { StudentSubjectsService } from './student-subjects.service';
+import { TeacherSubjectsService } from './teacher-subjects.service';
+import { SubjectGroupsService } from './subject-groups.service';
+import {
+  CreateGroupDto,
+  JoinGroupByCodeDto,
+  MemberIdDto,
+  NotifySubjectDto,
+  SubjectRestrictionsDto,
+  TeacherActivityDto,
+} from './dto/subject-action.dto';
+
+const DEFAULT_TEACHER_STUDENTS_TAKE = 100;
+const MAX_TEACHER_STUDENTS_TAKE = 500;
+const DEFAULT_TEACHER_SECTIONS_TAKE = 100;
+const MAX_TEACHER_SECTIONS_TAKE = 500;
+
+function parsePositiveInt(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+}
+
+function parseBoundedTake(value: unknown, fallback: number, max: number) {
+  const parsed = parsePositiveInt(value, fallback);
+  return Math.max(1, Math.min(parsed, max));
+}
+
+@UseGuards(JwtAuthGuard)
+@Controller()
+export class SubjectsController {
+  constructor(
+    private readonly studentSubjectsService: StudentSubjectsService,
+    private readonly teacherSubjectsService: TeacherSubjectsService,
+    private readonly subjectGroupsService: SubjectGroupsService,
+  ) {}
+
+  @Roles('STUDENT')
+  @Get('student/subjects')
+  studentSubjects(@Req() req: any) {
+    return this.studentSubjectsService.studentSubjects(req.user?.sub);
   }
 
-  private async requireTeacherOwnedGroup(subjectId: string, groupId: string, teacherId?: string) {
-    await this.ensureTeacherOwnsSubject(subjectId, teacherId);
-    const group = await this.prisma.group.findFirst({
-      where: {
-        id: groupId,
-        subjectId,
-      },
-      include: {
-        members: {
-          include: { student: { select: SAFE_USER_SELECT } },
-        },
-        subject: {
-          select: { minGroupSize: true },
-        },
-      },
-    });
-    if (!group) throw new NotFoundException('Group not found.');
-    return group;
+  @Roles('STUDENT')
+  @Get('student/subjects/:id')
+  studentSubjectDetail(@Param('id') id: string, @Req() req: any) {
+    return this.studentSubjectsService.studentSubjectDetail(id, req.user?.sub);
   }
 
-  private getSubjectStudentUserIds(subject: any): string[] {
-    return Array.from(new Set((subject?.enrollments || [])
-      .map((enrollment: any) => enrollment.student?.user?.id)
-      .filter((value: any): value is string => typeof value === 'string' && value.trim().length > 0)));
+  @Roles('STUDENT')
+  @Get('student/submit-catalog')
+  studentSubmitCatalog(@Req() req: any) {
+    return this.studentSubjectsService.studentSubmitCatalog(req.user?.sub);
   }
 
-  private async getNotificationPreferences() {
-    const settings = await this.prisma.systemSetting.findFirst({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        classroomActivityEmailsEnabled: true,
-        classroomActivitySystemNotificationsEnabled: true,
-      },
-    });
-
-    return {
-      classroomActivityEmailsEnabled:
-        settings?.classroomActivityEmailsEnabled ?? false,
-      classroomActivitySystemNotificationsEnabled:
-        settings?.classroomActivitySystemNotificationsEnabled ?? true,
-    };
+  @Roles('STUDENT')
+  @Get('student/activities/:id/submission-context')
+  submissionContext(@Param('id') id: string, @Req() req: any) {
+    return this.studentSubjectsService.studentSubmissionContext(id, req.user?.sub);
   }
 
-  private async notifyUsers(
-    userIds: string[],
-    title: string,
-    body: string,
-    type = 'system',
-    dedupeKeyPrefix?: string,
+  @Roles('STUDENT')
+  @Post('student/groups')
+  createGroup(@Body() body: CreateGroupDto, @Req() req: any) {
+    return this.subjectGroupsService.createGroup({ ...body, leaderUserId: req.user?.sub });
+  }
+
+  @Roles('STUDENT')
+  @Post('student/groups/join-by-code')
+  joinByCode(@Body() body: JoinGroupByCodeDto, @Req() req: any) {
+    return this.subjectGroupsService.joinGroupByCode({ ...body, userId: req.user?.sub });
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/subjects')
+  teacherSubjects(@Req() req: any) {
+    return this.teacherSubjectsService.teacherSubjects(req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/students')
+  async teacherStudents(
+    @Req() req: any,
+    @Query('search') search?: string,
+    @Query('section') section?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
   ) {
-    const preferences = await this.getNotificationPreferences();
-    if (!preferences.classroomActivitySystemNotificationsEnabled) {
-      return 0;
-    }
-    await Promise.all(
-      userIds.map((userId) =>
-        this.notificationRepository.create({
-          userId,
-          title,
-          body,
-          type,
-          dedupeKey: dedupeKeyPrefix ? `${dedupeKeyPrefix}:${userId}` : undefined,
-        }),
-      ),
+    const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_STUDENTS_TAKE, MAX_TEACHER_STUDENTS_TAKE);
+    const boundedSkip = parsePositiveInt(skip, 0);
+    return this.teacherSubjectsService.teacherStudents(req.user?.sub, search, section, { take: boundedTake, skip: boundedSkip });
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/sections')
+  async teacherSections(@Req() req: any, @Query('take') take?: string, @Query('skip') skip?: string) {
+    const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_SECTIONS_TAKE, MAX_TEACHER_SECTIONS_TAKE);
+    const boundedSkip = parsePositiveInt(skip, 0);
+    return this.teacherSubjectsService.teacherSections(req.user?.sub, { take: boundedTake, skip: boundedSkip });
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/sections/:id/master-list')
+  teacherSectionMasterList(@Param('id') id: string, @Req() req: any) {
+    return this.teacherSubjectsService.teacherSectionMasterList(id, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/sections/:id/master-list/export')
+  async teacherSectionMasterListExport(@Param('id') id: string, @Req() req: any, @Res() res: any) {
+    const result = await this.teacherSubjectsService.teacherSectionMasterListExport(id, req.user?.sub);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    return userIds.length;
+    res.setHeader('Content-Disposition', `attachment; filename=\"${result.fileName}\"`);
+    return res.send(result.buffer);
   }
 
-  private async queueEmailsForUsers(
-    userIds: string[],
-    input: {
-      templateKey: string;
-      title: string;
-      body: string;
-      subjectName?: string;
-      teacherName?: string;
-      activityLink?: string;
-      suppressDeliveryErrors?: boolean;
-      idempotencyKeyPrefix?: string;
-      rateLimit?: {
-        actorUserId?: string;
-        subjectId?: string;
-        action: string;
-      };
-    },
+  @Roles('STUDENT')
+  @Get('student/calendar/events')
+  studentCalendar(@Req() req: any) {
+    return this.studentSubjectsService.studentCalendar(req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Get('teacher/subjects/:id')
+  teacherSubjectDetail(@Param('id') id: string, @Req() req: any) {
+    return this.teacherSubjectsService.teacherSubjectDetail(id, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:id/submissions')
+  createActivity(@Param('id') id: string, @Body() body: TeacherActivityDto, @Req() req: any) {
+    return this.teacherSubjectsService.createTeacherActivity(id, { ...body, actorUserId: req.user?.sub });
+  }
+
+  @Roles('TEACHER')
+  @Patch('teacher/subjects/:subjectId/submissions/:activityId')
+  updateActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Body() body: TeacherActivityDto, @Req() req: any) {
+    return this.teacherSubjectsService.updateTeacherActivity(subjectId, activityId, { ...body, actorUserId: req.user?.sub });
+  }
+
+  @Roles('TEACHER')
+  @Patch('teacher/subjects/:subjectId/submissions/:activityId/reopen')
+  reopenActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Req() req: any) {
+    return this.teacherSubjectsService.reopenTeacherActivity(subjectId, activityId, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:subjectId/groups/:groupId/approve')
+  approveGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
+    return this.subjectGroupsService.teacherApproveGroup(subjectId, groupId, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:subjectId/groups/:groupId/lock')
+  lockGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
+    return this.subjectGroupsService.teacherLockGroup(subjectId, groupId, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:subjectId/groups/:groupId/unlock')
+  unlockGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
+    return this.subjectGroupsService.teacherUnlockGroup(subjectId, groupId, req.user?.sub);
+  }
+
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:subjectId/groups/:groupId/leader')
+  assignGroupLeader(
+    @Param('subjectId') subjectId: string,
+    @Param('groupId') groupId: string,
+    @Body() body: MemberIdDto,
+    @Req() req: any,
   ) {
-    const warnings: string[] = [];
-    const preferences = await this.getNotificationPreferences();
-    if (!preferences.classroomActivityEmailsEnabled) {
-      warnings.push('Classroom activity emails are disabled in system settings.');
-      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
-    }
-    if (input.rateLimit) {
-      const allowed = await this.consumeTeacherEmailRateLimit(input.rateLimit);
-      if (!allowed) {
-        const message = `Teacher notification email rate limit reached for subject ${input.rateLimit.subjectId || 'unknown'}.`;
-        this.logger.warn(`Skipping classroom email queue because ${message}`);
-        warnings.push(message);
-        return { emailJobsQueued: 0, emailQueueWarnings: warnings };
-      }
-    }
-    const users = await Promise.all(userIds.map((id) => this.userRepository.findById(id)));
-    const unique = new Map<string, any>();
-    users.filter(Boolean).forEach((user: any) => {
-      if (user?.email) unique.set(String(user.email).trim().toLowerCase(), user);
-    });
-
-    if (unique.size === 0) {
-      warnings.push('No enrolled recipients had an email address, so no email jobs were queued.');
-      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
-    }
-
-    try {
-      const jobs = await Promise.all(
-        Array.from(unique.values()).map((user: any) =>
-          this.mailService.queueTransactional({
-            to: user.email,
-            recipientName:
-              [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-              'Student',
-            templateKey: input.templateKey,
-            subject: input.title,
-            payload: {
-              firstName: user.firstName || undefined,
-              name:
-                [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-                'Student',
-              title: input.title,
-              body: input.body,
-              subjectName: input.subjectName,
-              teacherName: input.teacherName,
-              activityLink: input.activityLink,
-              mailCategory: MAIL_CATEGORY_KEYS.NOTIFICATION,
-            },
-            idempotencyKey: input.idempotencyKeyPrefix
-              ? `${input.idempotencyKeyPrefix}:${String(user.email).trim().toLowerCase()}`
-              : undefined,
-          }),
-        ),
-      );
-      const queued = jobs.filter((job: any) => Boolean(job?.id)).length;
-      if (queued !== unique.size) {
-        warnings.push(`Mail queue confirmed ${queued} of ${unique.size} expected jobs.`);
-      }
-      return { emailJobsQueued: queued, emailQueueWarnings: warnings };
-    } catch (error) {
-      if (!input.suppressDeliveryErrors) {
-        throw error;
-      }
-
-      const detail =
-        error instanceof Error ? error.message : 'Unknown mail queue failure.';
-      this.logger.warn(
-        `Skipping classroom email queue while keeping in-app notifications active: ${detail}`,
-      );
-      warnings.push(`Email jobs were not queued: ${detail}`);
-      return { emailJobsQueued: 0, emailQueueWarnings: warnings };
-    }
+    return this.subjectGroupsService.teacherAssignGroupLeader(subjectId, groupId, body.memberId, req.user?.sub);
   }
 
-  private async consumeTeacherEmailRateLimit(input: {
-    actorUserId?: string;
-    subjectId?: string;
-    action: string;
-  }) {
-    const actorUserId = String(input.actorUserId || '').trim();
-    const subjectId = String(input.subjectId || '').trim();
-    if (!actorUserId || !subjectId) {
-      return true;
-    }
-
-    const action = `teacher:classroom-email:${String(input.action || 'notify').trim().toLowerCase() || 'notify'}`;
-    const key = `${actorUserId}|${subjectId}`;
-    const limit = Math.max(1, Number(process.env.TEACHER_CLASSROOM_EMAIL_MAX_PER_HOUR || 20));
-    const windowMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_WINDOW_MS || 60 * 60 * 1000));
-    const blockMs = Math.max(60_000, Number(process.env.TEACHER_CLASSROOM_EMAIL_BLOCK_MS || 60 * 60 * 1000));
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - windowMs);
-
-    await this.prisma.authRateLimit.deleteMany({
-      where: {
-        action,
-        key,
-        firstAttemptAt: { lte: windowStart },
-      },
-    });
-
-    const updated = await this.prisma.authRateLimit.upsert({
-      where: { action_key: { action, key } },
-      update: {
-        attempts: { increment: 1 },
-        lastAttemptAt: now,
-      },
-      create: {
-        action,
-        key,
-        attempts: 1,
-        firstAttemptAt: now,
-        lastAttemptAt: now,
-      },
-    });
-
-    if (updated.blockedUntil && updated.blockedUntil.getTime() > now.getTime()) {
-      return false;
-    }
-
-    if (updated.attempts > limit) {
-      await this.prisma.authRateLimit.update({
-        where: { action_key: { action, key } },
-        data: {
-          blockedUntil: new Date(now.getTime() + blockMs),
-          lastAttemptAt: now,
-        },
-      });
-      return false;
-    }
-
-    return true;
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:subjectId/groups/:groupId/members/:memberId/remove')
+  removeGroupMember(
+    @Param('subjectId') subjectId: string,
+    @Param('groupId') groupId: string,
+    @Param('memberId') memberId: string,
+    @Req() req: any,
+  ) {
+    return this.subjectGroupsService.teacherRemoveGroupMember(subjectId, groupId, memberId, req.user?.sub);
   }
 
-  private async mapGroupMembers(group: any) {
-    const leaderId = group?.leaderUserId || group?.leaderId;
-    if (group.memberUserIds) {
-      const users = await Promise.all(group.memberUserIds.map((id: string) => this.userRepository.findById(id)));
-      return users.filter(Boolean).map((user: any) => {
-        const isLeader = user.id === leaderId;
-        return {
-          id: user.id,
-          name: this.formatUserName(user),
-          role: isLeader ? 'LEADER' : 'MEMBER',
-          status: this.formatStatusLabel(user.status || 'ACTIVE'),
-          isLeader,
-        };
-      });
-    }
-
-    if (group.members) {
-      return group.members.map((member: any) => {
-        const student = member.student;
-        const isLeader = member.studentId === leaderId || String(member.role || '').toUpperCase() === 'LEADER';
-        return {
-          id: member.studentId,
-          name: student ? this.formatUserName(student) : member.studentId,
-          role: member.role || (isLeader ? 'LEADER' : 'MEMBER'),
-          status: this.formatStatusLabel(member.status || student?.status || 'ACTIVE'),
-          isLeader,
-        };
-      });
-    }
-
-    return [];
+  @Roles('TEACHER')
+  @Post('teacher/subjects/:id/notify')
+  notifyStudents(@Param('id') id: string, @Body() body: NotifySubjectDto, @Req() req: any) {
+    return this.teacherSubjectsService.notifySubjectStudents(id, { ...body, actorUserId: req.user?.sub });
   }
 
-  private async lookupUserName(userId?: string) {
-    if (!userId) return 'Unknown';
-    const user: any = await this.userRepository.findById(userId);
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  @Roles('TEACHER')
+  @Patch('teacher/subjects/:id/restrictions')
+  updateRestrictions(@Param('id') id: string, @Body() body: SubjectRestrictionsDto, @Req() req: any) {
+    return this.teacherSubjectsService.updateRestrictions(id, { ...body, actorUserId: req.user?.sub });
   }
 
-  private userNameById(userId: string | null | undefined, members: Array<{ studentId: string; student: { firstName: string; lastName: string } }>) {
-    if (!userId) return '';
-    const match = members.find((item) => item.studentId === userId);
-    return match ? this.formatUserName(match.student) : userId;
-  }
-
-  private formatUserName(user: { firstName?: string | null; lastName?: string | null } | any) {
-    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
-  }
-
-  private formatStatusLabel(value: string) {
-    const normalized = String(value || 'ACTIVE').trim().toUpperCase().replace(/_/g, ' ');
-    if (normalized === 'ACTIVE') return 'Active';
-    if (normalized === 'INACTIVE') return 'Inactive';
-    return normalized.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  @Roles('TEACHER')
+  @Patch('teacher/subjects/:id/reopen')
+  reopen(@Param('id') id: string, @Req() req: any) {
+    return this.teacherSubjectsService.reopenSubject(id, req.user?.sub);
   }
 }
+```
+
+---
+
+### Task 5: Update SubjectsModule
+
+**Files:**
+- Modify: `backend/src/subjects/subjects.module.ts`
+
+- [ ] **Step 1: Rewrite module to register 3 services**
+
+Replace `SubjectsService` with all 3 new services.
+
+```typescript
+import { Module } from '@nestjs/common';
+import { SubjectsController } from './subjects.controller';
+import { StudentSubjectsService } from './student-subjects.service';
+import { TeacherSubjectsService } from './teacher-subjects.service';
+import { SubjectGroupsService } from './subject-groups.service';
+import { MailModule } from '../mail/mail.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+
+@Module({
+  imports: [MailModule, AuditLogsModule],
+  controllers: [SubjectsController],
+  providers: [StudentSubjectsService, TeacherSubjectsService, SubjectGroupsService],
+  exports: [StudentSubjectsService, TeacherSubjectsService, SubjectGroupsService],
+})
+export class SubjectsModule {}
+```
+
+---
+
+### Task 6: Delete SubjectsService
+
+**Files:**
+- Delete: `backend/src/subjects/subjects.service.ts`
+
+- [ ] **Step 1: Remove the old service file**
+
+Run: `Remove-Item -LiteralPath D:\Vscode\ProjTrack-Official\backend\src\subjects\subjects.service.ts`
+
+---
+
+### Task 7: Verify
+
+- [ ] **Step 1: Type check**
+
+Run: `npx tsc --noEmit`
+Expected: No output, exit code 0
+
+- [ ] **Step 2: Run tests**
+
+Run: `npx jest`
+Expected: Test Suites: 31 passed, Tests: 463+ passed
+
+- [ ] **Step 3: Verify no remaining references**
+
+Run: `Get-ChildItem -Recurse -Filter "*.ts" | Select-String "SubjectsService" | Where-Object { $_.FileName -notmatch "subjects\.(controller|module)" }`
+Expected: No output (only the 3 new services referenced by controller/module)
+
+---
+
+## Self-Review Checklist
+
+- [ ] All spec requirements covered by a task
+- [ ] No placeholders ("TBD", "TODO") in the plan
+- [ ] Types and method signatures are consistent across tasks
+- [ ] All file paths are exact
+- [ ] Complete code in every step

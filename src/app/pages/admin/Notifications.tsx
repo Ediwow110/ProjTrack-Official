@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, UserPlus, FileText, RefreshCcw, Trash2, type LucideIcon } from "lucide-react";
 import { CopyableIdChip } from "../../components/lists/shared/CopyableIdChip";
+import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
 import { Checkbox } from "../../components/ui/checkbox";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
@@ -24,6 +25,7 @@ const typeColor: Record<string, string> = {
 export default function AdminNotifications() {
   const [filter, setFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; count: number } | null>(null);
   const [actionState, setActionState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const fetchNotifications = useMemo(() => () => adminService.getNotifications({ type: filter }), [filter]);
   const { data, loading, error, setData, reload } = useAsyncData(fetchNotifications, [fetchNotifications]);
@@ -98,6 +100,7 @@ export default function AdminNotifications() {
         current ? current.filter((item) => !normalizedIds.includes(item.id)) : current,
       );
       setSelectedIds((current) => current.filter((id) => !normalizedIds.includes(id)));
+      setDeleteTarget(null);
       await reload();
       invalidateNotificationBadge("admin");
       setActionState({ busy: false, error: null });
@@ -121,7 +124,7 @@ export default function AdminNotifications() {
         </div>
         <div className="flex items-center gap-3">
           {selectedCount > 0 && (
-            <button disabled={loading || actionState.busy} onClick={() => void deleteNotifications(selectedIds)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 disabled:opacity-50">
+            <button disabled={loading || actionState.busy} onClick={() => setDeleteTarget({ ids: selectedIds, count: selectedCount })} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 disabled:opacity-50">
               <Trash2 size={14} /> Delete Selected ({selectedCount})
             </button>
           )}
@@ -207,7 +210,7 @@ export default function AdminNotifications() {
                     <button
                       type="button"
                       disabled={loading || actionState.busy}
-                      onClick={() => void deleteNotifications([n.id])}
+                      onClick={() => setDeleteTarget({ ids: [n.id], count: 1 })}
                       className="inline-flex items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 disabled:opacity-50"
                     >
                       <Trash2 size={13} />
@@ -220,6 +223,21 @@ export default function AdminNotifications() {
           </div>
         ))
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={deleteTarget?.count === 1 ? "Delete notification?" : "Delete selected notifications?"}
+        description={
+          deleteTarget?.count === 1
+            ? "This notification will be removed from the admin notification list."
+            : `${deleteTarget?.count ?? 0} notifications will be removed from the admin notification list.`
+        }
+        confirmLabel={deleteTarget?.count === 1 ? "Delete notification" : "Delete notifications"}
+        tone="danger"
+        loading={actionState.busy}
+        onConfirm={() => deleteTarget ? deleteNotifications(deleteTarget.ids) : Promise.resolve()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

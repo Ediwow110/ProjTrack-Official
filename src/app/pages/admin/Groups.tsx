@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Download, RefreshCcw, Search, Users, ShieldCheck, KeyRound, FolderOpen } from "lucide-react";
 import { StatusChip } from "../../components/ui/StatusChip";
+import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
 import { adminService } from "../../lib/api/services";
+import type { AdminGroupRecord } from "../../lib/api/contracts";
 
 export default function AdminGroups() {
   const navigate = useNavigate();
@@ -12,6 +14,10 @@ export default function AdminGroups() {
   const [statusF, setStatusF] = useState('All Statuses');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{
+    group: AdminGroupRecord;
+    member: NonNullable<AdminGroupRecord["memberDetails"]>[number];
+  } | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [exportState, setExportState] = useState<{ exporting: boolean; error: string | null }>({ exporting: false, error: null });
   const fetchGroups = useMemo(() => () => adminService.getGroups({ search, section: sectionF, status: statusF }), [search, sectionF, statusF]);
@@ -49,6 +55,13 @@ export default function AdminGroups() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const handleConfirmRemoveMember = () => {
+    if (!removeMemberTarget) return;
+    const { group, member } = removeMemberTarget;
+    setRemoveMemberTarget(null);
+    void runAction(group.id, () => adminService.removeGroupMember(group.id, member.id));
   };
 
   return (
@@ -144,7 +157,7 @@ export default function AdminGroups() {
                         </div>
                         <div className="bg-white dark:bg-slate-900/85 rounded-lg border border-slate-100 dark:border-slate-700/70 p-4">
                           <p className="text-slate-400 dark:text-slate-300 uppercase tracking-wider text-[10px] font-semibold">Members</p>
-                          <div className="mt-3 grid sm:grid-cols-2 gap-2">{(g.memberDetails || g.members.map((name, index) => ({ id: String(index + 1), name, isLeader: index === 0 }))).map((member) => <div key={member.id} className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 space-y-2"><div className="flex items-center justify-between gap-2"><span className="truncate">{member.name}</span>{member.isLeader && <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">Leader</span>}</div><div className="flex gap-2"><button disabled={busyId === g.id || member.isLeader} onClick={() => runAction(g.id, () => adminService.assignGroupLeader(g.id, member.id))} className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-[11px] font-semibold disabled:opacity-50" aria-label={`Assign ${member.name} as leader for group ${g.name}`}>Assign leader</button><button disabled={busyId === g.id || g.members.length <= 1} onClick={() => runAction(g.id, () => adminService.removeGroupMember(g.id, member.id))} className="px-2 py-1 rounded border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-[11px] font-semibold text-rose-700 dark:text-rose-300 disabled:opacity-50" aria-label={`Remove ${member.name} from group ${g.name}`}>Remove</button></div></div>)}</div>
+                          <div className="mt-3 grid sm:grid-cols-2 gap-2">{(g.memberDetails || g.members.map((name, index) => ({ id: String(index + 1), name, isLeader: index === 0 }))).map((member) => <div key={member.id} className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 space-y-2"><div className="flex items-center justify-between gap-2"><span className="truncate">{member.name}</span>{member.isLeader && <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">Leader</span>}</div><div className="flex gap-2"><button disabled={busyId === g.id || member.isLeader} onClick={() => runAction(g.id, () => adminService.assignGroupLeader(g.id, member.id))} className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 text-[11px] font-semibold disabled:opacity-50" aria-label={`Assign ${member.name} as leader for group ${g.name}`}>Assign leader</button><button disabled={busyId === g.id || g.members.length <= 1} onClick={() => setRemoveMemberTarget({ group: g, member })} className="px-2 py-1 rounded border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-[11px] font-semibold text-rose-700 dark:text-rose-300 disabled:opacity-50" aria-label={`Remove ${member.name} from group ${g.name}`}>Remove</button></div></div>)}</div>
                         </div>
                       </div>
                     </td>
@@ -155,6 +168,17 @@ export default function AdminGroups() {
           </table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(removeMemberTarget)}
+        title="Remove from group?"
+        description={removeMemberTarget ? `${removeMemberTarget.member.name} will no longer belong to ${removeMemberTarget.group.name}.` : 'Confirm this group membership change.'}
+        confirmLabel="Remove from group"
+        tone="danger"
+        loading={Boolean(removeMemberTarget && busyId === removeMemberTarget.group.id)}
+        onConfirm={handleConfirmRemoveMember}
+        onCancel={() => setRemoveMemberTarget(null)}
+      />
     </div>
   );
 }

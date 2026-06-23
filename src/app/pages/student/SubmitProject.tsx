@@ -4,7 +4,7 @@ import { ChevronLeft, Upload, X, CheckCircle2, FileText, Users, AlertCircle, Loc
 import { studentService } from "../../lib/api/services";
 import { isEditableSubmissionStatus } from "../../lib/submissionRules";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
-import { getAuthSession } from "../../lib/mockAuth";
+import { getAuthSession } from "../../lib/authSession";
 
 const EMPTY_SUBJECTS: string[] = [];
 

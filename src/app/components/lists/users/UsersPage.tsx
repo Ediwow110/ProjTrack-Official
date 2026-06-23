@@ -8,6 +8,7 @@ import { ActiveFilterChips } from "../shared/ActiveFilterChips";
 import { UsersTable } from "./UsersTable";
 import { Button } from "../../ui/button";
 import { AppModal } from "../../ui/app-modal";
+import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CopyableIdChip } from "../shared/CopyableIdChip";
 import { BootstrapIcon } from "../../ui/bootstrap-icon";
 import { adminService, type AdminUserFilters } from "../../../lib/api/services";
@@ -84,6 +85,7 @@ export default function UsersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<AdminCreateUserInput>(initialCreateForm);
   const [selectedUser, setSelectedUser] = useState<AdminUserRecord | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<AdminUserRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRecord | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [actionState, setActionState] = useState<{ busy: boolean; error: string | null }>({
@@ -196,6 +198,7 @@ export default function UsersPage() {
     try {
       await action();
       setFeedback({ tone: "success", message: successMessage });
+      setDeactivateTarget(null);
       setDeleteTarget(null);
       setDeleteConfirmation("");
       setSelectedUser(null);
@@ -353,9 +356,7 @@ export default function UsersPage() {
         onActivate={(user) =>
           runMailUserAction(() => adminService.activateUser(user.id), (mailJobId) => `${user.email} activation MailJob queued (${mailJobId}). Open Mail Jobs to watch delivery.`, "user activation email")
         }
-        onDeactivate={(user) =>
-          runUserAction(() => adminService.deactivateUser(user.id), `${user.email} was deactivated.`)
-        }
+        onDeactivate={(user) => setDeactivateTarget(user)}
         onReset={(user) =>
           runMailUserAction(() => adminService.sendUserResetLink(user.id), (mailJobId) => `Password reset MailJob queued for ${user.email} (${mailJobId}). Open Mail Jobs to watch delivery.`, "user password reset email")
         }
@@ -526,6 +527,28 @@ export default function UsersPage() {
           </div>
         ) : null}
       </AppModal>
+
+      <ConfirmDialog
+        open={Boolean(deactivateTarget)}
+        title="Deactivate user account?"
+        description={
+          deactivateTarget
+            ? `${deactivateTarget.email} will lose active portal access until the account is re-enabled.`
+            : "The selected user will lose active portal access until the account is re-enabled."
+        }
+        confirmLabel="Deactivate user"
+        tone="danger"
+        loading={actionState.busy}
+        onConfirm={() =>
+          deactivateTarget
+            ? runUserAction(
+                () => adminService.deactivateUser(deactivateTarget.id),
+                `${deactivateTarget.email} was deactivated.`,
+              )
+            : Promise.resolve()
+        }
+        onCancel={() => setDeactivateTarget(null)}
+      />
 
       <AppModal
         open={Boolean(deleteTarget)}

@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 
 import ProtectedPortal from "./components/ProtectedPortal";
-import { getAuthSession } from "./lib/mockAuth";
+import { getAuthSession } from "./lib/authSession";
 
 import { PortalLayout } from "./layouts/PortalLayout";
 
@@ -47,6 +47,7 @@ const AdminSubmissionView = lazy(() => import("./pages/admin/SubmissionView"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminAcademicSettings = lazy(() => import("./pages/admin/AcademicSettings"));
 const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
+const AdminRequests = lazy(() => import("./pages/admin/Requests"));
 const AdminAuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 const AdminSystemTools = lazy(() => import("./pages/admin/SystemTools"));
@@ -149,7 +150,7 @@ export const router = createBrowserRouter([
       { path: "submissions/:id", element: page(<AdminSubmissionView />) },
       { path: "reports", element: page(<AdminReports />) },
       { path: "academic-settings", element: page(<AdminAcademicSettings />) },
-      { path: "requests", element: <Navigate to="/admin/notifications" replace /> },
+      { path: "requests", element: page(<AdminRequests />) },
       { path: "notifications", element: page(<AdminNotifications />) },
       { path: "audit-logs", element: page(<AdminAuditLogs />) },
       { path: "settings", element: page(<AdminSettings />) },

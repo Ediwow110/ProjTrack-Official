@@ -27,7 +27,7 @@ import {
   AuthSubmitButton,
   AuthErrorAlert,
 } from "../../components/auth/AuthFormComponents";
-import { getAuthSession, getRememberMePreference, setRememberMePreference, type AppRole } from "../../lib/mockAuth";
+import { getAuthSession, getRememberMePreference, setRememberMePreference, type AppRole } from "../../lib/authSession";
 import { ApiError } from "../../lib/api/http";
 import { authService } from "../../lib/api/services";
 
