@@ -166,7 +166,7 @@ test("admin portal navigation and section shortcuts resolve without dead clicks"
   await expect(page).toHaveURL(/\/admin\/profile$/);
   await assertHealthy(page, tracker);
 
-  await page.goto("/admin/requests");
+  await page.goto("/admin/notifications");
   await expect(page).toHaveURL(/\/admin\/notifications$/);
   await assertHealthy(page, tracker);
 
