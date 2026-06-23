@@ -270,9 +270,9 @@ export default function AdminSettings() {
                 description: "Require account email confirmation before the portal is fully unlocked.",
               },
               {
-                label: "Require 2FA for admins (coming soon)",
+                label: "Admin 2FA enforcement unavailable",
                 key: "twoFactorAdmin",
-                description: "Two-factor authentication is not active until the backend 2FA flow is implemented.",
+                description: "This control is disabled because the backend 2FA flow is not implemented.",
               },
             ].map((item) => {
               const switchId = `system-${item.key}`;

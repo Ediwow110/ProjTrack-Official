@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ChevronLeft, PencilLine, RefreshCcw, ShieldOff } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
+import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
 import { BootstrapIcon } from "../../components/ui/bootstrap-icon";
 import { StatusChip } from "../../components/ui/StatusChip";
 import {
@@ -28,6 +29,7 @@ export default function AdminStudentView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const [sections, setSections] = useState<AdminSectionRecord[]>([]);
   const [academicYears, setAcademicYears] = useState<AdminAcademicYearRecord[]>([]);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export default function AdminStudentView() {
     try {
       await adminService.deactivateStudent(id);
       await loadRecord();
+      setDeactivateConfirmOpen(false);
       setActionState({ busy: false, error: null, note: "Student account deactivated." });
     } catch (err) {
       setActionState({
@@ -263,7 +266,7 @@ export default function AdminStudentView() {
             >
               <ShieldOff size={13} /> {data.status === "Pending Activation" ? "Send Activation Link" : data.status === "Pending Setup" ? "Send Setup Link" : "Send Reset Link"}
             </button>
-            <button disabled={actionState.busy} onClick={handleDeactivate} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50">
+            <button disabled={actionState.busy} onClick={() => setDeactivateConfirmOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50">
               <ShieldOff size={13} /> Deactivate
             </button>
           </div>
@@ -505,6 +508,17 @@ export default function AdminStudentView() {
           </div>
         ) : null}
       </AppModal>
+
+      <ConfirmDialog
+        open={deactivateConfirmOpen}
+        title="Deactivate student account?"
+        description={`${data.name} will lose active portal access until the account is re-enabled.`}
+        confirmLabel="Deactivate student"
+        tone="danger"
+        loading={actionState.busy}
+        onConfirm={handleDeactivate}
+        onCancel={() => setDeactivateConfirmOpen(false)}
+      />
     </div>
   );
 }

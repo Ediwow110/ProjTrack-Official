@@ -13,7 +13,7 @@ const mockSession = vi.hoisted(() => ({
   productionRuntime: vi.fn(() => false),
 }));
 
-vi.mock("../../lib/mockAuth", () => ({
+vi.mock("../../lib/authSession", () => ({
   getAuthSession: mockSession.getAuthSession,
   clearAuthSession: mockSession.clearAuthSession,
   productionRuntime: mockSession.productionRuntime,

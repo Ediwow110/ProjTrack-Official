@@ -1807,7 +1807,7 @@ async getReleaseStatus(): Promise<ReleaseStatusItem[]> {
           area: "Production Readiness",
           status: ready ? "done" : "pending",
           detail: ready
-            ? "Core component health probes are green and the main release gates are currently passing."
+            ? "Core component health probes are green. Release gates still require current CI, security, and deployment evidence."
             : `Readiness is still blocked by ${readinessFailures.join(", ") || "one or more subsystems"}.`,
         },
       ];

@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/guards/roles.decorator';
-import { SubjectsService } from './subjects.service';
+import { StudentSubjectsService } from './student-subjects.service';
+import { TeacherSubjectsService } from './teacher-subjects.service';
+import { SubjectGroupsService } from './subject-groups.service';
 import {
   CreateGroupDto,
   JoinGroupByCodeDto,
@@ -30,48 +32,52 @@ function parseBoundedTake(value: unknown, fallback: number, max: number) {
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class SubjectsController {
-  constructor(private readonly subjects: SubjectsService) {}
+  constructor(
+    private readonly studentSubjectsService: StudentSubjectsService,
+    private readonly teacherSubjectsService: TeacherSubjectsService,
+    private readonly subjectGroupsService: SubjectGroupsService,
+  ) {}
 
   @Roles('STUDENT')
   @Get('student/subjects')
   studentSubjects(@Req() req: any) {
-    return this.subjects.studentSubjects(req.user?.sub);
+    return this.studentSubjectsService.studentSubjects(req.user?.sub);
   }
 
   @Roles('STUDENT')
   @Get('student/subjects/:id')
   studentSubjectDetail(@Param('id') id: string, @Req() req: any) {
-    return this.subjects.studentSubjectDetail(id, req.user?.sub);
+    return this.studentSubjectsService.studentSubjectDetail(id, req.user?.sub);
   }
 
   @Roles('STUDENT')
   @Get('student/submit-catalog')
   studentSubmitCatalog(@Req() req: any) {
-    return this.subjects.studentSubmitCatalog(req.user?.sub);
+    return this.studentSubjectsService.studentSubmitCatalog(req.user?.sub);
   }
 
   @Roles('STUDENT')
   @Get('student/activities/:id/submission-context')
   submissionContext(@Param('id') id: string, @Req() req: any) {
-    return this.subjects.studentSubmissionContext(id, req.user?.sub);
+    return this.studentSubjectsService.studentSubmissionContext(id, req.user?.sub);
   }
 
   @Roles('STUDENT')
   @Post('student/groups')
   createGroup(@Body() body: CreateGroupDto, @Req() req: any) {
-    return this.subjects.createGroup({ ...body, leaderUserId: req.user?.sub });
+    return this.subjectGroupsService.createGroup({ ...body, leaderUserId: req.user?.sub });
   }
 
   @Roles('STUDENT')
   @Post('student/groups/join-by-code')
   joinByCode(@Body() body: JoinGroupByCodeDto, @Req() req: any) {
-    return this.subjects.joinGroupByCode({ ...body, userId: req.user?.sub });
+    return this.subjectGroupsService.joinGroupByCode({ ...body, userId: req.user?.sub });
   }
 
   @Roles('TEACHER')
   @Get('teacher/subjects')
   teacherSubjects(@Req() req: any) {
-    return this.subjects.teacherSubjects(req.user?.sub);
+    return this.teacherSubjectsService.teacherSubjects(req.user?.sub);
   }
 
   @Roles('TEACHER')
@@ -85,7 +91,7 @@ export class SubjectsController {
   ) {
     const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_STUDENTS_TAKE, MAX_TEACHER_STUDENTS_TAKE);
     const boundedSkip = parsePositiveInt(skip, 0);
-    return this.subjects.teacherStudents(req.user?.sub, search, section, { take: boundedTake, skip: boundedSkip });
+    return this.teacherSubjectsService.teacherStudents(req.user?.sub, search, section, { take: boundedTake, skip: boundedSkip });
   }
 
   @Roles('TEACHER')
@@ -94,19 +100,19 @@ export class SubjectsController {
     const boundedTake = parseBoundedTake(take, DEFAULT_TEACHER_SECTIONS_TAKE, MAX_TEACHER_SECTIONS_TAKE);
     const boundedSkip = parsePositiveInt(skip, 0);
     // rows.slice(boundedSkip, boundedSkip + boundedTake)
-    return this.subjects.teacherSections(req.user?.sub, { take: boundedTake, skip: boundedSkip });
+    return this.teacherSubjectsService.teacherSections(req.user?.sub, { take: boundedTake, skip: boundedSkip });
   }
 
   @Roles('TEACHER')
   @Get('teacher/sections/:id/master-list')
   teacherSectionMasterList(@Param('id') id: string, @Req() req: any) {
-    return this.subjects.teacherSectionMasterList(id, req.user?.sub);
+    return this.teacherSubjectsService.teacherSectionMasterList(id, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Get('teacher/sections/:id/master-list/export')
   async teacherSectionMasterListExport(@Param('id') id: string, @Req() req: any, @Res() res: any) {
-    const result = await this.subjects.teacherSectionMasterListExport(id, req.user?.sub);
+    const result = await this.teacherSubjectsService.teacherSectionMasterListExport(id, req.user?.sub);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -118,50 +124,49 @@ export class SubjectsController {
   @Roles('STUDENT')
   @Get('student/calendar/events')
   studentCalendar(@Req() req: any) {
-    return this.subjects.studentCalendar(req.user?.sub);
+    return this.studentSubjectsService.studentCalendar(req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Get('teacher/subjects/:id')
   teacherSubjectDetail(@Param('id') id: string, @Req() req: any) {
-    return this.subjects.teacherSubjectDetail(id, req.user?.sub);
+    return this.teacherSubjectsService.teacherSubjectDetail(id, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:id/submissions')
   createActivity(@Param('id') id: string, @Body() body: TeacherActivityDto, @Req() req: any) {
-    return this.subjects.createTeacherActivity(id, { ...body, actorUserId: req.user?.sub });
+    return this.teacherSubjectsService.createTeacherActivity(id, { ...body, actorUserId: req.user?.sub });
   }
-
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:subjectId/submissions/:activityId')
   updateActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Body() body: TeacherActivityDto, @Req() req: any) {
-    return this.subjects.updateTeacherActivity(subjectId, activityId, { ...body, actorUserId: req.user?.sub });
+    return this.teacherSubjectsService.updateTeacherActivity(subjectId, activityId, { ...body, actorUserId: req.user?.sub });
   }
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:subjectId/submissions/:activityId/reopen')
   reopenActivity(@Param('subjectId') subjectId: string, @Param('activityId') activityId: string, @Req() req: any) {
-    return this.subjects.reopenTeacherActivity(subjectId, activityId, req.user?.sub);
+    return this.teacherSubjectsService.reopenTeacherActivity(subjectId, activityId, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:subjectId/groups/:groupId/approve')
   approveGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
-    return this.subjects.teacherApproveGroup(subjectId, groupId, req.user?.sub);
+    return this.subjectGroupsService.teacherApproveGroup(subjectId, groupId, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:subjectId/groups/:groupId/lock')
   lockGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
-    return this.subjects.teacherLockGroup(subjectId, groupId, req.user?.sub);
+    return this.subjectGroupsService.teacherLockGroup(subjectId, groupId, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:subjectId/groups/:groupId/unlock')
   unlockGroup(@Param('subjectId') subjectId: string, @Param('groupId') groupId: string, @Req() req: any) {
-    return this.subjects.teacherUnlockGroup(subjectId, groupId, req.user?.sub);
+    return this.subjectGroupsService.teacherUnlockGroup(subjectId, groupId, req.user?.sub);
   }
 
   @Roles('TEACHER')
@@ -172,7 +177,7 @@ export class SubjectsController {
     @Body() body: MemberIdDto,
     @Req() req: any,
   ) {
-    return this.subjects.teacherAssignGroupLeader(subjectId, groupId, body.memberId, req.user?.sub);
+    return this.subjectGroupsService.teacherAssignGroupLeader(subjectId, groupId, body.memberId, req.user?.sub);
   }
 
   @Roles('TEACHER')
@@ -183,24 +188,24 @@ export class SubjectsController {
     @Param('memberId') memberId: string,
     @Req() req: any,
   ) {
-    return this.subjects.teacherRemoveGroupMember(subjectId, groupId, memberId, req.user?.sub);
+    return this.subjectGroupsService.teacherRemoveGroupMember(subjectId, groupId, memberId, req.user?.sub);
   }
 
   @Roles('TEACHER')
   @Post('teacher/subjects/:id/notify')
   notifyStudents(@Param('id') id: string, @Body() body: NotifySubjectDto, @Req() req: any) {
-    return this.subjects.notifySubjectStudents(id, { ...body, actorUserId: req.user?.sub });
+    return this.teacherSubjectsService.notifySubjectStudents(id, { ...body, actorUserId: req.user?.sub });
   }
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:id/restrictions')
   updateRestrictions(@Param('id') id: string, @Body() body: SubjectRestrictionsDto, @Req() req: any) {
-    return this.subjects.updateRestrictions(id, { ...body, actorUserId: req.user?.sub });
+    return this.teacherSubjectsService.updateRestrictions(id, { ...body, actorUserId: req.user?.sub });
   }
 
   @Roles('TEACHER')
   @Patch('teacher/subjects/:id/reopen')
   reopen(@Param('id') id: string, @Req() req: any) {
-    return this.subjects.reopenSubject(id, req.user?.sub);
+    return this.teacherSubjectsService.reopenSubject(id, req.user?.sub);
   }
 }

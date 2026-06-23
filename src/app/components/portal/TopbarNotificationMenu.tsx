@@ -284,7 +284,7 @@ export function TopbarNotificationMenu({
       >
         <Bell size={17} />
         {visibleBadgeCount > 0 ? (
-          <span className="absolute top-1 right-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white">
+          <span className="absolute top-1 right-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-700 px-1 text-[9px] font-bold leading-none text-white">
             {visibleBadgeCount > 9 ? "9+" : visibleBadgeCount}
           </span>
         ) : null}

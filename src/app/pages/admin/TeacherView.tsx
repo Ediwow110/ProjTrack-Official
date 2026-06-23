@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ChevronLeft, PencilLine, RefreshCcw, RotateCcw, ShieldOff } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
+import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
 import { BootstrapIcon } from "../../components/ui/bootstrap-icon";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { adminCatalogService, adminDetailService, adminService } from "../../lib/api/services";
@@ -23,6 +24,7 @@ export default function AdminTeacherView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const [editForm, setEditForm] = useState<AdminTeacherUpsertInput | null>(null);
   const [actionState, setActionState] = useState<{ busy: boolean; error: string | null; note: string | null }>({ busy: false, error: null, note: null });
   const {
@@ -81,6 +83,7 @@ export default function AdminTeacherView() {
     try {
       await adminService.deactivateTeacher(id);
       await loadRecord();
+      setDeactivateConfirmOpen(false);
       setActionState({ busy: false, error: null, note: "Teacher account deactivated." });
     } catch (actionError) {
       setActionState({ busy: false, error: actionError instanceof Error ? actionError.message : "Unable to deactivate teacher.", note: null });
@@ -166,7 +169,7 @@ export default function AdminTeacherView() {
             <button disabled={actionState.busy} onClick={handleOpenEdit} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold hover:bg-blue-50 disabled:opacity-50"><PencilLine size={13} /> Edit</button>
             <button disabled={actionState.busy} onClick={handleReset} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-50 disabled:opacity-50"><RotateCcw size={13} /> Reset Password</button>
             <button disabled={actionState.busy} onClick={handleActivate} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-sky-200 text-sky-700 text-xs font-semibold hover:bg-sky-50 disabled:opacity-50"><ShieldOff size={13} /> Send Setup Link</button>
-            <button disabled={actionState.busy} onClick={handleDeactivate} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"><ShieldOff size={13} /> Deactivate</button>
+            <button disabled={actionState.busy} onClick={() => setDeactivateConfirmOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"><ShieldOff size={13} /> Deactivate</button>
           </div>
         </div>
       </div>
@@ -258,6 +261,17 @@ export default function AdminTeacherView() {
           </div>
         ) : null}
       </AppModal>
+
+      <ConfirmDialog
+        open={deactivateConfirmOpen}
+        title="Deactivate teacher account?"
+        description={`${data.name} will lose active portal access until the account is re-enabled.`}
+        confirmLabel="Deactivate teacher"
+        tone="danger"
+        loading={actionState.busy}
+        onConfirm={handleDeactivate}
+        onCancel={() => setDeactivateConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -181,7 +181,7 @@ describe('sensitive-action audit-log regressions', () => {
 
 describe('admin mutation audit atomicity (SEC-001)', () => {
   const serviceSource = readFileSync(
-    join(process.cwd(), 'src', 'admin', 'admin.service.ts'),
+    join(process.cwd(), 'src', 'admin', 'admin-users.service.ts'),
     'utf8',
   );
 

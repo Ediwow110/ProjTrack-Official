@@ -10,7 +10,14 @@ const backendRequire = createRequire(path.join(backendRoot, "package.json"));
 const { config: loadDotenv } = backendRequire("dotenv") as {
   config: (input: { path: string; override?: boolean }) => void;
 };
+const hadExplicitDatabaseUrl = Boolean(process.env.DATABASE_URL);
 loadDotenv({ path: path.join(backendRoot, ".env"), override: false });
+const smokePostgresPort = String(
+  process.env.PROJTRACK_POSTGRES_PORT ?? process.env.SMOKE_POSTGRES_PORT ?? "",
+).trim();
+if (!hadExplicitDatabaseUrl && smokePostgresPort) {
+  process.env.DATABASE_URL = `postgresql://projtrack:projtrack@127.0.0.1:${smokePostgresPort}/projtrack?schema=public`;
+}
 const { PrismaClient } = backendRequire("@prisma/client") as {
   PrismaClient: new () => {
     submission: {

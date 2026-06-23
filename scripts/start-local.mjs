@@ -18,6 +18,8 @@ import { detectLocalBackendEnvSources, withLocalBackendEnv } from "./local-backe
 const args = new Set(process.argv.slice(2));
 const prepareOnly = args.has("--prepare-only");
 const localApiEnv = withLocalBackendEnv({ MAIL_WORKER_ENABLED: "false" });
+const localDatabaseUrl = new URL(localApiEnv.DATABASE_URL);
+const localPostgresPort = Number(localDatabaseUrl.port || 5432);
 const envSources = detectLocalBackendEnvSources();
 
 const managedChildren = [];
@@ -74,7 +76,7 @@ async function ensureInfrastructure() {
     ["compose", "-f", "docker-compose.postgres.yml", "-f", "docker-compose.storage.yml", "up", "-d"],
     { cwd: backendDir },
   );
-  await waitForPort(5432, "127.0.0.1", 60_000);
+  await waitForPort(localPostgresPort, "127.0.0.1", 60_000);
   await waitForPort(9000, "127.0.0.1", 60_000);
 }
 

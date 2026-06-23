@@ -50,7 +50,10 @@ async function main() {
   const hasBackendEnv = exists('.env');
   const dockerInstalled = commandOk(process.platform === 'win32' ? 'docker.exe' : 'docker', ['--version']);
   const dockerRunning = commandOk(process.platform === 'win32' ? 'docker.exe' : 'docker', ['info']);
-  const postgresOpen = await portOpen(5432);
+  const databaseUrl = new URL(localBackendEnv.DATABASE_URL);
+  const postgresPort = Number(databaseUrl.port || 5432);
+  const postgresHost = databaseUrl.hostname || '127.0.0.1';
+  const postgresOpen = await portOpen(postgresPort, postgresHost);
   const backendLive = await tryFetchJson(`${backendUrl}/health/live`);
 
   status('Root dependencies', hasRootNodeModules, hasRootNodeModules ? 'root node_modules exists' : 'run npm install from project root');
@@ -59,14 +62,14 @@ async function main() {
   status('backend/.env file', hasBackendEnv, hasBackendEnv ? 'present; local start scripts override unsafe production-like values' : 'not required for local start because scripts inject safe local env');
   status('Docker CLI', dockerInstalled, dockerInstalled ? 'available' : 'install/start Docker Desktop, or point DATABASE_URL at your own Postgres');
   status('Docker engine', dockerRunning, dockerRunning ? 'running' : 'start Docker Desktop before npm start');
-  status('PostgreSQL port 5432', postgresOpen, postgresOpen ? 'reachable on 127.0.0.1' : 'run npm run prepare:local');
+  status(`PostgreSQL port ${postgresPort}`, postgresOpen, postgresOpen ? `reachable on ${postgresHost}` : 'run npm run prepare:local');
   status('Backend /health/live', Boolean(backendLive.ok), backendLive.ok ? 'backend is running' : 'backend not responding on port 3001');
 
   console.log('');
   console.log('Local backend env used by npm start / npm run backend:local:');
   console.log(`- NODE_ENV=${localBackendEnv.NODE_ENV}`);
   console.log(`- APP_ENV=${localBackendEnv.APP_ENV}`);
-  console.log('- DATABASE_URL=postgresql://projtrack:****@127.0.0.1:5432/projtrack?schema=public');
+  console.log(`- DATABASE_URL=postgresql://projtrack:****@${postgresHost}:${postgresPort}/projtrack?schema=public`);
   console.log(`- MAIL_PROVIDER=${localBackendEnv.MAIL_PROVIDER}`);
   console.log(`- MAIL_WORKER_ENABLED=${localBackendEnv.MAIL_WORKER_ENABLED}`);
   console.log(`- OBJECT_STORAGE_MODE=${localBackendEnv.OBJECT_STORAGE_MODE}`);

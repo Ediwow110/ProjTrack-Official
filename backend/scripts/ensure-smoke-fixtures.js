@@ -43,6 +43,14 @@
 const { randomBytes, scryptSync } = require('node:crypto');
 const { mkdirSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
+
+const smokePostgresPort = String(
+  process.env.PROJTRACK_POSTGRES_PORT ?? process.env.SMOKE_POSTGRES_PORT ?? '',
+).trim();
+if (!process.env.DATABASE_URL && smokePostgresPort) {
+  process.env.DATABASE_URL = `postgresql://projtrack:projtrack@127.0.0.1:${smokePostgresPort}/projtrack?schema=public`;
+}
+
 const { PrismaClient } = require('@prisma/client');
 
 const defaultCredentialsPath = path.resolve(__dirname, '../../.tmp/smoke-credentials.json');

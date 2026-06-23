@@ -5,9 +5,16 @@ import { PortalPage, PortalPanel } from "../../components/portal/PortalPage";
 import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
 
-const days = Array.from({ length: 30 }, (_, index) => index + 1);
 const weekdayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const monthLabels = ["April 2026", "May 2026", "June 2026", "July 2026"];
+
+const monthLabelFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+const selectedDateFormatter = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" });
+const fallbackDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const shiftMonth = (date: Date, offset: number) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
+const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+const formatSelectedDate = (month: Date, day: number) => selectedDateFormatter.format(new Date(month.getFullYear(), month.getMonth(), day));
 
 const eventToneClasses: Record<string, string> = {
   blue: "border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:border-blue-400/25 dark:bg-blue-500/10 dark:text-blue-100",
@@ -24,7 +31,7 @@ const dayOfEvent = (event: { date?: number; startsAt?: string }) => {
   return 1;
 };
 
-const labelForEventDate = (event: { startsAt?: string }, fallbackDay: number) => {
+const labelForEventDate = (event: { startsAt?: string }, fallbackDay: number, visibleMonth: Date) => {
   if (event.startsAt) {
     const parsed = new Date(event.startsAt);
     if (!Number.isNaN(parsed.getTime())) {
@@ -36,13 +43,13 @@ const labelForEventDate = (event: { startsAt?: string }, fallbackDay: number) =>
       });
     }
   }
-  return `Apr ${fallbackDay}`;
+  return fallbackDateFormatter.format(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), fallbackDay));
 };
 
 export default function AdminCalendar() {
   const [filter, setFilter] = useState("All Events");
-  const [monthLabelIndex, setMonthLabelIndex] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(24);
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState(() => new Date().getDate());
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -54,6 +61,9 @@ export default function AdminCalendar() {
   );
   const { data, loading, error, reload } = useAsyncData(fetchEvents, [fetchEvents]);
   const events = data ?? [];
+  const days = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonth]);
+  const visibleMonthLabel = useMemo(() => monthLabelFormatter.format(visibleMonth), [visibleMonth]);
+  const selectedDateLabel = useMemo(() => formatSelectedDate(visibleMonth, selectedDay), [visibleMonth, selectedDay]);
   const filterOptions = useMemo(
     () => ["All Events", ...Array.from(new Set(events.map((event) => event.section).filter(Boolean)))],
     [events],
@@ -71,6 +81,10 @@ export default function AdminCalendar() {
     setDetail(null);
     setDetailError(null);
   }, [filter]);
+
+  useEffect(() => {
+    setSelectedDay((current) => Math.min(current, days.length));
+  }, [days.length]);
 
   useEffect(() => {
     setSelectedEventId((current) =>
@@ -133,23 +147,23 @@ export default function AdminCalendar() {
         <div className="flex items-center gap-2">
           <button
             disabled={loading || detailLoading}
-            onClick={() =>
-              setMonthLabelIndex((current) =>
-                current === 0 ? monthLabels.length - 1 : current - 1,
-              )
-            }
+            onClick={() => {
+              setVisibleMonth((current) => shiftMonth(current, -1));
+              setSelectedEventId(null);
+            }}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronLeft size={16} />
           </button>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 shadow-[var(--shadow-soft)] dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-100">
-            {monthLabels[monthLabelIndex]}
+            {visibleMonthLabel}
           </div>
           <button
             disabled={loading || detailLoading}
-            onClick={() =>
-              setMonthLabelIndex((current) => (current + 1) % monthLabels.length)
-            }
+            onClick={() => {
+              setVisibleMonth((current) => shiftMonth(current, 1));
+              setSelectedEventId(null);
+            }}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 text-slate-500 dark:text-slate-400 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50 dark:border-slate-700/60 dark:bg-slate-900/75 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronRight size={16} />
@@ -267,7 +281,7 @@ export default function AdminCalendar() {
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Selected Day</h2>
             </div>
 
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">April {selectedDay}, 2026</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{selectedDateLabel}</p>
             <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-300 dark:text-slate-500">
               {dayEvents.length} scheduled item{dayEvents.length === 1 ? "" : "s"}
             </p>
@@ -293,7 +307,7 @@ export default function AdminCalendar() {
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{event.title}</p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Audience / Section: {event.section}</p>
                   <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-300 dark:text-slate-500">
-                    {labelForEventDate(event, event.day)}
+                    {labelForEventDate(event, event.day, visibleMonth)}
                   </p>
                 </button>
               ))}
@@ -340,7 +354,7 @@ export default function AdminCalendar() {
                       When
                     </p>
                     <p className="mt-1 text-slate-900 dark:text-slate-100">
-                      {labelForEventDate(detail ?? selectedEvent, selectedEvent.day)}
+                      {labelForEventDate(detail ?? selectedEvent, selectedEvent.day, visibleMonth)}
                     </p>
                   </div>
                 </div>

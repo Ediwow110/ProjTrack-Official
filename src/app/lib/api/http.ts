@@ -4,6 +4,40 @@ import { beginNetworkActivity, endNetworkActivity } from '../networkActivity';
 
 let refreshPromise: Promise<string | null> | null = null;
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+const FILE_UPLOAD_TIMEOUT_MS = 120_000;
+
+async function fetchWithTimeout(
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+) {
+  if (typeof AbortController === 'undefined') {
+    return fetch(input, init);
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = globalThis.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...(init ?? {}),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (timedOut) {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)} seconds.`);
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   retryAfter?: number;
@@ -82,7 +116,7 @@ async function executeFetch(method: string, path: string, body?: unknown, query?
 
   try {
     beginNetworkActivity();
-    return await fetch(url, {
+    return await fetchWithTimeout(url, {
       method,
       credentials: 'include',
       headers: {
@@ -112,7 +146,7 @@ async function doRefreshToken() {
 
   let response: Response;
   try {
-    response = await fetch(buildApiUrl('/auth/refresh'), {
+    response = await fetchWithTimeout(buildApiUrl('/auth/refresh'), {
       method: 'POST',
       credentials: 'include',
       headers: refreshToken ? { 'Content-Type': 'application/json' } : undefined,
@@ -160,7 +194,7 @@ async function uploadFile<T>(
         : `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     try {
       beginNetworkActivity();
-      return await fetch(buildApiUrl(path), {
+      return await fetchWithTimeout(buildApiUrl(path), {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -168,7 +202,7 @@ async function uploadFile<T>(
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
-      });
+      }, FILE_UPLOAD_TIMEOUT_MS);
     } catch (error) {
       throw backendUnavailableError(error);
     } finally {

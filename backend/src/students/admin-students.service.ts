@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { AdminService } from '../admin/admin.service';
+import { AdminUsersService } from '../admin/admin-users.service';
 import { AccountActionTokenService } from '../auth/account-action-token.service';
 import { buildActivationLink } from '../common/utils/frontend-links';
 import { MailService } from '../mail/mail.service';
@@ -38,7 +38,7 @@ function normalizeYearLevelValue(value?: string | null) {
 @Injectable()
 export class AdminStudentsService {
   constructor(
-    private readonly adminService: AdminService,
+    private readonly adminUsers: AdminUsersService,
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly accountActionTokenService: AccountActionTokenService,
@@ -86,21 +86,21 @@ export class AdminStudentsService {
   }
 
   async sendResetLink(userId: string, adminId?: string) {
-    return this.adminService.sendStudentResetLink(userId, {
+    return this.adminUsers.sendStudentResetLink(userId, {
       actorUserId: adminId,
       actorRole: 'ADMIN',
     });
   }
 
   async activateStudent(userId: string, adminId?: string) {
-    return this.adminService.activateStudent(userId, {
+    return this.adminUsers.activateStudent(userId, {
       actorUserId: adminId,
       actorRole: 'ADMIN',
     });
   }
 
   async list(input: { search?: string; status?: string } = {}) {
-    return this.adminService.students(input.search, input.status);
+    return this.adminUsers.students(input.search, input.status);
   }
 
   private async queueStudentSetupInvite(userId: string, _adminId?: string) {

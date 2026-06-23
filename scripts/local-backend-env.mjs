@@ -54,11 +54,15 @@ function resolveMailProvider(env) {
   return 'mailrelay';
 }
 
+const localPostgresPort = String(
+  process.env.PROJTRACK_POSTGRES_PORT ?? process.env.SMOKE_POSTGRES_PORT ?? '5432',
+).trim() || '5432';
+
 export const localBackendDefaults = {
   NODE_ENV: 'development',
   APP_ENV: 'development',
   PORT: '3001',
-  DATABASE_URL: 'postgresql://projtrack:projtrack@127.0.0.1:5432/projtrack?schema=public',
+  DATABASE_URL: `postgresql://projtrack:projtrack@127.0.0.1:${localPostgresPort}/projtrack?schema=public`,
   APP_URL: 'http://127.0.0.1:5173',
   FRONTEND_URL: 'http://127.0.0.1:5173',
   BACKEND_URL: 'http://127.0.0.1:3001',
@@ -104,6 +108,9 @@ export function withLocalBackendEnv(overrides = {}) {
     ...process.env,
     ...overrides,
   };
+  if (!process.env.DATABASE_URL && (process.env.PROJTRACK_POSTGRES_PORT || process.env.SMOKE_POSTGRES_PORT)) {
+    merged.DATABASE_URL = localBackendDefaults.DATABASE_URL;
+  }
   merged.MAIL_PROVIDER = resolveMailProvider(merged);
   return merged;
 }
@@ -111,3 +118,5 @@ export function withLocalBackendEnv(overrides = {}) {
 export function detectLocalBackendEnvSources() {
   return [...loadedLocalEnvSources];
 }
+
+export const localBackendEnv = withLocalBackendEnv();

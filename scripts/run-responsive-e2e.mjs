@@ -23,7 +23,12 @@ function fail(message, result) {
   process.exit(result?.status && result.status !== 0 ? result.status : 1);
 }
 
-const listResult = runPlaywright([...configArgs, ...passthroughWithoutList, '--list']);
+const listResult = runPlaywright([...configArgs, ...passthroughWithoutList, '--list'], {
+  env: {
+    ...process.env,
+    PLAYWRIGHT_REUSE_EXISTING_SERVER: 'true',
+  },
+});
 if (listResult.status !== 0) {
   fail('Failed to discover responsive Playwright tests. This blocks responsive readiness.', listResult);
 }

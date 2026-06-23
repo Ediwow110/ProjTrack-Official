@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
+import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
 import { StatusChip } from "../../components/ui/StatusChip";
 import { teacherSubjectService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
@@ -82,6 +83,10 @@ export default function TeacherSubjectView() {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [groupBusyId, setGroupBusyId] = useState<string | null>(null);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{
+    group: TeacherSubjectGroupItem;
+    member: TeacherSubjectGroupItem["memberDetails"][number];
+  } | null>(null);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<ActivityFormState>(defaultActivityForm);
   const [notifyForm, setNotifyForm] = useState({ title: "", message: "" });
@@ -245,6 +250,17 @@ export default function TeacherSubjectView() {
     } finally {
       setGroupBusyId(null);
     }
+  };
+
+  const handleConfirmRemoveMember = () => {
+    if (!removeMemberTarget) return;
+    const { group, member } = removeMemberTarget;
+    setRemoveMemberTarget(null);
+    void runGroupAction(
+      group.id,
+      () => teacherSubjectService.removeGroupMember(subjectId, group.id, member.id),
+      "Group member removed.",
+    );
   };
 
   const subjectNameForLink = data?.name ?? "All Subjects";
@@ -534,6 +550,7 @@ export default function TeacherSubjectView() {
                             busy={groupBusyId === group.id}
                             subjectId={subjectId}
                             onAction={(action, successMessage) => runGroupAction(group.id, action, successMessage)}
+                            onRemoveMember={() => setRemoveMemberTarget({ group, member })}
                           />
                         ))}
                       </div>
@@ -813,6 +830,17 @@ export default function TeacherSubjectView() {
           />
         </div>
       </AppModal>
+
+      <ConfirmDialog
+        open={Boolean(removeMemberTarget)}
+        title="Remove from group?"
+        description={removeMemberTarget ? `${removeMemberTarget.member.name} will no longer belong to ${removeMemberTarget.group.name}.` : "Confirm this group membership change."}
+        confirmLabel="Remove from group"
+        tone="danger"
+        loading={Boolean(removeMemberTarget && groupBusyId === removeMemberTarget.group.id)}
+        onConfirm={handleConfirmRemoveMember}
+        onCancel={() => setRemoveMemberTarget(null)}
+      />
     </div>
   );
 }
@@ -823,12 +851,14 @@ function GroupMemberCard({
   busy,
   subjectId,
   onAction,
+  onRemoveMember,
 }: {
   group: TeacherSubjectGroupItem;
   member: TeacherSubjectGroupItem["memberDetails"][number];
   busy: boolean;
   subjectId: string;
   onAction: (action: () => Promise<unknown>, successMessage: string) => void;
+  onRemoveMember: () => void;
 }) {
   const groupLocked = group.status === "Locked";
 
@@ -860,12 +890,7 @@ function GroupMemberCard({
         <button
           type="button"
           disabled={busy || group.memberDetails.length <= 1}
-          onClick={() =>
-            onAction(
-              () => teacherSubjectService.removeGroupMember(subjectId, group.id, member.id),
-              "Group member removed.",
-            )
-          }
+          onClick={onRemoveMember}
           className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-[11px] font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 disabled:opacity-50"
         >
           Remove

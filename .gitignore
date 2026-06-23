@@ -39,6 +39,7 @@ backend/.env.*
 # Test reports
 playwright-report/
 test-results/
+.playwright-mcp/
 
 # Evidence reports
 evidence/*.md
