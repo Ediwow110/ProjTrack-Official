@@ -31,7 +31,7 @@ function buildMockPrisma() {
   } as any;
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockSystemToolsRepository() {
   return {
     getSystemTools: jest.fn(),
     runSystemTool: jest.fn(),
@@ -52,13 +52,13 @@ function buildMockFiles() {
 
 function buildService(overrides?: Record<string, any>) {
   const prisma = overrides?.prisma ?? buildMockPrisma();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
+  const systemToolsRepository = overrides?.systemToolsRepository ?? buildMockSystemToolsRepository();
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
   const notifications = overrides?.notifications ?? buildMockNotifications();
   const files = overrides?.files ?? buildMockFiles();
   return new AdminSystemToolsService(
     prisma,
-    adminOpsRepository as any,
+    systemToolsRepository as any,
     auditLogs as any,
     notifications as any,
     files as any,
@@ -81,12 +81,12 @@ describe('AdminSystemToolsService', () => {
 
   describe('getSystemTools', () => {
     it('returns tools from repository when seed-cleanup is already present', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      adminOpsRepository.getSystemTools.mockResolvedValue([
+      const systemToolsRepository = buildMockSystemToolsRepository();
+      systemToolsRepository.getSystemTools.mockResolvedValue([
         { id: 'seed-cleanup', title: 'Seed Data Cleanup' },
         { id: 'other-tool', title: 'Other Tool' },
       ]);
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ systemToolsRepository });
 
       const result = await service.getSystemTools();
       expect(result).toHaveLength(2);
@@ -94,11 +94,11 @@ describe('AdminSystemToolsService', () => {
     });
 
     it('appends seed-cleanup tool record when not present', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      adminOpsRepository.getSystemTools.mockResolvedValue([
+      const systemToolsRepository = buildMockSystemToolsRepository();
+      systemToolsRepository.getSystemTools.mockResolvedValue([
         { id: 'other-tool', title: 'Other Tool' },
       ]);
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ systemToolsRepository });
 
       const result = await service.getSystemTools();
       expect(result).toHaveLength(2);
@@ -108,24 +108,24 @@ describe('AdminSystemToolsService', () => {
   });
 
   describe('runSystemTool', () => {
-    it('delegates non-seed-cleanup tools to adminOpsRepository', async () => {
+    it('delegates non-seed-cleanup tools to systemToolsRepository', async () => {
       process.env.ADMIN_SYSTEM_TOOL_MAX_PER_HOUR = '100';
 
       const prisma = buildMockPrisma();
       prisma.authRateLimit.findUnique.mockResolvedValue(null);
       prisma.authRateLimit.upsert.mockResolvedValue({ attempts: 1 } as any);
 
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      adminOpsRepository.runSystemTool.mockResolvedValue({
+      const systemToolsRepository = buildMockSystemToolsRepository();
+      systemToolsRepository.runSystemTool.mockResolvedValue({
         result: { title: 'Other Tool', status: 'Completed', summary: 'Done.' },
       });
 
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ prisma, adminOpsRepository, auditLogs });
+      const service = buildService({ prisma, systemToolsRepository, auditLogs });
 
       const result = await service.runSystemTool('other-tool', {}, {});
 
-      expect(adminOpsRepository.runSystemTool).toHaveBeenCalledWith('other-tool');
+      expect(systemToolsRepository.runSystemTool).toHaveBeenCalledWith('other-tool');
       expect(auditLogs.record).toHaveBeenCalled();
       expect(result.result.status).toBe('Completed');
     });
@@ -150,10 +150,10 @@ describe('AdminSystemToolsService', () => {
       prisma.authRateLimit.findUnique.mockResolvedValue(null);
       prisma.authRateLimit.upsert.mockResolvedValue({ attempts: 1 } as any);
 
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      adminOpsRepository.getSystemTools.mockResolvedValue([]);
+      const systemToolsRepository = buildMockSystemToolsRepository();
+      systemToolsRepository.getSystemTools.mockResolvedValue([]);
 
-      const service = buildService({ prisma, adminOpsRepository });
+      const service = buildService({ prisma, systemToolsRepository });
 
       const result = await service.runSystemTool('seed-cleanup', { mode: 'preview' }, {});
 
@@ -181,10 +181,10 @@ describe('AdminSystemToolsService', () => {
       prisma.authRateLimit.findUnique.mockResolvedValue(null);
       prisma.authRateLimit.upsert.mockResolvedValue({ attempts: 1 } as any);
 
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      adminOpsRepository.getSystemTools.mockResolvedValue([]);
+      const systemToolsRepository = buildMockSystemToolsRepository();
+      systemToolsRepository.getSystemTools.mockResolvedValue([]);
 
-      const service = buildService({ prisma, adminOpsRepository });
+      const service = buildService({ prisma, systemToolsRepository });
 
       await expect(
         service.runSystemTool('seed-cleanup', { mode: 'execute' }, {}),

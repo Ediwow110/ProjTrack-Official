@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { AcademicStructureRepository } from '../repositories/academic-structure.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -37,7 +37,7 @@ export class AdminUsersService {
     private readonly accountActionTokens: AccountActionTokenService,
     private readonly notifications: NotificationsService,
     private readonly files: FilesService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly academicStructureRepository: AcademicStructureRepository,
   ) {}
 
   async users(search?: string, role?: string, status?: string) {
@@ -197,7 +197,7 @@ export class AdminUsersService {
     const [existingEmail, existingStudentNumber] = await Promise.all([this.prisma.user.findUnique({ where: { email } }), this.prisma.studentProfile.findUnique({ where: { studentNumber } })]);
     if (existingEmail) throw new ConflictException('A user with that email already exists.');
     if (existingStudentNumber) throw new ConflictException('That student number is already assigned.');
-    const placement = await this.adminOpsRepository.resolveSectionPlacement({ academicYearId: payload.academicYearId, academicYear: payload.academicYear, academicYearLevelId: payload.yearLevelId, yearLevelName: payload.yearLevelName, course: payload.course, yearLevel: payload.yearLevel, sectionId: sectionValue, section: sectionValue, requireSection: Boolean(sectionValue) });
+    const placement = await this.academicStructureRepository.resolveSectionPlacement({ academicYearId: payload.academicYearId, academicYear: payload.academicYear, academicYearLevelId: payload.yearLevelId, yearLevelName: payload.yearLevelName, course: payload.course, yearLevel: payload.yearLevel, sectionId: sectionValue, section: sectionValue, requireSection: Boolean(sectionValue) });
     const user = await this.prisma.user.create({ data: { email, role: 'STUDENT', status: 'PENDING_ACTIVATION', firstName, lastName, studentProfile: { create: { studentNumber, middleInitial: middleInitial || null, sectionId: placement.section?.id ?? null, academicYearId: placement.academicYear?.id ?? placement.section?.academicYearId ?? null, academicYearLevelId: placement.academicYearLevel?.id ?? placement.section?.academicYearLevelId ?? null, course: placement.course, yearLevel: placement.yearLevel, yearLevelName: placement.yearLevelName ?? placement.section?.yearLevelName ?? null } } } });
     await this.auditLogs.record({ actorRole: 'ADMIN', action: 'CREATE', module: 'Students', target: `${firstName} ${lastName}`.trim(), entityId: user.id, result: 'Success', details: 'Admin created a student account.', afterValue: 'PENDING_ACTIVATION' });
     return { success: true, id: user.id };
@@ -215,7 +215,7 @@ export class AdminUsersService {
     const [existingEmail, existingStudentNumber, placement] = await Promise.all([
       this.prisma.user.findFirst({ where: { email, id: { not: user.id } } }),
       this.prisma.studentProfile.findFirst({ where: { studentNumber, userId: { not: user.id } } }),
-      this.adminOpsRepository.resolveSectionPlacement({ academicYearId: payload.academicYearId ?? user.studentProfile.academicYearId ?? user.studentProfile.section?.academicYearId ?? undefined, academicYear: payload.academicYear ?? user.studentProfile.academicYear?.name ?? undefined, academicYearLevelId: payload.yearLevelId ?? user.studentProfile.academicYearLevelId ?? undefined, yearLevelName: payload.yearLevelName ?? user.studentProfile.yearLevelName ?? user.studentProfile.academicYearLevel?.name ?? undefined, course: payload.course ?? user.studentProfile.course ?? undefined, yearLevel: payload.yearLevel ?? user.studentProfile.yearLevel ?? undefined, sectionId: sectionValue, section: sectionValue, requireSection: Boolean(sectionValue) }),
+      this.academicStructureRepository.resolveSectionPlacement({ academicYearId: payload.academicYearId ?? user.studentProfile.academicYearId ?? user.studentProfile.section?.academicYearId ?? undefined, academicYear: payload.academicYear ?? user.studentProfile.academicYear?.name ?? undefined, academicYearLevelId: payload.yearLevelId ?? user.studentProfile.academicYearLevelId ?? undefined, yearLevelName: payload.yearLevelName ?? user.studentProfile.yearLevelName ?? user.studentProfile.academicYearLevel?.name ?? undefined, course: payload.course ?? user.studentProfile.course ?? undefined, yearLevel: payload.yearLevel ?? user.studentProfile.yearLevel ?? undefined, sectionId: sectionValue, section: sectionValue, requireSection: Boolean(sectionValue) }),
     ]);
     if (existingEmail) throw new ConflictException('A different user already uses that email.');
     if (existingStudentNumber) throw new ConflictException('A different student already uses that student number.');
@@ -230,7 +230,7 @@ export class AdminUsersService {
     const email = String(payload.email ?? '').trim().toLowerCase();
     const employeeId = String(payload.employeeId ?? '').trim() || null;
     if (!firstName || !lastName || !email) throw new BadRequestException('First name, last name, and email are required.');
-    const department = await this.adminOpsRepository.ensureDepartmentName(payload.department);
+    const department = await this.academicStructureRepository.ensureDepartmentName(payload.department);
     const [existingEmail, existingEmployeeId] = await Promise.all([this.prisma.user.findUnique({ where: { email } }), employeeId ? this.prisma.teacherProfile.findFirst({ where: { employeeId } }) : Promise.resolve(null)]);
     if (existingEmail) throw new ConflictException('A user with that email already exists.');
     if (existingEmployeeId) throw new ConflictException('That employee ID is already assigned.');
@@ -246,7 +246,7 @@ export class AdminUsersService {
     const lastName = String(payload.lastName ?? user.lastName).trim();
     const email = String(payload.email ?? user.email).trim().toLowerCase();
     const employeeId = String(payload.employeeId ?? user.teacherProfile.employeeId ?? '').trim() || null;
-    const department = await this.adminOpsRepository.ensureDepartmentName(payload.department ?? user.teacherProfile.department);
+    const department = await this.academicStructureRepository.ensureDepartmentName(payload.department ?? user.teacherProfile.department);
     const [existingEmail, existingEmployeeId] = await Promise.all([this.prisma.user.findFirst({ where: { email, id: { not: user.id } } }), employeeId ? this.prisma.teacherProfile.findFirst({ where: { employeeId, userId: { not: user.id } } }) : Promise.resolve(null)]);
     if (existingEmail) throw new ConflictException('A different user already uses that email.');
     if (existingEmployeeId) throw new ConflictException('A different teacher already uses that employee ID.');

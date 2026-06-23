@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { AcademicStructureRepository } from '../repositories/academic-structure.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { buildMasterListFileName, buildMasterListWorkbookBuffer } from '../common/utils/master-list-export';
 
@@ -18,12 +18,12 @@ export class AdminSectionsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly academicStructureRepository: AcademicStructureRepository,
     private readonly auditLogs: AuditLogsService,
   ) {}
 
   async sections(search?: string, academicYearId?: string) {
-    return this.adminOpsRepository.listSections({ search, academicYearId });
+    return this.academicStructureRepository.listSections({ search, academicYearId });
   }
 
   async createSection(payload: {
@@ -37,7 +37,7 @@ export class AdminSectionsService {
     academicYearId?: string;
     academicYear?: string;
   }) {
-    const created = await this.adminOpsRepository.createSection(payload);
+    const created = await this.academicStructureRepository.createSection(payload);
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'CREATE',
@@ -51,11 +51,11 @@ export class AdminSectionsService {
   }
 
   async sectionMasterList(sectionId: string) {
-    return this.adminOpsRepository.getSectionMasterList(sectionId);
+    return this.academicStructureRepository.getSectionMasterList(sectionId);
   }
 
   async sectionMasterListExport(sectionId: string) {
-    const masterList = await this.adminOpsRepository.getSectionMasterList(sectionId);
+    const masterList = await this.academicStructureRepository.getSectionMasterList(sectionId);
     const fileName = buildMasterListFileName({
       academicYear: masterList.section.academicYear,
       course: masterList.section.course,
@@ -81,7 +81,7 @@ export class AdminSectionsService {
   async deleteSection(id: string, actor?: AdminActorContext) {
     const section = await this.prisma.section.findUnique({ where: { id } });
     if (!section) throw new NotFoundException('Section not found.');
-    const result = await this.adminOpsRepository.deleteSection(id);
+    const result = await this.academicStructureRepository.deleteSection(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -97,7 +97,7 @@ export class AdminSectionsService {
   }
 
   async moveStudents(sourceSectionId: string, destSectionId: string, ids: string[]) {
-    const result = await this.adminOpsRepository.moveStudents(sourceSectionId, destSectionId, ids);
+    const result = await this.academicStructureRepository.moveStudents(sourceSectionId, destSectionId, ids);
     const sourceSection = result.sections.find((section: any) => section.id === sourceSectionId);
     const destSection = result.sections.find((section: any) => section.id === destSectionId);
     await this.auditLogs.record({
@@ -112,6 +112,6 @@ export class AdminSectionsService {
   }
 
   async getBulkMoveData() {
-    return this.adminOpsRepository.getBulkMoveData();
+    return this.academicStructureRepository.getBulkMoveData();
   }
 }

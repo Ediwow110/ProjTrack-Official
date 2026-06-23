@@ -10,13 +10,18 @@ function buildMockPrisma() {
   return mock as PrismaService;
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockSettingsRepository() {
   return {
     getAcademicSettings: jest.fn(),
     saveAcademicSettings: jest.fn(),
-    ensureAcademicYear: jest.fn(),
     getSystemSettings: jest.fn(),
     saveSystemSettings: jest.fn(),
+  };
+}
+
+function buildMockAcademicStructureRepository() {
+  return {
+    ensureAcademicYear: jest.fn(),
     listAcademicYears: jest.fn(),
     createAcademicYear: jest.fn(),
     deleteAcademicYear: jest.fn(),
@@ -39,12 +44,15 @@ function buildMockAuditLogs() {
 
 function buildService(overrides?: Record<string, any>) {
   const prisma = overrides?.prisma ?? buildMockPrisma();
-  const adminOpsRepository =
-    overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
+  const settingsRepository =
+    overrides?.settingsRepository ?? buildMockSettingsRepository();
+  const academicStructureRepository =
+    overrides?.academicStructureRepository ?? buildMockAcademicStructureRepository();
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
   return new AdminSettingsService(
     prisma,
-    adminOpsRepository as any,
+    settingsRepository as any,
+    academicStructureRepository as any,
     auditLogs as any,
   );
 }
@@ -60,35 +68,36 @@ describe('AdminSettingsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('getAcademicSettings', () => {
-    it('delegates to adminOpsRepository.getAcademicSettings', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getAcademicSettings as jest.Mock).mockResolvedValue({
+    it('delegates to settingsRepository.getAcademicSettings', async () => {
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.getAcademicSettings as jest.Mock).mockResolvedValue({
         schoolYear: '2024-2025',
         semester: '1st',
       });
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ settingsRepository });
       const result = await service.getAcademicSettings();
-      expect(adminOpsRepository.getAcademicSettings).toHaveBeenCalled();
+      expect(settingsRepository.getAcademicSettings).toHaveBeenCalled();
       expect(result).toEqual({ schoolYear: '2024-2025', semester: '1st' });
     });
   });
 
   describe('saveAcademicSettings', () => {
     it('saves settings, ensures academic year, and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.saveAcademicSettings as jest.Mock).mockResolvedValue({
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.saveAcademicSettings as jest.Mock).mockResolvedValue({
         schoolYear: '2024-2025',
       });
+      const academicStructureRepository = buildMockAcademicStructureRepository();
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ settingsRepository, academicStructureRepository, auditLogs });
       const result = await service.saveAcademicSettings(
         { schoolYear: '2024-2025' },
         { actorEmail: 'admin@test.com', ipAddress: '127.0.0.1' },
       );
-      expect(adminOpsRepository.saveAcademicSettings).toHaveBeenCalledWith({
+      expect(settingsRepository.saveAcademicSettings).toHaveBeenCalledWith({
         schoolYear: '2024-2025',
       });
-      expect(adminOpsRepository.ensureAcademicYear).toHaveBeenCalledWith(
+      expect(academicStructureRepository.ensureAcademicYear).toHaveBeenCalledWith(
         '2024-2025',
         'ACTIVE',
       );
@@ -103,11 +112,12 @@ describe('AdminSettingsService', () => {
     });
 
     it('skips ensureAcademicYear when schoolYear is missing', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.saveAcademicSettings as jest.Mock).mockResolvedValue({});
-      const service = buildService({ adminOpsRepository });
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.saveAcademicSettings as jest.Mock).mockResolvedValue({});
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      const service = buildService({ settingsRepository, academicStructureRepository });
       await service.saveAcademicSettings({});
-      expect(adminOpsRepository.ensureAcademicYear).not.toHaveBeenCalled();
+      expect(academicStructureRepository.ensureAcademicYear).not.toHaveBeenCalled();
     });
   });
 
@@ -116,31 +126,31 @@ describe('AdminSettingsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('getSystemSettings', () => {
-    it('delegates to adminOpsRepository.getSystemSettings', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getSystemSettings as jest.Mock).mockResolvedValue({
+    it('delegates to settingsRepository.getSystemSettings', async () => {
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.getSystemSettings as jest.Mock).mockResolvedValue({
         schoolName: 'Test School',
       });
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ settingsRepository });
       const result = await service.getSystemSettings();
-      expect(adminOpsRepository.getSystemSettings).toHaveBeenCalled();
+      expect(settingsRepository.getSystemSettings).toHaveBeenCalled();
       expect(result).toEqual({ schoolName: 'Test School' });
     });
   });
 
   describe('saveSystemSettings', () => {
     it('saves settings and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.saveSystemSettings as jest.Mock).mockResolvedValue({
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.saveSystemSettings as jest.Mock).mockResolvedValue({
         schoolName: 'Updated School',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ settingsRepository, auditLogs });
       const result = await service.saveSystemSettings(
         { schoolName: 'Updated School' },
         { actorEmail: 'admin@test.com' },
       );
-      expect(adminOpsRepository.saveSystemSettings).toHaveBeenCalledWith({
+      expect(settingsRepository.saveSystemSettings).toHaveBeenCalledWith({
         schoolName: 'Updated School',
       });
       expect(auditLogs.record).toHaveBeenCalledWith(
@@ -159,33 +169,33 @@ describe('AdminSettingsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('academicYears', () => {
-    it('delegates to adminOpsRepository.listAcademicYears', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.listAcademicYears as jest.Mock).mockResolvedValue([
+    it('delegates to academicStructureRepository.listAcademicYears', async () => {
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.listAcademicYears as jest.Mock).mockResolvedValue([
         { id: 'ay1', name: '2024-2025' },
       ]);
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ academicStructureRepository });
       const result = await service.academicYears('2024');
-      expect(adminOpsRepository.listAcademicYears).toHaveBeenCalledWith('2024');
+      expect(academicStructureRepository.listAcademicYears).toHaveBeenCalledWith('2024');
       expect(result).toEqual([{ id: 'ay1', name: '2024-2025' }]);
     });
   });
 
   describe('createAcademicYear', () => {
     it('creates and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.createAcademicYear as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.createAcademicYear as jest.Mock).mockResolvedValue({
         id: 'ay1',
         name: '2024-2025',
         status: 'ACTIVE',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.createAcademicYear({
         name: '2024-2025',
         status: 'ACTIVE',
       });
-      expect(adminOpsRepository.createAcademicYear).toHaveBeenCalledWith({
+      expect(academicStructureRepository.createAcademicYear).toHaveBeenCalledWith({
         name: '2024-2025',
         status: 'ACTIVE',
       });
@@ -216,16 +226,16 @@ describe('AdminSettingsService', () => {
         id: 'ay1',
         name: '2024-2025',
       });
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.deleteAcademicYear as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.deleteAcademicYear as jest.Mock).mockResolvedValue({
         success: true,
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ prisma, adminOpsRepository, auditLogs });
+      const service = buildService({ prisma, academicStructureRepository, auditLogs });
       const result = await service.deleteAcademicYear('ay1', {
         actorRole: 'ADMIN',
       });
-      expect(adminOpsRepository.deleteAcademicYear).toHaveBeenCalledWith('ay1');
+      expect(academicStructureRepository.deleteAcademicYear).toHaveBeenCalledWith('ay1');
       expect(auditLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'DELETE',
@@ -239,8 +249,8 @@ describe('AdminSettingsService', () => {
 
   describe('createAcademicYearLevel', () => {
     it('creates and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.createAcademicYearLevel as jest.Mock).mockResolvedValue(
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.createAcademicYearLevel as jest.Mock).mockResolvedValue(
         {
           id: 'lvl1',
           academicYear: '2024-2025',
@@ -248,12 +258,12 @@ describe('AdminSettingsService', () => {
         },
       );
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.createAcademicYearLevel({
         academicYearId: 'ay1',
         name: '1st Year',
       });
-      expect(adminOpsRepository.createAcademicYearLevel).toHaveBeenCalledWith({
+      expect(academicStructureRepository.createAcademicYearLevel).toHaveBeenCalledWith({
         academicYearId: 'ay1',
         name: '1st Year',
       });
@@ -284,17 +294,17 @@ describe('AdminSettingsService', () => {
         id: 'lvl1',
         name: '1st Year',
       });
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.deleteAcademicYearLevel as jest.Mock).mockResolvedValue(
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.deleteAcademicYearLevel as jest.Mock).mockResolvedValue(
         { success: true },
       );
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ prisma, adminOpsRepository, auditLogs });
+      const service = buildService({ prisma, academicStructureRepository, auditLogs });
       const result = await service.deleteAcademicYearLevel('lvl1', {
         actorRole: 'ADMIN',
       });
       expect(
-        adminOpsRepository.deleteAcademicYearLevel,
+        academicStructureRepository.deleteAcademicYearLevel,
       ).toHaveBeenCalledWith('lvl1');
       expect(auditLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -312,46 +322,46 @@ describe('AdminSettingsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('departments', () => {
-    it('delegates to adminOpsRepository.listDepartments', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.listDepartments as jest.Mock).mockResolvedValue([
+    it('delegates to academicStructureRepository.listDepartments', async () => {
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.listDepartments as jest.Mock).mockResolvedValue([
         { id: 'd1', name: 'Science' },
       ]);
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ academicStructureRepository });
       const result = await service.departments('Sci');
-      expect(adminOpsRepository.listDepartments).toHaveBeenCalledWith('Sci');
+      expect(academicStructureRepository.listDepartments).toHaveBeenCalledWith('Sci');
       expect(result).toEqual([{ id: 'd1', name: 'Science' }]);
     });
   });
 
   describe('department', () => {
-    it('delegates to adminOpsRepository.getDepartment', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getDepartment as jest.Mock).mockResolvedValue({
+    it('delegates to academicStructureRepository.getDepartment', async () => {
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.getDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
       });
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ academicStructureRepository });
       const result = await service.department('d1');
-      expect(adminOpsRepository.getDepartment).toHaveBeenCalledWith('d1');
+      expect(academicStructureRepository.getDepartment).toHaveBeenCalledWith('d1');
       expect(result).toEqual({ id: 'd1', name: 'Science' });
     });
   });
 
   describe('createDepartment', () => {
     it('creates and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.createDepartment as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.createDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.createDepartment(
         { name: 'Science' },
         { actorRole: 'ADMIN', ipAddress: '127.0.0.1' },
       );
-      expect(adminOpsRepository.createDepartment).toHaveBeenCalledWith({
+      expect(academicStructureRepository.createDepartment).toHaveBeenCalledWith({
         name: 'Science',
       });
       expect(auditLogs.record).toHaveBeenCalledWith(
@@ -367,25 +377,25 @@ describe('AdminSettingsService', () => {
 
   describe('updateDepartment', () => {
     it('updates and logs audit with rename detail', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getDepartment as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.getDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
         description: 'Old desc',
       });
-      (adminOpsRepository.updateDepartment as jest.Mock).mockResolvedValue({
+      (academicStructureRepository.updateDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Advanced Science',
         description: 'New desc',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.updateDepartment(
         'd1',
         { name: 'Advanced Science', description: 'New desc' },
         { actorRole: 'ADMIN' },
       );
-      expect(adminOpsRepository.updateDepartment).toHaveBeenCalledWith('d1', {
+      expect(academicStructureRepository.updateDepartment).toHaveBeenCalledWith('d1', {
         name: 'Advanced Science',
         description: 'New desc',
       });
@@ -408,19 +418,19 @@ describe('AdminSettingsService', () => {
     });
 
     it('logs generic message when name unchanged', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getDepartment as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.getDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
         description: '',
       });
-      (adminOpsRepository.updateDepartment as jest.Mock).mockResolvedValue({
+      (academicStructureRepository.updateDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
         description: 'Updated',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       await service.updateDepartment(
         'd1',
         { description: 'Updated' },
@@ -445,22 +455,22 @@ describe('AdminSettingsService', () => {
     });
 
     it('deletes and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getDepartment as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.getDepartment as jest.Mock).mockResolvedValue({
         id: 'd1',
         name: 'Science',
       });
-      (adminOpsRepository.deleteDepartment as jest.Mock).mockResolvedValue({
+      (academicStructureRepository.deleteDepartment as jest.Mock).mockResolvedValue({
         success: true,
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.deleteDepartment(
         'd1',
         'DELETE DEPARTMENT',
         { actorRole: 'ADMIN' },
       );
-      expect(adminOpsRepository.deleteDepartment).toHaveBeenCalledWith('d1');
+      expect(academicStructureRepository.deleteDepartment).toHaveBeenCalledWith('d1');
       expect(auditLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'DELETE',
@@ -477,32 +487,32 @@ describe('AdminSettingsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('listCourses', () => {
-    it('delegates to adminOpsRepository.listCourses', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.listCourses as jest.Mock).mockResolvedValue([
+    it('delegates to academicStructureRepository.listCourses', async () => {
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.listCourses as jest.Mock).mockResolvedValue([
         { id: 'c1', name: 'Math 101' },
       ]);
-      const service = buildService({ adminOpsRepository });
+      const service = buildService({ academicStructureRepository });
       const result = await service.listCourses('ay1');
-      expect(adminOpsRepository.listCourses).toHaveBeenCalledWith('ay1');
+      expect(academicStructureRepository.listCourses).toHaveBeenCalledWith('ay1');
       expect(result).toEqual([{ id: 'c1', name: 'Math 101' }]);
     });
   });
 
   describe('createCourse', () => {
     it('creates and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.createCourse as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.createCourse as jest.Mock).mockResolvedValue({
         id: 'c1',
         name: 'Math 101',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ academicStructureRepository, auditLogs });
       const result = await service.createCourse(
         { academicYearId: 'ay1', name: 'Math 101', code: 'MATH101' },
         { actorRole: 'ADMIN' },
       );
-      expect(adminOpsRepository.createCourse).toHaveBeenCalledWith({
+      expect(academicStructureRepository.createCourse).toHaveBeenCalledWith({
         academicYearId: 'ay1',
         name: 'Math 101',
         code: 'MATH101',
@@ -533,14 +543,14 @@ describe('AdminSettingsService', () => {
         id: 'c1',
         name: 'Math 101',
       });
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.deleteCourse as jest.Mock).mockResolvedValue({
+      const academicStructureRepository = buildMockAcademicStructureRepository();
+      (academicStructureRepository.deleteCourse as jest.Mock).mockResolvedValue({
         success: true,
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ prisma, adminOpsRepository, auditLogs });
+      const service = buildService({ prisma, academicStructureRepository, auditLogs });
       const result = await service.deleteCourse('c1', { actorRole: 'ADMIN' });
-      expect(adminOpsRepository.deleteCourse).toHaveBeenCalledWith('c1');
+      expect(academicStructureRepository.deleteCourse).toHaveBeenCalledWith('c1');
       expect(auditLogs.record).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'DELETE',

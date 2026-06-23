@@ -31,7 +31,7 @@ function buildMockNotifications() {
   return { createInAppNotification: jest.fn() };
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockAnnouncementsRepository() {
   return {
     listAnnouncements: jest.fn(),
     createAnnouncement: jest.fn(),
@@ -44,8 +44,8 @@ function buildService(overrides?: Record<string, any>) {
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
   const mail = overrides?.mail ?? buildMockMail();
   const notifications = overrides?.notifications ?? buildMockNotifications();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
-  return new AdminNotificationsService(prisma as any, auditLogs as any, mail as any, notifications as any, adminOpsRepository as any);
+  const announcementsRepository = overrides?.announcementsRepository ?? buildMockAnnouncementsRepository();
+  return new AdminNotificationsService(prisma as any, auditLogs as any, mail as any, notifications as any, announcementsRepository as any);
 }
 
 describe('AdminNotificationsService', () => {
@@ -247,10 +247,10 @@ describe('AdminNotificationsService', () => {
   });
 
   describe('announcements', () => {
-    it('delegates to adminOpsRepository', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.listAnnouncements as jest.Mock).mockResolvedValue([{ id: 'a1' }]);
-      const service = buildService({ adminOpsRepository });
+    it('delegates to announcementsRepository', async () => {
+      const announcementsRepository = buildMockAnnouncementsRepository();
+      (announcementsRepository.listAnnouncements as jest.Mock).mockResolvedValue([{ id: 'a1' }]);
+      const service = buildService({ announcementsRepository });
 
       const result = await service.announcements();
 
@@ -260,12 +260,12 @@ describe('AdminNotificationsService', () => {
 
   describe('createAnnouncement', () => {
     it('creates announcement via repository and records audit log', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.createAnnouncement as jest.Mock).mockResolvedValue({
+      const announcementsRepository = buildMockAnnouncementsRepository();
+      (announcementsRepository.createAnnouncement as jest.Mock).mockResolvedValue({
         id: 'a1', title: 'Announcement',
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ announcementsRepository, auditLogs });
 
       const result = await service.createAnnouncement({ title: 'Test', body: 'Body' });
 
@@ -281,12 +281,12 @@ describe('AdminNotificationsService', () => {
     });
 
     it('deletes via repository and records audit log', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.deleteAnnouncements as jest.Mock).mockResolvedValue({
+      const announcementsRepository = buildMockAnnouncementsRepository();
+      (announcementsRepository.deleteAnnouncements as jest.Mock).mockResolvedValue({
         count: 2, titles: ['A1', 'A2'],
       });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ announcementsRepository, auditLogs });
 
       const result = await service.deleteAnnouncements(['a1', 'a2']);
 

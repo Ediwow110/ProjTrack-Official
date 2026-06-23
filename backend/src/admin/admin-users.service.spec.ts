@@ -29,7 +29,7 @@ function buildMockNotifications() {
   return { createInAppNotification: jest.fn() };
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockAcademicStructureRepository() {
   return { resolveSectionPlacement: jest.fn(), ensureDepartmentName: jest.fn() };
 }
 
@@ -39,9 +39,9 @@ function buildService(overrides?: Record<string, any>) {
   const mail = overrides?.mail ?? buildMockMail();
   const accountActionTokens = overrides?.accountActionTokens ?? buildMockAccountActionTokens();
   const notifications = overrides?.notifications ?? buildMockNotifications();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
   const files = overrides?.files ?? {};
-  return new AdminUsersService(prisma, auditLogs as any, mail as any, accountActionTokens as any, notifications as any, adminOpsRepository as any, files as any);
+  const academicStructureRepository = overrides?.academicStructureRepository ?? buildMockAcademicStructureRepository();
+  return new AdminUsersService(prisma, auditLogs as any, mail as any, accountActionTokens as any, notifications as any, files as any, academicStructureRepository as any);
 }
 
 describe('AdminUsersService', () => {

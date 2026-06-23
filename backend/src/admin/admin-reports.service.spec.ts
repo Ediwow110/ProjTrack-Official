@@ -9,7 +9,7 @@ function buildMockAdminReportsRepository() {
   };
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockRequestRepository() {
   return {
     listRequests: jest.fn(),
     updateRequestStatus: jest.fn(),
@@ -22,9 +22,9 @@ function buildMockAuditLogs() {
 
 function buildService(overrides?: Record<string, any>) {
   const adminReportsRepository = overrides?.adminReportsRepository ?? buildMockAdminReportsRepository();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
+  const requestRepository = overrides?.requestRepository ?? buildMockRequestRepository();
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
-  return new AdminReportsService(adminReportsRepository as any, adminOpsRepository as any, auditLogs as any);
+  return new AdminReportsService(adminReportsRepository as any, requestRepository as any, auditLogs as any);
 }
 
 describe('AdminReportsService', () => {
@@ -97,33 +97,33 @@ describe('AdminReportsService', () => {
   });
 
   describe('requests', () => {
-    it('delegates to adminOpsRepository.listRequests', async () => {
-      const opsRepo = buildMockAdminOpsRepository();
-      opsRepo.listRequests.mockResolvedValue([{ id: 'req1', type: 'Type', status: 'Pending' }]);
-      const service = buildService({ adminOpsRepository: opsRepo });
+    it('delegates to requestRepository.listRequests', async () => {
+      const reqRepo = buildMockRequestRepository();
+      reqRepo.listRequests.mockResolvedValue([{ id: 'req1', type: 'Type', status: 'Pending' }]);
+      const service = buildService({ requestRepository: reqRepo });
 
       const result = await service.requests('Pending');
 
-      expect(opsRepo.listRequests).toHaveBeenCalledWith('Pending');
+      expect(reqRepo.listRequests).toHaveBeenCalledWith('Pending');
       expect(result).toEqual([{ id: 'req1', type: 'Type', status: 'Pending' }]);
     });
   });
 
   describe('requestAction', () => {
     it('updates status and records audit log on approval', async () => {
-      const opsRepo = buildMockAdminOpsRepository();
+      const reqRepo = buildMockRequestRepository();
       const auditLogs = buildMockAuditLogs();
-      opsRepo.updateRequestStatus.mockResolvedValue({
+      reqRepo.updateRequestStatus.mockResolvedValue({
         id: 'req1',
         type: 'Type',
         requester: 'user@test.com',
       });
       auditLogs.record.mockResolvedValue({ success: true });
-      const service = buildService({ adminOpsRepository: opsRepo, auditLogs });
+      const service = buildService({ requestRepository: reqRepo, auditLogs });
 
       const result = await service.requestAction('req1', 'Approved');
 
-      expect(opsRepo.updateRequestStatus).toHaveBeenCalledWith('req1', 'Approved');
+      expect(reqRepo.updateRequestStatus).toHaveBeenCalledWith('req1', 'Approved');
       expect(auditLogs.record).toHaveBeenCalledWith({
         actorRole: 'ADMIN',
         action: 'APPROVED',
@@ -136,19 +136,19 @@ describe('AdminReportsService', () => {
     });
 
     it('updates status and records audit log on rejection', async () => {
-      const opsRepo = buildMockAdminOpsRepository();
+      const reqRepo = buildMockRequestRepository();
       const auditLogs = buildMockAuditLogs();
-      opsRepo.updateRequestStatus.mockResolvedValue({
+      reqRepo.updateRequestStatus.mockResolvedValue({
         id: 'req2',
         type: 'Other',
         requester: 'admin@test.com',
       });
       auditLogs.record.mockResolvedValue({ success: true });
-      const service = buildService({ adminOpsRepository: opsRepo, auditLogs });
+      const service = buildService({ requestRepository: reqRepo, auditLogs });
 
       const result = await service.requestAction('req2', 'Rejected');
 
-      expect(opsRepo.updateRequestStatus).toHaveBeenCalledWith('req2', 'Rejected');
+      expect(reqRepo.updateRequestStatus).toHaveBeenCalledWith('req2', 'Rejected');
       expect(auditLogs.record).toHaveBeenCalledWith({
         actorRole: 'ADMIN',
         action: 'REJECTED',

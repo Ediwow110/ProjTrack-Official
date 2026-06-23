@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { SystemToolsRepository } from '../repositories/system-tools.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { FilesService } from '../files/files.service';
@@ -34,14 +34,14 @@ export class AdminSystemToolsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly systemToolsRepository: SystemToolsRepository,
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
     private readonly files: FilesService,
   ) {}
 
   async getSystemTools() {
-    const tools = await this.adminOpsRepository.getSystemTools();
+    const tools = await this.systemToolsRepository.getSystemTools();
     if (tools.some((tool: any) => String(tool?.id ?? tool?.key ?? '').trim() === 'seed-cleanup')) {
       return tools;
     }
@@ -77,7 +77,7 @@ export class AdminSystemToolsService {
       return response;
     }
 
-    const response = await this.adminOpsRepository.runSystemTool(id);
+    const response = await this.systemToolsRepository.runSystemTool(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -1589,11 +1589,11 @@ export class AdminSystemToolsService {
   }
 
   downloadSystemToolArtifact(path: string) {
-    return this.adminOpsRepository.resolveSystemToolArtifact(path);
+    return this.systemToolsRepository.resolveSystemToolArtifact(path);
   }
 
   async importSystemToolBackup(fileName: string, contentBase64: string) {
-    const response = this.adminOpsRepository.importBackupArtifact({ fileName, contentBase64 });
+    const response = this.systemToolsRepository.importBackupArtifact({ fileName, contentBase64 });
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'IMPORT',

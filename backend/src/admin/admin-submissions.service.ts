@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { SubmissionRepository } from '../repositories/submission.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { FilesService } from '../files/files.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
@@ -19,7 +19,7 @@ export class AdminSubmissionsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly submissionRepository: SubmissionRepository,
     private readonly auditLogs: AuditLogsService,
     private readonly files: FilesService,
   ) {}
@@ -158,7 +158,7 @@ export class AdminSubmissionsService {
   }
 
   async saveSubmissionNote(id: string, note: string) {
-    const submission: any = await this.adminOpsRepository.saveSubmissionNote(id, note);
+    const submission: any = await this.submissionRepository.saveSubmissionNote(id, note);
     await this.auditLogs.record({ actorRole: 'ADMIN', action: 'SUBMISSION_NOTE_UPDATED', module: 'Submissions', target: submission.title, entityId: submission.id, result: 'Success', details: 'Administrative submission note updated.' });
     return { success: true, note: submission.notes ?? '' };
   }

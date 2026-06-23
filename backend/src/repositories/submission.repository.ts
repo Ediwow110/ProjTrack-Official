@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 import { hasPrismaErrorCode } from '../prisma/prisma-compat';
@@ -334,6 +334,15 @@ export class SubmissionRepository {
         student: { select: SAFE_USER_SELECT },
         group: { include: { members: { include: { student: { select: SAFE_USER_SELECT } } } } },
       },
+    });
+  }
+
+  async saveSubmissionNote(id: string, note: string) {
+    const submission = await this.prisma.submission.findFirst({ where: { id: String(id) } });
+    if (!submission) throw new NotFoundException('Submission not found.');
+    return this.prisma.submission.update({
+      where: { id: submission.id },
+      data: { notes: note },
     });
   }
 }

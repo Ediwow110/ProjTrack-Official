@@ -14,7 +14,7 @@ function buildMockPrisma() {
   return mock as PrismaService;
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockSubmissionRepository() {
   return { saveSubmissionNote: jest.fn() };
 }
 
@@ -28,10 +28,10 @@ function buildMockFiles() {
 
 function buildService(overrides?: Record<string, any>) {
   const prisma = overrides?.prisma ?? buildMockPrisma();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
+  const submissionRepository = overrides?.submissionRepository ?? buildMockSubmissionRepository();
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
   const files = overrides?.files ?? buildMockFiles();
-  return new AdminSubmissionsService(prisma, adminOpsRepository as any, auditLogs as any, files as any);
+  return new AdminSubmissionsService(prisma, submissionRepository as any, auditLogs as any, files as any);
 }
 
 describe('AdminSubmissionsService', () => {
@@ -99,10 +99,10 @@ describe('AdminSubmissionsService', () => {
 
   describe('saveSubmissionNote', () => {
     it('saves note and logs audit', async () => {
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.saveSubmissionNote as jest.Mock).mockResolvedValue({ id: 'sub1', title: 'Test', notes: 'Admin note' });
+      const submissionRepository = buildMockSubmissionRepository();
+      (submissionRepository.saveSubmissionNote as jest.Mock).mockResolvedValue({ id: 'sub1', title: 'Test', notes: 'Admin note' });
       const auditLogs = buildMockAuditLogs();
-      const service = buildService({ adminOpsRepository, auditLogs });
+      const service = buildService({ submissionRepository, auditLogs });
       const result = await service.saveSubmissionNote('sub1', 'Admin note');
       expect(result.success).toBe(true);
       expect(auditLogs.record).toHaveBeenCalled();

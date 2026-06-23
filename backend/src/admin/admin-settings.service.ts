@@ -4,7 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { SettingsRepository } from '../repositories/settings.repository';
+import { AcademicStructureRepository } from '../repositories/academic-structure.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 type AdminActorContext = {
@@ -19,7 +20,8 @@ type AdminActorContext = {
 export class AdminSettingsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly settingsRepository: SettingsRepository,
+    private readonly academicStructureRepository: AcademicStructureRepository,
     private readonly auditLogs: AuditLogsService,
   ) {}
 
@@ -28,13 +30,13 @@ export class AdminSettingsService {
   // ---------------------------------------------------------------------------
 
   async getAcademicSettings() {
-    return this.adminOpsRepository.getAcademicSettings();
+    return this.settingsRepository.getAcademicSettings();
   }
 
   async saveAcademicSettings(payload: any, actor?: AdminActorContext) {
-    const saved = await this.adminOpsRepository.saveAcademicSettings(payload);
+    const saved = await this.settingsRepository.saveAcademicSettings(payload);
     if (saved?.schoolYear) {
-      await this.adminOpsRepository.ensureAcademicYear(saved.schoolYear, 'ACTIVE');
+      await this.academicStructureRepository.ensureAcademicYear(saved.schoolYear, 'ACTIVE');
     }
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
@@ -54,11 +56,11 @@ export class AdminSettingsService {
   // ---------------------------------------------------------------------------
 
   async getSystemSettings() {
-    return this.adminOpsRepository.getSystemSettings();
+    return this.settingsRepository.getSystemSettings();
   }
 
   async saveSystemSettings(payload: any, actor?: AdminActorContext) {
-    const saved = await this.adminOpsRepository.saveSystemSettings(payload);
+    const saved = await this.settingsRepository.saveSystemSettings(payload);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: 'ADMIN',
@@ -77,11 +79,11 @@ export class AdminSettingsService {
   // ---------------------------------------------------------------------------
 
   async academicYears(search?: string) {
-    return this.adminOpsRepository.listAcademicYears(search);
+    return this.academicStructureRepository.listAcademicYears(search);
   }
 
   async createAcademicYear(payload: { name?: string; status?: string }) {
-    const created = await this.adminOpsRepository.createAcademicYear(payload);
+    const created = await this.academicStructureRepository.createAcademicYear(payload);
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'CREATE',
@@ -97,7 +99,7 @@ export class AdminSettingsService {
   async deleteAcademicYear(id: string, actor?: AdminActorContext) {
     const year = await this.prisma.academicYear.findUnique({ where: { id } });
     if (!year) throw new NotFoundException('Academic year not found.');
-    const result = await this.adminOpsRepository.deleteAcademicYear(id);
+    const result = await this.academicStructureRepository.deleteAcademicYear(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -118,7 +120,7 @@ export class AdminSettingsService {
     sortOrder?: number | string;
     courseId?: string;
   }) {
-    const created = await this.adminOpsRepository.createAcademicYearLevel(payload);
+    const created = await this.academicStructureRepository.createAcademicYearLevel(payload);
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'CREATE',
@@ -134,7 +136,7 @@ export class AdminSettingsService {
   async deleteAcademicYearLevel(id: string, actor?: AdminActorContext) {
     const level = await this.prisma.academicYearLevel.findUnique({ where: { id } });
     if (!level) throw new NotFoundException('Year level not found.');
-    const result = await this.adminOpsRepository.deleteAcademicYearLevel(id);
+    const result = await this.academicStructureRepository.deleteAcademicYearLevel(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -154,18 +156,18 @@ export class AdminSettingsService {
   // ---------------------------------------------------------------------------
 
   async departments(search?: string) {
-    return this.adminOpsRepository.listDepartments(search);
+    return this.academicStructureRepository.listDepartments(search);
   }
 
   async department(id: string) {
-    return this.adminOpsRepository.getDepartment(id);
+    return this.academicStructureRepository.getDepartment(id);
   }
 
   async createDepartment(
     payload: { name?: string; description?: string },
     actor?: AdminActorContext,
   ) {
-    const created = await this.adminOpsRepository.createDepartment(payload);
+    const created = await this.academicStructureRepository.createDepartment(payload);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -185,8 +187,8 @@ export class AdminSettingsService {
     payload: { name?: string; description?: string },
     actor?: AdminActorContext,
   ) {
-    const before = await this.adminOpsRepository.getDepartment(id);
-    const updated = await this.adminOpsRepository.updateDepartment(id, payload);
+    const before = await this.academicStructureRepository.getDepartment(id);
+    const updated = await this.academicStructureRepository.updateDepartment(id, payload);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -224,8 +226,8 @@ export class AdminSettingsService {
       );
     }
 
-    const existing = await this.adminOpsRepository.getDepartment(id);
-    const result = await this.adminOpsRepository.deleteDepartment(id);
+    const existing = await this.academicStructureRepository.getDepartment(id);
+    const result = await this.academicStructureRepository.deleteDepartment(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -245,7 +247,7 @@ export class AdminSettingsService {
   // ---------------------------------------------------------------------------
 
   async listCourses(academicYearId: string) {
-    return this.adminOpsRepository.listCourses(academicYearId);
+    return this.academicStructureRepository.listCourses(academicYearId);
   }
 
   async createCourse(
@@ -258,7 +260,7 @@ export class AdminSettingsService {
     },
     actor?: AdminActorContext,
   ) {
-    const created = await this.adminOpsRepository.createCourse(payload);
+    const created = await this.academicStructureRepository.createCourse(payload);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',
@@ -276,7 +278,7 @@ export class AdminSettingsService {
   async deleteCourse(id: string, actor?: AdminActorContext) {
     const course = await this.prisma.course.findUnique({ where: { id } });
     if (!course) throw new NotFoundException('Course not found.');
-    const result = await this.adminOpsRepository.deleteCourse(id);
+    const result = await this.academicStructureRepository.deleteCourse(id);
     await this.auditLogs.record({
       actorUserId: actor?.actorUserId,
       actorRole: actor?.actorRole ?? 'ADMIN',

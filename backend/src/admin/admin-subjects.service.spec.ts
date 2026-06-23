@@ -13,7 +13,7 @@ function buildMockPrisma() {
   return mock as PrismaService;
 }
 
-function buildMockAdminOpsRepository() {
+function buildMockSettingsRepository() {
   return { getAcademicSettings: jest.fn() };
 }
 
@@ -23,9 +23,9 @@ function buildMockAuditLogs() {
 
 function buildService(overrides?: Record<string, any>) {
   const prisma = overrides?.prisma ?? buildMockPrisma();
-  const adminOpsRepository = overrides?.adminOpsRepository ?? buildMockAdminOpsRepository();
+  const settingsRepository = overrides?.settingsRepository ?? buildMockSettingsRepository();
   const auditLogs = overrides?.auditLogs ?? buildMockAuditLogs();
-  return new AdminSubjectsService(prisma, adminOpsRepository as any, auditLogs as any);
+  return new AdminSubjectsService(prisma, settingsRepository as any, auditLogs as any);
 }
 
 describe('AdminSubjectsService', () => {
@@ -108,9 +108,9 @@ describe('AdminSubjectsService', () => {
       (prisma.subject.findUnique as jest.Mock).mockResolvedValue({
         id: 's1', code: 'MATH101', name: 'Mathematics', status: 'ACTIVE', isOpen: true, groupEnabled: true, allowLateSubmission: true, teacher: null, tasks: [], enrollments: [],
       });
-      const adminOpsRepository = buildMockAdminOpsRepository();
-      (adminOpsRepository.getAcademicSettings as jest.Mock).mockResolvedValue({ schoolYear: '2024-2025', semester: '1st' });
-      const service = buildService({ prisma, adminOpsRepository });
+      const settingsRepository = buildMockSettingsRepository();
+      (settingsRepository.getAcademicSettings as jest.Mock).mockResolvedValue({ schoolYear: '2024-2025', semester: '1st' });
+      const service = buildService({ prisma, settingsRepository });
       const result = await service.subjectDetail('s1');
       expect(result.code).toBe('MATH101');
       expect(result.term).toContain('2024-2025');

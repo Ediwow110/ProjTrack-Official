@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { SettingsRepository } from '../repositories/settings.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 
@@ -18,7 +18,7 @@ export class AdminSubjectsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly settingsRepository: SettingsRepository,
     private readonly auditLogs: AuditLogsService,
   ) {}
 
@@ -111,7 +111,7 @@ export class AdminSubjectsService {
   async subjectDetail(id: string) {
     const [subject, settings] = await Promise.all([
       this.prisma.subject.findUnique({ where: { id }, include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } }, tasks: true, enrollments: { include: { section: true } } } }),
-      this.adminOpsRepository.getAcademicSettings(),
+      this.settingsRepository.getAcademicSettings(),
     ]);
     if (!subject) throw new NotFoundException('Subject not found.');
     const acceptedTypes = new Set<string>();

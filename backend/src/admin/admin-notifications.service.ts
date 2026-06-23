@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminOpsRepository } from '../repositories/admin-ops.repository';
+import { AnnouncementsRepository } from '../repositories/announcements.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -27,7 +27,7 @@ export class AdminNotificationsService {
     private readonly auditLogs: AuditLogsService,
     private readonly mail: MailService,
     private readonly notifications: NotificationsService,
-    private readonly adminOpsRepository: AdminOpsRepository,
+    private readonly announcementsRepository: AnnouncementsRepository,
   ) {}
 
   async notificationsList(role?: string, type?: string) {
@@ -176,11 +176,11 @@ export class AdminNotificationsService {
   }
 
   async announcements() {
-    return this.adminOpsRepository.listAnnouncements();
+    return this.announcementsRepository.listAnnouncements();
   }
 
   async createAnnouncement(body: { title: string; body: string; audience?: string; status?: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED'; publishAt?: string }) {
-    const record = await this.adminOpsRepository.createAnnouncement(body);
+    const record = await this.announcementsRepository.createAnnouncement(body);
     await this.auditLogs.record({
       actorRole: 'ADMIN',
       action: 'ANNOUNCEMENT_CREATED',
@@ -201,7 +201,7 @@ export class AdminNotificationsService {
       throw new BadRequestException('At least one announcement must be selected.');
     }
 
-    const deleted = await this.adminOpsRepository.deleteAnnouncements(normalizedIds);
+    const deleted = await this.announcementsRepository.deleteAnnouncements(normalizedIds);
 
     await this.auditLogs.record({
       actorRole: 'ADMIN',
