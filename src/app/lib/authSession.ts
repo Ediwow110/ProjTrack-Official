@@ -35,6 +35,7 @@ const ACCESS_KEY = "projtrack-access-token";
 const REFRESH_KEY = "projtrack-refresh-token";
 const REMEMBER_KEY = "projtrack-remember-me";
 const SESSION_EVENT = "projtrack-auth-session-change";
+export const SESSION_EXPIRED_EVENT = "projtrack-session-expired";
 let memoryAccessToken: string | null = null;
 let memoryRefreshToken: string | null = null;
 
@@ -188,6 +189,22 @@ export function subscribeAuthSession(listener: (session: AuthSession | null) => 
   window.addEventListener(SESSION_EVENT, handleChange as EventListener);
   return () => {
     window.removeEventListener(SESSION_EVENT, handleChange as EventListener);
+  };
+}
+
+export function dispatchSessionExpired() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+}
+
+export function subscribeSessionExpired(listener: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+  const handler = () => listener();
+  window.addEventListener(SESSION_EXPIRED_EVENT, handler);
+  return () => {
+    window.removeEventListener(SESSION_EXPIRED_EVENT, handler);
   };
 }
 

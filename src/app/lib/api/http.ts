@@ -1,5 +1,5 @@
 import { apiRuntime, buildApiUrl } from './runtime';
-import { clearAuthSession, getAccessToken, getRefreshToken, updateAuthTokens } from '../authSession';
+import { clearAuthSession, dispatchSessionExpired, getAccessToken, getRefreshToken, updateAuthTokens } from '../authSession';
 import { beginNetworkActivity, endNetworkActivity } from '../networkActivity';
 
 let refreshPromise: Promise<string | null> | null = null;
@@ -157,6 +157,7 @@ async function doRefreshToken() {
   }
 
   if (!response.ok) {
+    dispatchSessionExpired();
     clearAuthSession();
     return null;
   }
