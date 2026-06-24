@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { ChevronLeft, PencilLine, RefreshCcw, ShieldOff } from "lucide-react";
 import { AppModal } from "../../components/ui/app-modal";
 import { ConfirmDialog } from "../../components/lists/shared/ConfirmDialog";
@@ -25,6 +25,7 @@ const modalFieldClassName =
 export default function AdminStudentView() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<AdminStudentViewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,15 @@ export default function AdminStudentView() {
     setActionState({ busy: false, error: null, note: null });
     loadRecord();
   }, [id]);
+
+  // Auto-open edit modal when navigated with ?edit=true
+  const autoEditTriggered = useRef(false);
+  useEffect(() => {
+    if (data && searchParams.get('edit') === 'true' && !autoEditTriggered.current) {
+      autoEditTriggered.current = true;
+      handleOpenEdit();
+    }
+  }, [data, searchParams]);
 
   useEffect(() => {
     let active = true;

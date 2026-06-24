@@ -273,6 +273,11 @@ export class AdminController {
     return this.adminUsers.updateStudent(id, body);
   }
 
+  @Delete('sections/:sectionId/students/:studentId')
+  removeStudentFromSection(@Param('sectionId') sectionId: string, @Param('studentId') studentId: string) {
+    return this.adminUsers.removeStudentFromSection(sectionId, studentId);
+  }
+
   @Post('teachers/:id/activate')
   activateTeacher(@Param('id') id: string, @Req() req: any) {
     return this.adminUsers.activateTeacher(id, this.actorContext(req));

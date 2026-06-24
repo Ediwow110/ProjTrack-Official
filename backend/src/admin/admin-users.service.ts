@@ -446,6 +446,38 @@ export class AdminUsersService {
     return { success: true, queued: true, status: 'PENDING_PASSWORD_SETUP', mailJobId: mailJob.id };
   }
 
+  async removeStudentFromSection(sectionId: string, studentId: string) {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { id: studentId, role: 'STUDENT' },
+        include: { studentProfile: { include: { section: true } } },
+      });
+      if (!user?.studentProfile) throw new NotFoundException('Student not found.');
+      if (user.studentProfile.sectionId !== sectionId) {
+        throw new BadRequestException('Student is not assigned to this section.');
+      }
+      await this.prisma.studentProfile.update({
+        where: { userId: studentId },
+        data: { sectionId: null, academicYearId: null, academicYearLevelId: null },
+      });
+      await this.auditLogs.record({
+        actorRole: 'ADMIN',
+        action: 'UPDATE',
+        module: 'Sections',
+        target: `${user.firstName} ${user.lastName}`.trim(),
+        entityId: studentId,
+        result: 'Success',
+        details: `Admin removed student from section ${sectionId}.`,
+      });
+      return { success: true };
+    } catch (error) {
+      const msg = `removeStudentFromSection failed: sectionId=${sectionId}, studentId=${studentId}, error=${error instanceof Error ? error.stack : String(error)}`;
+      this.logger.error(msg);
+      console.error('DEBUG_REMOVE_ERROR:', msg);
+      throw error;
+    }
+  }
+
   private buildStudentActivationSummary(user: any, token: any, mailJob: any, lastUsedAt: Date | null) {
     if (isPendingSetupStatus(user.status)) {
       const mailSentDaysAgo = mailJob?.createdAt ? Math.floor((Date.now() - new Date(mailJob.createdAt).getTime()) / 86400000) : null;

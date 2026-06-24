@@ -16,7 +16,7 @@ import { logSafeMailRuntimeState } from './config/mail-runtime-diagnostics';
 import { inspectRuntimeConfiguration } from './config/runtime-safety';
 import { validateProductionEmailConfig } from './mail/mail-environment.guard';
 import { BRANDING_ASSET_ROUTE_PREFIX } from './branding/branding.constants';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from './prisma/prisma.service';
 
 const envCandidates = [
   resolve(process.cwd(), '.env'),
@@ -74,7 +74,7 @@ function rateLimitRules() {
 }
 
 async function databaseRateLimit(
-  prisma: PrismaClient,
+  prisma: PrismaService,
   action: string,
   key: string,
   max: number,
@@ -134,9 +134,8 @@ async function bootstrap() {
   validateProductionEmailConfig(process.env);
   logSafeMailRuntimeState(bootstrapLogger);
 
-  const prisma = new PrismaClient();
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
+  const prismaService = app.get(PrismaService);
   const expressApp = app.getHttpAdapter().getInstance();
   app.useStaticAssets(resolve(__dirname, '../uploads/branding'), {
     prefix: `${BRANDING_ASSET_ROUTE_PREFIX}/`,
@@ -190,7 +189,7 @@ async function bootstrap() {
     const now = Date.now();
     if (useDatabaseRateLimit) {
       try {
-        const allowed = await databaseRateLimit(prisma, `http:${rule.name}`, key, rule.max, rule.windowMs);
+        const allowed = await databaseRateLimit(prismaService, `http:${rule.name}`, key, rule.max, rule.windowMs);
         if (!allowed) {
           res.statusCode = 429;
           return res.json({ statusCode: 429, message: 'Too many requests. Please try again later.' });

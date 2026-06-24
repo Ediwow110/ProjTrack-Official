@@ -3418,6 +3418,14 @@ export const adminCatalogService = {
       rows: [],
     };
   },
+  async removeStudentFromSection(sectionId: string, studentId: string): Promise<{ success: boolean }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean }>(`/admin/sections/${sectionId}/students/${studentId}`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true };
+  },
   async downloadSectionMasterList(sectionId: string) {
     const response = await http.getBlob(`/admin/sections/${sectionId}/master-list/export`);
     downloadBlobFile(response.blob, response.fileName || "masters-list.xlsx");

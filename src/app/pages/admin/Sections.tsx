@@ -7,10 +7,13 @@ import {
   CalendarRange,
   ChevronRight,
   Download,
+  Eye,
   FolderTree,
+  PencilLine,
   Plus,
   RefreshCcw,
   Search,
+  UserX,
   Users,
 } from "lucide-react";
 
@@ -105,6 +108,14 @@ export default function AdminSections() {
   } | null>(null);
   const [deleteState, setDeleteState] = useState<{ deleting: boolean; error: string | null }>({
     deleting: false,
+    error: null,
+  });
+  const [removeStudentTarget, setRemoveStudentTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [removeStudentState, setRemoveStudentState] = useState<{ removing: boolean; error: string | null }>({
+    removing: false,
     error: null,
   });
   const [submitState, setSubmitState] = useState<{
@@ -324,6 +335,19 @@ export default function AdminSections() {
       setDeleteState({ deleting: false, error: null });
     } catch (err) {
       setDeleteState({ deleting: false, error: err instanceof Error ? err.message : 'Delete failed.' });
+    }
+  }
+
+  async function handleRemoveStudentFromSection() {
+    if (!removeStudentTarget || !view.sectionId) return;
+    setRemoveStudentState({ removing: true, error: null });
+    try {
+      await adminCatalogService.removeStudentFromSection(view.sectionId, removeStudentTarget.id);
+      await reload();
+      setRemoveStudentTarget(null);
+      setRemoveStudentState({ removing: false, error: null });
+    } catch (err) {
+      setRemoveStudentState({ removing: false, error: err instanceof Error ? err.message : 'Failed to remove student from section.' });
     }
   }
 
@@ -775,6 +799,14 @@ export default function AdminSections() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => navigate(`/admin/students?sectionId=${encodeURIComponent(selectedSection.id)}&add=true`)}
+                    className="flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
+                  >
+                    <Plus size={14} />
+                    Add Student
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => navigate(`/admin/bulk-move?sourceSectionId=${encodeURIComponent(selectedSection.id)}`)}
                     className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/88 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-[var(--shadow-soft)] transition hover:bg-slate-50 dark:hover:bg-slate-800/70 dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
                   >
@@ -820,7 +852,7 @@ export default function AdminSections() {
                   <table className="w-full min-w-[760px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-200/70 bg-slate-50/85 dark:border-slate-700/70 dark:bg-slate-900/70">
-                        {["Student ID", "Last Name", "First Name", "M.I.", "Account Status"].map((header) => (
+                        {["Student ID", "Last Name", "First Name", "M.I.", "Account Status", "Actions"].map((header) => (
                           <th
                             key={header}
                             className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-300"
@@ -838,6 +870,37 @@ export default function AdminSections() {
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.firstName}</td>
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.middleInitial || ""}</td>
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{student.accountStatus || "—"}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/students/${student.id}`)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800/70"
+                                title={`View ${student.firstName} ${student.lastName}`}
+                              >
+                                <Eye size={12} />
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/students/${student.id}?edit=true`)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 transition hover:bg-blue-50 dark:hover:bg-slate-800/70"
+                                title={`Edit ${student.firstName} ${student.lastName}`}
+                              >
+                                <PencilLine size={12} />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRemoveStudentTarget({ id: student.id, name: `${student.firstName} ${student.lastName}` })}
+                                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-300 transition hover:bg-rose-50 dark:hover:bg-slate-800/70"
+                                title={`Remove ${student.firstName} ${student.lastName} from section`}
+                              >
+                                <UserX size={12} />
+                                Remove
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1009,6 +1072,35 @@ export default function AdminSections() {
           {deleteState.error ? (
             <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
               {deleteState.error}
+            </div>
+          ) : null}
+        </AppModal>
+      ) : null}
+
+      {/* Remove student from section confirmation */}
+      {removeStudentTarget ? (
+        <AppModal
+          open={Boolean(removeStudentTarget)}
+          onOpenChange={(open) => { if (!removeStudentState.removing && !open) setRemoveStudentTarget(null); }}
+          title="Remove Student from Section"
+          description={`Remove "${removeStudentTarget.name}" from ${selectedSection?.code ?? "this section"}? The student account will not be deleted — they will just be unassigned from this section.`}
+          size="md"
+          footer={(
+            <>
+              <button type="button" disabled={removeStudentState.removing} onClick={() => setRemoveStudentTarget(null)}
+                className="rounded-[20px] border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition hover:bg-slate-50 dark:hover:bg-slate-800/70 disabled:opacity-50">
+                Cancel
+              </button>
+              <button type="button" disabled={removeStudentState.removing} onClick={handleRemoveStudentFromSection}
+                className="rounded-[20px] bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50">
+                {removeStudentState.removing ? "Removing..." : "Remove from Section"}
+              </button>
+            </>
+          )}
+        >
+          {removeStudentState.error ? (
+            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+              {removeStudentState.error}
             </div>
           ) : null}
         </AppModal>

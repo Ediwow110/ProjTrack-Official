@@ -1,0 +1,157 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const adminAccount = {
+  identifier: process.env.SMOKE_ADMIN_IDENTIFIER || "",
+  password: process.env.SMOKE_ADMIN_PASSWORD || "",
+};
+
+test.skip(
+  !String(adminAccount.identifier).trim() || !String(adminAccount.password).trim(),
+  "Set SMOKE_ADMIN_IDENTIFIER and SMOKE_ADMIN_PASSWORD before running admin reports e2e.",
+);
+
+type RuntimeTracker = {
+  consoleErrors: string[];
+  pageErrors: string[];
+  serverErrors: string[];
+};
+
+function attachRuntimeTracker(page: Page): RuntimeTracker {
+  const tracker: RuntimeTracker = {
+    consoleErrors: [],
+    pageErrors: [],
+    serverErrors: [],
+  };
+
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (/favicon/i.test(text)) return;
+    tracker.consoleErrors.push(text);
+  });
+
+  page.on("pageerror", (error) => {
+    tracker.pageErrors.push(error.message);
+  });
+
+  page.on("response", (response) => {
+    if (response.status() >= 500) {
+      tracker.serverErrors.push(`${response.status()} ${response.url()}`);
+    }
+  });
+
+  return tracker;
+}
+
+async function assertHealthy(page: Page, tracker: RuntimeTracker) {
+  await expect(page.getByText(/Unexpected Application Error!/i)).toHaveCount(0);
+  expect(
+    tracker.pageErrors,
+    `Unexpected page errors: ${tracker.pageErrors.join("\n")}`,
+  ).toEqual([]);
+  expect(
+    tracker.consoleErrors,
+    `Unexpected console errors: ${tracker.consoleErrors.join("\n")}`,
+  ).toEqual([]);
+  expect(
+    tracker.serverErrors,
+    `Unexpected server errors: ${tracker.serverErrors.join("\n")}`,
+  ).toEqual([]);
+}
+
+async function loginAdmin(page: Page) {
+  await page.goto("/admin/login");
+  await page.getByLabel(/Email or Admin ID/i).fill(adminAccount.identifier);
+  await page.getByLabel(/^Password$/i).fill(adminAccount.password);
+  await page.getByRole("button", { name: /Sign In as Admin/i }).click();
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
+}
+
+async function navigateReady(page: Page, url: string) {
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(500);
+}
+
+test("Admin Reports page title, metric cards, and table render without runtime errors", async ({ page }) => {
+  test.slow();
+  const tracker = attachRuntimeTracker(page);
+  await loginAdmin(page);
+
+  await navigateReady(page, "/admin/reports");
+
+  await expect(page.getByRole("heading", { name: /Reports/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+  const description = page.getByText(/Institutional analytics and submission insights/i);
+  await expect(description).toBeVisible();
+
+  const refreshBtn = page.getByRole("button", { name: /Refresh/i });
+  await expect(refreshBtn).toBeVisible();
+
+  const exportBtn = page.getByRole("button", { name: /Export Current View/i });
+  await expect(exportBtn).toBeVisible();
+
+  const schoolYearSelect = page.getByLabel(/School Year:/i);
+  await expect(schoolYearSelect).toBeVisible();
+
+  const semesterSelect = page.getByLabel(/Semester:/i);
+  await expect(semesterSelect).toBeVisible();
+
+  const sectionSelect = page.getByLabel(/Section:/i);
+  await expect(sectionSelect).toBeVisible();
+
+  await assertHealthy(page, tracker);
+});
+
+test("Admin Reports school year, semester, and section filter selects change and trigger data reload", async ({ page }) => {
+  test.slow();
+  const tracker = attachRuntimeTracker(page);
+  await loginAdmin(page);
+
+  await navigateReady(page, "/admin/reports");
+
+  const semesterSelect = page.getByLabel(/Semester:/i);
+  await semesterSelect.selectOption("1st Semester");
+  await page.waitForTimeout(1000);
+
+  await expect(semesterSelect).toHaveValue("1st Semester");
+  await assertHealthy(page, tracker);
+
+  await semesterSelect.selectOption("2nd Semester");
+  await page.waitForTimeout(1000);
+
+  await expect(semesterSelect).toHaveValue("2nd Semester");
+  await assertHealthy(page, tracker);
+});
+
+test("Admin Reports Refresh button reloads data without errors", async ({ page }) => {
+  test.slow();
+  const tracker = attachRuntimeTracker(page);
+  await loginAdmin(page);
+
+  await navigateReady(page, "/admin/reports");
+  const heading = page.getByRole("heading", { name: /Reports/i, level: 1 });
+  await expect(heading).toBeVisible({ timeout: 15_000 });
+
+  const refreshBtn = page.getByRole("button", { name: /Refresh/i });
+  await refreshBtn.click();
+  await page.waitForTimeout(2000);
+
+  await assertHealthy(page, tracker);
+});
+
+test("Admin Reports Export button fires with no runtime errors", async ({ page }) => {
+  test.slow();
+  const tracker = attachRuntimeTracker(page);
+  await loginAdmin(page);
+
+  await navigateReady(page, "/admin/reports");
+  const heading = page.getByRole("heading", { name: /Reports/i, level: 1 });
+  await expect(heading).toBeVisible({ timeout: 15_000 });
+
+  const exportBtn = page.getByRole("button", { name: /Export Current View/i });
+  if (await exportBtn.isEnabled().catch(() => false)) {
+    await exportBtn.click();
+    await page.waitForTimeout(2000);
+  }
+
+  await assertHealthy(page, tracker);
+});

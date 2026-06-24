@@ -106,6 +106,7 @@ export default function StudentsPage() {
     searchParams.get("section")?.trim() ??
     "";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const autoAddTriggered = useRef(false);
   const [search, setSearch] = useState("");
   const [activeSection, setActiveSection] = useState(sectionFromUrl);
   const [courseFilter, setCourseFilter] = useState("");
@@ -302,6 +303,18 @@ export default function StudentsPage() {
   useEffect(() => {
     setSelected([]);
   }, [search, statusFilter, activeSection, courseFilter, yearLevelFilter]);
+
+  useEffect(() => {
+    if (
+      searchParams.get('add') === 'true' &&
+      !loading &&
+      sectionOptions.length > 0 &&
+      !autoAddTriggered.current
+    ) {
+      autoAddTriggered.current = true;
+      openCreate();
+    }
+  }, [searchParams, loading, sectionOptions]);
 
   useEffect(() => {
     if (previewStudentId && !previewStudent) {
