@@ -112,6 +112,18 @@ const actionIcon: Record<string, { name: string; tone: BootstrapIconTone }> = {
   LOGIN: { name: "shield-check", tone: "secondary" },
 };
 
+const resultColor: Record<string, string> = {
+  Success: "bg-emerald-50 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-200",
+  Queued: "bg-amber-50 text-amber-700 dark:text-amber-300 dark:bg-amber-500/15 dark:text-amber-200",
+  Failed: "bg-rose-50 text-rose-700 dark:text-rose-300 dark:bg-rose-500/15 dark:text-rose-200",
+};
+
+const resultIcon: Record<string, { name: string; tone: BootstrapIconTone }> = {
+  Success: { name: "check-circle-fill", tone: "success" },
+  Queued: { name: "hourglass-split", tone: "warning" },
+  Failed: { name: "x-circle-fill", tone: "danger" },
+};
+
 type AuditLogsTableProps = {
   rows: AuditLogRecord[];
   loading?: boolean;
@@ -193,7 +205,12 @@ export function AuditLogsTable({
           key: "result",
           header: "Result",
           renderCell: (log) => (
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-100">{log.result}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${resultColor[log.result] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300"}`}>
+              {resultIcon[log.result] ? (
+                <BootstrapIcon name={resultIcon[log.result].name as any} tone={resultIcon[log.result].tone} size={10} />
+              ) : null}
+              {log.result}
+            </span>
           ),
         },
       ]}
