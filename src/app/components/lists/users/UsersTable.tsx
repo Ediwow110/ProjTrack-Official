@@ -1,5 +1,6 @@
 import { Eye, Mail, ShieldCheck, ShieldOff, Trash2, UserCog } from "lucide-react";
 
+import { BootstrapIcon, type BootstrapIconTone } from "../../ui/bootstrap-icon";
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
 import { DataTableCard } from "../shared/DataTableCard";
@@ -33,6 +34,24 @@ function roleLabel(role: string) {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (value) => value.toUpperCase());
 }
+
+const roleBadge: Record<string, { color: string; icon: "shield-check" | "send-fill" | "clipboard-check-fill"; tone: BootstrapIconTone }> = {
+  ADMIN: {
+    color: "bg-blue-50 text-blue-700 dark:text-blue-300 dark:bg-blue-500/15 dark:text-blue-200",
+    icon: "shield-check",
+    tone: "primary",
+  },
+  TEACHER: {
+    color: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
+    icon: "send-fill",
+    tone: "info",
+  },
+  STUDENT: {
+    color: "bg-emerald-50 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-200",
+    icon: "clipboard-check-fill",
+    tone: "success",
+  },
+};
 
 export function UsersTable({
   rows,
@@ -95,11 +114,17 @@ export function UsersTable({
           key: "role",
           header: "Role",
           sortable: true,
-          renderCell: (user) => (
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-200">
-              {roleLabel(user.role)}
-            </span>
-          ),
+          renderCell: (user) => {
+            const r = user.role.toUpperCase();
+            const badge = roleBadge[r] ?? { color: "bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300",
+              icon: "info-circle-fill" as const, tone: "secondary" as BootstrapIconTone };
+            return (
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${badge.color}`}>
+                <BootstrapIcon name={badge.icon} tone={badge.tone} size={10} />
+                {roleLabel(user.role)}
+              </span>
+            );
+          },
         },
         {
           key: "status",
