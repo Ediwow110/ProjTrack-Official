@@ -32,16 +32,6 @@ function manualVendorChunks(id: string) {
     return 'overlay-vendor'
   }
 
-  if (
-    packagePath.startsWith('@mui/') ||
-    packagePath.startsWith('@emotion/') ||
-    packagePath.startsWith('@popperjs/') ||
-    packagePath === 'react-popper' ||
-    packagePath.startsWith('react-popper/')
-  ) {
-    return 'mui-vendor'
-  }
-
   if (packagePath === 'recharts' || packagePath.startsWith('recharts/')) {
     return 'charts-vendor'
   }

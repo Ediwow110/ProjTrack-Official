@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { PortalNotice } from "../../portal/PortalListPage";
 import { Button } from "../../ui/button";
 import { BootstrapIcon } from "../../ui/bootstrap-icon";
+import { StatusChip } from "../../ui/StatusChip";
 import { AppModal } from "../../ui/app-modal";
 import { TeacherPreviewDrawer } from "./TeacherPreviewDrawer";
 import { TeachersTable } from "./TeachersTable";
@@ -38,7 +39,10 @@ export default function TeachersPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [selected, setSelected] = useState<string[]>([]);
   const [previewTeacherId, setPreviewTeacherId] = useState<string | null>(null);
+  const [viewTeacherId, setViewTeacherId] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<AdminTeacherRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminTeacherRecord | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [sortState, setSortState] = useState<{
     columnKey: TeacherSortKey;
     direction: "asc" | "desc";
@@ -97,6 +101,10 @@ export default function TeachersPage() {
     teachers.find((teacher) => teacher.id === previewTeacherId) ??
     allTeachers.find((teacher) => teacher.id === previewTeacherId) ??
     null;
+  const viewTeacher =
+    teachers.find((teacher) => teacher.id === viewTeacherId) ??
+    allTeachers.find((teacher) => teacher.id === viewTeacherId) ??
+    null;
   const selectedTeachers = teachers.filter((teacher) => selected.includes(teacher.id));
   const activeCount = teachers.filter((teacher) => teacher.status === "Active").length;
   const pendingSetupCount = teachers.filter(
@@ -123,10 +131,6 @@ export default function TeachersPage() {
     setData((current) =>
       (current ?? []).map((teacher) => (teacher.id === teacherId ? { ...teacher, ...patch } : teacher)),
     );
-  }
-
-  function openTeacherPage(teacherId: string) {
-    navigate(`/admin/teachers/${teacherId}`);
   }
 
   function toggleOne(id: string) {
@@ -234,6 +238,24 @@ export default function TeachersPage() {
         bulkError instanceof Error
           ? bulkError.message
           : "Unable to process the selected teacher accounts.";
+      setActionState({ busy: false, error: message });
+      showFeedback("error", message);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget || actionState.busy) return;
+    setActionState({ busy: true, error: null });
+    try {
+      await adminService.deleteUser(deleteTarget.id, "DELETE USER");
+      await reload();
+      setSelected((current) => current.filter((value) => value !== deleteTarget.id));
+      setDeleteTarget(null);
+      setActionState({ busy: false, error: null });
+      showFeedback("success", `${deleteTarget.email} was permanently deleted.`);
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error ? deleteError.message : "Unable to delete this teacher.";
       setActionState({ busy: false, error: message });
       showFeedback("error", message);
     }
@@ -422,7 +444,7 @@ export default function TeachersPage() {
             teacher={previewTeacher}
             actionBusy={actionState.busy}
             onClose={() => setPreviewTeacherId(null)}
-            onView={openTeacherPage}
+            onView={(teacherId) => navigate(`/admin/teachers/${teacherId}`)}
             onActivate={handleActivate}
             onReset={handleReset}
             onDeactivate={(teacher) => setDeactivateTarget(teacher)}
@@ -438,10 +460,11 @@ export default function TeachersPage() {
           onToggleRow={toggleOne}
           onToggleAll={toggleAll}
           onPreview={setPreviewTeacherId}
-          onView={openTeacherPage}
+          onView={setViewTeacherId}
           onActivate={handleActivate}
           onReset={handleReset}
           onDeactivate={(teacher) => setDeactivateTarget(teacher)}
+          onDelete={(teacher) => setDeleteTarget(teacher)}
           actionBusy={actionState.busy}
           sortState={sortState}
           onSortChange={(columnKey) =>
@@ -458,6 +481,57 @@ export default function TeachersPage() {
           }
         />
       </RoleListShell>
+
+      <AppModal
+        open={Boolean(viewTeacher)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setViewTeacherId(null);
+        }}
+        title={viewTeacher?.name ?? "Teacher Details"}
+        description={viewTeacher ? `${viewTeacher.email} · ${viewTeacher.dept}` : "Teacher information"}
+        size="md"
+        footer={viewTeacher ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => { setViewTeacherId(null); navigate(`/admin/teachers/${viewTeacher.id}`); }}>
+              View full page
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setViewTeacherId(null)}>
+              Close
+            </Button>
+          </>
+        ) : undefined}
+      >
+        {viewTeacher ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{viewTeacher.name}</p>
+              <p>{viewTeacher.email}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Department</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewTeacher.dept}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Employee ID</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewTeacher.employeeId || "—"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Subjects</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewTeacher.subjects}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Students</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewTeacher.students}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status</p>
+                <StatusChip status={viewTeacher.status} size="sm" />
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </AppModal>
 
       <AppModal
         open={createOpen}
@@ -535,6 +609,55 @@ export default function TeachersPage() {
         onConfirm={handleConfirmDeactivate}
         onCancel={() => setDeactivateTarget(null)}
       />
+
+      <AppModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setDeleteTarget(null);
+            setDeleteConfirmation("");
+          }
+        }}
+        title="Delete teacher?"
+        description="This is intended only for seed, test, or demo teacher accounts. Real teachers should be deactivated instead."
+        size="md"
+        footer={(
+          <>
+            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={actionState.busy || deleteConfirmation.trim().toUpperCase() !== "DELETE USER"}
+              onClick={handleConfirmDelete}
+            >
+              {actionState.busy ? "Deleting..." : "Delete Test User"}
+            </Button>
+          </>
+        )}
+      >
+        {deleteTarget ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              <BootstrapIcon name="exclamation-triangle-fill" tone="danger" size={18} className="mt-0.5 shrink-0" />
+              <p>
+                Delete <strong>{deleteTarget.name}</strong> ({deleteTarget.email})? This is intended only for seed/test/demo data. Real production teachers should be deactivated instead. This action may remove related sessions, tokens, notifications, enrollments, group memberships, and profile records.
+              </p>
+            </div>
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Type <span className="font-semibold">DELETE USER</span> to confirm
+              </span>
+              <input
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                className="h-11 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/85 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
+              />
+            </label>
+          </div>
+        ) : null}
+      </AppModal>
     </>
   );
 }

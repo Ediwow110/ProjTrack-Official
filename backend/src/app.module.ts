@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
+import { CacheService } from './common/cache.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RepositoriesModule } from './repositories/repositories.module';
 import { AuthModule } from './auth/auth.module';
@@ -19,7 +20,10 @@ import { BrandingModule } from './branding/branding.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { DataDeletionModule } from './data-deletion/data-deletion.module';
 
+@Global()
 @Module({
   imports: [PrismaModule, AccessModule, RepositoriesModule, AuthModule, StudentsModule, AuditLogsModule, MailModule, NotificationsModule, DashboardModule, SubjectsModule, SubmissionsModule, AdminModule, ProfileModule, FilesModule, BackupsModule, HealthModule, BrandingModule, MonitoringModule, DataDeletionModule],
+  providers: [CacheService],
+  exports: [CacheService],
 })
 export class AppModule {}

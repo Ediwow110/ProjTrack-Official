@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 function buildMockPrisma() {
   const mock: any = {
-    subject: { findMany: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
+    subject: { findMany: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn(), count: jest.fn() },
     teacherProfile: { findFirst: jest.fn() },
     section: { findMany: jest.fn() },
     subjectSection: { createMany: jest.fn(), deleteMany: jest.fn() },
@@ -40,10 +40,12 @@ describe('AdminSubjectsService', () => {
       (prisma.subject.findMany as jest.Mock).mockResolvedValue([
         { id: 's1', code: 'MATH101', name: 'Mathematics', status: 'ACTIVE', isOpen: true, tasks: [], enrollments: [], teacher: null },
       ]);
+      (prisma.subject.count as jest.Mock).mockResolvedValue(1);
       const service = buildService({ prisma });
       const result = await service.subjects();
-      expect(result).toHaveLength(1);
-      expect(result[0].code).toBe('MATH101');
+      expect(result.rows).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.rows[0].code).toBe('MATH101');
     });
   });
 

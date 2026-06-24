@@ -29,6 +29,13 @@ function isConnectionError(error: unknown) {
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   [key: string]: any;
 
+  constructor() {
+    super({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+      transactionOptions: { maxWait: 10000, timeout: 30000 },
+    });
+  }
+
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit() {

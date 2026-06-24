@@ -118,6 +118,7 @@ export default function StudentsPage() {
   } | null>({ columnKey: "lastName", direction: "asc" });
   const [selected, setSelected] = useState<string[]>([]);
   const [previewStudentId, setPreviewStudentId] = useState<string | null>(null);
+  const [viewStudentId, setViewStudentId] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<AdminStudentRecord | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -236,6 +237,10 @@ export default function StudentsPage() {
   const previewStudent =
     students.find((student) => student.id === previewStudentId) ??
     allStudents.find((student) => student.id === previewStudentId) ??
+    null;
+  const viewStudent =
+    students.find((student) => student.id === viewStudentId) ??
+    allStudents.find((student) => student.id === viewStudentId) ??
     null;
   const activeCount = students.filter((student) => student.status === "Active").length;
   const pendingActivationCount = students.filter(
@@ -1043,6 +1048,7 @@ export default function StudentsPage() {
           onToggleRow={toggleOne}
           onToggleAll={toggleAll}
           onPreview={setPreviewStudentId}
+          onViewStudent={setViewStudentId}
           onView={openStudentPage}
           onSendSetupLink={handleSendSetupLink}
           onMove={(student) =>
@@ -1072,6 +1078,64 @@ export default function StudentsPage() {
           }
         />
       </RoleListShell>
+
+      <AppModal
+        open={Boolean(viewStudent)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setViewStudentId(null);
+        }}
+        title={viewStudent?.name ?? "Student Details"}
+        description={viewStudent ? `${viewStudent.email} · ${viewStudent.section}` : "Student information"}
+        size="md"
+        footer={viewStudent ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => { setViewStudentId(null); navigate(`/admin/students/${viewStudent.id}`); }}>
+              View full page
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setViewStudentId(null)}>
+              Close
+            </Button>
+          </>
+        ) : undefined}
+      >
+        {viewStudent ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{viewStudent.name}</p>
+                <p>{viewStudent.email}</p>
+              </div>
+              <StatusChip status={viewStudent.status} size="sm" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Student ID</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.studentId || viewStudent.id}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Section</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.section}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Year Level</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.yearLevel || "—"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Course</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.course || "—"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Created by</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.createdBy}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Last active</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewStudent.lastActive}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </AppModal>
 
       <AppModal
         open={createOpen}

@@ -45,6 +45,7 @@ export default function SubmissionsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [sortState, setSortState] = useState<{
     columnKey: SubmissionSortKey;
     direction: "asc" | "desc";
@@ -94,6 +95,7 @@ export default function SubmissionsPage() {
   }, [data, sortState]);
 
   const previewSubmission = submissions.find((submission) => submission.id === previewId) ?? null;
+  const viewSubmission = submissions.find((submission) => submission.id === viewId) ?? null;
   const gradedCount = submissions.filter((submission) => submission.status === "Graded").length;
   const lateCount = submissions.filter((submission) => submission.status === "Late").length;
   const pendingCount = submissions.filter((submission) => submission.status === "Pending").length;
@@ -327,7 +329,7 @@ export default function SubmissionsPage() {
         actionBusy={actionState.busy}
         onRetry={reload}
         onPreview={setPreviewId}
-        onView={openSubmission}
+        onView={setViewId}
         onEdit={openEditModal}
         onDelete={(submission) => {
           setDeleteTarget(submission);
@@ -347,6 +349,60 @@ export default function SubmissionsPage() {
           })
         }
       />
+
+      <AppModal
+        open={Boolean(viewSubmission)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setViewId(null);
+        }}
+        title={viewSubmission?.title ?? "Submission Details"}
+        description={viewSubmission ? `${viewSubmission.student} · ${viewSubmission.subject}` : "Submission information"}
+        size="md"
+        footer={viewSubmission ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => { setViewId(null); navigate(`/admin/submissions/${viewSubmission.id}`); }}>
+              View full page
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setViewId(null)}>
+              Close
+            </Button>
+          </>
+        ) : undefined}
+      >
+        {viewSubmission ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{viewSubmission.title}</p>
+                <p>{viewSubmission.student} · {viewSubmission.teacher}</p>
+              </div>
+              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{viewSubmission.status}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Subject</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubmission.subject}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Section</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubmission.section}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Due</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubmission.due}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Submitted</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubmission.submitted}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Grade</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubmission.grade || "—"}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </AppModal>
 
       <AppModal
         open={Boolean(modalMode)}

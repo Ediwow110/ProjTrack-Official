@@ -180,6 +180,8 @@ async function bootstrap() {
     }
     if (path.startsWith('/auth/')) {
       res.setHeader('Cache-Control', 'no-store');
+    } else if (req.method === 'GET' && !path.startsWith('/health')) {
+      res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
     }
 
     const rule = rateLimitRules().find((item) => path.startsWith(item.prefix));
@@ -272,6 +274,17 @@ async function bootstrap() {
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
+// ── Guard: prevent process death from unhandled errors ──
+process.on('unhandledRejection', (reason) => {
+  const guardLogger = new Logger('ProcessGuard');
+  guardLogger.warn('UnhandledRejection caught (process retained): ' + (reason instanceof Error ? reason.stack : String(reason)));
+});
+
+process.on('uncaughtException', (error) => {
+  const guardLogger = new Logger('ProcessGuard');
+  guardLogger.error('UncaughtException caught (process retained): ' + error.stack);
+});
+
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
   const message = error instanceof Error ? error.message : String(error);

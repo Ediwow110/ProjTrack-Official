@@ -119,6 +119,7 @@ type StudentsTableProps = {
   onToggleRow: (id: string) => void;
   onToggleAll: () => void;
   onPreview: (id: string) => void;
+  onViewStudent: (id: string) => void;
   onView: (id: string) => void;
   onSendSetupLink: (id: string) => void;
   onMove: (student: AdminStudentRecord) => void;
@@ -142,6 +143,7 @@ export function StudentsTable({
   onToggleRow,
   onToggleAll,
   onPreview,
+  onViewStudent,
   onView,
   onSendSetupLink,
   onMove,
@@ -314,16 +316,16 @@ export function StudentsTable({
       tableClassName="min-w-[1500px]"
       rowActions={(student) => [
         {
-          key: "preview",
+          key: "view",
           label: "View Student",
           icon: <Eye size={15} />,
           ariaLabel: `View ${student.name}`,
-          onClick: () => onPreview(student.id),
+          onClick: () => onViewStudent(student.id),
           disabled: () => actionBusy,
         },
         {
-          key: "view",
-          label: "Edit Student",
+          key: "edit",
+          label: "Edit",
           icon: <ArrowUpRight size={15} />,
           ariaLabel: `Edit ${student.name}`,
           onClick: () => onView(student.id),

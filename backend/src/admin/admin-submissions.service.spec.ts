@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 function buildMockPrisma() {
   const mock: any = {
-    submission: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    submission: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), count: jest.fn() },
     submissionTask: { findUnique: jest.fn() },
     user: { findFirst: jest.fn() },
     group: { findUnique: jest.fn() },
@@ -46,10 +46,12 @@ describe('AdminSubmissionsService', () => {
       (prisma.submission.findMany as jest.Mock).mockResolvedValue([
         { id: 'sub1', title: 'Homework', status: 'SUBMITTED', createdAt: new Date(), submittedAt: new Date(), externalLinks: [], feedback: null, notes: null, grade: null, taskId: 't1', subjectId: 'sj1', studentId: 'u1', groupId: null, task: { deadline: new Date(), title: 'HW1' }, subject: { name: 'Math', code: 'MATH101', teacher: null }, student: { firstName: 'John', lastName: 'Doe', studentProfile: { studentNumber: 'S001', section: { name: 'A' } } }, group: null },
       ]);
+      (prisma.submission.count as jest.Mock).mockResolvedValue(1);
       const service = buildService({ prisma });
       const result = await service.submissions();
-      expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('Homework');
+      expect(result.rows).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.rows[0].title).toBe('Homework');
     });
   });
 

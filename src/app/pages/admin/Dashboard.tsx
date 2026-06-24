@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Activity,
@@ -16,6 +16,63 @@ import { adminService } from "../../lib/api/services";
 import { useAsyncData } from "../../lib/hooks/useAsyncData";
 
 const AdminDashboardCharts = lazy(() => import("./components/AdminDashboardCharts"));
+
+function LazyCharts(props: { submissionTrend: any[]; statusDist: any[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {visible ? (
+        <Suspense
+          fallback={
+            <div className="grid gap-6 lg:grid-cols-2">
+              {["Submission Trend", "Status Distribution"].map((title) => (
+                <PortalPanel
+                  key={title}
+                  title={title}
+                  description="Loading chart module..."
+                >
+                  <div className="h-[220px] animate-pulse rounded-[22px] bg-[var(--surface-panel-muted)]" />
+                </PortalPanel>
+              ))}
+            </div>
+          }
+        >
+          <AdminDashboardCharts {...props} />
+        </Suspense>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {["Submission Trend", "Status Distribution"].map((title) => (
+            <PortalPanel
+              key={title}
+              title={title}
+              description="Charts will load when visible"
+            >
+              <div className="h-[220px] animate-pulse rounded-[22px] bg-[var(--surface-panel-muted)]" />
+            </PortalPanel>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -85,26 +142,10 @@ export default function AdminDashboard() {
       />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <Suspense
-            fallback={
-              <div className="grid gap-6 lg:grid-cols-2">
-                {["Submission Trend", "Status Distribution"].map((title) => (
-                  <PortalPanel
-                    key={title}
-                    title={title}
-                    description="Loading chart module..."
-                  >
-                    <div className="h-[220px] animate-pulse rounded-[22px] bg-[var(--surface-panel-muted)]" />
-                  </PortalPanel>
-                ))}
-              </div>
-            }
-          >
-            <AdminDashboardCharts
-              submissionTrend={data?.submissionTrend ?? []}
-              statusDist={data?.statusDist ?? []}
-            />
-          </Suspense>
+          <LazyCharts
+            submissionTrend={data?.submissionTrend ?? []}
+            statusDist={data?.statusDist ?? []}
+          />
 
           <PortalPanel
             title="Recent Activity"

@@ -150,13 +150,18 @@ export class AdminUsersService {
     return { success: true, deleted: true };
   }
 
-  async teachers(search?: string, status?: string) {
+  async teachers(search?: string, status?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
+    const pageSize = take ?? 200;
+    const offset = skip ?? 0;
     const [teachers, subjects] = await Promise.all([
-      this.prisma.user.findMany({ where: { role: 'TEACHER' }, include: { teacherProfile: true }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.user.findMany({ where: { role: 'TEACHER' }, include: { teacherProfile: true }, orderBy: { createdAt: 'desc' }, take: pageSize + offset }),
       this.prisma.subject.findMany({ include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } }, enrollments: { include: { student: { include: { user: { select: SAFE_USER_SELECT }, section: true } } } } } }),
     ]);
-    return teachers.map((user) => {
+    const [total] = await Promise.all([
+      this.prisma.user.count({ where: { role: 'TEACHER' } }),
+    ]);
+    const mapped = teachers.map((user) => {
       const teacherSubjects = subjects.filter((s) => s.teacherId === user.teacherProfile?.id);
       const studentIds = new Set<string>();
       for (const subject of teacherSubjects) { for (const enrollment of subject.enrollments) { if (enrollment.student?.user?.id) studentIds.add(enrollment.student.user.id); } }
@@ -165,24 +170,39 @@ export class AdminUsersService {
       const matchesSearch = !q || [row.id, row.name, row.email, row.dept].some((v) => String(v || '').toLowerCase().includes(q));
       return matchesSearch && (!status || status === 'All' || row.status === status);
     });
+    return { rows: mapped.slice(offset, offset + pageSize), total };
   }
 
-  async students(search?: string, status?: string) {
+  async students(search?: string, status?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
-    const rows = await this.prisma.user.findMany({
-      where: { role: 'STUDENT' },
-      include: { studentProfile: { include: { section: { include: { academicYear: true, academicYearLevel: true } }, academicYear: true, academicYearLevel: true } }, authSessions: { where: { revokedAt: null }, orderBy: { lastUsedAt: 'desc' }, take: 1 }, accountActionTokens: { where: { type: 'ACCOUNT_ACTIVATION' }, orderBy: { createdAt: 'desc' }, take: 1 } },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { createdAt: 'asc' }],
-    });
+    const pageSize = take ?? 100;
+    const offset = skip ?? 0;
+    const statusFilter = status && status !== 'All' ? status : undefined;
+
+    const userWhere: any = { role: 'STUDENT' };
+    if (statusFilter) {
+      userWhere.status = statusFilter.toUpperCase().replace(/\s+/g, '_');
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: userWhere,
+        include: { studentProfile: { include: { section: { include: { academicYear: true, academicYearLevel: true } }, academicYear: true, academicYearLevel: true } }, authSessions: { where: { revokedAt: null }, orderBy: { lastUsedAt: 'desc' }, take: 1 }, accountActionTokens: { where: { type: 'ACCOUNT_ACTIVATION' }, orderBy: { createdAt: 'desc' }, take: 1 } },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { createdAt: 'asc' }],
+        take: pageSize + offset,
+      }),
+      this.prisma.user.count({ where: userWhere }),
+    ]);
     const emailJobs = rows.length ? await this.prisma.emailJob.findMany({ where: { userEmail: { in: rows.map((r) => r.email) }, templateKey: 'account-activation' }, orderBy: [{ createdAt: 'desc' }] }) : [];
     const latestMailJobByEmail = new Map<string, (typeof emailJobs)[number]>();
     for (const job of emailJobs) { const key = String(job.userEmail || '').trim().toLowerCase(); if (key && !latestMailJobByEmail.has(key)) latestMailJobByEmail.set(key, job); }
-    return rows.map((user) => {
+    const mapped = rows.map((user) => {
       const profile = user.studentProfile;
       return { id: user.id, studentId: profile?.studentNumber ?? user.id, lastName: user.lastName, firstName: user.firstName, middleInitial: String(profile?.middleInitial ?? '').trim(), academicYear: profile?.academicYear?.name ?? profile?.section?.academicYear?.name ?? '\u2014', yearLevel: profile?.academicYearLevel?.name ?? profile?.yearLevelName ?? profile?.section?.academicYearLevel?.name ?? profile?.section?.yearLevelName ?? (profile?.yearLevel ? `${profile.yearLevel}` : '\u2014'), name: this.userName(user), email: user.email, course: profile?.course ?? profile?.section?.course ?? '\u2014', section: profile?.section?.name ?? '\u2014', sectionId: profile?.section?.id ?? '', ...this.buildStudentActivationSummary(user, user.accountActionTokens[0] ?? null, latestMailJobByEmail.get(String(user.email || '').trim().toLowerCase()) ?? null, user.authSessions[0]?.lastUsedAt ?? null), createdBy: 'Admin', createdAt: user.createdAt.toISOString(), lastActive: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '', lastLoginAt: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '' };
     }).filter((row) => {
-      return (!q || [row.studentId, row.name, row.email, row.section].some((v) => String(v || '').toLowerCase().includes(q))) && (!status || status === 'All' || row.status === status);
+      return !q || [row.studentId, row.name, row.email, row.section].some((v) => String(v || '').toLowerCase().includes(q));
     });
+    return { rows: mapped.slice(offset, offset + pageSize), total };
   }
 
   async createStudent(payload: { firstName?: string; middleInitial?: string; lastName?: string; email?: string; studentNumber?: string; section?: string; yearLevelId?: string; yearLevelName?: string; course?: string; yearLevel?: number | string; academicYearId?: string; academicYear?: string }) {

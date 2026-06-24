@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: projtrack
       POSTGRES_USER: projtrack
-      POSTGRES_PASSWORD: projtrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-projtrack}
     ports:
       - "${PROJTRACK_POSTGRES_PORT:-5432}:5432"
     volumes:

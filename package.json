@@ -44,11 +44,6 @@
     "doctor:backend": "node ./scripts/backend-doctor.mjs"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.11",
-    "@mui/material": "^7.3.5",
-    "@popperjs/core": "^2.11.8",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -93,7 +88,6 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.76.1",
-    "react-popper": "^2.3.0",
     "react-resizable-panels": "4.11.2",
     "react-responsive-masonry": "^2.7.1",
     "react-router": "^7.16.0",
