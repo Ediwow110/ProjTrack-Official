@@ -613,13 +613,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             {isMobile ? <Menu size={18} /> : collapsed ? <Menu size={18} /> : <Menu size={18} />}
           </button>
           <div className="min-w-0 flex-1 sm:flex-none">
-            <div className="flex items-center gap-2">
-              <p className="font-display truncate text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">{pathLabel}</p>
-              <span className="portal-topbar-pill hidden rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] sm:inline-flex">
-                {cfg.label}
-              </span>
-            </div>
-            <p className="portal-accent-text text-[10px] font-semibold uppercase tracking-[0.22em]">{cfg.label}</p>
+            <p className="font-display truncate text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">{pathLabel}</p>
           </div>
           <div className="hidden flex-1 sm:block" />
           {/* Search */}
