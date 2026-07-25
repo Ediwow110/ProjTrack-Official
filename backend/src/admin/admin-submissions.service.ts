@@ -24,15 +24,31 @@ export class AdminSubmissionsService {
     private readonly files: FilesService,
   ) {}
 
-  async submissions(search?: string, status?: string, subjectId?: string, studentId?: string, section?: string) {
+  async submissions(search?: string, status?: string, subjectId?: string, studentId?: string, section?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
-    const normalizedStatus = String(status ?? '').trim();
-    const rows = await this.prisma.submission.findMany({
-      where: { ...(subjectId ? { subjectId } : {}), ...(studentId ? { studentId } : {}) },
-      include: { task: true, subject: { include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } } } }, student: { include: { studentProfile: { include: { section: true } } } }, group: { include: { section: true } } },
-      orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
-    });
-    return rows
+    const pageSize = take ?? 100;
+    const offset = skip ?? 0;
+
+    // Build DB-level WHERE clause for status and subjectId (search/section stay client-side)
+    const where: any = {
+      ...(subjectId ? { subjectId } : {}),
+      ...(studentId ? { studentId } : {}),
+    };
+    if (status && status !== 'All') {
+      where.status = status.toUpperCase().replace(/\s+/g, '_');
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.submission.findMany({
+        where,
+        include: { task: true, subject: { include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } } } }, student: { include: { studentProfile: { include: { section: true } } } }, group: { include: { section: true } } },
+        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+        take: pageSize,
+        skip: offset,
+      }),
+      this.prisma.submission.count({ where }),
+    ]);
+    const mapped = rows
       .map((submission) => {
         const ownerName = submission.student ? this.userName(submission.student) : submission.group?.name ?? 'Unknown group';
         const studentNumber = submission.student?.studentProfile?.studentNumber ?? null;
@@ -52,11 +68,11 @@ export class AdminSubmissionsService {
         };
       })
       .filter((submission) => {
-        const matchesSearch = !q || [submission.id, submission.title, submission.student, submission.subject, submission.subjectCode, submission.teacher, submission.taskId, submission.taskTitle].some((value) => String(value ?? '').toLowerCase().includes(q));
-        const matchesStatus = !normalizedStatus || normalizedStatus === 'All' || submission.status === normalizedStatus || submission.statusKey === normalizedStatus.toUpperCase().replace(/\s+/g, '_');
-        const matchesSection = !section || section === 'All' || submission.section === section;
-        return matchesSearch && matchesStatus && matchesSection;
+        if (q && ![submission.id, submission.title, submission.student, submission.subject, submission.subjectCode, submission.teacher, submission.taskId, submission.taskTitle].some((value) => String(value ?? '').toLowerCase().includes(q))) return false;
+        if (section && section !== 'All' && submission.section !== section) return false;
+        return true;
       });
+    return { rows: mapped, total };
   }
 
   async createSubmission(payload: any, actor?: AdminActorContext) {

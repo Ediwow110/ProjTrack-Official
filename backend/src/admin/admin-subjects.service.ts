@@ -22,13 +22,21 @@ export class AdminSubjectsService {
     private readonly auditLogs: AuditLogsService,
   ) {}
 
-  async subjects(search?: string) {
+  async subjects(search?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
-    const rows = await this.prisma.subject.findMany({
-      include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } }, tasks: true, enrollments: { include: { section: true } } },
-      orderBy: { code: 'asc' },
-    });
-    return rows
+    const pageSize = take ?? 100;
+    const offset = skip ?? 0;
+
+    const [rows, total] = await Promise.all([
+      this.prisma.subject.findMany({
+        include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } }, tasks: true, enrollments: { include: { section: true } } },
+        orderBy: { code: 'asc' },
+        take: pageSize,
+        skip: offset,
+      }),
+      this.prisma.subject.count(),
+    ]);
+    const mapped = rows
       .map((subject) => ({
         id: subject.id,
         code: subject.code,
@@ -43,6 +51,7 @@ export class AdminSubjectsService {
         if (!q) return true;
         return [row.code, row.name, row.teacher].some((value) => String(value || '').toLowerCase().includes(q));
       });
+    return { rows: mapped, total };
   }
 
   async createSubject(payload: {

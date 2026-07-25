@@ -67,6 +67,7 @@ export class SubmissionsService {
    */
   private submissionListInclude() {
     return {
+      subject: { select: { id: true, name: true } },
       task: { select: { id: true, title: true, submissionMode: true } },
       files: { select: { id: true, fileName: true, fileSize: true, relativePath: true } },
       student: { select: { id: true, firstName: true, lastName: true, studentProfile: { select: { section: { select: { name: true } } } } } },
@@ -582,13 +583,15 @@ export class SubmissionsService {
   }
 
   private async decorate(record: any) {
-    const subject: any = record.subjectId ? await this.subjectRepository.findSubjectById(record.subjectId) : null;
-    const activity: any = record.activityId ? await this.subjectRepository.findActivityById(record.activityId) : record.task;
-    const student: any = record.studentUserId
-      ? await this.userRepository.findById(record.studentUserId)
-      : record.studentId
-        ? await this.userRepository.findById(record.studentId)
-        : record.student || null;
+    // Use pre-loaded relation data when available (from submissionListInclude) to avoid N+1 re-fetches
+    const subject: any = record.subject || (record.subjectId ? await this.subjectRepository.findSubjectById(record.subjectId) : null);
+    const activity: any = record.task || (record.activityId ? await this.subjectRepository.findActivityById(record.activityId) : null);
+    const student: any = record.student
+      || (record.studentUserId
+        ? await this.userRepository.findById(record.studentUserId)
+        : record.studentId
+          ? await this.userRepository.findById(record.studentId)
+          : null);
 
     let group: any = record.group;
     if (!group && record.groupId && subject?.id) {

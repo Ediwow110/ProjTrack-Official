@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function useAsyncData<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
   const stableFetcher = useMemo(() => fetcher, deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -6,6 +6,7 @@ export function useAsyncData<T>(fetcher: () => Promise<T>, deps: unknown[] = [])
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadTick, setReloadTick] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const reload = useCallback(() => {
     setReloadTick((current) => current + 1);
@@ -13,25 +14,34 @@ export function useAsyncData<T>(fetcher: () => Promise<T>, deps: unknown[] = [])
 
   useEffect(() => {
     let active = true;
+
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
     setLoading(true);
     setError("");
 
     stableFetcher()
       .then((result) => {
-        if (!active) return;
+        if (!active || abortController.signal.aborted) return;
         setData(result);
       })
       .catch((err: unknown) => {
-        if (!active) return;
+        if (!active || abortController.signal.aborted) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setData(null);
         setError(err instanceof Error ? err.message : "Unable to load data.");
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && !abortController.signal.aborted) setLoading(false);
       });
 
     return () => {
       active = false;
+      abortController.abort();
     };
   }, [stableFetcher, reloadTick]);
 

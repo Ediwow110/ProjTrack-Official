@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { normalizeDataDeletionRequestStatus } from './data-deletion.lifecycle';
@@ -202,7 +203,10 @@ export class DataDeletionExecutionService {
   }
 
   async verifyBackup(executionId: string, dto: { backupRunId: string; verificationRef?: string }, actor?: ActorContext) {
-    const execution = await this.prisma.dataDeletionExecution.findUnique({ where: { id: executionId } });
+    const execution = await this.prisma.dataDeletionExecution.findUnique({
+      where: { id: executionId },
+      include: { request: { include: { requester: true } } },
+    });
     if (!execution) throw new NotFoundException('Execution not found.');
 
     const backup = await this.prisma.backupRun.findUnique({ where: { id: dto.backupRunId } });
@@ -211,6 +215,64 @@ export class DataDeletionExecutionService {
     }
     if (backup.status !== 'COMPLETED' || backup.deletedAt) {
       throw new BadRequestException('Backup must be COMPLETED and not deleted for verification.');
+    }
+
+    if (!execution.request?.requester) {
+      throw new BadRequestException('Execution request or requester not found.');
+    }
+
+    // Verify backup contains actual data for affected tables
+    const recordCounts = backup.recordCounts as Record<string, number> | null;
+    if (!recordCounts || Object.keys(recordCounts).length === 0) {
+      throw new BadRequestException(
+        'Backup record counts are missing or empty. The backup may not contain any data. Run a fresh backup before proceeding.',
+      );
+    }
+    if (!(recordCounts['users'] > 0)) {
+      throw new BadRequestException(
+        'Backup shows zero users — it likely predates the user data. Run a fresh backup before proceeding.',
+      );
+    }
+
+    // Cross-check: tables that the execution plan expects to delete should have data in the backup
+    const plan = execution.executionPlanJson as { categories?: Array<{ name: string; count: number }> } | null;
+    if (plan?.categories) {
+      const tableKeyMap: Record<string, string> = {
+        User: 'users',
+        StudentProfile: 'studentProfiles',
+        TeacherProfile: 'teacherProfiles',
+        Enrollment: 'enrollments',
+        'Subject(teacherId cleared)': 'subjects',
+        GroupMember: 'groupMembers',
+        Notification: 'notifications',
+        EmailJob: 'emailJobs',
+      };
+
+      const emptyTables = plan.categories
+        .filter(c => c.count > 0 && tableKeyMap[c.name])
+        .filter(c => !(recordCounts[tableKeyMap[c.name]] > 0))
+        .map(c => c.name);
+
+      if (emptyTables.length > 0) {
+        throw new BadRequestException(
+          `Backup verification failed: zero rows for affected tables: ${emptyTables.join(', ')}. ` +
+          'The backup may not contain this user\'s data. Run a fresh backup before proceeding.',
+        );
+      }
+    }
+
+    // Per-user content check: backup must have been taken AFTER the user was created
+    if (backup.completedAt && execution.request.requester.createdAt) {
+      if (backup.completedAt.getTime() <= execution.request.requester.createdAt.getTime()) {
+        throw new BadRequestException(
+          `Backup completed at ${backup.completedAt.toISOString()} but this user was created at ${execution.request.requester.createdAt.toISOString()}. ` +
+          'The backup predates the user and cannot contain this user\'s data. Run a fresh backup.',
+        );
+      }
+    } else if (!backup.completedAt) {
+      throw new BadRequestException(
+        'Backup has no completion timestamp. Run a fresh backup before proceeding.',
+      );
     }
 
     const updated = await this.prisma.dataDeletionExecution.update({
@@ -319,71 +381,73 @@ export class DataDeletionExecutionService {
     const results: Record<string, { action: string; count: number }> = {};
 
     try {
-      const userId = execution.request.requesterUserId;
-      const user = execution.request.requester;
-      const originalEmail = user.email;
+      await this.prisma.$transaction(async (tx) => {
+        const userId = execution.request.requesterUserId;
+        const user = execution.request.requester;
+        const originalEmail = user.email;
 
-      // 1. Delete EmailJobs (before user anonymization changes the email)
-      const emailJobCount = await this.executeEmailJobDeletion(originalEmail);
-      results['EmailJob'] = { action: 'delete', count: emailJobCount };
+        // 1. Delete EmailJobs (before user anonymization changes the email)
+        const emailJobCount = await this.executeEmailJobDeletion(originalEmail, tx);
+        results['EmailJob'] = { action: 'delete', count: emailJobCount };
 
-      // 2. Delete Notifications
-      const notifCount = await this.executeNotificationDeletion(userId);
-      results['Notification'] = { action: 'delete', count: notifCount };
+        // 2. Delete Notifications
+        const notifCount = await this.executeNotificationDeletion(userId, tx);
+        results['Notification'] = { action: 'delete', count: notifCount };
 
-      // 3. Delete PendingUploads
-      const uploadCount = await this.executePendingUploadDeletion(userId);
-      results['PendingUpload'] = { action: 'delete', count: uploadCount };
+        // 3. Delete PendingUploads
+        const uploadCount = await this.executePendingUploadDeletion(userId, tx);
+        results['PendingUpload'] = { action: 'delete', count: uploadCount };
 
-      // 4. Find profiles for deletion ordering
-      const studentProfile = await this.prisma.studentProfile.findUnique({ where: { userId } });
-      const teacherProfile = await this.prisma.teacherProfile.findUnique({ where: { userId } });
+        // 4. Find profiles for deletion ordering
+        const studentProfile = await tx.studentProfile.findUnique({ where: { userId } });
+        const teacherProfile = await tx.teacherProfile.findUnique({ where: { userId } });
 
-      // 5. Delete Enrollments (depends on StudentProfile)
-      if (studentProfile) {
-        const enrollCount = await this.executeEnrollmentDeletion(studentProfile.id);
-        results['Enrollment'] = { action: 'delete', count: enrollCount };
-      } else {
-        results['Enrollment'] = { action: 'delete', count: 0 };
-      }
+        // 5. Delete Enrollments (depends on StudentProfile)
+        if (studentProfile) {
+          const enrollCount = await this.executeEnrollmentDeletion(studentProfile.id, tx);
+          results['Enrollment'] = { action: 'delete', count: enrollCount };
+        } else {
+          results['Enrollment'] = { action: 'delete', count: 0 };
+        }
 
-      // 6. Delete GroupMembers
-      const gmCount = await this.executeGroupMemberDeletion(userId);
-      results['GroupMember'] = { action: 'delete', count: gmCount };
+        // 6. Delete GroupMembers
+        const gmCount = await this.executeGroupMemberDeletion(userId, tx);
+        results['GroupMember'] = { action: 'delete', count: gmCount };
 
-      // 7. Nullify Subject.teacherId (if teacher profile exists)
-      if (teacherProfile) {
-        const subjCount = await this.executeSubjectTeacherNullification(teacherProfile.id);
-        results['Subject(teacherId cleared)'] = { action: 'update', count: subjCount };
-      }
+        // 7. Nullify Subject.teacherId (if teacher profile exists)
+        if (teacherProfile) {
+          const subjCount = await this.executeSubjectTeacherNullification(teacherProfile.id, tx);
+          results['Subject(teacherId cleared)'] = { action: 'update', count: subjCount };
+        }
 
-      // 8. Delete StudentProfile
-      if (studentProfile) {
-        await this.executeStudentProfileDeletion(userId);
-        results['StudentProfile'] = { action: 'delete', count: 1 };
-      } else {
-        results['StudentProfile'] = { action: 'delete', count: 0 };
-      }
+        // 8. Delete StudentProfile
+        if (studentProfile) {
+          await this.executeStudentProfileDeletion(userId, tx);
+          results['StudentProfile'] = { action: 'delete', count: 1 };
+        } else {
+          results['StudentProfile'] = { action: 'delete', count: 0 };
+        }
 
-      // 9. Delete TeacherProfile
-      if (teacherProfile) {
-        await this.executeTeacherProfileDeletion(userId);
-        results['TeacherProfile'] = { action: 'delete', count: 1 };
-      } else {
-        results['TeacherProfile'] = { action: 'delete', count: 0 };
-      }
+        // 9. Delete TeacherProfile
+        if (teacherProfile) {
+          await this.executeTeacherProfileDeletion(userId, tx);
+          results['TeacherProfile'] = { action: 'delete', count: 1 };
+        } else {
+          results['TeacherProfile'] = { action: 'delete', count: 0 };
+        }
 
-      // 10. Delete AuthSessions
-      const sessionCount = await this.executeAuthSessionDeletion(userId);
-      results['AuthSession'] = { action: 'delete', count: sessionCount };
+        // 10. Delete AuthSessions
+        const sessionCount = await this.executeAuthSessionDeletion(userId, tx);
+        results['AuthSession'] = { action: 'delete', count: sessionCount };
 
-      // 11. Delete AccountActionTokens
-      const tokenCount = await this.executeAccountActionTokenDeletion(userId);
-      results['AccountActionToken'] = { action: 'delete', count: tokenCount };
+        // 11. Delete AccountActionTokens
+        const tokenCount = await this.executeAccountActionTokenDeletion(userId, tx);
+        results['AccountActionToken'] = { action: 'delete', count: tokenCount };
 
-      // 12. Anonymize User (last — everything else references user by id)
-      await this.executeUserAnonymization(userId);
-      results['User'] = { action: 'anonymize', count: 1 };
+        // 12. Anonymize User (last — everything else references user by id)
+        await this.executeUserAnonymization(userId, tx);
+        results['User'] = { action: 'anonymize', count: 1 };
+      });
 
       success = true;
     } catch (err) {
@@ -430,48 +494,54 @@ export class DataDeletionExecutionService {
   // Private destructive execution methods
   // ---------------------------------------------------------------------------
 
-  private async executeEmailJobDeletion(userEmail: string): Promise<number> {
-    const result = await this.prisma.emailJob.deleteMany({
+  private async executeEmailJobDeletion(userEmail: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.emailJob.deleteMany({
       where: { userEmail },
     });
     this.logger.log(`Deleted ${result.count} EmailJob rows for email ${userEmail}`);
     return result.count;
   }
 
-  private async executeNotificationDeletion(userId: string): Promise<number> {
-    const result = await this.prisma.notification.deleteMany({
+  private async executeNotificationDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.notification.deleteMany({
       where: { userId },
     });
     this.logger.log(`Deleted ${result.count} Notification rows for userId ${userId}`);
     return result.count;
   }
 
-  private async executePendingUploadDeletion(userId: string): Promise<number> {
-    const result = await this.prisma.pendingUpload.deleteMany({
+  private async executePendingUploadDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.pendingUpload.deleteMany({
       where: { userId },
     });
     this.logger.log(`Deleted ${result.count} PendingUpload rows for userId ${userId}`);
     return result.count;
   }
 
-  private async executeEnrollmentDeletion(studentProfileId: string): Promise<number> {
-    const result = await this.prisma.enrollment.deleteMany({
+  private async executeEnrollmentDeletion(studentProfileId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.enrollment.deleteMany({
       where: { studentId: studentProfileId },
     });
     this.logger.log(`Deleted ${result.count} Enrollment rows for studentProfileId ${studentProfileId}`);
     return result.count;
   }
 
-  private async executeGroupMemberDeletion(userId: string): Promise<number> {
-    const result = await this.prisma.groupMember.deleteMany({
+  private async executeGroupMemberDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.groupMember.deleteMany({
       where: { studentId: userId },
     });
     this.logger.log(`Deleted ${result.count} GroupMember rows for userId ${userId}`);
     return result.count;
   }
 
-  private async executeSubjectTeacherNullification(teacherProfileId: string): Promise<number> {
-    const result = await this.prisma.subject.updateMany({
+  private async executeSubjectTeacherNullification(teacherProfileId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.subject.updateMany({
       where: { teacherId: teacherProfileId },
       data: { teacherId: null },
     });
@@ -481,35 +551,40 @@ export class DataDeletionExecutionService {
     return result.count;
   }
 
-  private async executeStudentProfileDeletion(userId: string): Promise<void> {
-    await this.prisma.studentProfile.delete({ where: { userId } });
+  private async executeStudentProfileDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
+    const client = tx ?? this.prisma;
+    await client.studentProfile.delete({ where: { userId } });
     this.logger.log(`Deleted StudentProfile for userId ${userId}`);
   }
 
-  private async executeTeacherProfileDeletion(userId: string): Promise<void> {
-    await this.prisma.teacherProfile.delete({ where: { userId } });
+  private async executeTeacherProfileDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
+    const client = tx ?? this.prisma;
+    await client.teacherProfile.delete({ where: { userId } });
     this.logger.log(`Deleted TeacherProfile for userId ${userId}`);
   }
 
-  private async executeAuthSessionDeletion(userId: string): Promise<number> {
-    const result = await this.prisma.authSession.deleteMany({
+  private async executeAuthSessionDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.authSession.deleteMany({
       where: { userId },
     });
     this.logger.log(`Deleted ${result.count} AuthSession rows for userId ${userId}`);
     return result.count;
   }
 
-  private async executeAccountActionTokenDeletion(userId: string): Promise<number> {
-    const result = await this.prisma.accountActionToken.deleteMany({
+  private async executeAccountActionTokenDeletion(userId: string, tx?: Prisma.TransactionClient): Promise<number> {
+    const client = tx ?? this.prisma;
+    const result = await client.accountActionToken.deleteMany({
       where: { userId },
     });
     this.logger.log(`Deleted ${result.count} AccountActionToken rows for userId ${userId}`);
     return result.count;
   }
 
-  private async executeUserAnonymization(userId: string): Promise<void> {
+  private async executeUserAnonymization(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const anonymizedEmail = `deleted-${userId}@anonymized.invalid`;
-    await this.prisma.user.update({
+    const client = tx ?? this.prisma;
+    await client.user.update({
       where: { id: userId },
       data: {
         email: anonymizedEmail,

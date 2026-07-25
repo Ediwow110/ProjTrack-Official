@@ -15,7 +15,6 @@ import { AccountActionTokenService } from '../auth/account-action-token.service'
 import { buildActivationLink, buildResetPasswordLink } from '../common/utils/frontend-links';
 import { FilesService } from '../files/files.service';
 import { getRequestId } from '../common/request-context';
-import { SAFE_USER_SELECT } from '../access/policies/subject-access.policy';
 import { isPendingSetupStatus } from '../common/utils/account-setup-status';
 
 export type AdminActorContext = {
@@ -150,39 +149,143 @@ export class AdminUsersService {
     return { success: true, deleted: true };
   }
 
-  async teachers(search?: string, status?: string) {
+  async teachers(search?: string, status?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
-    const [teachers, subjects] = await Promise.all([
-      this.prisma.user.findMany({ where: { role: 'TEACHER' }, include: { teacherProfile: true }, orderBy: { createdAt: 'desc' } }),
-      this.prisma.subject.findMany({ include: { teacher: { include: { user: { select: SAFE_USER_SELECT } } }, enrollments: { include: { student: { include: { user: { select: SAFE_USER_SELECT }, section: true } } } } } }),
+    const pageSize = take ?? 200;
+    const offset = skip ?? 0;
+
+    const statusFilter = status && status !== 'All' ? status : undefined;
+
+    // Build where clause for Prisma-level filtering (no in-memory filtering)
+    const userWhere: any = { role: 'TEACHER' };
+    if (statusFilter) {
+      // Match against the DB status (e.g. "Active" → null filter, use exact match)
+      // The status comes from formatUserStatus which maps DB enum → display string
+      // We need to reverse-map or filter on the DB enum directly
+      const statusMap: Record<string, string> = {
+        'Active': 'ACTIVE',
+        'Inactive': 'INACTIVE',
+        'Pending Activation': 'PENDING_ACTIVATION',
+        'Pending Setup': 'PENDING_SETUP',
+        'Pending Password Setup': 'PENDING_PASSWORD_SETUP',
+        'Restricted': 'RESTRICTED',
+        'Disabled': 'DISABLED',
+        'Archived': 'ARCHIVED',
+        'Graduated': 'GRADUATED',
+      };
+      const dbStatus = statusMap[statusFilter];
+      if (dbStatus) {
+        userWhere.status = dbStatus;
+      }
+    }
+    if (q) {
+      userWhere.OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        { firstName: { contains: q, mode: 'insensitive' } },
+        { lastName: { contains: q, mode: 'insensitive' } },
+        { teacherProfile: { employeeId: { contains: q, mode: 'insensitive' } } },
+        { teacherProfile: { department: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Fetch paginated teachers with proper skip/take
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: userWhere,
+        include: { teacherProfile: true },
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: pageSize,
+      }),
+      this.prisma.user.count({ where: userWhere }),
     ]);
-    return teachers.map((user) => {
-      const teacherSubjects = subjects.filter((s) => s.teacherId === user.teacherProfile?.id);
-      const studentIds = new Set<string>();
-      for (const subject of teacherSubjects) { for (const enrollment of subject.enrollments) { if (enrollment.student?.user?.id) studentIds.add(enrollment.student.user.id); } }
-      return { id: user.id, name: this.userName(user), email: user.email, dept: user.teacherProfile?.department || 'Unassigned Department', employeeId: user.teacherProfile?.employeeId ?? null, subjects: teacherSubjects.length, students: studentIds.size, status: this.formatUserStatus(user.status), lastActive: user.updatedAt.toISOString() };
-    }).filter((row) => {
-      const matchesSearch = !q || [row.id, row.name, row.email, row.dept].some((v) => String(v || '').toLowerCase().includes(q));
-      return matchesSearch && (!status || status === 'All' || row.status === status);
-    });
+
+    // Get subject and enrollment counts for these teachers via batch queries
+    const teacherProfileIds = rows.map((u) => u.teacherProfile?.id).filter(Boolean) as string[];
+    let subjectCountMap = new Map<string, number>();
+    let studentCountMap = new Map<string, number>();
+
+    if (teacherProfileIds.length > 0) {
+      // Batch-fetch subjects for these teachers only
+      const subjects = await this.prisma.subject.findMany({
+        where: { teacherId: { in: teacherProfileIds } },
+        select: { id: true, teacherId: true },
+      });
+
+      // Count subjects per teacher
+      for (const subj of subjects) {
+        subjectCountMap.set(subj.teacherId, (subjectCountMap.get(subj.teacherId) ?? 0) + 1);
+      }
+
+      // Batch-fetch enrollment counts per subject
+      const subjectIds = subjects.map((s) => s.id);
+      if (subjectIds.length > 0) {
+        const enrollments = await this.prisma.enrollment.findMany({
+          where: { subjectId: { in: subjectIds } },
+          select: { subjectId: true, studentId: true },
+        });
+
+        // Count unique students per teacher (via subject → teacher mapping)
+                const subjectToTeacher = new Map<string, string>(subjects.map((s) => [s.id, s.teacherId]));
+                        const teacherStudents = new Map<string, Set<string>>();
+                        for (const enrollment of enrollments) {
+                          const tId = subjectToTeacher.get(enrollment.subjectId);
+                          if (tId) {
+                            if (!teacherStudents.has(tId)) teacherStudents.set(tId, new Set());
+                            teacherStudents.get(tId)!.add(enrollment.studentId);
+                          }
+                        }
+                        for (const [tId, ids] of teacherStudents) {
+          studentCountMap.set(tId, ids.size);
+        }
+      }
+    }
+
+    const mapped = rows.map((user) => ({
+      id: user.id,
+      name: this.userName(user),
+      email: user.email,
+      dept: user.teacherProfile?.department || 'Unassigned Department',
+      employeeId: user.teacherProfile?.employeeId ?? null,
+      subjects: subjectCountMap.get(user.teacherProfile?.id ?? '') ?? 0,
+      students: studentCountMap.get(user.teacherProfile?.id ?? '') ?? 0,
+      status: this.formatUserStatus(user.status),
+      lastActive: user.updatedAt.toISOString(),
+    }));
+
+    return { rows: mapped, total };
   }
 
-  async students(search?: string, status?: string) {
+  async students(search?: string, status?: string, take?: number, skip?: number) {
     const q = this.normalizeSearch(search);
-    const rows = await this.prisma.user.findMany({
-      where: { role: 'STUDENT' },
-      include: { studentProfile: { include: { section: { include: { academicYear: true, academicYearLevel: true } }, academicYear: true, academicYearLevel: true } }, authSessions: { where: { revokedAt: null }, orderBy: { lastUsedAt: 'desc' }, take: 1 }, accountActionTokens: { where: { type: 'ACCOUNT_ACTIVATION' }, orderBy: { createdAt: 'desc' }, take: 1 } },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { createdAt: 'asc' }],
-    });
+    const pageSize = take ?? 100;
+    const offset = skip ?? 0;
+    const statusFilter = status && status !== 'All' ? status : undefined;
+
+    const userWhere: any = { role: 'STUDENT' };
+    if (statusFilter) {
+      userWhere.status = statusFilter.toUpperCase().replace(/\s+/g, '_');
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: userWhere,
+        include: { studentProfile: { include: { section: { include: { academicYear: true, academicYearLevel: true } }, academicYear: true, academicYearLevel: true } }, authSessions: { where: { revokedAt: null }, orderBy: { lastUsedAt: 'desc' }, take: 1 }, accountActionTokens: { where: { type: 'ACCOUNT_ACTIVATION' }, orderBy: { createdAt: 'desc' }, take: 1 } },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { createdAt: 'asc' }],
+        take: pageSize + offset,
+      }),
+      this.prisma.user.count({ where: userWhere }),
+    ]);
     const emailJobs = rows.length ? await this.prisma.emailJob.findMany({ where: { userEmail: { in: rows.map((r) => r.email) }, templateKey: 'account-activation' }, orderBy: [{ createdAt: 'desc' }] }) : [];
     const latestMailJobByEmail = new Map<string, (typeof emailJobs)[number]>();
     for (const job of emailJobs) { const key = String(job.userEmail || '').trim().toLowerCase(); if (key && !latestMailJobByEmail.has(key)) latestMailJobByEmail.set(key, job); }
-    return rows.map((user) => {
+    const mapped = rows.map((user) => {
       const profile = user.studentProfile;
       return { id: user.id, studentId: profile?.studentNumber ?? user.id, lastName: user.lastName, firstName: user.firstName, middleInitial: String(profile?.middleInitial ?? '').trim(), academicYear: profile?.academicYear?.name ?? profile?.section?.academicYear?.name ?? '\u2014', yearLevel: profile?.academicYearLevel?.name ?? profile?.yearLevelName ?? profile?.section?.academicYearLevel?.name ?? profile?.section?.yearLevelName ?? (profile?.yearLevel ? `${profile.yearLevel}` : '\u2014'), name: this.userName(user), email: user.email, course: profile?.course ?? profile?.section?.course ?? '\u2014', section: profile?.section?.name ?? '\u2014', sectionId: profile?.section?.id ?? '', ...this.buildStudentActivationSummary(user, user.accountActionTokens[0] ?? null, latestMailJobByEmail.get(String(user.email || '').trim().toLowerCase()) ?? null, user.authSessions[0]?.lastUsedAt ?? null), createdBy: 'Admin', createdAt: user.createdAt.toISOString(), lastActive: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '', lastLoginAt: user.authSessions[0]?.lastUsedAt?.toISOString() ?? '' };
     }).filter((row) => {
-      return (!q || [row.studentId, row.name, row.email, row.section].some((v) => String(v || '').toLowerCase().includes(q))) && (!status || status === 'All' || row.status === status);
+      return !q || [row.studentId, row.name, row.email, row.section].some((v) => String(v || '').toLowerCase().includes(q));
     });
+    return { rows: mapped.slice(offset, offset + pageSize), total };
   }
 
   async createStudent(payload: { firstName?: string; middleInitial?: string; lastName?: string; email?: string; studentNumber?: string; section?: string; yearLevelId?: string; yearLevelName?: string; course?: string; yearLevel?: number | string; academicYearId?: string; academicYear?: string }) {
@@ -444,6 +547,38 @@ export class AdminUsersService {
     await this.notifications.createInAppNotification(user.id, 'Password setup ready', 'A password setup link has been queued for email delivery.');
     await this.auditLogs.record({ actorUserId: actor?.actorUserId, actorRole: 'ADMIN', action: 'RESET', module: 'Students', target: this.userName(user), entityId: user.id, result: 'Queued', details: 'Admin queued a student password reset/setup link.', afterValue: 'PENDING_PASSWORD_SETUP', ipAddress: actor?.ipAddress });
     return { success: true, queued: true, status: 'PENDING_PASSWORD_SETUP', mailJobId: mailJob.id };
+  }
+
+  async removeStudentFromSection(sectionId: string, studentId: string) {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { id: studentId, role: 'STUDENT' },
+        include: { studentProfile: { include: { section: true } } },
+      });
+      if (!user?.studentProfile) throw new NotFoundException('Student not found.');
+      if (user.studentProfile.sectionId !== sectionId) {
+        throw new BadRequestException('Student is not assigned to this section.');
+      }
+      await this.prisma.studentProfile.update({
+        where: { userId: studentId },
+        data: { sectionId: null, academicYearId: null, academicYearLevelId: null },
+      });
+      await this.auditLogs.record({
+        actorRole: 'ADMIN',
+        action: 'UPDATE',
+        module: 'Sections',
+        target: `${user.firstName} ${user.lastName}`.trim(),
+        entityId: studentId,
+        result: 'Success',
+        details: `Admin removed student from section ${sectionId}.`,
+      });
+      return { success: true };
+    } catch (error) {
+      const msg = `removeStudentFromSection failed: sectionId=${sectionId}, studentId=${studentId}, error=${error instanceof Error ? error.stack : String(error)}`;
+      this.logger.error(msg);
+      console.error('DEBUG_REMOVE_ERROR:', msg);
+      throw error;
+    }
   }
 
   private buildStudentActivationSummary(user: any, token: any, mailJob: any, lastUsedAt: Date | null) {

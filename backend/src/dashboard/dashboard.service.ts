@@ -78,8 +78,8 @@ export class DashboardService {
     ]);
 
     // Batched subject progress — replaces per-subject N+1 pattern
-    const subjectIds = subjects.map((s) => s.id);
-    const subjectNameMap = new Map(subjects.map((s) => [s.id, s.name]));
+        const subjectIds = subjects.map((s) => s.id);
+        const subjectNameMap = new Map<string, string>(subjects.map((s) => [s.id, s.name]));
     const subjectProgress = subjectIds.length
       ? await this.buildBatchedSubjectProgress(subjectIds, subjectNameMap, ownerWhere)
       : [];

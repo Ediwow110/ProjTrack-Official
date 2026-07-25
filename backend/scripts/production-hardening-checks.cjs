@@ -190,14 +190,20 @@ for (const file of backendSourceFiles) {
   assert(!/\bactor\s*:\s*true\b/.test(source), `${relative} returns raw actor include.`);
 }
 
-const subjectsService = includes('src/subjects/subjects.service.ts', [
+const teacherSubjectsService = includes('src/subjects/teacher-subjects.service.ts', [
   'requireTeacherOwnsActivity',
   'if (!byStudent.size)',
+]);
+const subjectGroupsService = includes('src/subjects/subject-groups.service.ts', [
   'requireStudentCanCreateGroup',
   'requireStudentCanJoinGroup',
+]);
+const studentSubjectsService = includes('src/subjects/student-subjects.service.ts', [
   'ensureStudentEnrolledInSubject',
 ]);
-assert(!/return\s+\{\s*\.\.\.subject/.test(subjectsService), 'Subject service must not return raw subject spreads.');
+assert(!/return\s+\{\s*\.\.\.subject/.test(teacherSubjectsService), 'Teacher subject service must not return raw subject spreads.');
+assert(!/return\s+\{\s*\.\.\.subject/.test(studentSubjectsService), 'Student subject service must not return raw subject spreads.');
+assert(!/return\s+\{\s*\.\.\.subject/.test(subjectGroupsService), 'Subject groups service must not return raw subject spreads.');
 
 const subjectRepository = includes('src/repositories/subject.repository.ts', [
   'randomBytes',
@@ -261,14 +267,20 @@ includes('src/auth/password.service.ts', [
   'return false',
 ]);
 
-includes('src/admin/admin.service.ts', [
+includes('src/admin/admin-users.service.ts', [
   'revokedAt',
   'canExposeAccountActionLinks',
   'EXPOSE_ACCOUNT_ACTION_LINKS',
-  'process.env.APP_ENV',
+]);
+
+includes('src/admin/admin-notifications.service.ts', [
   'skippedInactive',
   'notification.updateMany',
   'actor?.actorUserId',
+]);
+
+includes('src/admin/admin-system-tools.service.ts', [
+  'process.env.APP_ENV',
   'CLEAN SEED DATA',
   'admin@projtrack.codes',
   'ALLOW_SEED_DATA_CLEANUP',
@@ -377,7 +389,7 @@ assert(frontendRuntime.includes('VITE_API_BASE_URL cannot point to localhost in 
 
 const protectedPortal = readRepo('src/app/components/ProtectedPortal.tsx');
 assert(protectedPortal.includes('apiRuntime.useBackend'), 'ProtectedPortal must distinguish real backend mode from mock mode.');
-assert(protectedPortal.includes('Session verification is temporarily unavailable'), 'ProtectedPortal must not grant backend-mode access from localStorage when /auth/me fails.');
+assert(protectedPortal.includes('clearAuthSession()') && protectedPortal.includes('setAllowed(false)'), 'ProtectedPortal must not grant backend-mode access from localStorage when /auth/me fails.');
 
 const frontendRoutes = readRepo('src/app/routes.tsx');
 assert(frontendRoutes.includes('return <Navigate to="/student/login" replace />;'), 'Logged-out public entry must redirect to /student/login.');
@@ -510,7 +522,7 @@ for (const phrase of ['escapeHtml', 'assertSafeUrl', 'normalizeSubject', 'requir
   assert(mailTemplates.includes(phrase), `Mail renderer must include ${phrase}.`);
 }
 
-const adminMailFlows = read('src/admin/admin.service.ts');
+const adminMailFlows = read('src/admin/admin-notifications.service.ts');
 assert(adminMailFlows.includes("body.audience === 'ADMINS'"), 'Admin-only broadcasts must use admin sender routing.');
 assert(adminMailFlows.includes('MAIL_CATEGORY_KEYS.NOTIFICATION'), 'Student/teacher/all broadcasts must use notification sender routing.');
 

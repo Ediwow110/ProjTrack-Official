@@ -231,7 +231,9 @@ describe('data-deletion-request regressions', () => {
 
   describe('Phase 7B destructive execution (PR Phase 7B)', () => {
     function buildExecutionService(overrides: any = {}) {
+      const $transaction = jest.fn();
       const prisma: any = {
+        $transaction,
         dataDeletionRequest: {
           findUnique: jest.fn(),
         },
@@ -290,6 +292,7 @@ describe('data-deletion-request regressions', () => {
         },
         ...overrides.prisma,
       };
+      $transaction.mockImplementation(async (cb: Function) => cb(prisma));
       const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
       const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
       return { service, prisma, auditLogs };
@@ -623,7 +626,9 @@ describe('data-deletion-request regressions', () => {
 
   describe('execution worker safety (PR E)', () => {
     function buildExecutionService(overrides: any = {}) {
+      const $transaction = jest.fn();
       const prisma: any = {
+        $transaction,
         dataDeletionRequest: {
           findUnique: jest.fn(),
         },
@@ -682,6 +687,7 @@ describe('data-deletion-request regressions', () => {
         },
         ...overrides.prisma,
       };
+      $transaction.mockImplementation(async (cb: Function) => cb(prisma));
       const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
       const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
       return { service, prisma, auditLogs };
@@ -766,8 +772,17 @@ describe('data-deletion-request regressions', () => {
 
     // Phase 6: Backup / Restore Drill Hardening additions
     it('verifyBackup succeeds for COMPLETED + !deletedAt, sets BACKUP_VERIFIED + records audit (Phase 6 hardening)', async () => {
-      const mockExecution = { id: 'e6', requestId: 'r6' };
-      const mockBackup = { id: 'b2', status: 'COMPLETED', deletedAt: null };
+      const userCreatedAt = new Date('2024-01-01T00:00:00Z');
+      const backupCompletedAt = new Date('2025-01-01T00:00:00Z');
+      const mockExecution = {
+        id: 'e6', requestId: 'r6',
+        request: { id: 'r6', requester: { createdAt: userCreatedAt } },
+      };
+      const mockBackup = {
+        id: 'b2', status: 'COMPLETED', deletedAt: null,
+        completedAt: backupCompletedAt,
+        recordCounts: { users: 50 },
+      };
       const updated = { ...mockExecution, status: 'BACKUP_VERIFIED', backupRunId: 'b2', backupVerifiedAt: new Date(), backupVerificationRef: 'ref-42' };
       const { service, prisma, auditLogs } = buildExecutionService({
         prisma: {
@@ -809,19 +824,91 @@ describe('data-deletion-request regressions', () => {
     });
 
     it('verify/execution paths are idempotent for BACKUP_VERIFIED state (Phase 6 drill hardening)', async () => {
-      const existingVerified = { id: 'e8', requestId: 'r8', status: 'BACKUP_VERIFIED', backupRunId: 'b4' };
+      const existingVerified = {
+        id: 'e8', requestId: 'r8', status: 'BACKUP_VERIFIED', backupRunId: 'b4',
+        request: { id: 'r8', requester: { createdAt: new Date('2024-01-01T00:00:00Z') } },
+      };
       const { service } = buildExecutionService({
         prisma: {
           dataDeletionExecution: {
             findUnique: jest.fn().mockResolvedValue(existingVerified),
             update: jest.fn().mockResolvedValue(existingVerified),
           },
-          backupRun: { findUnique: jest.fn().mockResolvedValue({ id: 'b4', status: 'COMPLETED', deletedAt: null }) },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'b4', status: 'COMPLETED', deletedAt: null,
+              completedAt: new Date('2025-01-01T00:00:00Z'),
+              recordCounts: { users: 50 },
+            }),
+          },
         },
       });
       // Re-verify should still succeed (idempotent update ok in impl)
       const res = await service.verifyBackup('e8', { backupRunId: 'b4' });
       expect(res.status).toBe('BACKUP_VERIFIED');
+    });
+
+    it('verifyBackup rejects backup with no recordCounts', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e9', requestId: 'r9',
+              request: { id: 'r9', requester: { createdAt: new Date('2024-01-01T00:00:00Z') } },
+            }),
+          },
+          backupRun: { findUnique: jest.fn().mockResolvedValue({ id: 'b9', status: 'COMPLETED', deletedAt: null, completedAt: new Date('2025-01-01T00:00:00Z') }) },
+        },
+      });
+      await expect(service.verifyBackup('e9', { backupRunId: 'b9' })).rejects.toThrow(
+        /Backup record counts are missing or empty/,
+      );
+    });
+
+    it('verifyBackup rejects backup with zero users recordCounts', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e10', requestId: 'r10',
+              request: { id: 'r10', requester: { createdAt: new Date('2024-01-01T00:00:00Z') } },
+            }),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'b10', status: 'COMPLETED', deletedAt: null,
+              completedAt: new Date('2025-01-01T00:00:00Z'),
+              recordCounts: { users: 0, notifications: 10 },
+            }),
+          },
+        },
+      });
+      await expect(service.verifyBackup('e10', { backupRunId: 'b10' })).rejects.toThrow(
+        /Backup shows zero users/,
+      );
+    });
+
+    it('verifyBackup rejects backup that predates user creation', async () => {
+      const { service } = buildExecutionService({
+        prisma: {
+          dataDeletionExecution: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'e11', requestId: 'r11',
+              request: { id: 'r11', requester: { createdAt: new Date('2025-06-01T00:00:00Z') } },
+            }),
+          },
+          backupRun: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'b11', status: 'COMPLETED', deletedAt: null,
+              completedAt: new Date('2025-01-01T00:00:00Z'),
+              recordCounts: { users: 50, notifications: 10 },
+            }),
+          },
+        },
+      });
+      await expect(service.verifyBackup('e11', { backupRunId: 'b11' })).rejects.toThrow(
+        /backup predates the user/,
+      );
     });
 
     it('drill hardening cross-check: DataDeletion* tables now covered by backup-restore-drill EXPECTED_TABLES', () => {
@@ -834,7 +921,9 @@ describe('data-deletion-request regressions', () => {
 
   describe('Phase 7D manual rollout safety', () => {
     function buildExecutionService(overrides: any = {}) {
+      const $transaction = jest.fn();
       const prisma: any = {
+        $transaction,
         dataDeletionRequest: {
           findUnique: jest.fn(),
         },
@@ -894,6 +983,7 @@ describe('data-deletion-request regressions', () => {
         },
         ...overrides.prisma,
       };
+      $transaction.mockImplementation(async (cb: Function) => cb(prisma));
       const auditLogs: any = { record: jest.fn().mockResolvedValue({ success: true }), ...overrides.auditLogs };
       const service = new (require('../../src/data-deletion/data-deletion-execution.service').DataDeletionExecutionService)(prisma, auditLogs);
       return { service, prisma, auditLogs };

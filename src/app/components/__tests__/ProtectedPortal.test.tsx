@@ -10,12 +10,14 @@ import { MemoryRouter, Routes, Route } from "react-router";
 const mockSession = vi.hoisted(() => ({
   getAuthSession: vi.fn<() => { role: string; identifier: string; accessToken?: string; refreshToken?: string } | null>(),
   clearAuthSession: vi.fn(),
+  dispatchSessionExpired: vi.fn(),
   productionRuntime: vi.fn(() => false),
 }));
 
 vi.mock("../../lib/authSession", () => ({
   getAuthSession: mockSession.getAuthSession,
   clearAuthSession: mockSession.clearAuthSession,
+  dispatchSessionExpired: mockSession.dispatchSessionExpired,
   productionRuntime: mockSession.productionRuntime,
 }));
 
@@ -171,7 +173,7 @@ describe("ProtectedPortal — auth/route guard (Target A)", () => {
   // -----------------------------------------------------------------------
   // 5. Non-auth API error shows verification error (not redirect)
   // -----------------------------------------------------------------------
-  it("shows verification error when getCurrentUser fails with non-auth error", async () => {
+  it("redirects to login when getCurrentUser fails with non-auth error (backend unreachable)", async () => {
     mockSession.getAuthSession.mockReturnValue({
       role: "student",
       identifier: "STU-001",
@@ -182,13 +184,12 @@ describe("ProtectedPortal — auth/route guard (Target A)", () => {
 
     renderPortal("student");
 
-    // Should show the verification error alert, not redirect
-    expect(await screen.findByRole("alert")).toBeDefined();
-    expect(screen.getByText(/Session verification is temporarily unavailable/i)).toBeDefined();
+    // Should redirect to login (backed unreachable)
+    expect(await screen.findByTestId("login-page")).toBeDefined();
     // Should NOT show protected content
     expect(screen.queryByTestId("protected-content")).toBeNull();
-    // Should NOT have cleared the session (not an auth failure)
-    expect(mockSession.clearAuthSession).not.toHaveBeenCalled();
+    // Should clear the session so login page is shown
+    expect(mockSession.clearAuthSession).toHaveBeenCalled();
   });
 
   // -----------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Eye, GraduationCap, Mail, UserX } from "lucide-react";
+import { Eye, GraduationCap, Mail, Trash2, UserX } from "lucide-react";
 
 import { PortalEmptyState } from "../../portal/PortalPage";
 import { StatusChip } from "../../ui/StatusChip";
@@ -21,6 +21,7 @@ type TeachersTableProps = {
   onActivate: (id: string) => void;
   onReset: (id: string) => void;
   onDeactivate: (teacher: AdminTeacherRecord) => void;
+  onDelete: (teacher: AdminTeacherRecord) => void;
   actionBusy?: boolean;
   sortState?: {
     columnKey: TeacherSortKey;
@@ -42,6 +43,7 @@ export function TeachersTable({
   onActivate,
   onReset,
   onDeactivate,
+  onDelete,
   actionBusy = false,
   sortState,
   onSortChange,
@@ -127,18 +129,10 @@ export function TeachersTable({
       onSortChange={onSortChange}
       rowActions={(teacher) => [
         {
-          key: "preview",
-          label: "Preview",
-          icon: <Eye size={15} />,
-          ariaLabel: `Preview ${teacher.name}`,
-          onClick: () => onPreview(teacher.id),
-          disabled: () => actionBusy,
-        },
-        {
           key: "view",
           label: "View",
-          icon: <ArrowUpRight size={15} />,
-          ariaLabel: `Open full record for ${teacher.name}`,
+          icon: <Eye size={15} />,
+          ariaLabel: `View details for ${teacher.name}`,
           onClick: () => onView(teacher.id),
           disabled: () => actionBusy,
         },
@@ -164,6 +158,15 @@ export function TeachersTable({
           onClick: () => onDeactivate(teacher),
           tone: "danger",
           hidden: () => teacher.status === "Inactive",
+          disabled: () => actionBusy,
+        },
+        {
+          key: "delete",
+          label: "Delete",
+          icon: <Trash2 size={15} />,
+          ariaLabel: `Delete ${teacher.name}`,
+          onClick: () => onDelete(teacher),
+          tone: "danger",
           disabled: () => actionBusy,
         },
       ]}

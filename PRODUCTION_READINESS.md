@@ -196,7 +196,7 @@ Run these against staging before production cutover:
 - Full Google Drive backup storage is not implemented; storage is structured for future `gdrive`/`s3` providers.
 - In-app restore is intentionally not enabled. Restore remains a manual operator runbook action because it is destructive.
 - No full database-backed Jest suite existed. A backend `npm test` production-hardening regression script was added to catch permission and safety regressions without requiring seeded data.
-- Nest 11 upgrade and an `xlsx` replacement or CSV-only import policy remain follow-up items.
+- Nest 11 upgrade and `xlsx` replacement (migrated to `exceljs`) have been completed.
 
 ## Theme and Silent Bug Gate
 

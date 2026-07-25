@@ -6,6 +6,7 @@ import {
   subscribeAuthSession,
   type AuthSession,
 } from "../lib/authSession";
+import { SessionExpiredModal } from "../components/auth/SessionExpiredModal";
 import {
   adminService,
   authService,
@@ -543,6 +544,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
       )}
       style={roleThemeStyle(role)}
     >
+      <SessionExpiredModal />
       <div className="portal-mobile-decorative-glow pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.92),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.75),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,41,59,0.8),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(15,23,42,0.8),transparent_28%)]" />
       <div className="portal-shell-gradient portal-mobile-decorative-glow pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />
       <div className="portal-mobile-decorative-glow pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-white/45 blur-3xl dark:bg-blue-900/15" />
@@ -611,13 +613,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             {isMobile ? <Menu size={18} /> : collapsed ? <Menu size={18} /> : <Menu size={18} />}
           </button>
           <div className="min-w-0 flex-1 sm:flex-none">
-            <div className="flex items-center gap-2">
-              <p className="font-display truncate text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">{pathLabel}</p>
-              <span className="portal-topbar-pill hidden rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] sm:inline-flex">
-                {cfg.label}
-              </span>
-            </div>
-            <p className="portal-accent-text text-[10px] font-semibold uppercase tracking-[0.22em]">{cfg.label}</p>
+            <p className="font-display truncate text-base font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">{pathLabel}</p>
           </div>
           <div className="hidden flex-1 sm:block" />
           {/* Search */}

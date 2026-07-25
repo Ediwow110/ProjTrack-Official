@@ -389,6 +389,12 @@ model Submission {
   reviewer      User?             @relation("submissionReviewer", fields: [reviewerId], references: [id])
   files         SubmissionFile[]
   events        SubmissionEvent[]
+
+  @@index([subjectId])
+  @@index([studentId])
+  @@index([taskId])
+  @@index([status, subjectId])
+  @@index([submittedAt])
 }
 
 model SubmissionEvent {

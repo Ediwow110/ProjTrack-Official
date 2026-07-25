@@ -39,6 +39,7 @@ const initialForm: AdminSubjectUpsertInput = {
 export default function AdminSubjects() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [viewSubjectCode, setViewSubjectCode] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<AdminSubjectUpsertInput>(initialForm);
   const [teachers, setTeachers] = useState<AdminTeacherRecord[]>([]);
@@ -53,6 +54,7 @@ export default function AdminSubjects() {
     [search],
   );
   const subjects = data ?? [];
+  const viewSubject = subjects.find((s) => (s.id || s.code) === viewSubjectCode) ?? null;
   const resultCount = subjects.length;
   const totalActivities = subjects.reduce(
     (sum, subject) => sum + Number(subject.activities || 0),
@@ -65,7 +67,7 @@ export default function AdminSubjects() {
 
   const openSubject = (subjectId: string) => {
     if (loading) return;
-    navigate(`/admin/subjects/${encodeURIComponent(subjectId)}`);
+    setViewSubjectCode(subjectId);
   };
 
   useEffect(() => {
@@ -321,6 +323,52 @@ export default function AdminSubjects() {
           </div>
         )}
       </PortalPanel>
+
+      <AppModal
+        open={Boolean(viewSubject)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setViewSubjectCode(null);
+        }}
+        title={viewSubject?.name ?? "Subject Details"}
+        description={viewSubject ? `${viewSubject.code} · ${viewSubject.teacher}` : "Subject information"}
+        size="md"
+        footer={viewSubject ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => { setViewSubjectCode(null); navigate(`/admin/subjects/${encodeURIComponent(viewSubject.id || viewSubject.code)}`); }}>
+              View full page
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setViewSubjectCode(null)}>
+              Close
+            </Button>
+          </>
+        ) : undefined}
+      >
+        {viewSubject ? (
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{viewSubject.name}</p>
+                <p>{viewSubject.code} · {viewSubject.teacher}</p>
+              </div>
+              <StatusChip status={viewSubject.status} size="sm" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Sections</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubject.sections.join(", ") || "—"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Activities</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubject.activities}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Students</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{viewSubject.students}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </AppModal>
 
       <AppModal
         open={createOpen}

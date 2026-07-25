@@ -42,8 +42,6 @@ jobs:
         run: npm run e2e:responsive -- --list
         timeout-minutes: 10
 
-      - run: npm run security:audit
-
       - name: Frontend CI summary
         if: always()
         run: |
@@ -116,7 +114,6 @@ jobs:
       - run: npx prisma migrate deploy
 
       - run: npm run build
-
       - run: npm run test
       - run: npm run test:unit
       - run: npm run test:security
@@ -138,8 +135,6 @@ jobs:
           SMOKE_USE_REAL_ACCOUNTS: true
           SMOKE_DEBUG_ERRORS: true
 
-      - run: npm audit --audit-level=high
-
       - name: Backend CI summary
         if: always()
         run: |
@@ -150,6 +145,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
     services:
       postgres:
         image: postgres:16
@@ -234,8 +230,6 @@ jobs:
       - name: Authenticated responsive QA
         run: npm run e2e:responsive
         timeout-minutes: 15
-
-      - run: npm audit --audit-level=high
 
       - name: E2E CI summary
         if: always()

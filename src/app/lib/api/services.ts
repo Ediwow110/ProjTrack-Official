@@ -552,12 +552,12 @@ export interface TeacherSubmissionFilters { search?: string; status?: string; se
 export interface AuditLogFilters { search?: string; module?: string }
 export interface AdminReportsFilters { schoolYear?: string; semester?: string; section?: string }
 export interface AdminNotificationsFilters { type?: string }
-export interface AdminStudentFilters { search?: string; status?: string }
-export interface AdminSubjectFilters { search?: string }
+export interface AdminStudentFilters { search?: string; status?: string; take?: number; skip?: number }
+export interface AdminSubjectFilters { search?: string; take?: number; skip?: number }
 export interface AdminGroupFilters { search?: string; section?: string; status?: string }
 export interface AdminAnnouncementFilters { status?: string }
 export interface AdminCalendarFilters { audience?: string }
-export interface AdminTeacherFilters { search?: string; status?: string }
+export interface AdminTeacherFilters { search?: string; status?: string; take?: number; skip?: number }
 export interface AdminSectionFilters { search?: string; academicYearId?: string }
 export interface AdminAcademicYearFilters { search?: string }
 export interface AdminRequestFilters { status?: string }
@@ -566,6 +566,8 @@ export interface AdminSubmissionFilters {
   status?: string;
   section?: string;
   subjectId?: string;
+  take?: number;
+  skip?: number;
   studentId?: string;
 }
 export interface AdminUserFilters { search?: string; role?: string; status?: string }
@@ -1379,13 +1381,16 @@ export const adminService = {
   },
   async getSubmissions(filters: AdminSubmissionFilters = {}): Promise<AdminSubmissionRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/submissions", {
+      const response = await http.get<any>("/admin/submissions", {
         search: filters.search || undefined,
         status: !filters.status || filters.status === "All" ? undefined : filters.status.replace(/\s+/g, "_").toUpperCase(),
         subjectId: filters.subjectId || undefined,
         studentId: filters.studentId || undefined,
         section: !filters.section || filters.section === "All" ? undefined : filters.section,
+        take: String(filters.take ?? 100),
+        skip: String(filters.skip ?? 0),
       });
+      const rows = Array.isArray(response) ? response : response.rows ?? [];
       return rows.map((row: any) => ({
         id: normalizeId(row.id) || "",
         title: String(row.title || ""),
@@ -2136,10 +2141,13 @@ async deleteNotifications(ids: string[]) {
   },
   async getStudents(filters: AdminStudentFilters = {}): Promise<AdminStudentRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/students", {
+      const response = await http.get<any>("/admin/students", {
         search: filters.search || undefined,
         status: !filters.status || filters.status === "All" ? undefined : filters.status,
+        take: String(filters.take ?? 100),
+        skip: String(filters.skip ?? 0),
       });
+      const rows = Array.isArray(response) ? response : response.rows ?? [];
       return rows.map((s: any) => ({
         id: String(s.id),
         studentId: String(s.studentId || s.studentNumber || s.id),
@@ -2482,9 +2490,12 @@ async saveSubmissionNote(id: string, note: string) {
 
   async getSubjects(filters: AdminSubjectFilters = {}): Promise<AdminSubjectRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/subjects", {
+      const response = await http.get<any>("/admin/subjects", {
         search: filters.search || undefined,
+        take: String(filters.take ?? 100),
+        skip: String(filters.skip ?? 0),
       });
+      const rows = Array.isArray(response) ? response : response.rows ?? [];
       return rows.map((s: any) => ({
         id: String(s.id || s.code || ""),
         code: s.code || s.id,
@@ -3143,11 +3154,14 @@ export const studentGroupService = {
 export const adminCatalogService = {
   async getTeachers(filters: AdminTeacherFilters = {}): Promise<AdminTeacherRecord[]> {
     if (apiRuntime.useBackend) {
-      const rows = await http.get<Array<any>>("/admin/teachers", {
+      const response = await http.get<any>("/admin/teachers", {
         search: filters.search || undefined,
         status: !filters.status || filters.status === "All" ? undefined : filters.status,
+        take: String(filters.take ?? 100),
+        skip: String(filters.skip ?? 0),
       });
-      return rows.map((t: any) => ({
+      const rawRows = Array.isArray(response) ? response : response.rows ?? [];
+      return rawRows.map((t: any) => ({
         id: String(t.id),
         name: t.name,
         email: t.email,
@@ -3417,6 +3431,14 @@ export const adminCatalogService = {
       },
       rows: [],
     };
+  },
+  async removeStudentFromSection(sectionId: string, studentId: string): Promise<{ success: boolean }> {
+    if (apiRuntime.useBackend) {
+      return http.delete<{ success: boolean }>(`/admin/sections/${sectionId}/students/${studentId}`);
+    }
+    requireBackendApi();
+    await delay(180);
+    return { success: true };
   },
   async downloadSectionMasterList(sectionId: string) {
     const response = await http.getBlob(`/admin/sections/${sectionId}/master-list/export`);

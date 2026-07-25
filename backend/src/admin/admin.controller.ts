@@ -123,8 +123,13 @@ export class AdminController {
   }
 
   @Get('teachers')
-  teachers(@Query('search') search?: string, @Query('status') status?: string) {
-    return this.adminUsers.teachers(search, status);
+  teachers(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.adminUsers.teachers(search, status, take ? Number(take) : undefined, skip ? Number(skip) : undefined);
   }
 
   @Get('departments')
@@ -234,8 +239,13 @@ export class AdminController {
   }
 
   @Get('students')
-  students(@Query('search') search?: string, @Query('status') status?: string) {
-    return this.adminUsers.students(search, status);
+  students(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.adminUsers.students(search, status, take ? Number(take) : undefined, skip ? Number(skip) : undefined);
   }
 
   @Post('students')
@@ -254,8 +264,12 @@ export class AdminController {
   }
 
   @Get('subjects')
-  subjects(@Query('search') search?: string) {
-    return this.adminSubjects.subjects(search);
+  subjects(
+    @Query('search') search?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.adminSubjects.subjects(search, take ? Number(take) : undefined, skip ? Number(skip) : undefined);
   }
 
   @Post('students/:id/deactivate')
@@ -271,6 +285,11 @@ export class AdminController {
   @Post('students/:id')
   updateStudent(@Param('id') id: string, @Body() body: StudentMutationDto) {
     return this.adminUsers.updateStudent(id, body);
+  }
+
+  @Delete('sections/:sectionId/students/:studentId')
+  removeStudentFromSection(@Param('sectionId') sectionId: string, @Param('studentId') studentId: string) {
+    return this.adminUsers.removeStudentFromSection(sectionId, studentId);
   }
 
   @Post('teachers/:id/activate')
@@ -320,8 +339,10 @@ export class AdminController {
     @Query('subjectId') subjectId?: string,
     @Query('studentId') studentId?: string,
     @Query('section') section?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
   ) {
-    return this.adminSubmissions.submissions(search, status, subjectId, studentId, section);
+    return this.adminSubmissions.submissions(search, status, subjectId, studentId, section, take ? Number(take) : undefined, skip ? Number(skip) : undefined);
   }
 
   @Post('submissions')

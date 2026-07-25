@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
-import { clearAuthSession, getAuthSession, type AppRole, productionRuntime } from "../lib/authSession";
+import { clearAuthSession, dispatchSessionExpired, getAuthSession, type AppRole, productionRuntime } from "../lib/authSession";
 import { authService } from "../lib/api/services";
 import { apiRuntime } from "../lib/api/runtime";
 
@@ -24,7 +24,6 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
     : "anonymous";
   const [checked, setChecked] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const [verificationError, setVerificationError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -39,7 +38,6 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
       }
 
       try {
-        setVerificationError("");
         const me = await authService.getCurrentUser();
         if (!mounted) return;
         const roleMatches = String(me?.role || "").toLowerCase() === role && session.role === role;
@@ -50,13 +48,15 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
       } catch (error) {
         if (!mounted) return;
         if (isAuthorizationFailure(error)) {
+          dispatchSessionExpired();
           clearAuthSession();
           setAllowed(false);
           return;
         }
 
         if (apiRuntime.useBackend) {
-          setVerificationError("Session verification is temporarily unavailable. Please log in again.");
+          // Backend unreachable — clear session and redirect to login
+          clearAuthSession();
           setAllowed(false);
           return;
         }
@@ -89,15 +89,6 @@ export default function ProtectedPortal({ role, children }: { role: AppRole; chi
   }
 
   if (!allowed) {
-    if (verificationError) {
-      return (
-        <div className="min-h-[40vh] flex items-center justify-center px-6">
-          <div role="alert" className="max-w-lg rounded-[var(--radius-control)] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900 shadow-[var(--shadow-soft)] dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100">
-            {verificationError}
-          </div>
-        </div>
-      );
-    }
     return <Navigate to={`/${role}/login`} replace state={{ from: location.pathname + location.search }} />;
   }
 

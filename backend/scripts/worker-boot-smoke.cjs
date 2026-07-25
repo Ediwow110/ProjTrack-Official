@@ -127,7 +127,7 @@ async function main() {
 
   console.log('▶ negative: worker should refuse boot when DATABASE_URL missing');
   const negEnv = workerDevEnv();
-  delete negEnv.DATABASE_URL;
+  negEnv.DATABASE_URL = '';
   const negative = await bootWorker(negEnv, { expectReady: false });
   const negCombined = `${negative.stdout}\n${negative.stderr}`;
   if (negative.ready) {
