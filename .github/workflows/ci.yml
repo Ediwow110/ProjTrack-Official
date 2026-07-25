@@ -145,6 +145,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != ''
     services:
       postgres:
         image: postgres:16
