@@ -67,7 +67,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-for-tests-only-not-production-0000000000
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
@@ -161,7 +161,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       JWT_ACCESS_SECRET: playwright-access-secret-for-tests-only-not-production-0000
       JWT_REFRESH_SECRET: playwright-refresh-secret-for-tests-only-not-production-00
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

@@ -63,7 +63,7 @@ jobs:
       CI: "true"
       NODE_ENV: test
       APP_ENV: test
-      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       JWT_ACCESS_SECRET: ci-access-secret-for-production-checks-only-0000000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-for-production-checks-only-000000000000000
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
@@ -129,7 +129,7 @@ jobs:
       CI: "true"
       NODE_ENV: test
       APP_ENV: test
-      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       JWT_ACCESS_SECRET: playwright-access-secret-for-production-checks-only-000000
       JWT_REFRESH_SECRET: playwright-refresh-secret-for-production-checks-only-0000
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

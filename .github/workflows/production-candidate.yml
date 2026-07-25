@@ -47,7 +47,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
       NODE_ENV: test
       APP_ENV: test
       JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
