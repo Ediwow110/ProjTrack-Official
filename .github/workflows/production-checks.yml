@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [frontend, backend]
-    if: github.actor != 'dependabot[bot]'
+    if: env.SMOKE_ADMIN_IDENTIFIER != '' && env.SMOKE_ADMIN_PASSWORD != '' && github.actor != 'dependabot[bot]'
     services:
       postgres:
         image: postgres:16
