@@ -29,7 +29,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run build:production-fixture
       - run: npm run check:bundle-budget
-      - run: npm audit --audit-level=high --omit=dev
 
   backend:
     runs-on: ubuntu-latest

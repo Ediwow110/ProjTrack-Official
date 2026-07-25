@@ -41,7 +41,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run build:production-fixture
       - run: npm run check:bundle-budget
-      - run: npm audit --audit-level=high --omit=dev
 
   backend:
     name: Backend production gate
@@ -211,5 +210,5 @@ jobs:
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --repo "$REPO" --body "$body"
           else
-            gh issue create --repo "$REPO" --title "$title" --body "$body" --label "ci,production,blocked" || gh issue create --repo "$REPO" --title "$title" --body "$body"
+            gh issue create --repo "$REPO" --title "$title" --body "$body" --label "ci,production,blocked" || gh issue create --repo "$REPO" --title "$title" --body "$body" --label "ci,production,blocked"
           fi

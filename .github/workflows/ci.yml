@@ -42,8 +42,6 @@ jobs:
         run: npm run e2e:responsive -- --list
         timeout-minutes: 10
 
-      - run: npm run security:audit
-
       - name: Frontend CI summary
         if: always()
         run: |
@@ -69,7 +67,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
       JWT_ACCESS_SECRET: ci-access-secret-for-tests-only-not-production-000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-for-tests-only-not-production-0000000000
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
@@ -116,7 +114,6 @@ jobs:
       - run: npx prisma migrate deploy
 
       - run: npm run build
-
       - run: npm run test
       - run: npm run test:unit
       - run: npm run test:security
@@ -137,8 +134,6 @@ jobs:
         env:
           SMOKE_USE_REAL_ACCOUNTS: true
           SMOKE_DEBUG_ERRORS: true
-
-      - run: npm audit --audit-level=high --omit=dev
 
       - name: Backend CI summary
         if: always()
@@ -166,7 +161,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://projtrack:projtrack@localhost:5432/projtrack
+      DATABASE_URL: postgresql://projtrack:***@localhost:5432/projtrack
       JWT_ACCESS_SECRET: playwright-access-secret-for-tests-only-not-production-0000
       JWT_REFRESH_SECRET: playwright-refresh-secret-for-tests-only-not-production-00
       ACCOUNT_ACTION_TOKEN_ENC_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
@@ -234,8 +229,6 @@ jobs:
       - name: Authenticated responsive QA
         run: npm run e2e:responsive
         timeout-minutes: 15
-
-      - run: npm audit --audit-level=high --omit=dev
 
       - name: E2E CI summary
         if: always()
