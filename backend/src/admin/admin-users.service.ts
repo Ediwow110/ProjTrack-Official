@@ -226,16 +226,16 @@ export class AdminUsersService {
         });
 
         // Count unique students per teacher (via subject → teacher mapping)
-        const subjectToTeacher = new Map(subjects.map((s) => [s.id, s.teacherId]));
-        const teacherStudents = new Map<string, Set<string>>();
-        for (const enrollment of enrollments) {
-          const tId = subjectToTeacher.get(enrollment.subjectId);
-          if (tId) {
-            if (!teacherStudents.has(tId)) teacherStudents.set(tId, new Set());
-            teacherStudents.get(tId)!.add(enrollment.studentId);
-          }
-        }
-        for (const [tId, ids] of teacherStudents) {
+                const subjectToTeacher = new Map<string, string>(subjects.map((s) => [s.id, s.teacherId]));
+                        const teacherStudents = new Map<string, Set<string>>();
+                        for (const enrollment of enrollments) {
+                          const tId = subjectToTeacher.get(enrollment.subjectId);
+                          if (tId) {
+                            if (!teacherStudents.has(tId)) teacherStudents.set(tId, new Set());
+                            teacherStudents.get(tId)!.add(enrollment.studentId);
+                          }
+                        }
+                        for (const [tId, ids] of teacherStudents) {
           studentCountMap.set(tId, ids.size);
         }
       }

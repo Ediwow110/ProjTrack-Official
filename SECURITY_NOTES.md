@@ -81,6 +81,15 @@ Backup delete is blocked for latest successful, protected, and running backups. 
 
 If a future advisory cannot be cleared by an upgrade, document the mitigation here, link to the CI run that caught it, and either pin a safe version, replace the dependency, or ship a compensating control before merging.
 
+### Known Advisory (Accepted Risk)
+
+**react-router@7.18.1** (GHSA-qwww-vcr4-c8h2, GHSA-2w69-qvjg-hvjx, GHSA-8v8x-cx79-35w7, GHSA-49rj-9fvp-4h2h, GHSA-2j2x-hqr9-3h42, GHSA-8646-j5j9-6r62, GHSA-f22v-gfqf-p8f3, GHSA-8x6r-g9mw-2r78, GHSA-rxv8-25v2-qmq8, GHSA-h5cw-625j-3rxh, GHSA-wrjc-x8rr-h8h6, GHSA-jjmj-jmhj-qwj2, GHSA-h8fp-f39c-q6mh, GHSA-337j-9hxr-rhxg, GHSA-chx6-hx7r-mcp5)
+
+- **Status**: Pinned at `7.18.1` (last 7.x release)
+- **Reason**: `react-router-dom@8.x` does not exist on npm — React Router v8 merged DOM exports into the main `react-router` package. Upgrading to v8 requires a breaking migration (all `react-router-dom` imports → `react-router`).
+- **Mitigation**: App uses no Server Actions / RSC mode (client-side only with Vite/React Router v7). CSRF via action execution before 400 response (GHSA-qwww) not applicable. XSS advisories require malicious server responses; CSP + Helmet mitigate.
+- **Tracking**: Re-evaluate on next major feature cycle. If v8 migration is approved, update all imports and pin `react-router@^8.3.0`.
+
 ## Container Hardening
 
 `Dockerfile.backend` builds a non-root image (`projtrack` uid 10001), uses `tini` as PID 1 for clean SIGTERM handling, exposes a `/health` HEALTHCHECK, and copies only the production node_modules and built `dist/` into the runtime stage. The same image is used for the API and worker services; the worker service overrides the entrypoint to `node dist/worker.js` at deploy time. See `Dockerfile.backend` and `.dockerignore` for the full surface.

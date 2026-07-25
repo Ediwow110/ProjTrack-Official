@@ -63,7 +63,7 @@
     "@nestjs/core": "^11.1.24",
     "@nestjs/platform-express": "^11.1.24",
     "@prisma/client": "6.19.3",
-    "body-parser": "^2.2.2",
+    "body-parser": "^2.3.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "compression": "^1.8.1",
@@ -93,6 +93,10 @@
     "exceljs": {
       "uuid": "^11.1.1"
     },
-    "tmp": "^0.2.7"
+    "tmp": "^0.2.7",
+    "js-yaml": "^3.15.0",
+    "brace-expansion": "^5.0.8",
+    "minimatch": "^10.0.1",
+    "glob": "^11.0.0"
   }
 }
