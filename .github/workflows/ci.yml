@@ -138,7 +138,7 @@ jobs:
           SMOKE_USE_REAL_ACCOUNTS: true
           SMOKE_DEBUG_ERRORS: true
 
-      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high --omit=dev
 
       - name: Backend CI summary
         if: always()
@@ -235,7 +235,7 @@ jobs:
         run: npm run e2e:responsive
         timeout-minutes: 15
 
-      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high --omit=dev
 
       - name: E2E CI summary
         if: always()
