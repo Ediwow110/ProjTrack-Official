@@ -13,7 +13,7 @@ import {
   studentCatalogService,
   teacherNotificationService,
 } from "../lib/api/services";
-import { fadeInVariants, slideInVariants, springTransition } from "../lib/motion";
+import { fadeInVariants, slideInVariants, springTransition, motionTokens } from "../lib/motion";
 import { subscribeNotificationBadgeInvalidation } from "../lib/notificationBadges";
 import { roleThemeStyle, roleThemes, type PortalRole } from "../lib/roleTheme";
 import { useTheme } from "../context/ThemeContext";
@@ -670,7 +670,21 @@ export function PortalLayout({ role }: { role: PortalRole }) {
 
         {/* Page content */}
         <main className="portal-theme-surface relative flex-1 overflow-y-auto pt-4" tabIndex={0} aria-label={`${cfg.label} page content`}>
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -6 }}
+              transition={{
+                duration: reducedMotion ? 0 : motionTokens.duration.base,
+                ease: motionTokens.ease.emphasized,
+              }}
+              className="min-h-full"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
