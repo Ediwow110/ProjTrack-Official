@@ -1,6 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { PageContainer, SectionHeader, Stack } from "../layout/primitives";
 import { BodyText, DisplayTitle, Eyebrow, SectionTitle } from "../ui/typography";
+import { fadeUpVariants, scaleInVariants, motionTokens } from "../../lib/motion";
 import { cn } from "../ui/utils";
 
 type PortalIcon = ComponentType<{
@@ -98,6 +100,7 @@ export function PortalHero({
   className?: string;
 }) {
   const toneStyle = toneStyles[tone];
+  const reduced = useReducedMotion() ?? false;
 
   return (
     <section
@@ -108,16 +111,27 @@ export function PortalHero({
         className,
       )}
     >
-      <div
+      <motion.div
         className={cn(
           "absolute -right-12 top-0 h-52 w-52 rounded-full blur-3xl",
           toneStyle.heroGlow,
         )}
+        animate={reduced ? undefined : { y: [0, -12, 0] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="portal-hero-glow-secondary absolute bottom-0 left-8 h-24 w-40 rounded-full blur-3xl" />
+      <motion.div
+        className="portal-hero-glow-secondary absolute bottom-0 left-8 h-24 w-40 rounded-full blur-3xl"
+        animate={reduced ? undefined : { y: [0, 10, 0] }}
+        transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+      />
       <div className="portal-hero-divider absolute inset-x-0 bottom-0 h-px" />
 
-      <div className="relative flex flex-col gap-[var(--section-gap-xl)] xl:flex-row xl:items-end xl:justify-between">
+      <motion.div
+        className="relative flex flex-col gap-[var(--section-gap-xl)] xl:flex-row xl:items-end xl:justify-between"
+        initial="hidden"
+        animate="visible"
+        variants={fadeUpVariants(reduced, { delay: 0.04, distance: 22 })}
+      >
         <Stack gap="md" className="max-w-3xl">
           {eyebrow ? <Eyebrow className="portal-hero-eyebrow">{eyebrow}</Eyebrow> : null}
 
@@ -168,10 +182,15 @@ export function PortalHero({
             {actions}
           </div>
         ) : null}
-      </div>
+      </motion.div>
 
       {stats.length > 0 ? (
-        <div className="relative mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <motion.div
+          className="relative mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+          initial="hidden"
+          animate="visible"
+          variants={fadeUpVariants(reduced, { delay: 0.14, distance: 16 })}
+        >
           {stats.map((stat) => (
             <div
               key={stat.label}
@@ -192,7 +211,7 @@ export function PortalHero({
               ) : null}
             </div>
           ))}
-        </div>
+        </motion.div>
       ) : null}
     </section>
   );
@@ -213,12 +232,17 @@ export function PortalPanel({
   className?: string;
   contentClassName?: string;
 }) {
+  const reduced = useReducedMotion() ?? false;
+
   return (
-    <section
+    <motion.section
       className={cn(
         "portal-card overflow-hidden rounded-[var(--radius-panel)] border shadow-[var(--shadow-panel)]",
         className,
       )}
+      initial="hidden"
+      animate="visible"
+      variants={fadeUpVariants(reduced, { delay: 0.06, distance: 14 })}
     >
       {title || description || action ? (
         <div className="border-b border-slate-200/70 px-5 py-5 dark:border-slate-700/60 sm:px-6">
@@ -232,7 +256,7 @@ export function PortalPanel({
         </div>
       ) : null}
       <div className={cn("px-5 py-5 sm:px-6", contentClassName)}>{children}</div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -278,14 +302,18 @@ export function PortalMetricCard({
     },
   };
   const palette = toneMap[tone];
+  const reduced = useReducedMotion() ?? false;
 
   return (
-    <div
+    <motion.div
       className={cn(
         "rounded-[var(--radius-card)] border border-white/70 p-5 shadow-[var(--shadow-soft)] backdrop-blur-sm dark:border-slate-700/60",
         palette.wrap,
         className,
       )}
+      whileHover={reduced ? undefined : { y: -3 }}
+      whileTap={reduced ? undefined : { scale: 0.99 }}
+      transition={{ duration: motionTokens.duration.fast, ease: motionTokens.ease.standard }}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -310,7 +338,7 @@ export function PortalMetricCard({
           </div>
         ) : null}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -325,12 +353,17 @@ export function PortalEmptyState({
   icon?: PortalIcon;
   className?: string;
 }) {
+  const reduced = useReducedMotion() ?? false;
+
   return (
-    <div
+    <motion.div
       className={cn(
         "portal-card rounded-[var(--radius-panel)] border border-dashed px-6 py-10 text-center shadow-[var(--shadow-panel)]",
         className,
       )}
+      initial="hidden"
+      animate="visible"
+      variants={scaleInVariants(reduced, { delay: 0.04, scale: 0.98 })}
     >
       {Icon ? (
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 dark:bg-slate-800 dark:text-slate-300">
@@ -343,6 +376,6 @@ export function PortalEmptyState({
       <BodyText className="mx-auto mt-2 max-w-xl" tone="muted">
         {description}
       </BodyText>
-    </div>
+    </motion.div>
   );
 }

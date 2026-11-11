@@ -66,59 +66,59 @@
   --section-gap-md: var(--space-md);
   --section-gap-lg: var(--space-lg);
   --section-gap-xl: var(--space-xl);
-  --radius-control: 1rem;
-  --radius-card: 1.5rem;
-  --radius-panel: 1.75rem;
-  --radius-hero: 2rem;
+  --radius-control: 0.875rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.5rem;
+  --radius-hero: 1.75rem;
   --radius-pill: 999px;
-  --shadow-soft: 0 16px 38px -30px rgba(15, 23, 42, 0.18);
-  --shadow-panel: 0 24px 70px -46px rgba(15, 23, 42, 0.45);
-  --shadow-shell: 0 28px 90px -54px rgba(15, 23, 42, 0.55);
-  --shadow-hero: 0 32px 90px -48px rgba(15, 23, 42, 0.55);
+  --shadow-soft: 0 12px 32px -24px rgba(15, 23, 42, 0.22);
+  --shadow-panel: 0 20px 48px -36px rgba(15, 23, 42, 0.4);
+  --shadow-shell: 0 24px 64px -44px rgba(15, 23, 42, 0.48);
+  --shadow-hero: 0 28px 72px -48px rgba(15, 23, 42, 0.5);
   --motion-fast: 160ms;
   --motion-base: 240ms;
   --motion-slow: 360ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
-  --brand-primary: #0066FF;
-  --brand-secondary: #346069;
-  --brand-ink: #24203B;
-  --brand-neutral: #DDDDDD;
+  --brand-primary: #2563EB;
+  --brand-secondary: #1E40AF;
+  --brand-ink: #0F172A;
+  --brand-neutral: #E2E8F0;
 
   --role-accent: var(--brand-primary);
   --role-accent-strong: var(--brand-secondary);
   --role-accent-foreground: #ffffff;
-  --role-accent-soft: rgba(0, 102, 255, 0.12);
-  --role-accent-soft-strong: rgba(0, 102, 255, 0.18);
+  --role-accent-soft: rgba(37, 99, 235, 0.1);
+  --role-accent-soft-strong: rgba(37, 99, 235, 0.16);
   --role-accent-border: var(--brand-neutral);
   --role-accent-text: var(--brand-secondary);
   --role-accent-text-dark: var(--brand-primary);
-  --role-button-gradient: linear-gradient(135deg, #0066FF 0%, #346069 100%);
-  --role-logo-glow: rgba(0, 102, 255, 0.34);
+  --role-button-gradient: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+  --role-logo-glow: rgba(37, 99, 235, 0.28);
   --role-dot: var(--brand-primary);
   --role-indicator: var(--brand-secondary);
   --role-indicator-dark: var(--brand-primary);
   --role-shell-gradient: linear-gradient(
     135deg,
-    rgba(0, 102, 255, 0.12) 0%,
-    rgba(221, 221, 221, 0.62) 55%,
-    rgba(52, 96, 105, 0.2) 100%
+    rgba(37, 99, 235, 0.12) 0%,
+    rgba(226, 232, 240, 0.62) 55%,
+    rgba(30, 58, 138, 0.18) 100%
   );
   --role-shell-gradient-dark: linear-gradient(
     135deg,
-    rgba(36, 32, 59, 1) 0%,
-    rgba(52, 96, 105, 0.3) 45%,
-    rgba(36, 32, 59, 1) 100%
+    rgba(15, 23, 42, 1) 0%,
+    rgba(30, 58, 138, 0.32) 45%,
+    rgba(15, 23, 42, 1) 100%
   );
   --role-sidebar-surface: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.96) 0%,
-    rgba(221, 221, 221, 0.95) 100%
+    rgba(241, 245, 249, 0.95) 100%
   );
   --role-sidebar-surface-dark: linear-gradient(
     180deg,
-    rgba(36, 32, 59, 0.96) 0%,
-    rgba(36, 32, 59, 0.92) 100%
+    rgba(15, 23, 42, 0.96) 0%,
+    rgba(15, 23, 42, 0.92) 100%
   );
 }
 
@@ -214,42 +214,114 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-.portal-role-student,
-.portal-role-teacher,
-.portal-role-admin {
-  --role-accent: var(--brand-primary);
-  --role-accent-strong: var(--brand-secondary);
-  --role-accent-soft: rgba(0, 102, 255, 0.12);
-  --role-accent-soft-strong: rgba(0, 102, 255, 0.18);
-  --role-accent-border: var(--brand-neutral);
-  --role-accent-text: var(--brand-secondary);
-  --role-accent-text-dark: var(--brand-primary);
-  --role-button-gradient: linear-gradient(135deg, #0066FF 0%, #346069 100%);
-  --role-logo-glow: rgba(0, 102, 255, 0.34);
-  --role-dot: var(--brand-primary);
-  --role-indicator: var(--brand-secondary);
-  --role-indicator-dark: var(--brand-primary);
+.portal-role-student {
+  --role-accent: #2563EB;
+  --role-accent-strong: #1D4ED8;
+  --role-accent-soft: rgba(37, 99, 235, 0.1);
+  --role-accent-soft-strong: rgba(37, 99, 235, 0.16);
+  --role-accent-border: rgba(59, 130, 246, 0.35);
+  --role-accent-text: #1D4ED8;
+  --role-accent-text-dark: #93C5FD;
+  --role-button-gradient: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+  --role-logo-glow: rgba(37, 99, 235, 0.28);
+  --role-dot: #3B82F6;
+  --role-indicator: #1D4ED8;
+  --role-indicator-dark: #3B82F6;
   --role-shell-gradient: linear-gradient(
     135deg,
-    rgba(0, 102, 255, 0.12) 0%,
-    rgba(221, 221, 221, 0.62) 55%,
-    rgba(52, 96, 105, 0.2) 100%
+    rgba(37, 99, 235, 0.12) 0%,
+    rgba(226, 232, 240, 0.62) 55%,
+    rgba(30, 58, 138, 0.18) 100%
   );
   --role-shell-gradient-dark: linear-gradient(
     135deg,
-    rgba(36, 32, 59, 1) 0%,
-    rgba(52, 96, 105, 0.3) 45%,
-    rgba(36, 32, 59, 1) 100%
+    rgba(15, 23, 42, 1) 0%,
+    rgba(30, 58, 138, 0.32) 45%,
+    rgba(15, 23, 42, 1) 100%
   );
   --role-sidebar-surface: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(221, 221, 221, 0.95) 100%
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(241, 245, 249, 0.95) 100%
   );
   --role-sidebar-surface-dark: linear-gradient(
     180deg,
-    rgba(36, 32, 59, 0.96) 0%,
-    rgba(36, 32, 59, 0.92) 100%
+    rgba(15, 23, 42, 0.97) 0%,
+    rgba(15, 23, 42, 0.93) 100%
+  );
+}
+
+.portal-role-teacher {
+  --role-accent: #7C3AED;
+  --role-accent-strong: #6D28D9;
+  --role-accent-soft: rgba(124, 58, 237, 0.1);
+  --role-accent-soft-strong: rgba(124, 58, 237, 0.16);
+  --role-accent-border: rgba(139, 92, 246, 0.35);
+  --role-accent-text: #6D28D9;
+  --role-accent-text-dark: #C4B5FD;
+  --role-button-gradient: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+  --role-logo-glow: rgba(124, 58, 237, 0.28);
+  --role-dot: #8B5CF6;
+  --role-indicator: #6D28D9;
+  --role-indicator-dark: #8B5CF6;
+  --role-shell-gradient: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.12) 0%,
+    rgba(226, 232, 240, 0.62) 55%,
+    rgba(76, 29, 149, 0.16) 100%
+  );
+  --role-shell-gradient-dark: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 1) 0%,
+    rgba(76, 29, 149, 0.3) 45%,
+    rgba(15, 23, 42, 1) 100%
+  );
+  --role-sidebar-surface: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(245, 243, 255, 0.95) 100%
+  );
+  --role-sidebar-surface-dark: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.97) 0%,
+    rgba(15, 23, 42, 0.93) 100%
+  );
+}
+
+.portal-role-admin {
+  --role-accent: #0D9488;
+  --role-accent-strong: #0F766E;
+  --role-accent-soft: rgba(13, 148, 136, 0.1);
+  --role-accent-soft-strong: rgba(13, 148, 136, 0.16);
+  --role-accent-border: rgba(20, 184, 166, 0.35);
+  --role-accent-text: #0F766E;
+  --role-accent-text-dark: #5EEAD4;
+  --role-button-gradient: linear-gradient(135deg, #0D9488 0%, #115E59 100%);
+  --role-logo-glow: rgba(13, 148, 136, 0.28);
+  --role-dot: #14B8A6;
+  --role-indicator: #0F766E;
+  --role-indicator-dark: #14B8A6;
+  --role-shell-gradient: linear-gradient(
+    135deg,
+    rgba(13, 148, 136, 0.12) 0%,
+    rgba(226, 232, 240, 0.62) 55%,
+    rgba(19, 78, 74, 0.16) 100%
+  );
+  --role-shell-gradient-dark: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 1) 0%,
+    rgba(19, 78, 74, 0.3) 45%,
+    rgba(15, 23, 42, 1) 100%
+  );
+  --role-sidebar-surface: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(240, 253, 250, 0.95) 100%
+  );
+  --role-sidebar-surface-dark: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.97) 0%,
+    rgba(15, 23, 42, 0.93) 100%
   );
 }
 
@@ -348,54 +420,75 @@
 }
 
 .portal-hero {
-  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 56%, #346069 100%);
-  --portal-hero-border: rgba(0, 102, 255, 0.35);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(59, 130, 246, 0.35) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
+    linear-gradient(135deg, #0B1220 0%, #1E293B 52%, #0F172A 100%);
+  --portal-hero-border: rgba(148, 163, 184, 0.22);
   --portal-hero-title: #ffffff;
-  --portal-hero-body: rgba(221, 221, 221, 0.86);
-  --portal-hero-muted: rgba(221, 221, 221, 0.72);
-  --portal-hero-badge-bg: rgba(255, 255, 255, 0.12);
-  --portal-hero-badge-border: rgba(255, 255, 255, 0.16);
-  --portal-hero-stat-bg: rgba(255, 255, 255, 0.1);
-  --portal-hero-glow: rgba(0, 102, 255, 0.16);
+  --portal-hero-body: rgba(226, 232, 240, 0.82);
+  --portal-hero-muted: rgba(148, 163, 184, 0.9);
+  --portal-hero-badge-bg: rgba(255, 255, 255, 0.08);
+  --portal-hero-badge-border: rgba(255, 255, 255, 0.14);
+  --portal-hero-stat-bg: rgba(255, 255, 255, 0.07);
+  --portal-hero-glow: rgba(96, 165, 250, 0.22);
   background: var(--portal-hero-bg);
   border-color: var(--portal-hero-border);
   color: var(--portal-hero-title);
 }
 
 .portal-hero-blue {
-  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 54%, #346069 100%);
-  --portal-hero-border: rgba(0, 102, 255, 0.35);
-  --portal-hero-glow: rgba(0, 102, 255, 0.2);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(59, 130, 246, 0.4) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(99, 102, 241, 0.3) 0%, transparent 50%),
+    linear-gradient(135deg, #0B1220 0%, #1E3A8A 55%, #0F172A 100%);
+  --portal-hero-border: rgba(96, 165, 250, 0.28);
+  --portal-hero-glow: rgba(96, 165, 250, 0.26);
 }
 
 .portal-hero-teal {
-  --portal-hero-bg: linear-gradient(135deg, #115e59 0%, #0f766e 55%, #0891b2 100%);
-  --portal-hero-border: rgba(153, 246, 228, 0.42);
-  --portal-hero-glow: rgba(94, 234, 212, 0.18);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(20, 184, 166, 0.38) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(14, 165, 233, 0.26) 0%, transparent 50%),
+    linear-gradient(135deg, #042F2E 0%, #115E59 55%, #0C4A6E 100%);
+  --portal-hero-border: rgba(45, 212, 191, 0.3);
+  --portal-hero-glow: rgba(45, 212, 191, 0.22);
 }
 
 .portal-hero-slate {
-  --portal-hero-bg: linear-gradient(135deg, #1e293b 0%, #334155 56%, #475569 100%);
-  --portal-hero-border: rgba(203, 213, 225, 0.35);
-  --portal-hero-glow: rgba(226, 232, 240, 0.14);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(148, 163, 184, 0.22) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(100, 116, 139, 0.28) 0%, transparent 50%),
+    linear-gradient(135deg, #0F172A 0%, #1E293B 55%, #111827 100%);
+  --portal-hero-border: rgba(148, 163, 184, 0.26);
+  --portal-hero-glow: rgba(203, 213, 225, 0.14);
 }
 
 .dark .portal-hero-blue {
-  --portal-hero-bg: linear-gradient(135deg, #24203B 0%, #346069 58%, #24203B 100%);
-  --portal-hero-border: rgba(0, 102, 255, 0.24);
-  --portal-hero-glow: rgba(0, 102, 255, 0.16);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(59, 130, 246, 0.32) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(99, 102, 241, 0.24) 0%, transparent 50%),
+    linear-gradient(135deg, #020617 0%, #172554 55%, #0B1220 100%);
+  --portal-hero-border: rgba(96, 165, 250, 0.22);
+  --portal-hero-glow: rgba(96, 165, 250, 0.18);
 }
 
 .dark .portal-hero-teal {
-  --portal-hero-bg: linear-gradient(135deg, #0f172a 0%, #115e59 54%, #1e293b 100%);
-  --portal-hero-border: rgba(20, 184, 166, 0.22);
-  --portal-hero-glow: rgba(20, 184, 166, 0.13);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(20, 184, 166, 0.3) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(14, 165, 233, 0.2) 0%, transparent 50%),
+    linear-gradient(135deg, #020617 0%, #134E4A 55%, #082F49 100%);
+  --portal-hero-border: rgba(45, 212, 191, 0.2);
+  --portal-hero-glow: rgba(45, 212, 191, 0.14);
 }
 
 .dark .portal-hero-slate {
-  --portal-hero-bg: linear-gradient(135deg, #020617 0%, #111827 54%, #1e293b 100%);
-  --portal-hero-border: rgba(100, 116, 139, 0.5);
-  --portal-hero-glow: rgba(148, 163, 184, 0.12);
+  --portal-hero-bg:
+    radial-gradient(120% 140% at 85% -20%, rgba(148, 163, 184, 0.16) 0%, transparent 55%),
+    radial-gradient(90% 120% at 10% 110%, rgba(100, 116, 139, 0.2) 0%, transparent 50%),
+    linear-gradient(135deg, #020617 0%, #0F172A 55%, #1E293B 100%);
+  --portal-hero-border: rgba(100, 116, 139, 0.4);
+  --portal-hero-glow: rgba(148, 163, 184, 0.1);
 }
 
 .portal-hero-title {
@@ -602,9 +695,10 @@
   gap: clamp(1.5rem, 2vh, 2.25rem);
   padding: clamp(2rem, 4vw, 3.5rem);
   background:
-    radial-gradient(circle at 20% 30%, rgba(0, 102, 255, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(52, 96, 105, 0.15) 0%, transparent 40%),
-    linear-gradient(160deg, #24203B 0%, #2d4f5a 48%, #346069 100%);
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.14) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 70% 90%, var(--role-logo-glow, rgba(37, 99, 235, 0.35)) 0%, transparent 55%),
+    linear-gradient(160deg, var(--role-accent-strong, #1D4ED8) 0%, var(--role-accent, #2563EB) 52%, rgba(2, 6, 23, 0.55) 132%);
   color: #fff;
 }
 
