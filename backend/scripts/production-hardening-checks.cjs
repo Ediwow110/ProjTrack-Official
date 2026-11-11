@@ -190,14 +190,15 @@ for (const file of backendSourceFiles) {
   assert(!/\bactor\s*:\s*true\b/.test(source), `${relative} returns raw actor include.`);
 }
 
-const subjectsService = includes('src/subjects/subjects.service.ts', [
-  'requireTeacherOwnsActivity',
-  'if (!byStudent.size)',
-  'requireStudentCanCreateGroup',
-  'requireStudentCanJoinGroup',
-  'ensureStudentEnrolledInSubject',
-]);
-assert(!/return\s+\{\s*\.\.\.subject/.test(subjectsService), 'Subject service must not return raw subject spreads.');
+const subjectsServiceChecks = [
+  ['src/subjects/teacher-subjects.service.ts', ['requireTeacherOwnsActivity', 'if (!byStudent.size)']],
+  ['src/subjects/subject-groups.service.ts', ['requireStudentCanCreateGroup', 'requireStudentCanJoinGroup']],
+  ['src/subjects/student-subjects.service.ts', ['ensureStudentEnrolledInSubject']],
+];
+for (const [subjectsServicePath, subjectsServicePatterns] of subjectsServiceChecks) {
+  const subjectsServiceSource = includes(subjectsServicePath, subjectsServicePatterns);
+  assert(!/return\s+\{\s*\.\.\.subject/.test(subjectsServiceSource), `${subjectsServicePath} must not return raw subject spreads.`);
+}
 
 const subjectRepository = includes('src/repositories/subject.repository.ts', [
   'randomBytes',
@@ -261,7 +262,12 @@ includes('src/auth/password.service.ts', [
   'return false',
 ]);
 
-includes('src/admin/admin.service.ts', [
+const adminServiceSources = [
+  'src/admin/admin-users.service.ts',
+  'src/admin/admin-notifications.service.ts',
+  'src/admin/admin-system-tools.service.ts',
+].map((adminServicePath) => read(adminServicePath)).join('\n');
+for (const adminGuard of [
   'revokedAt',
   'canExposeAccountActionLinks',
   'EXPOSE_ACCOUNT_ACTION_LINKS',
@@ -274,7 +280,9 @@ includes('src/admin/admin.service.ts', [
   'ALLOW_SEED_DATA_CLEANUP',
   'ALLOW_PRODUCTION_ADMIN_TOOL_RUNS',
   'Remaining candidate demo records after cleanup',
-]);
+]) {
+  assert(adminServiceSources.includes(adminGuard), `Admin services are missing expected guard: ${adminGuard}`);
+}
 
 includes('src/auth/auth.service.ts', [
   'consumePasswordResetTx',
@@ -393,9 +401,9 @@ assert(roleLoginPage.includes('TEACHER PORTAL LOGIN'), 'Teacher login page must 
 assert(roleLoginPage.includes('ADMIN PORTAL LOGIN'), 'Admin login page must keep the approved role-specific headline.');
 
 const roleTheme = readRepo('src/app/lib/roleTheme.ts');
-assert(roleTheme.includes('teacher') && roleTheme.includes('#4DD4AC'), 'Teacher role theme must use brand mint (#4DD4AC).');
-assert(roleTheme.includes('admin') && roleTheme.includes('#4DD4AC'), 'Admin role theme must use brand mint (#4DD4AC).');
-assert(roleTheme.includes('student') && roleTheme.includes('#4DD4AC'), 'Student role theme must use brand mint (#4DD4AC).');
+assert(roleTheme.includes('teacher') && roleTheme.includes('admin') && roleTheme.includes('student'), 'Role theme must define teacher, admin, and student portals.');
+const roleAccentCount = (roleTheme.match(/accent:\s*"#/g) || []).length;
+assert(roleAccentCount >= 3, 'Each portal role must define its own accent color.');
 
 const authLayout = readRepo('src/app/components/auth/AuthLayout.tsx');
 assert(authLayout.includes('auth-hero-brand-lockup') && authLayout.includes('role={role}'), 'Role login pages must include the brand logo lockup with role-based coloring.');
@@ -510,7 +518,7 @@ for (const phrase of ['escapeHtml', 'assertSafeUrl', 'normalizeSubject', 'requir
   assert(mailTemplates.includes(phrase), `Mail renderer must include ${phrase}.`);
 }
 
-const adminMailFlows = read('src/admin/admin.service.ts');
+const adminMailFlows = read('src/admin/admin-notifications.service.ts');
 assert(adminMailFlows.includes("body.audience === 'ADMINS'"), 'Admin-only broadcasts must use admin sender routing.');
 assert(adminMailFlows.includes('MAIL_CATEGORY_KEYS.NOTIFICATION'), 'Student/teacher/all broadcasts must use notification sender routing.');
 

@@ -7,7 +7,7 @@ on:
 
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -36,7 +36,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            echo "Playwright install attempt $attempt failed; retrying in 20s"
+            sleep 20
+          done
+          exit 1
 
       - name: Responsive harness discovery
         run: npm run e2e:responsive -- --list
@@ -148,7 +155,7 @@ jobs:
           echo "- Security acceptance still requires live passing evidence plus resolution of PERF-GATE blocker #34." >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
       postgres:
@@ -215,7 +222,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            echo "Playwright install attempt $attempt failed; retrying in 20s"
+            sleep 20
+          done
+          exit 1
 
       - run: npm --prefix backend run prisma:generate
       - run: npm --prefix backend run prisma:migrate:deploy
